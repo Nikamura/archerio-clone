@@ -339,7 +339,10 @@ Visual test screenshots are saved to `test/screenshots/`
 4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
 5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
 6. ⚠️ **Room complete screen shows UI clutter** - When room is cleared and "ENTER" prompt appears, instruction text and health bar should be hidden for cleaner presentation
-7. ✅ **Ability selection not working** - FIXED: Refactored LevelUpScene to use Phaser Container for grouping card elements, ensuring proper interactive hit areas. Child elements no longer block pointer events.
+7. ✅ **Ability selection not working** - FIXED: Two issues resolved:
+   - Phaser Containers require explicit hit area geometry (not just `setSize()` + `setInteractive()`)
+   - Used `new Phaser.Geom.Rectangle(-width/2, -height/2, width, height)` as hit area (offset because container origin is center)
+   - Added `this.input.enabled = true` and `this.scene.bringToTop()` to ensure input is captured when launched over GameScene
 8. ✅ **Joystick Y-axis inverted** - FIXED: nipplejs uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
 
 **NEXT PRIORITIES:**
@@ -351,7 +354,31 @@ Visual test screenshots are saved to `test/screenshots/`
    - Fire Damage: Apply DOT effect to enemies on hit
    - Crit: Roll for crit on each hit, show damage numbers
 4. Add basic audio (shoot, hit, level-up, death sounds)
-5. Polish ability UI with animations and feedback
+5. **Generate game assets using AI image generation** (use `--clean` flag for transparency):
+   - Player sprite: `pnpm run generate-sprite "archer hero with bow" --type player --clean`
+   - Enemy sprites:
+     - `pnpm run generate-sprite "red slime monster" --type enemy --clean` (melee)
+     - `pnpm run generate-sprite "skeleton archer" --type enemy --clean` (ranged)
+     - `pnpm run generate-sprite "purple eye monster" --type enemy --clean` (spreader)
+   - Boss sprite: `pnpm run generate-sprite "giant demon boss" --type boss --size 128 --clean`
+   - Projectiles:
+     - `pnpm run generate-sprite "golden arrow" --type projectile --clean`
+     - `pnpm run generate-sprite "red enemy fireball" --type projectile --clean`
+   - UI elements:
+     - `pnpm run generate-sprite "heart health icon" --type ui --clean`
+     - `pnpm run generate-sprite "golden star XP icon" --type ui --clean`
+     - `pnpm run generate-sprite "wooden door" --type ui --size 64 --clean`
+   - Ability icons (8 total):
+     - `pnpm run generate-sprite "front arrow ability icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "multishot arrows icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "attack speed lightning bolt icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "attack power sword icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "piercing arrow icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "ricochet bouncing arrow icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "fire damage flame icon" --type ui --size 48 --clean`
+     - `pnpm run generate-sprite "critical hit crosshair icon" --type ui --size 48 --clean`
+   - Background: `pnpm run generate-image "dark dungeon stone floor texture seamless" 375 667`
+6. Polish ability UI with animations and feedback
 
 ---
 

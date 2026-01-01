@@ -77,6 +77,10 @@ export default class LevelUpScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
+    // Ensure this scene receives input (important when launched over another scene)
+    this.input.enabled = true
+    this.scene.bringToTop()
+
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
 
@@ -179,9 +183,14 @@ export default class LevelUpScene extends Phaser.Scene {
       .setOrigin(0.5)
     container.add(descText)
 
-    // Make the container interactive with the card's size as hit area
+    // Make the container interactive with explicit hit area
+    // Container origin is at center, so hit area must be offset by -width/2, -height/2
     container.setSize(width, height)
-    container.setInteractive({ useHandCursor: true })
+    container.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    })
 
     // Hover effects
     container.on('pointerover', () => {
