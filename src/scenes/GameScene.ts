@@ -8,8 +8,10 @@ import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
+import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 
 export default class GameScene extends Phaser.Scene {
+  private difficultyConfig!: DifficultyConfig
   private player!: Player
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private joystick!: Joystick
@@ -38,6 +40,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Load difficulty configuration
+    this.difficultyConfig = getDifficultyConfig(this.game)
+    console.log('Starting game with difficulty:', this.difficultyConfig.label)
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
@@ -54,8 +60,12 @@ export default class GameScene extends Phaser.Scene {
     const bg = this.add.image(0, 0, 'dungeonFloor').setOrigin(0)
     bg.setDisplaySize(width, height)
 
-    // Create player in center
-    this.player = new Player(this, width / 2, height / 2)
+    // Create player in center with difficulty-adjusted stats
+    this.player = new Player(this, width / 2, height / 2, {
+      maxHealth: this.difficultyConfig.playerMaxHealth,
+      baseDamage: this.difficultyConfig.playerDamage,
+      baseAttackSpeed: this.difficultyConfig.playerAttackSpeed,
+    })
 
     // Create bullet pools
     this.bulletPool = new BulletPool(this)
@@ -280,10 +290,11 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Scale difficulty based on room number
+    // Scale difficulty based on room number and difficulty setting
     const baseEnemies = 4
     const additionalEnemies = Math.floor(this.currentRoom / 2)
-    const totalEnemies = Math.min(baseEnemies + additionalEnemies, 10)
+    const scaledEnemies = Math.min(baseEnemies + additionalEnemies, 10)
+    const totalEnemies = Math.round(scaledEnemies * this.difficultyConfig.enemySpawnMultiplier)
 
     // Generate enemy types based on room progress
     const enemyTypes: string[] = []
@@ -316,14 +327,24 @@ export default class GameScene extends Phaser.Scene {
     const bossX = width / 2
     const bossY = height / 3
 
-    this.boss = new Boss(this, bossX, bossY, this.enemyBulletPool)
+    // Difficulty modifiers for boss
+    const bossOptions = {
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier,
+    }
+
+    this.boss = new Boss(this, bossX, bossY, this.enemyBulletPool, bossOptions)
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
-    // Set up physics body for boss (larger hitbox)
+    // Set up physics body for boss with centered circular hitbox
     const body = this.boss.body as Phaser.Physics.Arcade.Body
     if (body) {
-      body.setCircle(25, 7, 7) // Larger hitbox for boss
+      const displaySize = 64 // Boss display size from Boss.ts
+      const radius = 25 // Larger hitbox for boss
+      const offset = (displaySize - radius * 2) / 2
+      body.setSize(displaySize, displaySize)
+      body.setCircle(radius, offset, offset)
       body.setCollideWorldBounds(true)
     }
 
@@ -407,24 +428,35 @@ export default class GameScene extends Phaser.Scene {
         const enemyType = enemyTypes[spawned]
         let enemy: Enemy
 
+        // Difficulty modifiers for enemies
+        const enemyOptions = {
+          healthMultiplier: this.difficultyConfig.enemyHealthMultiplier,
+          damageMultiplier: this.difficultyConfig.enemyDamageMultiplier,
+        }
+
         switch (enemyType) {
           case 'ranged':
-            enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool)
+            enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
             break
           case 'spreader':
-            enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool)
+            enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
             break
           default:
-            enemy = new Enemy(this, x, y)
+            enemy = new Enemy(this, x, y, enemyOptions)
         }
 
         this.add.existing(enemy)
         this.physics.add.existing(enemy)
 
-        // Set up physics body with smaller hitbox
+        // Set up physics body with centered circular hitbox
         const body = enemy.body as Phaser.Physics.Arcade.Body
         if (body) {
-          body.setCircle(10)
+          // Get actual display size from enemy (varies by type: 30 for melee/ranged, 36 for spreader)
+          const displaySize = enemy.displayWidth
+          const radius = Math.floor(displaySize * 0.4) // 40% of display size for hitbox
+          const offset = (displaySize - radius * 2) / 2
+          body.setSize(displaySize, displaySize)
+          body.setCircle(radius, offset, offset)
           body.setCollideWorldBounds(true)
         }
 
@@ -618,8 +650,12 @@ export default class GameScene extends Phaser.Scene {
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
 
+    // Calculate bullet damage with difficulty modifier
+    const baseBulletDamage = 10
+    const bulletDamage = Math.round(baseBulletDamage * this.difficultyConfig.enemyDamageMultiplier)
+
     // Try to damage player (respects invincibility)
-    const damageTaken = playerSprite.takeDamage(10)
+    const damageTaken = playerSprite.takeDamage(bulletDamage)
     if (!damageTaken) return
 
     // Update UI
@@ -646,8 +682,11 @@ export default class GameScene extends Phaser.Scene {
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
 
+    // Get enemy damage (scaled by difficulty)
+    const damage = enemySprite.getDamage()
+
     // Try to damage player (respects invincibility)
-    const damageTaken = playerSprite.takeDamage(5)
+    const damageTaken = playerSprite.takeDamage(damage)
     if (!damageTaken) return
 
     // Update UI

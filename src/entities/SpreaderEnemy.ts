@@ -7,8 +7,17 @@ export default class SpreaderEnemy extends Enemy {
   private fireRate: number = 3000 // 3 seconds between spreads
   private bulletPool: EnemyBulletPool
 
-  constructor(scene: Phaser.Scene, x: number, y: number, bulletPool: EnemyBulletPool) {
-    super(scene, x, y)
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    bulletPool: EnemyBulletPool,
+    options?: {
+      healthMultiplier?: number
+      damageMultiplier?: number
+    }
+  ) {
+    super(scene, x, y, options)
 
     this.bulletPool = bulletPool
 

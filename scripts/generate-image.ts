@@ -143,7 +143,7 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
       {
         parts: [
           {
-            text: `Generate an image: ${prompt}. Target size approximately ${width}x${height} pixels.`,
+            text: `Generate an image: ${prompt}. Target size approximately ${width}x${height} pixels. IMPORTANT: The subject must FILL the entire canvas - use 90-95% of available space with minimal margins or padding. Make the subject large and prominent.`,
           },
         ],
       },

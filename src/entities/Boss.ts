@@ -21,13 +21,27 @@ export default class Boss extends Enemy {
   private chargeSpeed: number = 400
 
   // Boss-specific properties
-  private bossHealth: number = 200
-  private bossMaxHealth: number = 200
+  private bossHealth: number
+  private bossMaxHealth: number
 
-  constructor(scene: Phaser.Scene, x: number, y: number, bulletPool: EnemyBulletPool) {
-    super(scene, x, y)
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    bulletPool: EnemyBulletPool,
+    options?: {
+      healthMultiplier?: number
+      damageMultiplier?: number
+    }
+  ) {
+    super(scene, x, y, options)
 
     this.bulletPool = bulletPool
+
+    // Apply difficulty modifiers to boss health
+    const baseHealth = 200
+    this.bossMaxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0))
+    this.bossHealth = this.bossMaxHealth
 
     // Use boss sprite
     this.setTexture('bossSprite')

@@ -11,8 +11,17 @@ export default class RangedShooterEnemy extends Enemy {
   private bulletPool: EnemyBulletPool
   private telegraphLine?: Phaser.GameObjects.Line
 
-  constructor(scene: Phaser.Scene, x: number, y: number, bulletPool: EnemyBulletPool) {
-    super(scene, x, y)
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    bulletPool: EnemyBulletPool,
+    options?: {
+      healthMultiplier?: number
+      damageMultiplier?: number
+    }
+  ) {
+    super(scene, x, y, options)
 
     this.bulletPool = bulletPool
 

@@ -2,23 +2,45 @@ import Phaser from 'phaser'
 import { PlayerStats } from '../systems/PlayerStats'
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-  private stats: PlayerStats = new PlayerStats()
+  private stats: PlayerStats
   private isMoving: boolean = false
   private invincibilityDuration: number = 500 // ms of invincibility after being hit
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    statsOptions?: {
+      maxHealth?: number
+      baseDamage?: number
+      baseAttackSpeed?: number
+      xpToLevelUp?: number
+    }
+  ) {
     super(scene, x, y, 'playerSprite')
+
+    // Initialize stats with optional difficulty modifiers
+    this.stats = new PlayerStats(statsOptions)
 
     // Add to scene
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
-    // Set size to match sprite (64x64)
-    this.setDisplaySize(40, 40) // Scale down slightly for better gameplay
+    // Set size to match sprite (64x64) - keep original size for visibility
+    this.setDisplaySize(64, 64)
     this.setCollideWorldBounds(true)
     this.setDrag(800, 800)
 
-    console.log('Player created at', x, y)
+    // Set up centered circular hitbox for player
+    if (this.body) {
+      const displaySize = 64
+      const radius = 16 // Player hitbox - not too large to allow dodging
+      const offset = (displaySize - radius * 2) / 2
+      this.body.setSize(displaySize, displaySize)
+      this.body.setCircle(radius, offset, offset)
+    }
+
+    console.log('Player created at', x, y, 'with stats:', statsOptions)
   }
 
   update(_time: number, _delta: number) {

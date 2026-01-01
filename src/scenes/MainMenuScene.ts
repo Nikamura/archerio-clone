@@ -1,6 +1,9 @@
 import Phaser from 'phaser'
+import { DifficultyLevel, DIFFICULTY_CONFIGS, setDifficulty, getCurrentDifficulty } from '../config/difficulty'
 
 export default class MainMenuScene extends Phaser.Scene {
+  private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
+
   constructor() {
     super({ key: 'MainMenuScene' })
   }
@@ -9,16 +12,86 @@ export default class MainMenuScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
+    // Get saved difficulty or default to NORMAL
+    this.selectedDifficulty = getCurrentDifficulty(this.game)
+
     // Title
-    const title = this.add.text(width / 2, height / 3, 'ARCHER.IO', {
-      fontSize: '64px',
+    const title = this.add.text(width / 2, 60, 'ARCHER.IO', {
+      fontSize: '48px',
       color: '#ffffff',
       fontStyle: 'bold',
     })
     title.setOrigin(0.5)
 
+    // Difficulty label
+    const difficultyLabel = this.add.text(width / 2, 150, 'SELECT DIFFICULTY', {
+      fontSize: '20px',
+      color: '#aaaaaa',
+      fontStyle: 'bold',
+    })
+    difficultyLabel.setOrigin(0.5)
+
+    // Create difficulty buttons
+    const buttonY = 200
+    const buttonSpacing = 100
+    const difficulties = [DifficultyLevel.EASY, DifficultyLevel.NORMAL, DifficultyLevel.HARD]
+
+    difficulties.forEach((difficulty, index) => {
+      const config = DIFFICULTY_CONFIGS[difficulty]
+      const yPos = buttonY + index * buttonSpacing
+
+      // Button background
+      const button = this.add.text(width / 2, yPos, config.label, {
+        fontSize: '24px',
+        color: '#ffffff',
+        backgroundColor: difficulty === this.selectedDifficulty ? config.color : '#555555',
+        padding: { x: 30, y: 12 },
+      })
+      button.setOrigin(0.5)
+      button.setInteractive({ useHandCursor: true })
+      button.setData('difficulty', difficulty)
+
+      // Description text
+      const description = this.add.text(width / 2, yPos + 28, config.description, {
+        fontSize: '12px',
+        color: '#aaaaaa',
+      })
+      description.setOrigin(0.5)
+
+      // Hover effects
+      button.on('pointerover', () => {
+        if (this.selectedDifficulty !== difficulty) {
+          button.setStyle({ backgroundColor: '#777777' })
+        }
+      })
+
+      button.on('pointerout', () => {
+        if (this.selectedDifficulty !== difficulty) {
+          button.setStyle({ backgroundColor: '#555555' })
+        }
+      })
+
+      // Click handler
+      button.on('pointerdown', () => {
+        // Update selected difficulty
+        this.selectedDifficulty = difficulty
+        setDifficulty(this.game, difficulty)
+
+        // Update all buttons
+        this.children.list.forEach((child) => {
+          if (child instanceof Phaser.GameObjects.Text && child.getData('difficulty')) {
+            const childDifficulty = child.getData('difficulty') as DifficultyLevel
+            const childConfig = DIFFICULTY_CONFIGS[childDifficulty]
+            child.setStyle({
+              backgroundColor: childDifficulty === difficulty ? childConfig.color : '#555555',
+            })
+          }
+        })
+      })
+    })
+
     // Play button
-    const playButton = this.add.text(width / 2, height / 2, 'PLAY', {
+    const playButton = this.add.text(width / 2, height - 140, 'PLAY', {
       fontSize: '32px',
       color: '#ffffff',
       backgroundColor: '#4a9eff',
@@ -44,10 +117,10 @@ export default class MainMenuScene extends Phaser.Scene {
     // Instructions
     const instructions = this.add.text(
       width / 2,
-      height - 100,
+      height - 80,
       'Touch left side to move • Stop to shoot',
       {
-        fontSize: '18px',
+        fontSize: '16px',
         color: '#aaaaaa',
       }
     )

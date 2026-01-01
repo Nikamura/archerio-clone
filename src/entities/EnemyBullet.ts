@@ -10,12 +10,17 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
-    // Set display size for the fireball sprite
-    this.setDisplaySize(16, 16)
+    // Set display size for the fireball sprite - match player bullet size
+    this.setDisplaySize(24, 24)
 
-    // Set small circular hitbox for precise collision
+    // Set circular hitbox centered on the sprite
+    // Must sync body size with display size, then center the circle
     if (this.body) {
-      this.body.setCircle(5) // Small 5-pixel radius for enemy bullet
+      const displaySize = 24
+      const radius = 6 // Slightly larger hitbox for better hit detection
+      const offset = (displaySize - radius * 2) / 2
+      this.body.setSize(displaySize, displaySize)
+      this.body.setCircle(radius, offset, offset)
     }
 
     this.setActive(false)

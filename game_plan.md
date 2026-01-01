@@ -234,10 +234,15 @@ assets/
 - Boss health bar (full-width, appears in boss room)
 
 **MVP UI screens:**
-- Main menu: Play button, settings toggle
+- Main menu: Play button, difficulty selection (Easy/Normal/Hard), settings toggle
 - Level-up modal: 3 ability cards, darkened background
 - Death screen: "Try Again" button, basic stats (rooms cleared, enemies killed)
 - Victory screen: Run complete message, restart button
+
+**Difficulty selection:**
+- **Easy**: Beginner-friendly with +50% player health (150 HP), +20% player damage and attack speed, -30% enemy health, -25% enemy damage, -20% enemy spawns, -40% boss health, -25% boss damage
+- **Normal**: Balanced challenge with standard stats (100 HP, base damage/speed, normal enemy stats)
+- **Hard**: For veterans with -20% player health (80 HP), -10% player damage and attack speed, +40% enemy health, +30% enemy damage, +30% enemy spawns, +50% boss health, +30% boss damage
 
 **Procedural generation (minimal):**
 - 5 hand-crafted room layouts per room type (combat, boss)
@@ -267,6 +272,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] 4 more abilities (Piercing, Ricochet, Fire Damage, Crit Boost)
 [x] Boss with 3 attack patterns (spread, barrage, charge)
 [x] Health system with damage feedback (UI update needed)
+[x] Difficulty selection (Easy/Normal/Hard with stat modifiers)
 [ ] Basic audio (shoot, hit, level-up, death)
 [x] Touch controls working on mobile browsers (virtual joystick implemented)
 [x] 60 FPS on desktop (tested via Puppeteer)
@@ -311,6 +317,14 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Fire DOT: Enemies burn with orange tint, tick damage every 500ms for 2 seconds
   - Critical hits: Yellow tinted bullets deal increased damage (visual feedback)
   - All effects work with Front Arrow and Multishot projectiles
+- ✅ **Enemy health bars** - Small health bars appear above enemies when damaged (hidden at full HP)
+  - Color changes: green (>50%) → yellow (25-50%) → red (<25%)
+  - Follows enemy movement, auto-hides when enemy dies or resets
+- ✅ **Difficulty selection** (2026-01-01):
+  - Three difficulty modes: Easy, Normal, Hard
+  - Easy: +50% player HP, +20% damage/speed, -30% enemy HP, -25% enemy damage, -20% spawns
+  - Hard: -20% player HP, -10% damage/speed, +40% enemy HP, +30% enemy damage, +30% spawns
+  - Difficulty persists across runs (saved in game registry)
 - ✅ ESLint + TypeScript build passing
 - ✅ 86 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
@@ -356,6 +370,21 @@ Visual test screenshots are saved to `test/screenshots/`
    - Used `new Phaser.Geom.Rectangle(-width/2, -height/2, width, height)` as hit area (offset because container origin is center)
    - Added `this.input.enabled = true` and `this.scene.bringToTop()` to ensure input is captured when launched over GameScene
 8. ✅ **Joystick Y-axis inverted** - FIXED: nipplejs uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
+9. ✅ **AI-generated sprites too large** - FIXED (2026-01-01):
+   - AI image generation created 1024x1024+ sprites instead of 32-64px
+   - Resized all sprites using ImageMagick: player (64x64), bullets (32x32)
+   - Adjusted display sizes: Player (64px), bullets (24px), enemy bullets (24px)
+   - Backed up originals to `public/assets/sprites/originals/`
+   - **LESSON**: Always specify exact pixel dimensions when using `pnpm run generate-sprite`
+10. ✅ **Bullets passing through enemies (hitbox misalignment)** - FIXED (2026-01-01):
+   - Issue: `setCircle()` positions hitbox at top-left corner by default, not sprite center
+   - Also: Physics body used original texture size, not display size after `setDisplaySize()`
+   - Fixed all entities (Bullet, EnemyBullet, Enemy, Player, Boss):
+     - Added `body.setSize(displaySize, displaySize)` to sync body with display size
+     - Calculated proper offset: `offset = (displaySize - radius * 2) / 2`
+     - Used `body.setCircle(radius, offset, offset)` for centered hitboxes
+   - Made enemy hitbox dynamic using `enemy.displayWidth` to handle varying sizes (30px melee/ranged, 36px spreader)
+   - **LESSON**: Always center circular hitboxes with offset when using sprites
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -365,11 +394,11 @@ Visual test screenshots are saved to `test/screenshots/`
    - ✅ Ricochet: Bullets bounce to nearest enemy (3 bounces per level)
    - ✅ Fire Damage: Apply DOT effect (18% weapon damage over 2 seconds, burns with orange tint)
    - ✅ Crit: Roll for crit on each bullet (visual: yellow tint + larger), damage multiplier applied
-4. Add basic audio (shoot, hit, level-up, death sounds)
-5. **Balance pass needed** (user feedback 2026-01-01):
-   - ⚠️ Boss too easy - needs more HP or damage
-   - ⚠️ Regular enemies die too quickly - may need HP buff
-   - Consider: Enemy HP scaling by room number
+4. ✅ ~~**Balance pass needed**~~ - ADDRESSED (2026-01-01):
+   - Added difficulty selection (Easy/Normal/Hard)
+   - Hard mode: +50% boss HP, +30% boss damage, +40% enemy HP, +30% enemy damage
+   - Easy mode: -40% boss HP, -25% boss damage, -30% enemy HP for beginners
+5. Add basic audio (shoot, hit, level-up, death sounds)
 6. **Generate game assets using AI image generation** (use `--clean` flag for transparency):
    - Player sprite: `pnpm run generate-sprite "archer hero with bow" --type player --clean`
    - Enemy sprites:
