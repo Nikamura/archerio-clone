@@ -1299,6 +1299,10 @@ export default class GameScene extends Phaser.Scene {
 
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy
+
+      // Only target active enemies
+      if (!e.active) return
+
       const distance = Phaser.Math.Distance.Between(
         this.player.x,
         this.player.y,
@@ -1326,8 +1330,8 @@ export default class GameScene extends Phaser.Scene {
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy
 
-      // Skip the excluded enemy
-      if (e === exclude) return
+      // Skip the excluded enemy or inactive enemies
+      if (e === exclude || !e.active) return
 
       const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
 
