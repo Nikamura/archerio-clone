@@ -153,13 +153,23 @@ export default class Joystick {
       })
     }
 
-    // Keep pointer events enabled so the Phaser canvas stays clickable on iOS
+    // CRITICAL: Disable pointer events on the joystick zone so it doesn't block the canvas
+    if (this.joystickZone) {
+      this.joystickZone.style.pointerEvents = 'none'
+    }
+
+    // Keep pointer events enabled on container so the Phaser canvas stays clickable on iOS
     if (this.container) {
       this.container.style.pointerEvents = 'auto'
     }
   }
 
   show() {
+    // Re-enable pointer events on the joystick zone
+    if (this.joystickZone) {
+      this.joystickZone.style.pointerEvents = 'auto'
+    }
+
     if (!this.manager && this.joystickZone) {
       console.log('Joystick: recreating manager')
       this.internalCreate()
