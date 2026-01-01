@@ -596,9 +596,10 @@ export function getPreviousChapterId(currentChapterId: ChapterId): ChapterId | n
 /**
  * Get a random boss from the chapter's boss pool
  * @param chapterId The chapter to get a boss for
+ * @param rng Optional seeded random generator (uses Math.random if not provided)
  * @returns A random BossType from the chapter's pool
  */
-export function getRandomBossForChapter(chapterId: ChapterId): BossType {
+export function getRandomBossForChapter(chapterId: ChapterId, rng?: { random: () => number }): BossType {
   const chapter = CHAPTER_DEFINITIONS[chapterId]
   const pool = chapter.bossPool
 
@@ -606,7 +607,8 @@ export function getRandomBossForChapter(chapterId: ChapterId): BossType {
     return chapter.bossType // Fallback to main boss
   }
 
-  const randomIndex = Math.floor(Math.random() * pool.length)
+  const randomValue = rng ? rng.random() : Math.random()
+  const randomIndex = Math.floor(randomValue * pool.length)
   return pool[randomIndex]
 }
 

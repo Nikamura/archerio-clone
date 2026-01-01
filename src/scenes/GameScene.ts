@@ -29,6 +29,7 @@ import { heroManager } from '../systems/HeroManager'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
+import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES } from './LevelUpScene'
 
 export default class GameScene extends Phaser.Scene {
@@ -77,6 +78,10 @@ export default class GameScene extends Phaser.Scene {
   private currentGeneratedRoom: GeneratedRoom | null = null
   private pendingEnemySpawns: number = 0
   private activeWaveTimers: Phaser.Time.TimerEvent[] = []
+
+  // Seeded random for deterministic runs
+  private runRng!: SeededRandom
+  private runSeedString: string = ''
 
   constructor() {
     super({ key: 'GameScene' })
@@ -204,8 +209,21 @@ export default class GameScene extends Phaser.Scene {
       performanceMonitor.createOverlay(this)
     }
 
-    // Initialize room generator
+    // Initialize seeded random for deterministic run
+    // Check if a seed was passed from MainMenuScene
+    const passedSeed = this.game.registry.get('runSeed')
+    if (passedSeed) {
+      this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
+      this.game.registry.remove('runSeed') // Clear it for next run
+    } else {
+      this.runRng = new SeededRandom()
+    }
+    this.runSeedString = this.runRng.getSeedString()
+    console.log(`GameScene: Run seed: ${this.runSeedString}`)
+
+    // Initialize room generator with seeded RNG
     this.roomGenerator = getRoomGenerator(width, height)
+    this.roomGenerator.setRng(this.runRng)
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
@@ -592,9 +610,9 @@ export default class GameScene extends Phaser.Scene {
     const bossX = width / 2
     const bossY = height / 3
 
-    // Get current chapter and select a boss from its pool
+    // Get current chapter and select a boss from its pool (using seeded RNG)
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const bossType: BossType = getRandomBossForChapter(selectedChapter)
+    const bossType: BossType = getRandomBossForChapter(selectedChapter, this.runRng)
 
     // Difficulty modifiers for boss (combine difficulty config with chapter scaling)
     const chapterDef = getChapterDefinition(selectedChapter)
@@ -697,6 +715,7 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
+        runSeed: this.runSeedString,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1247,6 +1266,9 @@ export default class GameScene extends Phaser.Scene {
       // Reset to room 1
       this.currentRoom = 1
 
+      // Reset RNG to initial state so enemies spawn in same locations
+      this.runRng.reset()
+
       // Clean up current room (but NOT the player - keep abilities!)
       this.cleanupRoom()
 
@@ -1257,7 +1279,7 @@ export default class GameScene extends Phaser.Scene {
       this.player.setVelocity(0, 0)
       this.player.heal(this.player.getMaxHealth()) // Full heal on reset
 
-      // Spawn enemies for room 1
+      // Spawn enemies for room 1 (will use reset RNG)
       this.spawnEnemies()
 
       // Reset room state
@@ -1343,6 +1365,7 @@ export default class GameScene extends Phaser.Scene {
         playTimeMs,
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
+        runSeed: this.runSeedString,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1647,16 +1670,6 @@ export default class GameScene extends Phaser.Scene {
     // Update performance monitor
     performanceMonitor.update(delta)
 
-    // Safety check: If physics is paused but joystick has force, reset it
-    // This handles edge cases where input state gets stuck
-    if (!this.physics.world.isPaused && this.joystickForce > 0) {
-      // Check if there's actual touch input - if not, this is likely a stuck state
-      // We'll add a small timeout mechanism here
-      if (!this.input.activePointer.isDown) {
-        console.warn('GameScene: Detected stuck joystick state without active touch, resetting')
-        this.resetJoystickState()
-      }
-    }
 
     if (this.player) {
       this.player.update(time, delta)

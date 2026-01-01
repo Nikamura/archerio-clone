@@ -10,6 +10,7 @@
  */
 
 import { ChapterId, EnemyType, getChapterDefinition, getRoomTypeForNumber, RoomType } from '../config/chapterData'
+import { SeededRandom } from './SeededRandom'
 
 // ============================================
 // Types
@@ -503,10 +504,26 @@ export class RoomGenerator {
   private screenWidth: number
   private screenHeight: number
   private margin: number = 50 // Margin from screen edges
+  private rng: SeededRandom = new SeededRandom() // Default random seed
 
   constructor(screenWidth: number, screenHeight: number) {
     this.screenWidth = screenWidth
     this.screenHeight = screenHeight
+  }
+
+  /**
+   * Set the random number generator for deterministic room generation
+   * Call this before generateRoom() to use a specific seed
+   */
+  setRng(rng: SeededRandom): void {
+    this.rng = rng
+  }
+
+  /**
+   * Get the current RNG seed string (for display)
+   */
+  getSeedString(): string {
+    return this.rng.getSeedString()
   }
 
   /**
@@ -581,8 +598,8 @@ export class RoomGenerator {
         return ROOM_LAYOUTS[0]
       case 'combat':
       default: {
-        // Random selection from combat layouts
-        const index = Math.floor(Math.random() * ROOM_LAYOUTS.length)
+        // Random selection from combat layouts (seeded)
+        const index = Math.floor(this.rng.random() * ROOM_LAYOUTS.length)
         return ROOM_LAYOUTS[index]
       }
     }
@@ -613,8 +630,8 @@ export class RoomGenerator {
     roomNumber: number,
     enemyPool: EnemyType[]
   ): EnemyCombination | null {
-    // 60% chance to use a predefined combination
-    if (Math.random() > 0.6) {
+    // 60% chance to use a predefined combination (seeded)
+    if (this.rng.random() > 0.6) {
       return null
     }
 
@@ -637,9 +654,9 @@ export class RoomGenerator {
       return null
     }
 
-    // Weighted random selection
+    // Weighted random selection (seeded)
     const totalWeight = validCombos.reduce((sum, c) => sum + c.weight, 0)
-    let random = Math.random() * totalWeight
+    let random = this.rng.random() * totalWeight
 
     for (const combo of validCombos) {
       random -= combo.weight
@@ -706,8 +723,8 @@ export class RoomGenerator {
       return 'melee' // Fallback
     }
 
-    // Weighted random selection
-    let random = Math.random() * totalWeight
+    // Weighted random selection (seeded)
+    let random = this.rng.random() * totalWeight
     for (const enemy of availableEnemies) {
       random -= weights[enemy]
       if (random <= 0) {
@@ -744,9 +761,9 @@ export class RoomGenerator {
         // Select a spawn zone (weighted random)
         const zone = this.selectSpawnZone(layout.spawnZones)
 
-        // Generate position within zone with some randomness
-        const angle = Math.random() * Math.PI * 2
-        const distance = Math.random() * zone.radius
+        // Generate position within zone with some randomness (seeded)
+        const angle = this.rng.random() * Math.PI * 2
+        const distance = this.rng.random() * zone.radius
         const normX = zone.x + Math.cos(angle) * distance
         const normY = zone.y + Math.sin(angle) * distance
 
@@ -779,11 +796,11 @@ export class RoomGenerator {
   }
 
   /**
-   * Select a spawn zone with weighted probability
+   * Select a spawn zone with weighted probability (seeded)
    */
   private selectSpawnZone(zones: SpawnZone[]): SpawnZone {
     const totalWeight = zones.reduce((sum, z) => sum + z.weight, 0)
-    let random = Math.random() * totalWeight
+    let random = this.rng.random() * totalWeight
 
     for (const zone of zones) {
       random -= zone.weight

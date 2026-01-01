@@ -339,10 +339,9 @@ export default class UIScene extends Phaser.Scene {
     this.resetLevelButton = this.add.container(width - 45, 100)
     this.resetLevelButton.setDepth(50)
 
-    // Background rectangle (interactive)
+    // Background rectangle (visual only)
     const bg = this.add.rectangle(0, 0, 70, 36, 0x000000, 0.7)
     bg.setStrokeStyle(2, 0x00aaff)
-    bg.setInteractive({ useHandCursor: true })
     this.resetLevelButton.add(bg)
 
     // Reset icon (circular arrow symbol)
@@ -360,8 +359,15 @@ export default class UIScene extends Phaser.Scene {
     }).setOrigin(0.5)
     this.resetLevelButton.add(this.resetLevelText)
 
+    // Make container interactive with explicit hit area (required for Phaser containers)
+    this.resetLevelButton.setInteractive(
+      new Phaser.Geom.Rectangle(-35, -18, 70, 36),
+      Phaser.Geom.Rectangle.Contains
+    )
+    this.resetLevelButton.input!.cursor = 'pointer'
+
     // Click handler to reset level
-    bg.on('pointerdown', () => {
+    this.resetLevelButton.on('pointerdown', () => {
       console.log('UIScene: Reset level button pressed')
       this.game.events.emit('resetLevel')
 
@@ -375,12 +381,12 @@ export default class UIScene extends Phaser.Scene {
     })
 
     // Hover effects
-    bg.on('pointerover', () => {
+    this.resetLevelButton.on('pointerover', () => {
       bg.setFillStyle(0x002244, 0.9)
       bg.setStrokeStyle(2, 0x00ccff)
     })
 
-    bg.on('pointerout', () => {
+    this.resetLevelButton.on('pointerout', () => {
       bg.setFillStyle(0x000000, 0.7)
       bg.setStrokeStyle(2, 0x00aaff)
     })

@@ -23,6 +23,7 @@ export interface GameOverData {
   bossDefeated?: boolean
   goldEarned?: number
   completionResult?: ChapterCompletionResult
+  runSeed?: string
 }
 
 /**
@@ -50,6 +51,7 @@ export default class GameOverScene extends Phaser.Scene {
   private goldEarned: number = 0
   private chestRewards: ChestRewards = { wooden: 0, silver: 0, golden: 0 }
   private rewardsCollected: boolean = false
+  private runSeed: string = ''
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -58,6 +60,7 @@ export default class GameOverScene extends Phaser.Scene {
   init(data: GameOverData) {
     this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
     this.rewardsCollected = false
+    this.runSeed = data?.runSeed ?? ''
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
@@ -229,6 +232,11 @@ export default class GameOverScene extends Phaser.Scene {
         .setOrigin(0.5)
     }
 
+    // Seed display section
+    if (this.runSeed) {
+      this.createSeedDisplay(chestsY + 110)
+    }
+
     // Continue button
     const buttonY = height - 100
     this.createContinueButton(buttonY, isVictory ?? false)
@@ -304,6 +312,124 @@ export default class GameOverScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     })
+  }
+
+  /**
+   * Display run seed with copy button
+   */
+  private createSeedDisplay(y: number): void {
+    const width = this.cameras.main.width
+
+    // Seed label
+    this.add
+      .text(width / 2, y, 'SEED', {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#888888',
+      })
+      .setOrigin(0.5)
+
+    // Seed value with tap-to-copy functionality
+    const seedContainer = this.add.container(width / 2, y + 22)
+
+    // Background for seed
+    const bgWidth = 140
+    const bgHeight = 32
+    const seedBg = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x333333, 1)
+    seedBg.setStrokeStyle(1, 0x666666)
+
+    // Seed text
+    const seedText = this.add.text(0, 0, this.runSeed, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#00ddff',
+      fontStyle: 'bold',
+    })
+    seedText.setOrigin(0.5)
+
+    // Copy icon (small)
+    const copyIcon = this.add.text(bgWidth / 2 - 15, 0, '\ud83d\udccb', {
+      fontSize: '14px',
+    })
+    copyIcon.setOrigin(0.5)
+
+    seedContainer.add([seedBg, seedText, copyIcon])
+
+    // Make container interactive for copy
+    seedContainer.setSize(bgWidth, bgHeight)
+    seedContainer.setInteractive(
+      new Phaser.Geom.Rectangle(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight),
+      Phaser.Geom.Rectangle.Contains
+    )
+
+    // Hover effects
+    seedContainer.on('pointerover', () => {
+      seedBg.setFillStyle(0x444444)
+    })
+
+    seedContainer.on('pointerout', () => {
+      seedBg.setFillStyle(0x333333)
+    })
+
+    // Copy to clipboard on click
+    seedContainer.on('pointerdown', () => {
+      this.copySeedToClipboard()
+      // Flash feedback
+      seedBg.setFillStyle(0x00ff88)
+      this.time.delayedCall(200, () => {
+        seedBg.setFillStyle(0x333333)
+      })
+    })
+
+    // "Tap to copy" hint
+    this.add
+      .text(width / 2, y + 48, 'Tap to copy', {
+        fontSize: '10px',
+        fontFamily: 'Arial',
+        color: '#666666',
+      })
+      .setOrigin(0.5)
+  }
+
+  /**
+   * Copy seed to clipboard
+   */
+  private copySeedToClipboard(): void {
+    if (!this.runSeed) return
+
+    // Try to use the Clipboard API
+    if (window.navigator?.clipboard?.writeText) {
+      window.navigator.clipboard.writeText(this.runSeed).then(
+        () => {
+          console.log('Seed copied to clipboard:', this.runSeed)
+        },
+        (err) => {
+          console.warn('Failed to copy seed:', err)
+          this.fallbackCopyToClipboard()
+        }
+      )
+    } else {
+      this.fallbackCopyToClipboard()
+    }
+  }
+
+  /**
+   * Fallback copy method for older browsers
+   */
+  private fallbackCopyToClipboard(): void {
+    const textArea = document.createElement('textarea')
+    textArea.value = this.runSeed
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-9999px'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      console.log('Seed copied to clipboard (fallback):', this.runSeed)
+    } catch (err) {
+      console.warn('Fallback copy failed:', err)
+    }
+    document.body.removeChild(textArea)
   }
 
   /**

@@ -405,6 +405,27 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - iOS Safari requires user interaction first (joystick touch satisfies this)
 - ✅ ESLint + TypeScript build passing
 - ✅ 92 unit tests passing with high coverage
+- ✅ **Seeded runs system** (2026-01-01):
+  - `src/systems/SeededRandom.ts`: Deterministic PRNG using Mulberry32 algorithm
+    - `random()` - Returns 0-1 like Math.random()
+    - `randomInt(min, max)` - Integer in range [min, max]
+    - `pick(array)` / `weightedPick(items, weights)` - Array selection
+    - `getSeedString()` - Base-36 encoded seed for display/sharing
+    - `parseSeed(input)` - Parse user seed input to number
+  - RoomGenerator integration:
+    - All randomness uses seeded RNG (layout selection, enemy combos, spawn positions)
+    - `setRng(SeededRandom)` to inject seed at run start
+  - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
+  - MainMenuScene:
+    - "Enter Seed" button below PLAY opens modal dialog
+    - Custom seed persists via `game.registry` to GameScene
+    - Shows current seed if set (cyan color)
+  - GameOverScene:
+    - Seed displayed with copy-to-clipboard functionality
+    - "Tap to copy" hint, green flash on copy
+    - Uses Clipboard API with fallback
+  - Same seed = same enemy types, positions, boss selection
+  - Players can share seeds to challenge friends to identical runs
 - 🚧 Dev server running at http://localhost:3000/
 
 **TESTING:**
