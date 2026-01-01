@@ -322,7 +322,7 @@ export default class GameOverScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(100) // Ensure button is above everything
 
-    const text = this.add
+    this.add
       .text(width / 2, y, buttonText, {
         fontSize: '24px',
         fontFamily: 'Arial',
