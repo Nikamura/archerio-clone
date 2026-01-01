@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { DifficultyLevel, DIFFICULTY_CONFIGS, setDifficulty, getCurrentDifficulty } from '../config/difficulty'
+import { audioManager } from '../systems/AudioManager'
 
 export default class MainMenuScene extends Phaser.Scene {
   private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
@@ -73,6 +74,10 @@ export default class MainMenuScene extends Phaser.Scene {
 
       // Click handler
       button.on('pointerdown', () => {
+        // Resume audio context on first interaction
+        audioManager.resume()
+        audioManager.playMenuSelect()
+
         // Update selected difficulty
         this.selectedDifficulty = difficulty
         setDifficulty(this.game, difficulty)
@@ -110,6 +115,10 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     playButton.on('pointerdown', () => {
+      // Resume audio context on first interaction
+      audioManager.resume()
+      audioManager.playGameStart()
+
       this.scene.start('GameScene')
       this.scene.launch('UIScene')
     })

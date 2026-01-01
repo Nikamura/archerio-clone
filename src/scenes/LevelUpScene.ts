@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { audioManager } from '../systems/AudioManager'
 
 interface AbilityData {
   id: string
@@ -181,6 +182,9 @@ export default class LevelUpScene extends Phaser.Scene {
           btn.disableInteractive()
         }
       })
+
+      // Play ability selection sound
+      audioManager.playAbilitySelect()
 
       // Close this scene first to ensure it disappears
       console.log('LevelUpScene: stopping scene')

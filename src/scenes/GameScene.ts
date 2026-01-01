@@ -9,6 +9,7 @@ import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
+import { audioManager } from '../systems/AudioManager'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -362,6 +363,7 @@ export default class GameScene extends Phaser.Scene {
     const enemyCount = this.enemies.getChildren().filter(e => e.active).length
     if (enemyCount === 0) {
       this.isRoomCleared = true
+      audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
 
       // Show door after brief delay
@@ -375,6 +377,7 @@ export default class GameScene extends Phaser.Scene {
 
   private triggerVictory() {
     this.isGameOver = true
+    audioManager.playVictory()
     console.log('Victory! All rooms cleared!')
 
     // Clean up joystick
@@ -495,6 +498,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Damage enemy
     const killed = enemySprite.takeDamage(damage)
+    audioManager.playHit()
 
     // Apply fire DOT if bullet has fire damage
     const fireDamage = bulletSprite.getFireDamage()
@@ -563,7 +567,8 @@ export default class GameScene extends Phaser.Scene {
 
   private handleLevelUp() {
     console.log('GameScene: handleLevelUp called')
-    
+    audioManager.playLevelUp()
+
     // Pause game physics
     this.physics.pause()
 
@@ -658,6 +663,8 @@ export default class GameScene extends Phaser.Scene {
     const damageTaken = playerSprite.takeDamage(bulletDamage)
     if (!damageTaken) return
 
+    audioManager.playPlayerHit()
+
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
@@ -688,6 +695,8 @@ export default class GameScene extends Phaser.Scene {
     // Try to damage player (respects invincibility)
     const damageTaken = playerSprite.takeDamage(damage)
     if (!damageTaken) return
+
+    audioManager.playPlayerHit()
 
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
@@ -757,6 +766,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.isGameOver) return
 
     this.isGameOver = true
+    audioManager.playDeath()
     console.log('Game Over! Enemies killed:', this.enemiesKilled)
 
     // Stop player movement
@@ -879,6 +889,8 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    // Play shoot sound (once per attack, not per projectile)
+    audioManager.playShoot()
     this.lastShotTime = this.time.now
   }
 

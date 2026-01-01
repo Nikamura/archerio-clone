@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { audioManager } from '../systems/AudioManager'
 
 export interface GameOverData {
   roomsCleared: number
@@ -142,6 +143,9 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   private restartGame() {
+    // Play game start sound
+    audioManager.playGameStart()
+
     // Stop this scene and restart game
     this.scene.stop('GameOverScene')
     this.scene.stop('GameScene')
