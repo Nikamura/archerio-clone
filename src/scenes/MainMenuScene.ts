@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { DifficultyLevel, DIFFICULTY_CONFIGS, setDifficulty, getCurrentDifficulty } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
+import { saveManager } from '../systems/SaveManager'
 
 export default class MainMenuScene extends Phaser.Scene {
   private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
@@ -81,6 +82,9 @@ export default class MainMenuScene extends Phaser.Scene {
         // Update selected difficulty
         this.selectedDifficulty = difficulty
         setDifficulty(this.game, difficulty)
+
+        // Persist difficulty to save data
+        saveManager.setDifficulty(difficulty)
 
         // Update all buttons
         this.children.list.forEach((child) => {

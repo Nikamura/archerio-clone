@@ -35,6 +35,8 @@ export default class GameScene extends Phaser.Scene {
   private doorText: Phaser.GameObjects.Text | null = null
   private isTransitioning: boolean = false
   private boss: Boss | null = null
+  private runStartTime: number = 0
+  private abilitiesGained: number = 0
 
   constructor() {
     super({ key: 'GameScene' })
@@ -53,9 +55,14 @@ export default class GameScene extends Phaser.Scene {
     this.doorSprite = null
     this.doorText = null
     this.isTransitioning = false
+    this.runStartTime = Date.now()
+    this.abilitiesGained = 0
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
+
+    // Set physics world bounds to match camera/game size
+    this.physics.world.setBounds(0, 0, width, height)
 
     // Add background image
     const bg = this.add.image(0, 0, 'dungeonFloor').setOrigin(0)
@@ -385,6 +392,9 @@ export default class GameScene extends Phaser.Scene {
       this.joystick.destroy()
     }
 
+    // Calculate play time
+    const playTimeMs = Date.now() - this.runStartTime
+
     // Brief delay before showing victory screen
     this.time.delayedCall(500, () => {
       // Stop UIScene
@@ -395,6 +405,8 @@ export default class GameScene extends Phaser.Scene {
         roomsCleared: this.totalRooms,
         enemiesKilled: this.enemiesKilled,
         isVictory: true,
+        playTimeMs,
+        abilitiesGained: this.abilitiesGained,
       })
     })
   }
@@ -639,7 +651,8 @@ export default class GameScene extends Phaser.Scene {
         this.player.addCritBoost()
         break
     }
-    console.log(`Applied ability: ${abilityId}`)
+    this.abilitiesGained++
+    console.log(`Applied ability: ${abilityId} (total: ${this.abilitiesGained})`)
   }
 
   private enemyBulletHitPlayer(
@@ -780,6 +793,9 @@ export default class GameScene extends Phaser.Scene {
       this.joystick.destroy()
     }
 
+    // Calculate play time
+    const playTimeMs = Date.now() - this.runStartTime
+
     // Brief delay before showing game over screen
     this.time.delayedCall(500, () => {
       // Stop UIScene
@@ -789,6 +805,9 @@ export default class GameScene extends Phaser.Scene {
       this.scene.launch('GameOverScene', {
         roomsCleared: this.currentRoom - 1,
         enemiesKilled: this.enemiesKilled,
+        isVictory: false,
+        playTimeMs,
+        abilitiesGained: this.abilitiesGained,
       })
     })
   }

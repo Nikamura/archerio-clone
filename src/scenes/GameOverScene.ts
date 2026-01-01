@@ -1,10 +1,13 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
+import { saveManager } from '../systems/SaveManager'
 
 export interface GameOverData {
   roomsCleared: number
   enemiesKilled: number
   isVictory?: boolean
+  playTimeMs?: number
+  abilitiesGained?: number
 }
 
 export default class GameOverScene extends Phaser.Scene {
@@ -16,6 +19,29 @@ export default class GameOverScene extends Phaser.Scene {
 
   init(data: GameOverData) {
     this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
+
+    // Record run statistics to save data
+    this.recordRunStats()
+  }
+
+  /**
+   * Record this run's statistics to persistent save data
+   */
+  private recordRunStats(): void {
+    saveManager.recordRun({
+      kills: this.stats.enemiesKilled,
+      roomsCleared: this.stats.roomsCleared,
+      playTimeMs: this.stats.playTimeMs ?? 0,
+      bossDefeated: this.stats.isVictory === true,
+      abilitiesGained: this.stats.abilitiesGained ?? 0,
+      victory: this.stats.isVictory === true,
+    })
+
+    // Log updated statistics
+    const totalStats = saveManager.getStatistics()
+    console.log(
+      `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}`
+    )
   }
 
   create() {
@@ -146,13 +172,15 @@ export default class GameOverScene extends Phaser.Scene {
     // Play game start sound
     audioManager.playGameStart()
 
-    // Stop this scene and restart game
-    this.scene.stop('GameOverScene')
+    // Stop other scenes first
     this.scene.stop('GameScene')
     this.scene.stop('UIScene')
 
     // Start fresh game
     this.scene.start('GameScene')
     this.scene.launch('UIScene')
+
+    // Stop this scene last
+    this.scene.stop('GameOverScene')
   }
 }

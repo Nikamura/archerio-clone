@@ -103,6 +103,16 @@ export default class RangedShooterEnemy extends Enemy {
       }
     }
 
+    // Ensure enemy stays within world bounds (extra safety check)
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      // Clamp position to world bounds with a small margin
+      const margin = 15 // Half of enemy size
+      const worldBounds = this.scene.physics.world.bounds
+      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
+      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
+    }
+
     return false
   }
 

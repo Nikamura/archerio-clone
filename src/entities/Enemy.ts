@@ -182,6 +182,16 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
 
+    // Ensure enemy stays within world bounds (extra safety check)
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      // Clamp position to world bounds with a small margin
+      const margin = 15 // Half of enemy size
+      const worldBounds = this.scene.physics.world.bounds
+      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
+      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
+    }
+
     // Update health bar position (if visible)
     if (this.healthBar?.visible) {
       this.updateHealthBar()

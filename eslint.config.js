@@ -18,6 +18,7 @@ export default [
         window: 'readonly',
         document: 'readonly',
         Phaser: 'readonly',
+        localStorage: 'readonly',
       },
     },
     plugins: {

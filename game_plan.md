@@ -390,6 +390,23 @@ Visual test screenshots are saved to `test/screenshots/`
      - Used `body.setCircle(radius, offset, offset)` for centered hitboxes
    - Made enemy hitbox dynamic using `enemy.displayWidth` to handle varying sizes (30px melee/ranged, 36px spreader)
    - **LESSON**: Always center circular hitboxes with offset when using sprites
+11. ✅ **Enemies leaving screen bounds** - FIXED (2026-01-01):
+   - Issue: Enemies could move outside the visible game area (375x667)
+   - Root cause: Physics world bounds were never explicitly set
+   - Fixed by adding `this.physics.world.setBounds(0, 0, width, height)` in GameScene.create()
+   - Added extra safety: All enemy update() methods now clamp positions to world bounds
+   - Applied to: Enemy, RangedShooterEnemy, SpreaderEnemy, Boss
+   - Bounds checking accounts for enemy size (15px margin for regular, 18px for spreader, 32px for boss)
+   - **LESSON**: Always set physics world bounds explicitly, even if they match game size
+12. ✅ **"Try Again" button not working in GameOverScene** - FIXED (2026-01-01):
+   - Issue: Clicking "Try Again" button after death did not restart the game
+   - Root cause: Calling `this.scene.stop('GameOverScene')` first prevented subsequent scene transitions from executing
+   - When a scene stops itself, Phaser immediately halts execution of the current method
+   - Fixed by reordering scene transitions in `restartGame()`:
+     - First: Stop GameScene and UIScene
+     - Then: Start GameScene and launch UIScene
+     - Last: Stop GameOverScene (after all transitions complete)
+   - **LESSON**: Always stop the current scene LAST when performing scene transitions from within that scene
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -509,16 +526,99 @@ Visual test screenshots are saved to `test/screenshots/`
 ### V1 technical additions
 
 ```
-[ ] Equipment data model and inventory system
-[ ] Fusion mechanic with UI
+[x] Equipment data model and inventory system (2026-01-01)
+    - Equipment.ts: Complete type system (EquipmentSlot, Rarity, WeaponType, ArmorType, RingType, SpiritType)
+    - 5 rarity tiers: Common (gray, L20), Great (green, L30), Rare (blue, L40), Epic (purple, L50), Legendary (gold, L70)
+    - 4 weapon types: Brave Bow (balanced), Saw Blade (+40% speed, -20% dmg), Staff (homing), Death Scythe (+45% dmg, knockback)
+    - 19 perks system: Attack, Speed, Crit, Health, Defense, Utility perks with rarity gating
+    - equipmentData.ts: Base stats for all equipment types, upgrade cost calculations
+    - EquipmentManager.ts: Singleton manager with inventory + equipped slots
+      - Inventory management: add/remove/find items
+      - Equip/unequip with slot validation
+      - Upgrade system with level caps and cost calculations
+      - Fusion system: 3 same-type/rarity items -> 1 higher rarity
+      - Combined stats calculation from equipped items + perks
+      - Event emitter: INVENTORY_CHANGED, EQUIPPED_CHANGED, ITEM_UPGRADED, ITEM_FUSED, STATS_CHANGED
+      - Save/load integration: toSaveData()/fromSaveData()
+[x] Fusion mechanic with UI
+    - Fusion logic implemented in EquipmentManager
+    - findFusionCandidates(): Find groups of 3+ same type/rarity items
+    - fuse(): Combine 3 items -> 1 higher rarity with averaged level
+    - UI implementation pending
 [ ] Hero unlock and selection system
-[ ] Currency management and persistence (localStorage → IndexedDB)
-[ ] Talent lottery system
-[ ] Chapter progression with unlock gates
-[ ] Energy system with timer
+[x] Currency management and persistence (localStorage → IndexedDB)
+    - CurrencyManager (src/systems/CurrencyManager.ts): gold, gems, scrolls, energy
+    - Event-driven updates for UI integration
+    - Gold drop calculations per enemy type
+    - Save/load integration hooks (toSaveData/fromSaveData)
+[x] Talent lottery system (2026-01-01)
+    - talentData.ts: Complete talent configuration system
+      - TalentTier enum: COMMON (50%), RARE (35%), EPIC (15%)
+      - TalentId enum: 9 talents across 3 tiers
+      - Talent interface with effectType, effectPerLevel, maxLevel
+    - Common talents (50% drop rate):
+      - HP Boost: +100 max HP per level (max 10)
+      - Attack Boost: +25 attack per level (max 10)
+      - Defense: +5% damage reduction per level (max 5)
+    - Rare talents (35% drop rate):
+      - Attack Speed: +1% attack speed per level (max 10)
+      - Heal on Level-Up: +50 HP when leveling per level (max 5)
+      - Critical Master: +2% crit chance per level (max 5)
+    - Epic talents (15% drop rate):
+      - Equipment Bonus: +3% equipment stats per level (max 5)
+      - Glory: Start runs with 1 random ability per level (max 3)
+      - Iron Will: +30% HP when below 30% per level (max 3)
+    - TalentManager.ts: Singleton manager for lottery system
+      - Lottery mechanics: spin(), getSpinCost(), getSpinsRemaining()
+      - Escalating costs: 500 base + 250 per spin today
+      - Daily spin limit: 10 spins per day (resets at midnight)
+      - Talent stacking: Same talent can be rolled multiple times
+      - calculateTotalBonuses(): Returns combined stats from all unlocked talents
+      - Event system: talentUnlocked, talentUpgraded, spinFailed, dailyLimitReached
+      - Save/load integration: toSaveData()/fromSaveData()
+[x] Chapter progression with unlock gates (2026-01-01)
+    - chapterData.ts: Complete chapter configuration system
+      - ChapterId type: 1-5 with full type safety
+      - 5 chapters: Dark Dungeon, Forest Ruins, Frozen Caves, Volcanic Depths, Shadow Realm
+      - Room layout: 20 rooms per chapter (16 combat, 2 angel, 1 miniboss, 1 boss)
+      - Enemy pools: Progressive unlocks (melee/ranged/spreader -> all 9 types)
+      - Chapter themes: backgroundKey, floorKey, primaryColor, accentColor, musicKey
+      - Difficulty scaling per chapter: HP +20%, damage +15%, +1 enemy per chapter
+      - Boss scaling: +50% HP per chapter
+      - Star thresholds: 1 star (complete), 2 stars (>50% HP), 3 stars (no deaths)
+      - Star reward multipliers: 1.0x, 1.5x, 2.0x
+      - First-time completion bonus: 2.0x rewards
+    - ChapterManager.ts: Singleton manager for chapter progression
+      - Chapter selection: selectChapter(), getSelectedChapter()
+      - Unlock gates: isChapterUnlocked(), getUnlockedChapters()
+      - Run management: startChapter(), getCurrentRun(), advanceRoom(), clearRoom()
+      - Progress tracking: getChapterProgress(), isChapterCompleted(), getBestStars()
+      - Completion: completeChapter() with star calculation and rewards
+      - Enemy pool: getEnemyPoolForChapter(), getCurrentEnemyPool()
+      - Scaling access: getChapterScaling() for difficulty multipliers
+      - Event system: chapterStarted, chapterCompleted, chapterFailed, roomEntered, roomCleared, chapterUnlocked, starRatingAchieved
+      - Save/load integration: toSaveData()/fromSaveData()
+[x] Energy system with timer
+    - Max 20 energy, regenerates 1 per 12 minutes
+    - Timestamp-based regeneration on load
+    - getTimeUntilNextEnergy() for UI display
 [ ] 5 chapter environments with unique enemy sets
 [ ] 15 boss encounters (3 per chapter × 5 chapters)
-[ ] Save/load system for all progression
+[x] Save/load system for all progression (2026-01-01)
+    - SaveManager (src/systems/SaveManager.ts): Complete persistence system
+    - Version migration support for future updates (migrateData function)
+    - Hero system: unlock/select heroes, hero levels, experience tracking
+    - Equipment system: inventory management, equip/unequip, rarity tiers
+    - Currencies: gold, gems, scrolls with spend/add methods
+    - Talents: talent points, upgrade system with max levels
+    - Chapter progress: highest room, completion status, star ratings
+    - Player statistics: runs, kills, deaths, playtime, bosses defeated, etc.
+    - Settings persistence: difficulty, audio, language
+    - Auto-save on key events (markDirty triggers save)
+    - 55 unit tests with full coverage
+    - Integrated with BootScene (loads on game start)
+    - Integrated with GameOverScene (records run stats)
+    - Integrated with MainMenuScene (persists difficulty changes)
 [ ] Daily reward calendar
 [ ] Achievement tracking
 [ ] Expanded procedural generation (more room templates, enemy combinations)
