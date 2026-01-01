@@ -6,9 +6,12 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
   private spawnTime: number = 0
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'enemyBullet')
+    super(scene, x, y, 'enemyBulletSprite')
     scene.add.existing(this)
     scene.physics.add.existing(this)
+
+    // Set display size for the fireball sprite
+    this.setDisplaySize(16, 16)
 
     // Set small circular hitbox for precise collision
     if (this.body) {

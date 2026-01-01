@@ -7,25 +7,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   private invincibilityDuration: number = 500 // ms of invincibility after being hit
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, '')
+    super(scene, x, y, 'playerSprite')
 
     // Add to scene
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
-    // Create a simple circle for the player
-    const graphics = scene.make.graphics({ x: 0, y: 0 }, false)
-    graphics.fillStyle(0x4a9eff, 1)
-    graphics.fillCircle(0, 0, 20)
-
-    // Draw a direction indicator
-    graphics.fillStyle(0xffffff, 1)
-    graphics.fillCircle(8, 0, 5)
-
-    graphics.generateTexture('player', 40, 40)
-    graphics.destroy()
-
-    this.setTexture('player')
+    // Set size to match sprite (64x64)
+    this.setDisplaySize(40, 40) // Scale down slightly for better gameplay
     this.setCollideWorldBounds(true)
     this.setDrag(800, 800)
 

@@ -12,18 +12,9 @@ export default class SpreaderEnemy extends Enemy {
 
     this.bulletPool = bulletPool
 
-    // Override texture with purple color
-    if (!scene.textures.exists('spreaderEnemy')) {
-      const graphics = scene.make.graphics({ x: 0, y: 0 }, false)
-      graphics.fillStyle(0x8844ff, 1)
-      graphics.fillCircle(0, 0, 18) // Slightly larger
-      graphics.fillStyle(0x6633cc, 1)
-      graphics.fillCircle(0, 0, 12)
-      graphics.generateTexture('spreaderEnemy', 36, 36)
-      graphics.destroy()
-    }
-
-    this.setTexture('spreaderEnemy')
+    // Use spreader enemy sprite
+    this.setTexture('enemySpreader')
+    this.setDisplaySize(36, 36) // Slightly larger than others
 
     console.log('SpreaderEnemy created at', x, y)
   }

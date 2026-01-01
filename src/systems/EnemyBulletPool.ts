@@ -14,16 +14,8 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
   }
 
   private createEnemyBulletTexture() {
-    const graphics = this.scene.make.graphics({ x: 0, y: 0 }, false)
-
-    // Draw a red/orange bullet
-    graphics.fillStyle(0xff4444, 1)
-    graphics.fillCircle(0, 0, 5)
-    graphics.fillStyle(0xff8844, 1)
-    graphics.fillCircle(-2, 0, 3)
-
-    graphics.generateTexture('enemyBullet', 16, 16)
-    graphics.destroy()
+    // Enemy bullet texture now loaded from PreloaderScene as 'enemyBulletSprite'
+    // No need to generate it here
   }
 
   spawn(x: number, y: number, angle: number, speed: number = 200): EnemyBullet | null {

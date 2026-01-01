@@ -16,16 +16,9 @@ export default class RangedShooterEnemy extends Enemy {
 
     this.bulletPool = bulletPool
 
-    // Override texture with orange color
-    if (!scene.textures.exists('rangedEnemy')) {
-      const graphics = scene.make.graphics({ x: 0, y: 0 }, false)
-      graphics.fillStyle(0xff8844, 1)
-      graphics.fillCircle(0, 0, 15)
-      graphics.generateTexture('rangedEnemy', 30, 30)
-      graphics.destroy()
-    }
-
-    this.setTexture('rangedEnemy')
+    // Use ranged enemy sprite
+    this.setTexture('enemyRanged')
+    this.setDisplaySize(30, 30)
 
     // Create telegraph line (initially hidden)
     this.telegraphLine = scene.add.line(0, 0, 0, 0, 0, 0, 0xff0000, 0.6)

@@ -11,7 +11,10 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastFireTick: number = 0
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'enemy')
+    super(scene, x, y, 'enemyMelee')
+
+    // Set display size
+    this.setDisplaySize(30, 30)
 
     // Ensure enemy is visible and active
     this.setActive(true)

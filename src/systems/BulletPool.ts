@@ -14,15 +14,8 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
   }
 
   private createBulletTexture() {
-    const graphics = this.scene.make.graphics({ x: 0, y: 0 }, false)
-
-    // Draw a simple arrow bullet
-    graphics.fillStyle(0xffff00, 1)
-    graphics.fillCircle(0, 0, 4)
-    graphics.fillTriangle(4, 0, 8, -3, 8, 3)
-
-    graphics.generateTexture('bullet', 16, 16)
-    graphics.destroy()
+    // Bullet texture now loaded from PreloaderScene as 'bulletSprite'
+    // No need to generate it here
   }
 
   spawn(x: number, y: number, angle: number, speed: number = 400, options?: {

@@ -53,6 +53,24 @@ export default class PreloaderScene extends Phaser.Scene {
 
     // Load game assets
     this.load.image('portal', 'assets/sprites/door/portal.png')
+
+    // Load sprites
+    this.load.image('playerSprite', 'assets/sprites/player/archer.png')
+    this.load.image('enemyMelee', 'assets/sprites/enemy/melee_slime.png')
+    this.load.image('enemyRanged', 'assets/sprites/enemy/ranged_skeleton.png')
+    this.load.image('enemySpreader', 'assets/sprites/enemy/spreader_eye.png')
+    this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
+
+    // Load projectiles
+    this.load.image('bulletSprite', 'assets/sprites/projectile/player_arrow.png')
+    this.load.image('enemyBulletSprite', 'assets/sprites/projectile/enemy_fireball.png')
+
+    // Load background
+    this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.png')
+
+    // Load ability icons
+    this.load.image('abilityFrontArrow', 'assets/sprites/abilities/front_arrow.png')
+    this.load.image('abilityMultishot', 'assets/sprites/abilities/multishot.png')
   }
 
   create() {

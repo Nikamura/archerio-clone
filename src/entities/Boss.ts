@@ -29,29 +29,8 @@ export default class Boss extends Enemy {
 
     this.bulletPool = bulletPool
 
-    // Create boss texture (larger, gold/red colored)
-    if (!scene.textures.exists('boss')) {
-      const graphics = scene.make.graphics({ x: 0, y: 0 }, false)
-      // Outer ring (dark red)
-      graphics.fillStyle(0x880000, 1)
-      graphics.fillCircle(32, 32, 32)
-      // Inner body (gold/orange)
-      graphics.fillStyle(0xffaa00, 1)
-      graphics.fillCircle(32, 32, 26)
-      // Core (bright red)
-      graphics.fillStyle(0xff2200, 1)
-      graphics.fillCircle(32, 32, 16)
-      // Eye (black)
-      graphics.fillStyle(0x000000, 1)
-      graphics.fillCircle(32, 32, 8)
-      // Eye highlight
-      graphics.fillStyle(0xff0000, 1)
-      graphics.fillCircle(35, 29, 3)
-      graphics.generateTexture('boss', 64, 64)
-      graphics.destroy()
-    }
-
-    this.setTexture('boss')
+    // Use boss sprite
+    this.setTexture('bossSprite')
     this.setDisplaySize(64, 64)
 
     // Create telegraph lines for barrage (3 lines)

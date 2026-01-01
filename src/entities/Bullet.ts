@@ -14,9 +14,12 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private isCrit: boolean = false // Whether this bullet is a critical hit
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'bullet')
+    super(scene, x, y, 'bulletSprite')
     scene.add.existing(this)
     scene.physics.add.existing(this)
+
+    // Set display size for the arrow sprite
+    this.setDisplaySize(16, 16)
 
     // Set small circular hitbox for precise collision
     if (this.body) {

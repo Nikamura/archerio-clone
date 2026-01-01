@@ -50,8 +50,9 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Create a simple ground color
-    this.add.rectangle(0, 0, width * 2, height * 2, 0x3a5f4a).setOrigin(0)
+    // Add background image
+    const bg = this.add.image(0, 0, 'dungeonFloor').setOrigin(0)
+    bg.setDisplaySize(width, height)
 
     // Create player in center
     this.player = new Player(this, width / 2, height / 2)
