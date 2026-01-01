@@ -24,6 +24,10 @@ export default class UIScene extends Phaser.Scene {
   private autoLevelUpToggle!: Phaser.GameObjects.Container
   private autoLevelUpIcon!: Phaser.GameObjects.Text
 
+  // Reset level button (always visible)
+  private resetLevelButton!: Phaser.GameObjects.Container
+  private resetLevelText!: Phaser.GameObjects.Text
+
   constructor() {
     super({ key: 'UIScene' })
   }
@@ -75,6 +79,7 @@ export default class UIScene extends Phaser.Scene {
     this.events.on('updateXP', (xpPercentage: number, level: number) => {
       this.updateXPBar(xpPercentage)
       this.updateLevel(level)
+      this.updateResetLevelText(level)
     })
 
     // Listen for room updates from GameScene
@@ -167,6 +172,9 @@ export default class UIScene extends Phaser.Scene {
 
     // Create auto level up toggle button
     this.createAutoLevelUpToggle()
+
+    // Create reset level button
+    this.createResetLevelButton()
 
     console.log('UIScene: Created')
   }
@@ -319,6 +327,72 @@ export default class UIScene extends Phaser.Scene {
     bg.on('pointerout', () => {
       bg.setScale(1)
     })
+  }
+
+  /**
+   * Create reset level button that allows restarting with all upgrades
+   */
+  private createResetLevelButton(): void {
+    const width = this.cameras.main.width
+
+    // Create button container in top-right area (below auto-level toggle)
+    this.resetLevelButton = this.add.container(width - 45, 100)
+    this.resetLevelButton.setDepth(50)
+
+    // Background rectangle (interactive)
+    const bg = this.add.rectangle(0, 0, 70, 36, 0x000000, 0.7)
+    bg.setStrokeStyle(2, 0x00aaff)
+    bg.setInteractive({ useHandCursor: true })
+    this.resetLevelButton.add(bg)
+
+    // Reset icon (circular arrow symbol)
+    const icon = this.add.text(-22, 0, '↺', {
+      fontSize: '18px',
+      color: '#00aaff',
+    }).setOrigin(0.5)
+    this.resetLevelButton.add(icon)
+
+    // Text showing current level
+    this.resetLevelText = this.add.text(12, 0, 'Lv.1', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    this.resetLevelButton.add(this.resetLevelText)
+
+    // Click handler to reset level
+    bg.on('pointerdown', () => {
+      console.log('UIScene: Reset level button pressed')
+      this.game.events.emit('resetLevel')
+
+      // Brief press animation
+      this.tweens.add({
+        targets: this.resetLevelButton,
+        scale: { from: 0.9, to: 1 },
+        duration: 100,
+        ease: 'Power2.easeOut',
+      })
+    })
+
+    // Hover effects
+    bg.on('pointerover', () => {
+      bg.setFillStyle(0x002244, 0.9)
+      bg.setStrokeStyle(2, 0x00ccff)
+    })
+
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x000000, 0.7)
+      bg.setStrokeStyle(2, 0x00aaff)
+    })
+  }
+
+  /**
+   * Update the reset level button text with current level
+   */
+  private updateResetLevelText(level: number): void {
+    if (this.resetLevelText) {
+      this.resetLevelText.setText(`Lv.${level}`)
+    }
   }
 
   /**

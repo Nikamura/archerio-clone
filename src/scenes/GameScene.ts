@@ -93,12 +93,18 @@ export default class GameScene extends Phaser.Scene {
     // Listen for debug skip level event
     if (this.game.registry.get('debug')) {
       this.game.events.on('debugSkipLevel', this.debugSkipLevel, this)
-      
+
       // Cleanup listener on shutdown
       this.events.once('shutdown', () => {
         this.game.events.off('debugSkipLevel', this.debugSkipLevel, this)
       })
     }
+
+    // Listen for reset level event (allows infinite stacking by restarting with upgrades)
+    this.game.events.on('resetLevel', this.resetLevel, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('resetLevel', this.resetLevel, this)
+    })
 
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
@@ -1192,7 +1198,7 @@ export default class GameScene extends Phaser.Scene {
       console.log('Debug: Skip ignored (GameOver:', this.isGameOver, 'Transitioning:', this.isTransitioning, ')')
       return
     }
-    
+
     this.isTransitioning = true
     console.log('Debug: Skipping level', this.currentRoom)
 
@@ -1207,6 +1213,67 @@ export default class GameScene extends Phaser.Scene {
     // (transitionToNextRoom will set it to false when finished)
     this.isTransitioning = false
     this.transitionToNextRoom()
+  }
+
+  /**
+   * Reset the level back to room 1 while keeping all acquired upgrades
+   * This allows infinite ability stacking for fun overpowered runs
+   */
+  private resetLevel() {
+    if (this.isGameOver || this.isTransitioning) {
+      console.log('Reset: Ignored (GameOver:', this.isGameOver, 'Transitioning:', this.isTransitioning, ')')
+      return
+    }
+
+    console.log('Resetting level - keeping all upgrades! Current level:', this.player.getLevel())
+
+    this.isTransitioning = true
+
+    // Collect any remaining pickups before reset
+    const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
+    if (collectedGold > 0) {
+      this.goldEarned += collectedGold
+      currencyManager.add('gold', collectedGold)
+      saveManager.addGold(collectedGold)
+    }
+    this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
+      this.player.heal(healAmount)
+    })
+
+    // Fade out
+    this.cameras.main.fadeOut(300, 0, 0, 0)
+
+    this.time.delayedCall(300, () => {
+      // Reset to room 1
+      this.currentRoom = 1
+
+      // Clean up current room (but NOT the player - keep abilities!)
+      this.cleanupRoom()
+
+      // Reset player position and heal to full
+      const width = this.cameras.main.width
+      const height = this.cameras.main.height
+      this.player.setPosition(width / 2, height - 100)
+      this.player.setVelocity(0, 0)
+      this.player.heal(this.player.getMaxHealth()) // Full heal on reset
+
+      // Spawn enemies for room 1
+      this.spawnEnemies()
+
+      // Reset room state
+      this.isRoomCleared = false
+      this.isTransitioning = false
+
+      // Update UI
+      this.updateRoomUI()
+      this.scene.get('UIScene').events.emit('updateHealth', 100) // Full health bar
+      this.scene.get('UIScene').events.emit('roomEntered')
+
+      // Fade back in
+      this.cameras.main.fadeIn(300, 0, 0, 0)
+
+      console.log('Level reset complete! Starting room 1 with', this.abilitiesGained, 'abilities')
+    })
   }
 
   private startInvincibilityFlash(player: Player) {
