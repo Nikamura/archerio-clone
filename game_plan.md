@@ -399,31 +399,16 @@ Visual test screenshots are saved to `test/screenshots/`
    - Hard mode: +50% boss HP, +30% boss damage, +40% enemy HP, +30% enemy damage
    - Easy mode: -40% boss HP, -25% boss damage, -30% enemy HP for beginners
 5. Add basic audio (shoot, hit, level-up, death sounds)
-6. **Generate game assets using AI image generation** (use `--clean` flag for transparency):
-   - Player sprite: `pnpm run generate-sprite "archer hero with bow" --type player --clean`
-   - Enemy sprites:
-     - `pnpm run generate-sprite "red slime monster" --type enemy --clean` (melee)
-     - `pnpm run generate-sprite "skeleton archer" --type enemy --clean` (ranged)
-     - `pnpm run generate-sprite "purple eye monster" --type enemy --clean` (spreader)
-   - Boss sprite: `pnpm run generate-sprite "giant demon boss" --type boss --size 128 --clean`
-   - Projectiles:
-     - `pnpm run generate-sprite "golden arrow" --type projectile --clean`
-     - `pnpm run generate-sprite "red enemy fireball" --type projectile --clean`
-   - UI elements:
-     - `pnpm run generate-sprite "heart health icon" --type ui --clean`
-     - `pnpm run generate-sprite "golden star XP icon" --type ui --clean`
-     - `pnpm run generate-sprite "wooden door" --type ui --size 64 --clean`
-   - Ability icons (8 total):
-     - `pnpm run generate-sprite "front arrow ability icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "multishot arrows icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "attack speed lightning bolt icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "attack power sword icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "piercing arrow icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "ricochet bouncing arrow icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "fire damage flame icon" --type ui --size 48 --clean`
-     - `pnpm run generate-sprite "critical hit crosshair icon" --type ui --size 48 --clean`
-   - Background: `pnpm run generate-image "dark dungeon stone floor texture seamless" 375 667`
-6. Polish ability UI with animations and feedback
+6. ✅ ~~**Generate game assets using AI image generation**~~ - DONE (2026-01-01):
+   - All sprites regenerated with proper sizes:
+     - Player (archer.png): 64x64
+     - Enemies (melee_slime, ranged_skeleton, spreader_eye): 64x64
+     - Boss (demon): 128x128
+     - Projectiles (player_arrow, enemy_fireball): 32x32
+     - Door portal: 64x64
+     - 8 Ability icons: 48x48 each
+     - Dungeon background: 375x667
+7. Polish ability UI with animations and feedback
 
 ---
 
