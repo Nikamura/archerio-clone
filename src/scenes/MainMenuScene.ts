@@ -208,25 +208,30 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     // ============================================
-    // MENU BUTTONS (Horizontal row)
+    // MENU BUTTONS (Two rows for better layout)
     // ============================================
 
-    const menuY = 320
+    const menuY = 310
     const menuButtons = [
-      { label: 'Heroes', action: 'Heroes menu' },
-      { label: 'Equip', action: 'Equipment menu' },
-      { label: 'Talents', action: 'Talents menu' },
+      { label: 'Heroes', scene: 'HeroesScene' },
+      { label: 'Equip', scene: 'EquipmentScene' },
+      { label: 'Talents', scene: 'TalentsScene' },
+      { label: 'Chests', scene: 'ChestScene' },
     ]
-    const menuBtnWidth = 100
-    const menuStartX = (width - menuBtnWidth * 3 - 20) / 2 + menuBtnWidth / 2
+    const menuBtnWidth = 80
+    const menuGap = 8
+    const buttonsPerRow = 4
+    const totalRowWidth = buttonsPerRow * menuBtnWidth + (buttonsPerRow - 1) * menuGap
+    const menuStartX = (width - totalRowWidth) / 2 + menuBtnWidth / 2
 
     menuButtons.forEach((btn, index) => {
-      const xPos = menuStartX + index * (menuBtnWidth + 10)
+      const col = index % buttonsPerRow
+      const xPos = menuStartX + col * (menuBtnWidth + menuGap)
       const button = this.add.text(xPos, menuY, btn.label, {
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#ffffff',
         backgroundColor: '#6b8e23',
-        padding: { x: 15, y: 10 },
+        padding: { x: 12, y: 10 },
       })
       button.setOrigin(0.5)
       button.setInteractive({ useHandCursor: true })
@@ -242,15 +247,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
       button.on('pointerdown', () => {
         audioManager.playMenuSelect()
-        if (btn.label === 'Heroes') {
-          this.scene.start('HeroesScene')
-        } else if (btn.label === 'Equip') {
-          this.scene.start('EquipmentScene')
-        } else if (btn.label === 'Talents') {
-          this.scene.start('TalentsScene')
-        } else {
-          console.log(`${btn.action} - coming soon`)
-        }
+        this.scene.start(btn.scene)
       })
     })
 

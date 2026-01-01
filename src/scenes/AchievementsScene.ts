@@ -42,10 +42,10 @@ export default class AchievementsScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Background
-    this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e)
+    // Background (lowest depth)
+    this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e).setDepth(0)
 
-    // Header
+    // Header (high depth to stay above scroll content)
     this.createHeader(width)
 
     // Achievement list
@@ -62,6 +62,9 @@ export default class AchievementsScene extends Phaser.Scene {
   }
 
   private createHeader(width: number) {
+    // Header background to cover scroll content
+    this.add.rectangle(width / 2, 45, width, 90, 0x1a1a2e).setDepth(10)
+
     // Title
     this.add
       .text(width / 2, 30, 'ACHIEVEMENTS', {
@@ -70,6 +73,7 @@ export default class AchievementsScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setDepth(11)
 
     // Currency display
     this.goldText = this.add
@@ -78,6 +82,7 @@ export default class AchievementsScene extends Phaser.Scene {
         color: '#FFD700',
       })
       .setOrigin(0, 0.5)
+      .setDepth(11)
 
     this.gemsText = this.add
       .text(width - 15, 60, `Gems: ${currencyManager.get('gems')}`, {
@@ -85,6 +90,7 @@ export default class AchievementsScene extends Phaser.Scene {
         color: '#00FFFF',
       })
       .setOrigin(1, 0.5)
+      .setDepth(11)
 
     // Claim All button (if rewards available)
     const unclaimed = achievementManager.getUnclaimedRewardsCount()
@@ -97,6 +103,7 @@ export default class AchievementsScene extends Phaser.Scene {
           padding: { x: 10, y: 4 },
         })
         .setOrigin(0.5)
+        .setDepth(11)
         .setInteractive({ useHandCursor: true })
 
       claimAllBtn.on('pointerover', () => {
@@ -120,8 +127,9 @@ export default class AchievementsScene extends Phaser.Scene {
     const cardWidth = width - 30
     const cardX = width / 2
 
-    // Create the scroll container
+    // Create the scroll container (depth 1 to be above background, below header/footer)
     this.scrollContainer = this.add.container(0, 0)
+    this.scrollContainer.setDepth(1)
 
     // Create mask for the scrollable area
     const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
@@ -563,8 +571,8 @@ export default class AchievementsScene extends Phaser.Scene {
   private createTotalEarnedDisplay(width: number, height: number) {
     const displayY = height - 70
 
-    // Background
-    this.add.rectangle(width / 2, displayY, width - 20, 40, 0x2a2a3e, 0.8)
+    // Background (high depth to cover scroll content)
+    this.add.rectangle(width / 2, displayY, width - 20, 40, 0x2a2a3e, 0.8).setDepth(10)
 
     // Label
     this.add
@@ -573,6 +581,7 @@ export default class AchievementsScene extends Phaser.Scene {
         color: '#888888',
       })
       .setOrigin(0, 0.5)
+      .setDepth(11)
 
     // Values
     const goldEarned = achievementManager.getTotalGoldEarned()
@@ -585,9 +594,13 @@ export default class AchievementsScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setDepth(11)
   }
 
   private createBackButton(width: number, height: number) {
+    // Footer background to cover scroll content
+    this.add.rectangle(width / 2, height - 25, width, 50, 0x1a1a2e).setDepth(10)
+
     const backButton = this.add
       .text(width / 2, height - 25, '< BACK', {
         fontSize: '16px',
@@ -596,6 +609,7 @@ export default class AchievementsScene extends Phaser.Scene {
         padding: { x: 20, y: 8 },
       })
       .setOrigin(0.5)
+      .setDepth(11)
       .setInteractive({ useHandCursor: true })
 
     backButton.on('pointerover', () => {

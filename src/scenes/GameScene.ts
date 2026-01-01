@@ -8,10 +8,13 @@ import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
+import GoldPool from '../systems/GoldPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition } from '../config/chapterData'
+import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
+import { saveManager } from '../systems/SaveManager'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -29,6 +32,7 @@ export default class GameScene extends Phaser.Scene {
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
+  private goldPool!: GoldPool
   private enemies!: Phaser.Physics.Arcade.Group
   private lastShotTime: number = 0
   private fireRate: number = 500 // ms between shots
@@ -45,6 +49,7 @@ export default class GameScene extends Phaser.Scene {
   private boss: Boss | null = null
   private runStartTime: number = 0
   private abilitiesGained: number = 0
+  private goldEarned: number = 0 // Track gold earned this run
 
   constructor() {
     super({ key: 'GameScene' })
@@ -65,6 +70,7 @@ export default class GameScene extends Phaser.Scene {
     this.isTransitioning = false
     this.runStartTime = Date.now()
     this.abilitiesGained = 0
+    this.goldEarned = 0
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -91,9 +97,10 @@ export default class GameScene extends Phaser.Scene {
       baseAttackSpeed: this.difficultyConfig.playerAttackSpeed,
     })
 
-    // Create bullet pools
+    // Create bullet pools and gold pool
     this.bulletPool = new BulletPool(this)
     this.enemyBulletPool = new EnemyBulletPool(this)
+    this.goldPool = new GoldPool(this)
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
@@ -306,6 +313,9 @@ export default class GameScene extends Phaser.Scene {
     this.bulletPool.clear(true, true)
     this.enemyBulletPool.clear(true, true)
 
+    // Clear any remaining gold pickups (they stay collected in goldEarned)
+    this.goldPool.cleanup()
+
     // Reset player position
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -429,6 +439,7 @@ export default class GameScene extends Phaser.Scene {
         isVictory: true,
         playTimeMs,
         abilitiesGained: this.abilitiesGained,
+        goldEarned: this.goldEarned,
       })
     })
   }
@@ -570,6 +581,9 @@ export default class GameScene extends Phaser.Scene {
       // Track kill
       this.enemiesKilled++
 
+      // Spawn gold drop at enemy position
+      this.spawnGoldDrop(enemySprite)
+
       // Add XP to player (boss gives 10 XP)
       const xpGain = isBoss ? 10 : 1
       const leveledUp = this.player.addXP(xpGain)
@@ -597,6 +611,31 @@ export default class GameScene extends Phaser.Scene {
     const xpPercentage = this.player.getXPPercentage()
     const level = this.player.getLevel()
     this.scene.get('UIScene').events.emit('updateXP', xpPercentage, level)
+  }
+
+  /**
+   * Determine enemy type for gold drops based on class hierarchy
+   */
+  private getEnemyType(enemy: Enemy): EnemyType {
+    if (enemy instanceof Boss) {
+      return 'boss'
+    }
+    if (enemy instanceof SpreaderEnemy) {
+      return 'spreader'
+    }
+    if (enemy instanceof RangedShooterEnemy) {
+      return 'ranged'
+    }
+    return 'melee'
+  }
+
+  /**
+   * Spawn gold at enemy death position and add to currency
+   */
+  private spawnGoldDrop(enemy: Enemy): void {
+    const enemyType = this.getEnemyType(enemy)
+    const goldValue = this.goldPool.spawnForEnemy(enemy.x, enemy.y, enemyType)
+    console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
   }
 
   private handleLevelUp() {
@@ -830,6 +869,7 @@ export default class GameScene extends Phaser.Scene {
         isVictory: false,
         playTimeMs,
         abilitiesGained: this.abilitiesGained,
+        goldEarned: this.goldEarned,
       })
     })
   }
@@ -990,6 +1030,9 @@ export default class GameScene extends Phaser.Scene {
             // Enemy died from fire DOT - handle like bullet kill
             this.enemiesKilled++
 
+            // Spawn gold drop at enemy position
+            this.spawnGoldDrop(e)
+
             // Add XP to player (check if boss)
             const isBoss = this.boss && e === (this.boss as unknown as Enemy)
             const xpGain = isBoss ? 10 : 1
@@ -1014,6 +1057,14 @@ export default class GameScene extends Phaser.Scene {
           }
         }
       })
+
+      // Update gold pickups - check for collection
+      const goldCollected = this.goldPool.updateAll(this.player.x, this.player.y)
+      if (goldCollected > 0) {
+        this.goldEarned += goldCollected
+        currencyManager.add('gold', goldCollected)
+        saveManager.addGold(goldCollected)
+      }
     }
   }
 

@@ -445,6 +445,56 @@ Visual test screenshots are saved to `test/screenshots/`
      - 8 Ability icons: 48x48 each
      - Dungeon background: 375x667
 7. Polish ability UI with animations and feedback
+8. ✅ **Gold drop system** - DONE (2026-01-01):
+   - `src/entities/GoldPickup.ts`: Gold coin entity with spawn/collection animation
+   - `src/systems/GoldPool.ts`: Object pool for 50 gold pickups with floating text
+   - Gold drops from all enemy types (bullet kills and fire DOT deaths)
+   - Drop amounts: Melee (5-10), Ranged (8-15), Spreader (10-20), Boss (100-200)
+   - Visual features: upward arc spawn animation, idle float/pulse, magnetic pull when near player
+   - Auto-collect within 50px, magnetic pull starts at 80px
+   - Floating "+X" gold text on collection
+   - Gold persists to SaveManager and CurrencyManager
+   - Gold earned displayed on GameOverScene results screen
+9. ✅ **End-of-run rewards screen** - DONE (2026-01-01):
+   - Enhanced GameOverScene with detailed rewards display
+   - Shows: Rooms cleared, Enemies killed, Gold earned
+   - Chest reward system based on performance:
+     - Base: 1 wooden chest per run
+     - 5+ rooms cleared: +1 wooden chest
+     - 30+ enemies killed: +1 wooden chest
+     - Victory (all 10 rooms): +1 silver chest
+     - Boss defeated: +1 silver chest
+     - Maximum 4 chests per run
+   - New files:
+     - `src/data/chestData.ts`: Chest types, drop rates, reward calculation
+     - `src/systems/ChestManager.ts`: Chest inventory with localStorage persistence
+   - Chest types with rarity drop rates:
+     - Wooden: 70% common, 25% great, 5% rare
+     - Silver: 40% common, 40% great, 15% rare, 5% epic
+     - Golden: 20% great, 50% rare, 25% epic, 5% legendary
+   - Rewards collected when pressing CONTINUE button
+   - Gold and chests added to CurrencyManager/ChestManager
+10. ✅ **Chest opening UI** - DONE (2026-01-01):
+   - `src/scenes/ChestScene.ts`: Full chest opening experience
+   - Access via "Chests" button on MainMenuScene
+   - Features:
+     - Display owned chests (wooden/silver/golden) with counts
+     - Tap chest to open with animation:
+       - Chest shake/wobble effect
+       - Flash and particle burst on open
+       - Equipment card flies out with scale animation
+     - Equipment reveal card shows:
+       - Rarity-colored border (gray/green/blue/purple/gold)
+       - Equipment name, slot icon, stats
+       - Perks listed if any
+       - EQUIP and CLOSE buttons
+     - Uses `rollChestRarity()` from chestData.ts for weighted random
+     - Uses `equipmentManager.generateRandomEquipment()` for item creation
+     - Items automatically added to inventory
+   - Integration:
+     - ChestScene added to main.ts scene list
+     - "Chests" button added to MainMenuScene menu row
+     - ChestManager.removeChest() called when opening
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
@@ -565,6 +615,13 @@ Visual test screenshots are saved to `test/screenshots/`
       - Rarity colors: Common=#888888, Great=#00AA00, Rare=#0066FF, Epic=#AA00FF, Legendary=#FFD700
       - Back button returns to MainMenuScene
       - MainMenuScene "Equip" button navigates to EquipmentScene
+[x] Chest opening UI (2026-01-01)
+    - ChestScene (src/scenes/ChestScene.ts): Full chest opening experience
+    - Displays owned chests (wooden/silver/golden) with tap-to-open
+    - Opening animation: shake, flash, particle burst, equipment card reveal
+    - Equipment reveal card with rarity border, stats, perks, EQUIP/CLOSE buttons
+    - Uses rollChestRarity() for weighted random and generateRandomEquipment() for item creation
+    - Accessible via "Chests" button on MainMenuScene (4-button menu row)
 [x] Hero unlock and selection system (2026-01-01)
     - HeroesScene (src/scenes/HeroesScene.ts): Full hero selection UI
     - 3 heroes: Atreus (free), Helix (5000 gold), Meowgik (10000 gold)
@@ -663,6 +720,13 @@ Visual test screenshots are saved to `test/screenshots/`
     - Backgrounds loaded in PreloaderScene: chapter1Bg, chapter2Bg, chapter3Bg, chapter4Bg, chapter5Bg
     - GameScene dynamically selects background based on selected chapter from ChapterManager
     - chapterData.ts updated with correct backgroundKey values for each chapter theme
+[x] Chest reward system (2026-01-01)
+    - chestData.ts: Chest types (wooden/silver/golden), drop rates, reward calculation
+    - ChestManager.ts: Singleton manager with inventory persistence
+    - End-of-run rewards based on performance (rooms, kills, boss, victory)
+    - GameOverScene enhanced with rewards display and chest icons
+    - Integration with CurrencyManager for gold collection
+[ ] Chest opening UI with equipment drops
 [ ] Unique enemy sets per chapter
 [ ] 15 boss encounters (3 per chapter × 5 chapters)
 [x] Save/load system for all progression (2026-01-01)

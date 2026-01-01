@@ -238,6 +238,28 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
     return this.createEquipment(randomType, rarity)
   }
 
+  /**
+   * Generate random equipment with a specific rarity
+   * Used for chest opening where rarity is pre-determined
+   */
+  generateRandomEquipment(rarity: Rarity, slot?: EquipmentSlotType): Equipment {
+    // Get all possible types for the slot (or any slot if not specified)
+    let possibleTypes: EquipmentType[]
+    if (slot) {
+      possibleTypes = this.getTypesForSlot(slot)
+    } else {
+      possibleTypes = [
+        ...Object.values(WeaponType),
+        ...this.getTypesForSlot('armor'),
+        ...this.getTypesForSlot('ring'),
+        ...this.getTypesForSlot('spirit'),
+      ]
+    }
+
+    const randomType = possibleTypes[Math.floor(Math.random() * possibleTypes.length)]
+    return this.createEquipment(randomType, rarity)
+  }
+
   private getTypesForSlot(slot: EquipmentSlotType): EquipmentType[] {
     switch (slot) {
       case 'weapon':
