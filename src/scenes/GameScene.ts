@@ -409,12 +409,20 @@ export default class GameScene extends Phaser.Scene {
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
 
-    // Damage enemy
-    const killed = enemySprite.takeDamage(10)
+    // Damage enemy using player's damage stat
+    const killed = enemySprite.takeDamage(this.player.getDamage())
 
     if (killed) {
       // Track kill
       this.enemiesKilled++
+
+      // Add XP to player
+      const leveledUp = this.player.addXP(1)
+      this.updateXPUI()
+
+      if (leveledUp) {
+        this.handleLevelUp()
+      }
 
       // Remove enemy from group and destroy
       enemySprite.destroy()
@@ -422,6 +430,46 @@ export default class GameScene extends Phaser.Scene {
       // Check if room is cleared
       this.checkRoomCleared()
     }
+  }
+
+  private updateXPUI() {
+    const xpPercentage = this.player.getXPPercentage()
+    const level = this.player.getLevel()
+    this.scene.get('UIScene').events.emit('updateXP', xpPercentage, level)
+  }
+
+  private handleLevelUp() {
+    // Pause game physics
+    this.physics.pause()
+
+    // Listen for ability selection using global game events (more reliable than scene events)
+    this.game.events.once('abilitySelected', (abilityId: string) => {
+      this.applyAbility(abilityId)
+      this.physics.resume()
+    })
+
+    // Launch level up scene with ability choices
+    this.scene.launch('LevelUpScene', {
+      playerLevel: this.player.getLevel(),
+    })
+  }
+
+  private applyAbility(abilityId: string) {
+    switch (abilityId) {
+      case 'front_arrow':
+        this.player.addFrontArrow()
+        break
+      case 'multishot':
+        this.player.addMultishot()
+        break
+      case 'attack_speed':
+        this.player.addAttackSpeedBoost(0.25) // +25%
+        break
+      case 'attack_boost':
+        this.player.addDamageBoost(0.30) // +30%
+        break
+    }
+    console.log(`Applied ability: ${abilityId}`)
   }
 
   private enemyBulletHitPlayer(
@@ -593,8 +641,40 @@ export default class GameScene extends Phaser.Scene {
       enemy.y
     )
 
-    this.bulletPool.spawn(this.player.x, this.player.y, angle, 400)
+    const bulletSpeed = 400
+
+    // Main projectile
+    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed)
+
+    // Front Arrow: Extra forward projectiles with slight spread
+    const extraProjectiles = this.player.getExtraProjectiles()
+    if (extraProjectiles > 0) {
+      const spreadAngle = 0.1 // ~6 degrees spread between extra arrows
+      for (let i = 0; i < extraProjectiles; i++) {
+        // Alternate left and right
+        const offset = ((i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2)) * spreadAngle
+        this.bulletPool.spawn(this.player.x, this.player.y, angle + offset, bulletSpeed)
+      }
+    }
+
+    // Multishot: Side projectiles at 45 degrees
+    const multishotCount = this.player.getMultishotCount()
+    if (multishotCount > 0) {
+      const sideAngle = Math.PI / 4 // 45 degrees
+      for (let i = 0; i < multishotCount; i++) {
+        // Add projectiles at increasing angles
+        const angleOffset = sideAngle * (i + 1)
+        this.bulletPool.spawn(this.player.x, this.player.y, angle + angleOffset, bulletSpeed)
+        this.bulletPool.spawn(this.player.x, this.player.y, angle - angleOffset, bulletSpeed)
+      }
+    }
+
     this.lastShotTime = this.time.now
+  }
+
+  private getEffectiveFireRate(): number {
+    // Base fire rate modified by player's attack speed
+    return this.fireRate / this.player.getAttackSpeed()
   }
 
   update(time: number, delta: number) {
@@ -626,7 +706,7 @@ export default class GameScene extends Phaser.Scene {
 
       // CORE MECHANIC: Auto-fire when player is stationary
       if (!this.player.isPlayerMoving()) {
-        if (time - this.lastShotTime > this.fireRate) {
+        if (time - this.lastShotTime > this.getEffectiveFireRate()) {
           const nearestEnemy = this.findNearestEnemy()
           if (nearestEnemy) {
             this.shootAtEnemy(nearestEnemy)

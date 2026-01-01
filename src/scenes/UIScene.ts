@@ -3,6 +3,9 @@ import Phaser from 'phaser'
 export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics
   private healthBarBg!: Phaser.GameObjects.Graphics
+  private xpBar!: Phaser.GameObjects.Graphics
+  private xpBarBg!: Phaser.GameObjects.Graphics
+  private levelText!: Phaser.GameObjects.Text
   private roomText!: Phaser.GameObjects.Text
 
   constructor() {
@@ -19,9 +22,31 @@ export default class UIScene extends Phaser.Scene {
     this.healthBar = this.add.graphics()
     this.updateHealthBar(100)
 
+    // XP bar background (below health bar)
+    this.xpBarBg = this.add.graphics()
+    this.xpBarBg.fillStyle(0x000000, 0.5)
+    this.xpBarBg.fillRect(10, 40, 154, 16)
+
+    // XP bar
+    this.xpBar = this.add.graphics()
+    this.updateXPBar(0)
+
+    // Level text (right of XP bar)
+    this.levelText = this.add.text(170, 40, 'Lv.1', {
+      fontSize: '14px',
+      color: '#ffdd00',
+      fontStyle: 'bold',
+    })
+
     // Listen for health updates from GameScene
     this.events.on('updateHealth', (healthPercentage: number) => {
       this.updateHealthBar(healthPercentage)
+    })
+
+    // Listen for XP updates from GameScene
+    this.events.on('updateXP', (xpPercentage: number, level: number) => {
+      this.updateXPBar(xpPercentage)
+      this.updateLevel(level)
     })
 
     // Listen for room updates from GameScene
@@ -59,5 +84,15 @@ export default class UIScene extends Phaser.Scene {
 
   updateRoomCounter(currentRoom: number, totalRooms: number) {
     this.roomText.setText(`Room ${currentRoom}/${totalRooms}`)
+  }
+
+  updateXPBar(percentage: number) {
+    this.xpBar.clear()
+    this.xpBar.fillStyle(0x4488ff, 1) // Blue for XP
+    this.xpBar.fillRect(12, 42, percentage * 150, 12)
+  }
+
+  updateLevel(level: number) {
+    this.levelText.setText(`Lv.${level}`)
   }
 }

@@ -1,10 +1,9 @@
 import Phaser from 'phaser'
+import { PlayerStats } from '../systems/PlayerStats'
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-  private health: number = 100
-  private maxHealth: number = 100
+  private stats: PlayerStats = new PlayerStats()
   private isMoving: boolean = false
-  private isInvincible: boolean = false
   private invincibilityDuration: number = 500 // ms of invincibility after being hit
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -55,40 +54,104 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage(amount: number): boolean {
-    // Can't take damage while invincible
-    if (this.isInvincible) {
-      return false
+    const result = this.stats.takeDamage(amount)
+
+    if (result.damaged) {
+      // Start invincibility timer (Phaser-specific)
+      this.scene.time.delayedCall(this.invincibilityDuration, () => {
+        this.stats.clearInvincibility()
+      })
     }
 
-    this.health = Math.max(0, this.health - amount)
-
-    // Start invincibility period
-    this.isInvincible = true
-    this.scene.time.delayedCall(this.invincibilityDuration, () => {
-      this.isInvincible = false
-    })
-
-    return true // Damage was taken
+    return result.damaged
   }
 
   isPlayerInvincible(): boolean {
-    return this.isInvincible
+    return this.stats.isPlayerInvincible()
   }
 
   heal(amount: number) {
-    this.health = Math.min(this.maxHealth, this.health + amount)
-    // TODO: Emit event for UI update
+    this.stats.heal(amount)
   }
 
   getHealth(): number {
-    return this.health
+    return this.stats.getHealth()
   }
 
   getMaxHealth(): number {
-    return this.maxHealth
+    return this.stats.getMaxHealth()
+  }
+
+  isDead(): boolean {
+    return this.stats.isDead()
   }
 
   isPlayerMoving(): boolean {
     return this.isMoving
+  }
+
+  // XP/Leveling methods - delegate to stats
+  addXP(amount: number): boolean {
+    return this.stats.addXP(amount)
+  }
+
+  getXP(): number {
+    return this.stats.getXP()
+  }
+
+  getXPToLevelUp(): number {
+    return this.stats.getXPToLevelUp()
+  }
+
+  getLevel(): number {
+    return this.stats.getLevel()
+  }
+
+  getXPPercentage(): number {
+    return this.stats.getXPPercentage()
+  }
+
+  // Stat getters - delegate to stats
+  getDamage(): number {
+    return this.stats.getDamage()
+  }
+
+  getAttackSpeed(): number {
+    return this.stats.getAttackSpeed()
+  }
+
+  getExtraProjectiles(): number {
+    return this.stats.getExtraProjectiles()
+  }
+
+  getMultishotCount(): number {
+    return this.stats.getMultishotCount()
+  }
+
+  // Ability application - delegate to stats
+  addAttackSpeedBoost(amount: number) {
+    this.stats.addAttackSpeedBoost(amount)
+  }
+
+  addDamageBoost(amount: number) {
+    this.stats.addDamageBoost(amount)
+  }
+
+  addFrontArrow() {
+    this.stats.addFrontArrow()
+  }
+
+  addMultishot() {
+    this.stats.addMultishot()
+  }
+
+  // Reset run-based stats
+  resetRunStats() {
+    this.stats.resetRunStats()
+  }
+
+  // Get underlying stats for debugging
+  getStats(): PlayerStats {
+    return this.stats
   }
 }

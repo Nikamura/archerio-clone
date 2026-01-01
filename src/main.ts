@@ -5,6 +5,7 @@ import MainMenuScene from './scenes/MainMenuScene'
 import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
+import LevelUpScene from './scenes/LevelUpScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloaderScene, MainMenuScene, GameScene, UIScene, GameOverScene],
+  scene: [BootScene, PreloaderScene, MainMenuScene, GameScene, UIScene, GameOverScene, LevelUpScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

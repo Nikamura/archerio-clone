@@ -252,7 +252,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 
 ```
 [x] Phaser 3 project setup with Arcade Physics
-[x] Scene management: MainMenu, Game, GameOver (Boot, Preloader, MainMenu, Game, UI)
+[x] Scene management: MainMenu, Game, GameOver, LevelUp (Boot, Preloader, MainMenu, Game, UI, LevelUp)
 [x] Player controller with joystick input (nipplejs + keyboard fallback)
 [x] Auto-aim + auto-fire system (fires at nearest enemy when stationary)
 [x] Bullet pool (100 bullets)
@@ -261,9 +261,10 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] Collision detection (player/enemy, bullet/enemy, enemy-bullet/player)
 [x] Automated visual testing with Puppeteer
 [x] Room system with door transitions
-[ ] XP/leveling system
-[ ] Ability selection modal
-[ ] 8 working abilities with stacking
+[x] XP/leveling system (level up every 10 kills)
+[x] Ability selection modal (LevelUpScene with 3 random choices)
+[x] 4 working abilities with stacking (Front Arrow, Multishot, Attack Speed, Attack Boost)
+[ ] 4 more abilities (Piercing, Ricochet, Fire Damage, Crit Boost)
 [ ] Boss with 3 attack patterns
 [x] Health system with damage feedback (UI update needed)
 [ ] Basic audio (shoot, hit, level-up, death)
@@ -286,12 +287,38 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Game over screen with death detection, kill tracking, and restart
 - ✅ Room system with 10 rooms, door transitions, and victory screen
 - ✅ Room progression with scaling difficulty
+- ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
+- ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards
+- ✅ **4 abilities implemented** - Front Arrow (+1 projectile), Multishot (side arrows), Attack Speed (+25%), Attack Boost (+30%)
+- ✅ **Ability stacking** - Multiple selections of same ability compound effects
 - ✅ ESLint + TypeScript build passing
 - 🚧 Dev server running at http://localhost:3000/
 
 **TESTING:**
-Run `pnpm run test:visual` to automatically test the game and capture screenshots.
-Screenshots are saved to `test/screenshots/`
+
+```bash
+# Unit tests (no server required)
+pnpm run test              # Run all unit tests once
+pnpm run test:watch        # Run tests in watch mode
+pnpm run test:coverage     # Run tests with coverage report
+
+# Visual/E2E tests (requires dev server running)
+pnpm run dev               # Start dev server first (in another terminal)
+pnpm run test:visual       # Puppeteer visual tests via Vitest
+
+# Full test suite
+pnpm run test:all          # Run all tests (unit + visual)
+```
+
+Coverage reports are generated in `coverage/` directory (HTML report at `coverage/index.html`).
+Visual test screenshots are saved to `test/screenshots/`
+
+**Unit-testable Game Logic:**
+- `src/systems/PlayerStats.ts` - Pure game logic (98% coverage)
+  - Health system: damage, death detection, invincibility
+  - Ability stacking: Front Arrow, Multishot, Attack Speed, Attack Boost
+  - Leveling: XP accumulation, level-up triggers
+  - Stat calculations with ability penalties
 
 **KNOWN BUGS:**
 1. ✅ **Map too large** - FIXED: Changed from 800x600 to 375x667 (portrait mode, iPhone SE size)
@@ -299,12 +326,14 @@ Screenshots are saved to `test/screenshots/`
 3. ✅ **Player hitpoints not decreasing** - FIXED: Added player-enemy collision (5 damage), enemy bullets now damage player (10 damage), UI health bar updates in real-time
 4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
 5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
+6. ⚠️ **Room complete screen shows UI clutter** - When room is cleared and "ENTER" prompt appears, instruction text and health bar should be hidden for cleaner presentation
+7. ⚠️ **Ability selection not working** - LevelUpScene appears on level-up, cards highlight on hover/click, but clicking doesn't select ability and resume game. Event communication between LevelUpScene and GameScene may be broken. Check browser console for "Selected ability:" log.
 
 **NEXT PRIORITIES:**
-1. Add XP/leveling system (level up every 10 kills)
-2. Create ability selection modal (3 choices per level-up)
-3. Implement first 3-4 abilities (Front Arrow, Multishot, Attack Speed, Attack Boost)
-4. Add boss fight for room 10
+1. Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)
+2. Add boss fight for room 10 with 3 attack patterns
+3. Add basic audio (shoot, hit, level-up, death sounds)
+4. Polish ability UI with animations and feedback
 
 ---
 
