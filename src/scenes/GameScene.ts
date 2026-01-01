@@ -27,6 +27,8 @@ import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
+import { performanceMonitor } from '../systems/PerformanceMonitor'
+import { getRoomGenerator, type RoomGenerator, type GeneratedRoom } from '../systems/RoomGenerator'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -68,6 +70,10 @@ export default class GameScene extends Phaser.Scene {
   private runStartTime: number = 0
   private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
+
+  // Room generation system
+  private roomGenerator!: RoomGenerator
+  private currentGeneratedRoom: GeneratedRoom | null = null
 
   constructor() {
     super({ key: 'GameScene' })
@@ -126,6 +132,15 @@ export default class GameScene extends Phaser.Scene {
     // Create visual effects systems
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
+    this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Initialize performance monitoring (debug mode only)
+    if (this.game.config.physics?.arcade?.debug) {
+      performanceMonitor.createOverlay(this)
+    }
+
+    // Initialize room generator
+    this.roomGenerator = getRoomGenerator(width, height)
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
@@ -310,6 +325,9 @@ export default class GameScene extends Phaser.Scene {
     // Update UI
     this.updateRoomUI()
 
+    // Notify UIScene to fade in HUD when entering new room
+    this.scene.get('UIScene').events.emit('roomEntered')
+
     // Fade back in
     this.cameras.main.fadeIn(300, 0, 0, 0)
 
@@ -355,54 +373,117 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Scale difficulty based on room number and difficulty setting
-    const baseEnemies = 4
-    const additionalEnemies = Math.floor(this.currentRoom / 2)
-    const scaledEnemies = Math.min(baseEnemies + additionalEnemies, 10)
-    const totalEnemies = Math.round(scaledEnemies * this.difficultyConfig.enemySpawnMultiplier)
+    // Get current chapter and its configuration
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const chapterDef = getChapterDefinition(selectedChapter)
 
-    // Generate enemy types based on room progress
-    // Enemy types by room:
-    // - Rooms 1-2: melee, ranged (basic)
-    // - Rooms 3-5: + spreader, charger (add some variety)
-    // - Rooms 6-8: + bomber, burrower, healer (more dangerous)
-    // - Rooms 9+:  + tank, spawner (all enemies)
-    const enemyTypes: string[] = []
-    for (let i = 0; i < totalEnemies; i++) {
-      const roll = Math.random()
-      if (this.currentRoom < 3) {
-        // Early rooms: basic enemies only
-        enemyTypes.push(roll < 0.6 ? 'melee' : 'ranged')
-      } else if (this.currentRoom < 6) {
-        // Mid-early rooms: introduce spreader and charger
-        if (roll < 0.25) enemyTypes.push('melee')
-        else if (roll < 0.5) enemyTypes.push('ranged')
-        else if (roll < 0.75) enemyTypes.push('spreader')
-        else enemyTypes.push('charger')
-      } else if (this.currentRoom < 9) {
-        // Mid-late rooms: introduce bomber, burrower, healer
-        if (roll < 0.15) enemyTypes.push('melee')
-        else if (roll < 0.3) enemyTypes.push('ranged')
-        else if (roll < 0.45) enemyTypes.push('spreader')
-        else if (roll < 0.55) enemyTypes.push('charger')
-        else if (roll < 0.7) enemyTypes.push('bomber')
-        else if (roll < 0.85) enemyTypes.push('burrower')
-        else enemyTypes.push('healer')
-      } else {
-        // Late rooms: all enemy types including tank and spawner
-        if (roll < 0.1) enemyTypes.push('melee')
-        else if (roll < 0.2) enemyTypes.push('ranged')
-        else if (roll < 0.3) enemyTypes.push('spreader')
-        else if (roll < 0.4) enemyTypes.push('charger')
-        else if (roll < 0.55) enemyTypes.push('bomber')
-        else if (roll < 0.65) enemyTypes.push('burrower')
-        else if (roll < 0.75) enemyTypes.push('healer')
-        else if (roll < 0.85) enemyTypes.push('spawner')
-        else enemyTypes.push('tank')
-      }
+    // Calculate base enemy count (scales with room number and difficulty)
+    const baseEnemies = 4
+    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier)
+
+    // Use the RoomGenerator to create a procedurally generated room
+    this.currentGeneratedRoom = this.roomGenerator.generateRoom(
+      selectedChapter,
+      this.currentRoom,
+      this.player.x,
+      this.player.y,
+      scaledBase,
+      chapterDef.scaling.extraEnemiesPerRoom
+    )
+
+    // Log room generation details for debugging
+    const layoutName = this.currentGeneratedRoom.layout.name
+    const comboName = this.currentGeneratedRoom.combination?.name || 'Random Mix'
+    console.log(`Room ${this.currentRoom}: Layout "${layoutName}", Combo "${comboName}", Enemies: ${this.currentGeneratedRoom.enemySpawns.length}`)
+
+    // Spawn enemies using the generated positions
+    this.spawnEnemiesFromGeneration(this.currentGeneratedRoom)
+  }
+
+  /**
+   * Spawn enemies using positions from the room generator
+   */
+  private spawnEnemiesFromGeneration(generatedRoom: GeneratedRoom): void {
+    // Create enemy textures first (if needed)
+    if (!this.textures.exists('enemy')) {
+      const graphics = this.make.graphics({ x: 0, y: 0 }, false)
+      graphics.fillStyle(0xff4444, 1)
+      graphics.fillCircle(0, 0, 15)
+      graphics.generateTexture('enemy', 30, 30)
+      graphics.destroy()
     }
 
-    this.spawnEnemiesOfTypes(enemyTypes)
+    // Difficulty modifiers for enemies
+    const enemyOptions = {
+      healthMultiplier: this.difficultyConfig.enemyHealthMultiplier,
+      damageMultiplier: this.difficultyConfig.enemyDamageMultiplier,
+    }
+
+    let spawned = 0
+
+    for (const spawn of generatedRoom.enemySpawns) {
+      const { x, y, enemyType } = spawn
+      let enemy: Enemy
+
+      switch (enemyType) {
+        case 'ranged':
+          enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+          break
+        case 'spreader':
+          enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+          break
+        case 'bomber':
+          enemy = new BomberEnemy(
+            this, x, y, this.bombPool, enemyOptions,
+            (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
+          )
+          break
+        case 'tank':
+          enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+          break
+        case 'charger':
+          enemy = new ChargerEnemy(this, x, y, enemyOptions)
+          break
+        case 'burrower':
+          enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+          break
+        case 'healer':
+          enemy = new HealerEnemy(this, x, y, enemyOptions)
+          break
+        case 'spawner':
+          enemy = new SpawnerEnemy(this, x, y, enemyOptions)
+          break
+        default:
+          enemy = new Enemy(this, x, y, enemyOptions)
+      }
+
+      this.add.existing(enemy)
+      this.physics.add.existing(enemy)
+
+      // Set enemy group reference for healer and spawner enemies
+      if (enemy instanceof HealerEnemy) {
+        enemy.setEnemyGroup(this.enemies)
+      }
+      if (enemy instanceof SpawnerEnemy) {
+        enemy.setEnemyGroup(this.enemies)
+      }
+
+      // Set up physics body with centered circular hitbox
+      const body = enemy.body as Phaser.Physics.Arcade.Body
+      if (body) {
+        const displaySize = enemy.displayWidth
+        const radius = Math.floor(displaySize * 0.4)
+        const offset = (displaySize - radius * 2) / 2
+        body.setSize(displaySize, displaySize)
+        body.setCircle(radius, offset, offset)
+        body.setCollideWorldBounds(true)
+      }
+
+      this.enemies.add(enemy)
+      spawned++
+    }
+
+    console.log(`Room ${this.currentRoom}: Spawned ${spawned} enemies using procedural generation`)
   }
 
   private spawnBoss() {
@@ -457,6 +538,9 @@ export default class GameScene extends Phaser.Scene {
       this.isRoomCleared = true
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
+
+      // Notify UIScene to fade out HUD for cleaner presentation
+      this.scene.get('UIScene').events.emit('roomCleared')
 
       // Magnetically collect all remaining gold and health pickups
       const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
@@ -513,105 +597,32 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private spawnEnemies() {
-    // Initial spawn for room 1
-    const enemyTypes = ['melee', 'melee', 'ranged', 'ranged']
-    this.spawnEnemiesOfTypes(enemyTypes)
-  }
+    // Initial spawn for room 1 - use the room generator
+    // Get current chapter and its configuration
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const chapterDef = getChapterDefinition(selectedChapter)
 
-  private spawnEnemiesOfTypes(enemyTypes: string[]) {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
+    // Calculate base enemy count for room 1
+    const baseEnemies = 4
+    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier)
 
-    // Create enemy textures first
-    if (!this.textures.exists('enemy')) {
-      const graphics = this.make.graphics({ x: 0, y: 0 }, false)
-      graphics.fillStyle(0xff4444, 1)
-      graphics.fillCircle(0, 0, 15)
-      graphics.generateTexture('enemy', 30, 30)
-      graphics.destroy()
-    }
+    // Use the RoomGenerator for room 1
+    this.currentGeneratedRoom = this.roomGenerator.generateRoom(
+      selectedChapter,
+      this.currentRoom,
+      this.player.x,
+      this.player.y,
+      scaledBase,
+      chapterDef.scaling.extraEnemiesPerRoom
+    )
 
-    let spawned = 0
-    let attempts = 0
-    const maxAttempts = 50
+    // Log room generation details
+    const layoutName = this.currentGeneratedRoom.layout.name
+    const comboName = this.currentGeneratedRoom.combination?.name || 'Random Mix'
+    console.log(`Room ${this.currentRoom}: Layout "${layoutName}", Combo "${comboName}", Enemies: ${this.currentGeneratedRoom.enemySpawns.length}`)
 
-    while (spawned < enemyTypes.length && attempts < maxAttempts) {
-      const x = Phaser.Math.Between(50, width - 50)
-      const y = Phaser.Math.Between(80, height - 150)
-
-      // Don't spawn too close to player
-      if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) > 120) {
-        const enemyType = enemyTypes[spawned]
-        let enemy: Enemy
-
-        // Difficulty modifiers for enemies
-        const enemyOptions = {
-          healthMultiplier: this.difficultyConfig.enemyHealthMultiplier,
-          damageMultiplier: this.difficultyConfig.enemyDamageMultiplier,
-        }
-
-        switch (enemyType) {
-          case 'ranged':
-            enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-            break
-          case 'spreader':
-            enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-            break
-          case 'bomber':
-            enemy = new BomberEnemy(
-              this, x, y, this.bombPool, enemyOptions,
-              (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
-            )
-            break
-          case 'tank':
-            enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-            break
-          case 'charger':
-            enemy = new ChargerEnemy(this, x, y, enemyOptions)
-            break
-          case 'burrower':
-            enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-            break
-          case 'healer':
-            enemy = new HealerEnemy(this, x, y, enemyOptions)
-            break
-          case 'spawner':
-            enemy = new SpawnerEnemy(this, x, y, enemyOptions)
-            break
-          default:
-            enemy = new Enemy(this, x, y, enemyOptions)
-        }
-
-        this.add.existing(enemy)
-        this.physics.add.existing(enemy)
-
-        // Set enemy group reference for healer and spawner enemies
-        if (enemy instanceof HealerEnemy) {
-          enemy.setEnemyGroup(this.enemies)
-        }
-        if (enemy instanceof SpawnerEnemy) {
-          enemy.setEnemyGroup(this.enemies)
-        }
-
-        // Set up physics body with centered circular hitbox
-        const body = enemy.body as Phaser.Physics.Arcade.Body
-        if (body) {
-          // Get actual display size from enemy (varies by type: 30 for melee/ranged, 36 for spreader)
-          const displaySize = enemy.displayWidth
-          const radius = Math.floor(displaySize * 0.4) // 40% of display size for hitbox
-          const offset = (displaySize - radius * 2) / 2
-          body.setSize(displaySize, displaySize)
-          body.setCircle(radius, offset, offset)
-          body.setCollideWorldBounds(true)
-        }
-
-        this.enemies.add(enemy)
-        spawned++
-      }
-      attempts++
-    }
-
-    console.log(`Room ${this.currentRoom}: Spawned ${spawned} enemies`)
+    // Spawn enemies using the generated positions
+    this.spawnEnemiesFromGeneration(this.currentGeneratedRoom)
   }
 
   /**
@@ -1303,12 +1314,64 @@ export default class GameScene extends Phaser.Scene {
     return this.fireRate / this.player.getAttackSpeed()
   }
 
+  /**
+   * Handle enemy death from DOT (fire/poison damage)
+   * Extracted for batch processing in update loop
+   */
+  private handleEnemyDOTDeath(e: Enemy): void {
+    this.enemiesKilled++
+
+    // Bloodthirst: Heal on kill
+    const bloodthirstHeal = this.player.getBloodthirstHeal()
+    if (bloodthirstHeal > 0) {
+      this.player.heal(bloodthirstHeal)
+      this.updatePlayerHealthUI(this.player)
+    }
+
+    // Death particles with fire effect
+    this.particles.emitDeath(e.x, e.y)
+    this.particles.emitFire(e.x, e.y)
+    this.screenShake.onExplosion()
+
+    // Spawn gold drop at enemy position
+    this.spawnDrops(e)
+
+    // Add XP to player (check if boss)
+    const isBoss = this.boss && e === (this.boss as unknown as Enemy)
+    const xpGain = isBoss ? 10 : 1
+    const leveledUp = this.player.addXP(xpGain)
+    this.updateXPUI()
+
+    if (leveledUp) {
+      this.handleLevelUp()
+    }
+
+    // Clear boss reference if boss died
+    if (isBoss) {
+      this.boss = null
+      this.scene.get('UIScene').events.emit('hideBossHealth')
+    }
+
+    // Remove enemy
+    e.destroy()
+
+    // Check if room cleared
+    this.checkRoomCleared()
+  }
+
   update(time: number, delta: number) {
     // Skip update if game is over
     if (this.isGameOver) return
 
+    // Update performance monitor
+    performanceMonitor.update(delta)
+
     if (this.player) {
       this.player.update(time, delta)
+
+      // Cache player position for this frame - avoids repeated property access
+      const playerX = this.player.x
+      const playerY = this.player.y
 
       const maxVelocity = 200
       let vx = 0
@@ -1343,76 +1406,53 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // Update enemies and handle fire DOT deaths
+      // Use for loop (faster than forEach) with cached length
       const enemyChildren = this.enemies.getChildren()
-      enemyChildren.forEach((enemy) => {
-        const e = enemy as Enemy
+      const enemyCount = enemyChildren.length
+      const enemiesToDestroy: Enemy[] = []
+
+      for (let i = 0; i < enemyCount; i++) {
+        const e = enemyChildren[i] as Enemy
         if (e && e.active) {
-          const diedFromFire = e.update(time, delta, this.player.x, this.player.y)
-
+          const diedFromFire = e.update(time, delta, playerX, playerY)
           if (diedFromFire) {
-            // Enemy died from fire/poison DOT - handle like bullet kill
-            this.enemiesKilled++
-
-            // Bloodthirst: Heal on kill
-            const bloodthirstHeal = this.player.getBloodthirstHeal()
-            if (bloodthirstHeal > 0) {
-              this.player.heal(bloodthirstHeal)
-              this.updatePlayerHealthUI(this.player)
-            }
-
-            // Death particles with fire effect
-            this.particles.emitDeath(e.x, e.y)
-            this.particles.emitFire(e.x, e.y)
-            this.screenShake.onExplosion()
-
-            // Spawn gold drop at enemy position
-            this.spawnDrops(e)
-
-            // Add XP to player (check if boss)
-            const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-            const xpGain = isBoss ? 10 : 1
-            const leveledUp = this.player.addXP(xpGain)
-            this.updateXPUI()
-
-            if (leveledUp) {
-              this.handleLevelUp()
-            }
-
-            // Clear boss reference if boss died
-            if (isBoss) {
-              this.boss = null
-              this.scene.get('UIScene').events.emit('hideBossHealth')
-            }
-
-            // Remove enemy
-            e.destroy()
-
-            // Check if room cleared
-            this.checkRoomCleared()
+            enemiesToDestroy.push(e)
           }
         }
-      })
+      }
+
+      // Process dead enemies outside the main loop (batch processing)
+      for (const e of enemiesToDestroy) {
+        this.handleEnemyDOTDeath(e)
+      }
 
       // Update gold pickups - check for collection
-      const goldCollected = this.goldPool.updateAll(this.player.x, this.player.y)
+      const goldCollected = this.goldPool.updateAll(playerX, playerY)
       if (goldCollected > 0) {
         this.goldEarned += goldCollected
         currencyManager.add('gold', goldCollected)
         saveManager.addGold(goldCollected)
         // Gold collect particles at player position
-        this.particles.emitGoldCollect(this.player.x, this.player.y)
+        this.particles.emitGoldCollect(playerX, playerY)
         hapticManager.light() // Haptic feedback for collecting gold
       }
 
       // Update health pickups - check for collection
-      this.healthPool.updateAll(this.player.x, this.player.y, (healAmount) => {
+      this.healthPool.updateAll(playerX, playerY, (healAmount) => {
         this.player.heal(healAmount)
         // Update health UI
         this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
         // Heal particles at player position
-        this.particles.emitHeal(this.player.x, this.player.y)
+        this.particles.emitHeal(playerX, playerY)
         hapticManager.light() // Haptic feedback for collecting health
       })
+
+      // Update performance monitor with entity counts
+      performanceMonitor.updateEntityCounts(
+        enemyCount,
+        this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
+        this.particles.getActiveEmitterCount()
+      )
     }
   }
 

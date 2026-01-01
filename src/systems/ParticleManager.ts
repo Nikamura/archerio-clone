@@ -32,16 +32,38 @@ interface ParticleConfig {
 }
 
 /**
+ * Pooled emitter entry
+ */
+interface PooledEmitter {
+  emitter: Phaser.GameObjects.Particles.ParticleEmitter
+  inUse: boolean
+  returnTime: number
+  type: ParticleType
+}
+
+/**
  * ParticleManager - Centralized system for managing all particle effects
  *
- * Uses Phaser's particle emitter system with reusable configurations
- * for different game events (enemy death, bullet impacts, abilities, etc.)
+ * Uses Phaser's particle emitter system with POOLED emitters for performance.
+ * Emitters are reused instead of created/destroyed each time.
+ * Supports configurable particle limits and quality settings.
  */
 export class ParticleManager {
   private scene: Phaser.Scene
   private enabled: boolean = true
   private particleTexture: string = 'particle'
   private emitters: Map<string, Phaser.GameObjects.Particles.ParticleEmitter> = new Map()
+
+  // Emitter pooling for performance
+  private emitterPool: PooledEmitter[] = []
+  private maxPoolSize: number = 30 // Maximum pooled emitters
+  private activeEmitterCount: number = 0
+
+  // Quality settings for performance scaling
+  private qualityMultiplier: number = 1.0 // 0.5 for low, 1.0 for high
+
+  // Track pending cleanup timers
+  private cleanupTimers: Phaser.Time.TimerEvent[] = []
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -62,6 +84,35 @@ export class ParticleManager {
     graphics.fillCircle(8, 8, 8)
     graphics.generateTexture(this.particleTexture, 16, 16)
     graphics.destroy()
+  }
+
+  /**
+   * Set quality multiplier for particle counts (0.5 = half particles, 1.0 = full)
+   * Lower quality improves performance on weaker devices
+   */
+  setQuality(multiplier: number): void {
+    this.qualityMultiplier = Phaser.Math.Clamp(multiplier, 0.25, 1.0)
+  }
+
+  /**
+   * Get current quality setting
+   */
+  getQuality(): number {
+    return this.qualityMultiplier
+  }
+
+  /**
+   * Get count of active emitters
+   */
+  getActiveEmitterCount(): number {
+    return this.activeEmitterCount
+  }
+
+  /**
+   * Get total pool size
+   */
+  getPoolSize(): number {
+    return this.emitterPool.length
   }
 
   /**
@@ -218,6 +269,65 @@ export class ParticleManager {
   }
 
   /**
+   * Get or create a pooled emitter
+   */
+  private getPooledEmitter(type: ParticleType, config: ParticleConfig): Phaser.GameObjects.Particles.ParticleEmitter | null {
+    // Check if we have a free emitter in the pool
+    const now = this.scene.time.now
+    for (const pooled of this.emitterPool) {
+      if (!pooled.inUse && now > pooled.returnTime) {
+        // Reuse this emitter
+        pooled.inUse = true
+        pooled.type = type
+        this.activeEmitterCount++
+        return pooled.emitter
+      }
+    }
+
+    // No free emitter available - create new if under limit
+    if (this.emitterPool.length < this.maxPoolSize) {
+      const emitter = this.scene.add.particles(0, 0, config.key, {
+        speed: config.speed,
+        scale: config.scale,
+        lifespan: config.lifespan,
+        alpha: config.alpha,
+        tint: config.tint,
+        gravityY: config.gravityY ?? 0,
+        angle: config.angle,
+        rotate: config.rotate ?? { min: 0, max: 0 },
+        blendMode: config.blendMode ?? Phaser.BlendModes.NORMAL,
+        emitting: false,
+      })
+      emitter.setDepth(100)
+
+      const pooled: PooledEmitter = {
+        emitter,
+        inUse: true,
+        returnTime: 0,
+        type,
+      }
+      this.emitterPool.push(pooled)
+      this.activeEmitterCount++
+      return emitter
+    }
+
+    // Pool exhausted - skip this particle effect for performance
+    return null
+  }
+
+  /**
+   * Return an emitter to the pool
+   */
+  private returnEmitterToPool(emitter: Phaser.GameObjects.Particles.ParticleEmitter, lifespan: number): void {
+    const pooled = this.emitterPool.find(p => p.emitter === emitter)
+    if (pooled) {
+      pooled.inUse = false
+      pooled.returnTime = this.scene.time.now + lifespan + 100
+      this.activeEmitterCount = Math.max(0, this.activeEmitterCount - 1)
+    }
+  }
+
+  /**
    * Emit particles at a specific location
    */
   emit(type: ParticleType, x: number, y: number): void {
@@ -225,30 +335,28 @@ export class ParticleManager {
 
     const config = this.getConfig(type)
 
-    // Create a particle emitter with the configuration
-    const emitter = this.scene.add.particles(x, y, config.key, {
-      speed: config.speed,
-      scale: config.scale,
-      lifespan: config.lifespan,
-      alpha: config.alpha,
-      tint: config.tint,
-      gravityY: config.gravityY ?? 0,
-      angle: config.angle,
-      rotate: config.rotate ?? { min: 0, max: 0 },
-      blendMode: config.blendMode ?? Phaser.BlendModes.NORMAL,
-      emitting: false,
+    // Apply quality multiplier to particle count
+    const quantity = Math.max(1, Math.round(config.quantity * this.qualityMultiplier))
+
+    // Try to get a pooled emitter
+    const emitter = this.getPooledEmitter(type, config)
+    if (!emitter) {
+      // Pool exhausted - skip for performance
+      return
+    }
+
+    // Position and emit
+    emitter.setPosition(x, y)
+    emitter.explode(quantity, 0, 0)
+
+    // Schedule return to pool after particles fade
+    const timer = this.scene.time.delayedCall(config.lifespan + 100, () => {
+      this.returnEmitterToPool(emitter, 0)
+      // Remove timer from tracking list
+      const idx = this.cleanupTimers.indexOf(timer)
+      if (idx !== -1) this.cleanupTimers.splice(idx, 1)
     })
-
-    // Set depth to be above game objects
-    emitter.setDepth(100)
-
-    // Emit particles
-    emitter.explode(config.quantity, 0, 0)
-
-    // Clean up emitter after particles fade
-    this.scene.time.delayedCall(config.lifespan + 100, () => {
-      emitter.destroy()
-    })
+    this.cleanupTimers.push(timer)
   }
 
   /**
@@ -353,13 +461,57 @@ export class ParticleManager {
   }
 
   /**
-   * Cleanup all emitters
+   * Cleanup all emitters and pools
    */
   destroy(): void {
+    // Cancel all pending cleanup timers
+    for (const timer of this.cleanupTimers) {
+      timer.remove()
+    }
+    this.cleanupTimers = []
+
+    // Destroy all pooled emitters
+    for (const pooled of this.emitterPool) {
+      pooled.emitter.destroy()
+    }
+    this.emitterPool = []
+    this.activeEmitterCount = 0
+
+    // Destroy legacy emitters map
     this.emitters.forEach((emitter) => {
       emitter.destroy()
     })
     this.emitters.clear()
+  }
+
+  /**
+   * Pre-warm the emitter pool by creating emitters ahead of time
+   * Call this during scene creation for smoother gameplay start
+   */
+  prewarm(count: number = 10): void {
+    for (let i = 0; i < count && this.emitterPool.length < this.maxPoolSize; i++) {
+      const config = this.getConfig('hit') // Use lightweight config
+      const emitter = this.scene.add.particles(0, 0, config.key, {
+        speed: config.speed,
+        scale: config.scale,
+        lifespan: config.lifespan,
+        alpha: config.alpha,
+        tint: config.tint,
+        gravityY: config.gravityY ?? 0,
+        angle: config.angle,
+        rotate: config.rotate ?? { min: 0, max: 0 },
+        blendMode: config.blendMode ?? Phaser.BlendModes.NORMAL,
+        emitting: false,
+      })
+      emitter.setDepth(100)
+
+      this.emitterPool.push({
+        emitter,
+        inUse: false,
+        returnTime: 0,
+        type: 'hit',
+      })
+    }
   }
 }
 

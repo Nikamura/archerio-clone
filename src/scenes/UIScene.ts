@@ -14,28 +14,40 @@ export default class UIScene extends Phaser.Scene {
   private bossNameText!: Phaser.GameObjects.Text
   private bossHealthContainer!: Phaser.GameObjects.Container
 
+  // HUD container for toggling visibility
+  private hudContainer!: Phaser.GameObjects.Container
+  private isHudVisible: boolean = true
+
   constructor() {
     super({ key: 'UIScene' })
   }
 
   create() {
+    // Create HUD container for easy visibility toggling
+    this.hudContainer = this.add.container(0, 0)
+    this.isHudVisible = true
+
     // Health bar background
     this.healthBarBg = this.add.graphics()
     this.healthBarBg.fillStyle(0x000000, 0.5)
     this.healthBarBg.fillRect(10, 10, 204, 24)
+    this.hudContainer.add(this.healthBarBg)
 
     // Health bar
     this.healthBar = this.add.graphics()
     this.updateHealthBar(100)
+    this.hudContainer.add(this.healthBar)
 
     // XP bar background (below health bar)
     this.xpBarBg = this.add.graphics()
     this.xpBarBg.fillStyle(0x000000, 0.5)
     this.xpBarBg.fillRect(10, 40, 154, 16)
+    this.hudContainer.add(this.xpBarBg)
 
     // XP bar
     this.xpBar = this.add.graphics()
     this.updateXPBar(0)
+    this.hudContainer.add(this.xpBar)
 
     // Level text (right of XP bar)
     this.levelText = this.add.text(170, 40, 'Lv.1', {
@@ -43,6 +55,7 @@ export default class UIScene extends Phaser.Scene {
       color: '#ffdd00',
       fontStyle: 'bold',
     })
+    this.hudContainer.add(this.levelText)
 
     // Listen for health updates from GameScene
     this.events.on('updateHealth', (healthPercentage: number) => {
@@ -69,6 +82,14 @@ export default class UIScene extends Phaser.Scene {
     })
     this.events.on('hideBossHealth', () => {
       this.hideBossHealthBar()
+    })
+
+    // Listen for room cleared/entered events to toggle HUD visibility
+    this.events.on('roomCleared', () => {
+      this.fadeOutHUD()
+    })
+    this.events.on('roomEntered', () => {
+      this.fadeInHUD()
     })
 
     // Room counter
@@ -170,6 +191,36 @@ export default class UIScene extends Phaser.Scene {
     this.levelText.setText(`Lv.${level}`)
   }
 
+  /**
+   * Fade out HUD elements when room is cleared for cleaner presentation
+   */
+  private fadeOutHUD(): void {
+    if (!this.isHudVisible) return
+    this.isHudVisible = false
+
+    this.tweens.add({
+      targets: this.hudContainer,
+      alpha: 0.3,
+      duration: 300,
+      ease: 'Power2.easeOut',
+    })
+  }
+
+  /**
+   * Fade in HUD elements when entering a new room
+   */
+  private fadeInHUD(): void {
+    if (this.isHudVisible) return
+    this.isHudVisible = true
+
+    this.tweens.add({
+      targets: this.hudContainer,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut',
+    })
+  }
+
   shutdown() {
     // Remove all event listeners to prevent memory leaks
     this.events.off('updateHealth')
@@ -178,5 +229,7 @@ export default class UIScene extends Phaser.Scene {
     this.events.off('showBossHealth')
     this.events.off('updateBossHealth')
     this.events.off('hideBossHealth')
+    this.events.off('roomCleared')
+    this.events.off('roomEntered')
   }
 }

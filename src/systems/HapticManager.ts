@@ -6,6 +6,7 @@
  */
 export class HapticManager {
   private _enabled: boolean = true
+  private _actuallyWorks: boolean | null = null // Cache whether vibration actually works
 
   // Vibration patterns (in milliseconds)
   private readonly patterns = {
@@ -21,8 +22,7 @@ export class HapticManager {
     // Check if vibration API is supported
     if (!this.isSupported()) {
       console.log('HapticManager: Vibration API not supported')
-    } else {
-      console.log('HapticManager: Vibration API available')
+      this._actuallyWorks = false
     }
   }
 
@@ -56,11 +56,26 @@ export class HapticManager {
       return
     }
 
+    // If we've already determined vibration doesn't work, don't try again
+    if (this._actuallyWorks === false) {
+      return
+    }
+
     try {
-      window.navigator.vibrate(pattern)
+      const result = window.navigator.vibrate(pattern)
+      // If this is the first successful call, cache that it works
+      if (this._actuallyWorks === null) {
+        this._actuallyWorks = result
+        if (!result) {
+          console.log('HapticManager: Vibration API present but not functional')
+        }
+      }
     } catch (error) {
-      // Silently fail - vibration is non-critical
-      console.debug('HapticManager: vibrate failed', error)
+      // Cache that vibration doesn't work, log once, then silently fail forever
+      if (this._actuallyWorks === null) {
+        this._actuallyWorks = false
+        console.log('HapticManager: vibrate failed', error)
+      }
     }
   }
 

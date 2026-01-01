@@ -47,8 +47,9 @@ describe('SaveManager', () => {
       const data = saveManager.getData()
 
       expect(data.version).toBe(1)
-      expect(data.gold).toBe(0)
-      expect(data.gems).toBe(0)
+      // New players start with 1000 gold and 50 gems
+      expect(data.gold).toBe(1000)
+      expect(data.gems).toBe(50)
       expect(data.scrolls).toBe(0)
       expect(data.selectedHeroId).toBe('atreus')
     })
@@ -100,13 +101,15 @@ describe('SaveManager', () => {
     })
 
     it('should load persisted data', () => {
+      // Starting gold is 1000, add 500 = 1500
       saveManager.addGold(500)
+      // Starting gems is 50, add 50 = 100
       saveManager.addGems(50)
       saveManager.save()
 
       const newManager = new SaveManager()
-      expect(newManager.getGold()).toBe(500)
-      expect(newManager.getGems()).toBe(50)
+      expect(newManager.getGold()).toBe(1500)
+      expect(newManager.getGems()).toBe(100)
     })
 
     it('should update lastPlayedAt on save', () => {
@@ -128,8 +131,9 @@ describe('SaveManager', () => {
 
       saveManager.reset()
 
-      expect(saveManager.getGold()).toBe(0)
-      expect(saveManager.getGems()).toBe(0)
+      // Reset returns to default starting values (1000 gold, 50 gems for new players)
+      expect(saveManager.getGold()).toBe(1000)
+      expect(saveManager.getGems()).toBe(50)
       expect(saveManager.getHero('helix')?.unlocked).toBe(false)
     })
   })
@@ -137,19 +141,22 @@ describe('SaveManager', () => {
   describe('currency management', () => {
     describe('gold', () => {
       it('should add gold', () => {
+        const initialGold = saveManager.getGold()
         saveManager.addGold(100)
-        expect(saveManager.getGold()).toBe(100)
+        expect(saveManager.getGold()).toBe(initialGold + 100)
       })
 
       it('should spend gold when sufficient', () => {
-        saveManager.addGold(100)
+        const initialGold = saveManager.getGold()
         const result = saveManager.spendGold(50)
 
         expect(result).toBe(true)
-        expect(saveManager.getGold()).toBe(50)
+        expect(saveManager.getGold()).toBe(initialGold - 50)
       })
 
       it('should not spend gold when insufficient', () => {
+        // Spend all gold first
+        saveManager.spendGold(saveManager.getGold())
         saveManager.addGold(30)
         const result = saveManager.spendGold(50)
 
@@ -158,6 +165,8 @@ describe('SaveManager', () => {
       })
 
       it('should not go negative', () => {
+        // Spend all gold first
+        saveManager.spendGold(saveManager.getGold())
         saveManager.addGold(-100)
         expect(saveManager.getGold()).toBe(0)
       })
@@ -165,19 +174,22 @@ describe('SaveManager', () => {
 
     describe('gems', () => {
       it('should add gems', () => {
+        const initialGems = saveManager.getGems()
         saveManager.addGems(50)
-        expect(saveManager.getGems()).toBe(50)
+        expect(saveManager.getGems()).toBe(initialGems + 50)
       })
 
       it('should spend gems when sufficient', () => {
-        saveManager.addGems(100)
+        const initialGems = saveManager.getGems()
         const result = saveManager.spendGems(30)
 
         expect(result).toBe(true)
-        expect(saveManager.getGems()).toBe(70)
+        expect(saveManager.getGems()).toBe(initialGems - 30)
       })
 
       it('should not spend gems when insufficient', () => {
+        // Spend all gems first
+        saveManager.spendGems(saveManager.getGems())
         saveManager.addGems(20)
         const result = saveManager.spendGems(50)
 
@@ -579,9 +591,9 @@ describe('SaveManager', () => {
     it('should handle corrupted save data', () => {
       localStorageMock.setItem('arrow_game_save_data', 'not valid json')
 
-      // Should not throw, should return defaults
+      // Should not throw, should return defaults (1000 gold for new players)
       const newManager = new SaveManager()
-      expect(newManager.getGold()).toBe(0)
+      expect(newManager.getGold()).toBe(1000)
     })
   })
 })

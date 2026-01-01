@@ -7,6 +7,14 @@ import { currencyManager } from '../systems/CurrencyManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { dailyRewardManager } from '../systems/DailyRewardManager'
 import { achievementManager } from '../systems/AchievementManager'
+import {
+  fadeInScene,
+  transitionToScene,
+  TransitionType,
+  applyButtonEffects,
+  staggerIn,
+  DURATION,
+} from '../systems/UIAnimations'
 
 export default class MainMenuScene extends Phaser.Scene {
   private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
@@ -14,12 +22,15 @@ export default class MainMenuScene extends Phaser.Scene {
   private leftTorch?: Phaser.GameObjects.Image
   private rightTorch?: Phaser.GameObjects.Image
   private chapterButtons: Phaser.GameObjects.Container[] = []
+  private menuButtons: Phaser.GameObjects.Text[] = []
 
   constructor() {
     super({ key: 'MainMenuScene' })
   }
 
   create() {
+    // Fade in scene on entry
+    fadeInScene(this, DURATION.NORMAL)
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
@@ -184,6 +195,12 @@ export default class MainMenuScene extends Phaser.Scene {
     playButton.setInteractive({ useHandCursor: true })
     playButton.setDepth(10)
 
+    // Apply enhanced button effects
+    applyButtonEffects(this, playButton, {
+      scaleOnHover: 1.08,
+      scaleOnPress: 0.95,
+    })
+
     playButton.on('pointerover', () => {
       playButton.setStyle({ backgroundColor: '#6bb6ff' })
     })
@@ -195,7 +212,8 @@ export default class MainMenuScene extends Phaser.Scene {
     playButton.on('pointerdown', () => {
       audioManager.resume()
       audioManager.playGameStart()
-      this.scene.start('GameScene')
+      // Use fade transition when starting game
+      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
       this.scene.launch('UIScene')
     })
 
@@ -204,7 +222,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // ============================================
 
     const menuY = 340
-    const menuButtons = [
+    const menuButtonConfigs = [
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },
       { label: 'Talents', scene: 'TalentsScene' },
@@ -215,8 +233,9 @@ export default class MainMenuScene extends Phaser.Scene {
     const buttonsPerRow = 4
     const totalRowWidth = buttonsPerRow * menuBtnWidth + (buttonsPerRow - 1) * menuGap
     const menuStartX = (width - totalRowWidth) / 2 + menuBtnWidth / 2
+    this.menuButtons = []
 
-    menuButtons.forEach((btn, index) => {
+    menuButtonConfigs.forEach((btn, index) => {
       const col = index % buttonsPerRow
       const xPos = menuStartX + col * (menuBtnWidth + menuGap)
       const button = this.add.text(xPos, menuY, btn.label, {
@@ -229,6 +248,12 @@ export default class MainMenuScene extends Phaser.Scene {
       button.setInteractive({ useHandCursor: true })
       button.setDepth(10)
 
+      // Apply enhanced button effects
+      applyButtonEffects(this, button, {
+        scaleOnHover: 1.1,
+        scaleOnPress: 0.9,
+      })
+
       button.on('pointerover', () => {
         button.setStyle({ backgroundColor: '#7fa32f' })
       })
@@ -239,9 +264,15 @@ export default class MainMenuScene extends Phaser.Scene {
 
       button.on('pointerdown', () => {
         audioManager.playMenuSelect()
-        this.scene.start(btn.scene)
+        // Use slide transition for sub-menus
+        transitionToScene(this, btn.scene, TransitionType.FADE, DURATION.FAST)
       })
+
+      this.menuButtons.push(button)
     })
+
+    // Stagger animate menu buttons entrance
+    staggerIn(this, this.menuButtons, 'up', DURATION.FAST, 50)
 
     // ============================================
     // DAILY REWARD BUTTON (Below menu buttons)
@@ -271,8 +302,11 @@ export default class MainMenuScene extends Phaser.Scene {
 
     dailyButton.on('pointerdown', () => {
       audioManager.playMenuSelect()
-      this.scene.start('DailyRewardScene')
+      transitionToScene(this, 'DailyRewardScene', TransitionType.FADE, DURATION.FAST)
     })
+
+    // Apply button effects to daily button
+    applyButtonEffects(this, dailyButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
 
     // Notification badge (if reward available)
     if (canClaimDaily) {
@@ -330,8 +364,11 @@ export default class MainMenuScene extends Phaser.Scene {
 
     achieveButton.on('pointerdown', () => {
       audioManager.playMenuSelect()
-      this.scene.start('AchievementsScene')
+      transitionToScene(this, 'AchievementsScene', TransitionType.FADE, DURATION.FAST)
     })
+
+    // Apply button effects to achievements button
+    applyButtonEffects(this, achieveButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
 
     // Notification badge (if unclaimed rewards)
     if (unclaimedCount > 0) {
