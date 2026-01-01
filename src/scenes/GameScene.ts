@@ -490,16 +490,46 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private handleLevelUp() {
+    console.log('GameScene: handleLevelUp called')
+    
     // Pause game physics
     this.physics.pause()
 
+    // Hide joystick so it doesn't block the UI
+    if (this.joystick) {
+      console.log('GameScene: hiding joystick')
+      this.joystick.hide()
+    }
+
+    // Clean up any existing listeners to prevent multiple applications
+    this.game.events.off('abilitySelected')
+
     // Listen for ability selection using global game events (more reliable than scene events)
     this.game.events.once('abilitySelected', (abilityId: string) => {
-      this.applyAbility(abilityId)
-      this.physics.resume()
+      console.log('GameScene: received abilitySelected', abilityId)
+      try {
+        this.applyAbility(abilityId)
+        console.log('GameScene: resuming physics and showing joystick')
+        this.physics.resume()
+        if (this.joystick) {
+          this.joystick.show()
+        }
+      } catch (error) {
+        console.error('GameScene: Error applying ability:', error)
+        this.physics.resume() // Resume anyway to prevent soft-lock
+        if (this.joystick) {
+          this.joystick.show()
+        }
+      }
     })
 
     // Launch level up scene with ability choices
+    // Use launch instead of start to run in parallel
+    if (this.scene.isActive('LevelUpScene')) {
+      console.log('GameScene: LevelUpScene already active, restarting it')
+      this.scene.stop('LevelUpScene')
+    }
+    
     this.scene.launch('LevelUpScene', {
       playerLevel: this.player.getLevel(),
     })

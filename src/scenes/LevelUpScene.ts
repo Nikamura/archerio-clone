@@ -84,7 +84,8 @@ export default class LevelUpScene extends Phaser.Scene {
     this.scene.bringToTop()
 
     // Dark overlay background
-    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
+    bg.setInteractive() // Capture all clicks on background too
 
     // Title
     this.add
@@ -94,6 +95,11 @@ export default class LevelUpScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+
+    // Global input log for debugging
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      console.log('LevelUpScene: Global pointerdown at', pointer.x, pointer.y)
+    })
 
     // Select 3 random abilities
     const selectedAbilities = this.selectRandomAbilities(3)
@@ -157,10 +163,8 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Click to select
     button.on('pointerdown', () => {
+      console.log('LevelUpScene: button pointerdown', ability.id)
       button.setFillStyle(0x666666)
-    })
-
-    button.on('pointerup', () => {
       this.selectAbility(ability.id)
     })
 
@@ -168,15 +172,27 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   private selectAbility(abilityId: string) {
-    console.log('Selected ability:', abilityId)
+    console.log('LevelUpScene: selectAbility called', abilityId)
 
-    // Disable all buttons to prevent double selection
-    this.buttons.forEach(btn => btn.disableInteractive())
+    try {
+      // Disable all buttons to prevent double selection
+      this.buttons.forEach(btn => {
+        if (btn && btn.disableInteractive) {
+          btn.disableInteractive()
+        }
+      })
 
-    // Emit event to GameScene using global game events
-    this.game.events.emit('abilitySelected', abilityId)
+      // Close this scene first to ensure it disappears
+      console.log('LevelUpScene: stopping scene')
+      this.scene.stop('LevelUpScene')
 
-    // Close this scene
-    this.scene.stop('LevelUpScene')
+      // Emit event to GameScene using global game events
+      console.log('LevelUpScene: emitting abilitySelected')
+      this.game.events.emit('abilitySelected', abilityId)
+    } catch (error) {
+      console.error('LevelUpScene: Error in selectAbility:', error)
+      // Attempt to stop the scene anyway if it hasn't stopped
+      this.scene.stop('LevelUpScene')
+    }
   }
 }

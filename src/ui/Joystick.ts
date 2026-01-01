@@ -4,15 +4,24 @@ export default class Joystick {
   private manager: JoystickManager | null = null
   private onMove: ((angle: number, force: number) => void) | null = null
   private onEnd: (() => void) | null = null
+  private container: HTMLElement | null = null
 
   constructor(_scene: Phaser.Scene) {
     // Scene reference available if needed for future use
   }
 
   create(container: HTMLElement) {
+    this.container = container
+    this.internalCreate()
+    console.log('Joystick created')
+  }
+
+  private internalCreate() {
+    if (!this.container) return
+
     // Create joystick on left half of screen
     this.manager = nipplejs.create({
-      zone: container,
+      zone: this.container,
       mode: 'dynamic',
       position: { left: '25%', top: '50%' },
       color: 'rgba(74, 158, 255, 0.5)',
@@ -35,8 +44,6 @@ export default class Joystick {
         this.onEnd()
       }
     })
-
-    console.log('Joystick created')
   }
 
   setOnMove(callback: (angle: number, force: number) => void) {
@@ -47,10 +54,28 @@ export default class Joystick {
     this.onEnd = callback
   }
 
+  hide() {
+    // For nipplejs, the most reliable way to stop it from capturing events
+    // on the zone is to destroy it and recreate it later.
+    if (this.manager) {
+      console.log('Joystick: destroying manager to release input')
+      this.manager.destroy()
+      this.manager = null
+    }
+  }
+
+  show() {
+    if (!this.manager && this.container) {
+      console.log('Joystick: recreating manager')
+      this.internalCreate()
+    }
+  }
+
   destroy() {
     if (this.manager) {
       this.manager.destroy()
       this.manager = null
     }
+    this.container = null
   }
 }

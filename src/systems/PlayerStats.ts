@@ -123,13 +123,23 @@ export class PlayerStats {
    */
   addXP(amount: number): boolean {
     this.currentXP += amount
-    const xpRequired = this.getXpRequiredForCurrentLevel()
-    if (this.currentXP >= xpRequired) {
-      this.currentXP = 0
-      this.level++
-      return true
+    let leveledUp = false
+    
+    // Support multiple level-ups if enough XP is gained at once
+    // and preserve leftover XP
+    while (true) {
+      const xpRequired = this.getXpRequiredForCurrentLevel()
+      if (this.currentXP >= xpRequired) {
+        this.currentXP -= xpRequired
+        this.level++
+        leveledUp = true
+        // Continue loop to check if we level up again with remaining XP
+      } else {
+        break
+      }
     }
-    return false
+    
+    return leveledUp
   }
 
   getXP(): number {
