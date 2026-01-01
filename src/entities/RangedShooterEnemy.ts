@@ -36,9 +36,15 @@ export default class RangedShooterEnemy extends Enemy {
     console.log('RangedShooterEnemy created at', x, y)
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number) {
+  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
     if (!this.active || !this.body) {
-      return
+      return false
+    }
+
+    // Update fire DOT from parent class
+    const diedFromFire = super.update(time, _delta, playerX, playerY)
+    if (diedFromFire) {
+      return true
     }
 
     const distanceToPlayer = Phaser.Math.Distance.Between(
@@ -94,6 +100,8 @@ export default class RangedShooterEnemy extends Enemy {
         }
       }
     }
+
+    return false
   }
 
   private startAiming(time: number) {

@@ -25,10 +25,15 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
     graphics.destroy()
   }
 
-  spawn(x: number, y: number, angle: number, speed: number = 400): Bullet | null {
+  spawn(x: number, y: number, angle: number, speed: number = 400, options?: {
+    maxPierces?: number
+    maxBounces?: number
+    fireDamage?: number
+    isCrit?: boolean
+  }): Bullet | null {
     const bullet = this.get(x, y) as Bullet
     if (bullet) {
-      bullet.fire(x, y, angle, speed)
+      bullet.fire(x, y, angle, speed, options)
     }
     return bullet
   }

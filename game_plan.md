@@ -305,6 +305,12 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Charge: Wind up with visual warning, then dash at player
   - 200 HP (10 XP reward), boss health bar UI at bottom of screen
 - ✅ **Simplified ability selection** - Large vertically-stacked buttons for reliable touch input
+- ✅ **Advanced ability effects** (2026-01-01):
+  - Piercing: Bullets track hit count, pass through enemies if piercingLevel > 0
+  - Ricochet: Bullets redirect to nearest enemy after hit, up to maxBounces times
+  - Fire DOT: Enemies burn with orange tint, tick damage every 500ms for 2 seconds
+  - Critical hits: Yellow tinted bullets deal increased damage (visual feedback)
+  - All effects work with Front Arrow and Multishot projectiles
 - ✅ ESLint + TypeScript build passing
 - ✅ 86 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
@@ -354,13 +360,17 @@ Visual test screenshots are saved to `test/screenshots/`
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
 2. ✅ ~~Add boss fight for room 10 with 3 attack patterns~~ - DONE (spread, barrage, charge attacks)
-3. Implement gameplay effects for new abilities:
-   - Piercing: Bullets pass through enemies (track hit count per bullet)
-   - Ricochet: Bullets bounce to nearest enemy on hit
-   - Fire Damage: Apply DOT effect to enemies on hit
-   - Crit: Roll for crit on each hit, show damage numbers
+3. ✅ ~~Implement gameplay effects for new abilities~~ - DONE (2026-01-01):
+   - ✅ Piercing: Bullets pass through enemies with damage reduction (-33% per hit)
+   - ✅ Ricochet: Bullets bounce to nearest enemy (3 bounces per level)
+   - ✅ Fire Damage: Apply DOT effect (18% weapon damage over 2 seconds, burns with orange tint)
+   - ✅ Crit: Roll for crit on each bullet (visual: yellow tint + larger), damage multiplier applied
 4. Add basic audio (shoot, hit, level-up, death sounds)
-5. **Generate game assets using AI image generation** (use `--clean` flag for transparency):
+5. **Balance pass needed** (user feedback 2026-01-01):
+   - ⚠️ Boss too easy - needs more HP or damage
+   - ⚠️ Regular enemies die too quickly - may need HP buff
+   - Consider: Enemy HP scaling by room number
+6. **Generate game assets using AI image generation** (use `--clean` flag for transparency):
    - Player sprite: `pnpm run generate-sprite "archer hero with bow" --type player --clean`
    - Enemy sprites:
      - `pnpm run generate-sprite "red slime monster" --type enemy --clean` (melee)

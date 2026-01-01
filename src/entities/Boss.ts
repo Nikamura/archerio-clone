@@ -90,10 +90,13 @@ export default class Boss extends Enemy {
     return false
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number) {
+  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
     if (!this.active || !this.body) {
-      return
+      return false
     }
+
+    // Note: Boss doesn't call super.update() because it uses its own health system
+    // and fire DOT would need to be integrated with bossHealth
 
     switch (this.phase) {
       case 'idle':
@@ -115,6 +118,8 @@ export default class Boss extends Enemy {
         this.handleChargingPhase(time)
         break
     }
+
+    return false
   }
 
   private handleIdlePhase(time: number, playerX: number, playerY: number) {

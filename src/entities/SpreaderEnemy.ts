@@ -28,9 +28,15 @@ export default class SpreaderEnemy extends Enemy {
     console.log('SpreaderEnemy created at', x, y)
   }
 
-  update(time: number, _delta: number, _playerX: number, _playerY: number) {
+  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
     if (!this.active || !this.body) {
-      return
+      return false
+    }
+
+    // Update fire DOT from parent class
+    const diedFromFire = super.update(time, _delta, playerX, playerY)
+    if (diedFromFire) {
+      return true
     }
 
     // Spreader is stationary
@@ -41,6 +47,8 @@ export default class SpreaderEnemy extends Enemy {
       this.shootSpread()
       this.lastShotTime = time
     }
+
+    return false
   }
 
   private shootSpread() {

@@ -4,6 +4,7 @@ import Enemy from '../entities/Enemy'
 import RangedShooterEnemy from '../entities/RangedShooterEnemy'
 import SpreaderEnemy from '../entities/SpreaderEnemy'
 import Boss from '../entities/Boss'
+import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
@@ -441,19 +442,57 @@ export default class GameScene extends Phaser.Scene {
   ) {
     if (this.isGameOver || this.isTransitioning) return
 
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
+    const bulletSprite = bullet as Bullet
     const enemySprite = enemy as Enemy
 
-    // Deactivate bullet
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
+    // Calculate damage based on bullet properties
+    let damage = this.player.getDamage()
 
-    // Damage enemy using player's damage stat
-    const killed = enemySprite.takeDamage(this.player.getDamage())
+    // Check for critical hit
+    if (bulletSprite.isCriticalHit()) {
+      damage = this.player.getDamageWithCrit(true)
+      // TODO: Show crit damage number (yellow/bigger)
+    }
+
+    // Apply piercing damage reduction if bullet has hit enemies before
+    const hitCount = bulletSprite.getHitCount()
+    if (hitCount > 0 && bulletSprite.getMaxPierces() > 0) {
+      damage = this.player.getPiercingDamage(hitCount)
+    }
+
+    // Damage enemy
+    const killed = enemySprite.takeDamage(damage)
+
+    // Apply fire DOT if bullet has fire damage
+    const fireDamage = bulletSprite.getFireDamage()
+    if (fireDamage > 0 && !killed) {
+      enemySprite.applyFireDamage(fireDamage, 2000) // 2 second burn
+    }
+
+    // Check if bullet should be deactivated or continue (piercing/ricochet)
+    const shouldDeactivate = bulletSprite.onHit()
+
+    // Handle ricochet - find nearest enemy and redirect
+    if (!shouldDeactivate && bulletSprite.getBounceCount() < bulletSprite.getMaxBounces()) {
+      const nearestEnemy = this.findNearestEnemyExcluding(bulletSprite.x, bulletSprite.y, enemySprite)
+      if (nearestEnemy) {
+        bulletSprite.redirectTo(nearestEnemy.x, nearestEnemy.y)
+      } else {
+        // No target for ricochet, deactivate
+        bulletSprite.setActive(false)
+        bulletSprite.setVisible(false)
+      }
+    } else if (shouldDeactivate) {
+      // Deactivate bullet
+      bulletSprite.setActive(false)
+      bulletSprite.setVisible(false)
+    }
+    // else: bullet continues (piercing)
 
     // Update boss health bar if this is the boss
-    if (this.boss && enemySprite === this.boss && !killed) {
-      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
+    if (isBoss && !killed) {
+      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
     }
 
     if (killed) {
@@ -461,7 +500,7 @@ export default class GameScene extends Phaser.Scene {
       this.enemiesKilled++
 
       // Add XP to player (boss gives 10 XP)
-      const xpGain = this.boss && enemySprite === this.boss ? 10 : 1
+      const xpGain = isBoss ? 10 : 1
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
@@ -470,7 +509,7 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // Clear boss reference if boss was killed
-      if (this.boss && enemySprite === this.boss) {
+      if (isBoss) {
         this.boss = null
         this.scene.get('UIScene').events.emit('hideBossHealth')
       }
@@ -726,6 +765,31 @@ export default class GameScene extends Phaser.Scene {
     return nearestEnemy
   }
 
+  /**
+   * Find nearest enemy to a position, excluding a specific enemy
+   * Used for ricochet targeting
+   */
+  private findNearestEnemyExcluding(x: number, y: number, exclude: Enemy): Enemy | null {
+    let nearestEnemy: Enemy | null = null
+    let nearestDistance = Infinity
+
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy
+
+      // Skip the excluded enemy
+      if (e === exclude) return
+
+      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestEnemy = e
+      }
+    })
+
+    return nearestEnemy
+  }
+
   private shootAtEnemy(enemy: Enemy) {
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
@@ -736,8 +800,16 @@ export default class GameScene extends Phaser.Scene {
 
     const bulletSpeed = 400
 
+    // Gather ability options for bullets
+    const bulletOptions = {
+      maxPierces: this.player.getPiercingLevel(),
+      maxBounces: this.player.getRicochetBounces(),
+      fireDamage: this.player.getFireDamage(),
+      isCrit: this.player.rollCrit(), // Roll crit for main projectile
+    }
+
     // Main projectile
-    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed)
+    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
 
     // Front Arrow: Extra forward projectiles with slight spread
     const extraProjectiles = this.player.getExtraProjectiles()
@@ -746,7 +818,9 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < extraProjectiles; i++) {
         // Alternate left and right
         const offset = ((i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2)) * spreadAngle
-        this.bulletPool.spawn(this.player.x, this.player.y, angle + offset, bulletSpeed)
+        // Each extra projectile rolls its own crit
+        const extraOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        this.bulletPool.spawn(this.player.x, this.player.y, angle + offset, bulletSpeed, extraOptions)
       }
     }
 
@@ -757,8 +831,11 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < multishotCount; i++) {
         // Add projectiles at increasing angles
         const angleOffset = sideAngle * (i + 1)
-        this.bulletPool.spawn(this.player.x, this.player.y, angle + angleOffset, bulletSpeed)
-        this.bulletPool.spawn(this.player.x, this.player.y, angle - angleOffset, bulletSpeed)
+        // Each multishot projectile rolls its own crit
+        const multishotOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        const multishotOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        this.bulletPool.spawn(this.player.x, this.player.y, angle + angleOffset, bulletSpeed, multishotOptions1)
+        this.bulletPool.spawn(this.player.x, this.player.y, angle - angleOffset, bulletSpeed, multishotOptions2)
       }
     }
 
@@ -809,12 +886,39 @@ export default class GameScene extends Phaser.Scene {
         }
       }
 
-      // Update enemies
+      // Update enemies and handle fire DOT deaths
       const enemyChildren = this.enemies.getChildren()
       enemyChildren.forEach((enemy) => {
         const e = enemy as Enemy
         if (e && e.active) {
-          e.update(time, delta, this.player.x, this.player.y)
+          const diedFromFire = e.update(time, delta, this.player.x, this.player.y)
+
+          if (diedFromFire) {
+            // Enemy died from fire DOT - handle like bullet kill
+            this.enemiesKilled++
+
+            // Add XP to player (check if boss)
+            const isBoss = this.boss && e === (this.boss as unknown as Enemy)
+            const xpGain = isBoss ? 10 : 1
+            const leveledUp = this.player.addXP(xpGain)
+            this.updateXPUI()
+
+            if (leveledUp) {
+              this.handleLevelUp()
+            }
+
+            // Clear boss reference if boss died
+            if (isBoss) {
+              this.boss = null
+              this.scene.get('UIScene').events.emit('hideBossHealth')
+            }
+
+            // Remove enemy
+            e.destroy()
+
+            // Check if room cleared
+            this.checkRoomCleared()
+          }
         }
       })
     }
