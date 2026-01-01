@@ -145,6 +145,59 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats.addMultishot()
   }
 
+  addPiercing() {
+    this.stats.addPiercing()
+  }
+
+  addRicochet() {
+    this.stats.addRicochet()
+  }
+
+  addFireDamage() {
+    this.stats.addFireDamage()
+  }
+
+  addCritBoost() {
+    this.stats.addCritBoost()
+  }
+
+  // New ability getters
+  getPiercingLevel(): number {
+    return this.stats.getPiercingLevel()
+  }
+
+  getRicochetBounces(): number {
+    return this.stats.getRicochetBounces()
+  }
+
+  getFireDamagePercent(): number {
+    return this.stats.getFireDamagePercent()
+  }
+
+  getFireDamage(): number {
+    return this.stats.getFireDamage()
+  }
+
+  getCritChance(): number {
+    return this.stats.getCritChance()
+  }
+
+  getCritDamageMultiplier(): number {
+    return this.stats.getCritDamageMultiplier()
+  }
+
+  rollCrit(): boolean {
+    return this.stats.rollCrit()
+  }
+
+  getDamageWithCrit(isCrit: boolean): number {
+    return this.stats.getDamageWithCrit(isCrit)
+  }
+
+  getPiercingDamage(hitNumber: number): number {
+    return this.stats.getPiercingDamage(hitNumber)
+  }
+
   // Reset run-based stats
   resetRunStats() {
     this.stats.resetRunStats()

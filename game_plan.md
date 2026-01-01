@@ -264,7 +264,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] XP/leveling system (level up every 10 kills)
 [x] Ability selection modal (LevelUpScene with 3 random choices)
 [x] 4 working abilities with stacking (Front Arrow, Multishot, Attack Speed, Attack Boost)
-[ ] 4 more abilities (Piercing, Ricochet, Fire Damage, Crit Boost)
+[x] 4 more abilities (Piercing, Ricochet, Fire Damage, Crit Boost)
 [ ] Boss with 3 attack patterns
 [x] Health system with damage feedback (UI update needed)
 [ ] Basic audio (shoot, hit, level-up, death)
@@ -275,7 +275,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 **CURRENT STATUS (2026-01-01):**
 - ✅ Basic project structure with TypeScript + Vite
 - ✅ Core "stop to shoot, move to dodge" mechanic working
-- ✅ Virtual joystick controls (mobile ready)
+- ✅ Virtual joystick controls (mobile ready, Y-axis fixed)
 - ✅ Three enemy types: Melee, Ranged Shooter, Spreader
 - ✅ Auto-aim targeting nearest enemy
 - ✅ Enemy bullet system with collision
@@ -288,10 +288,19 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Room system with 10 rooms, door transitions, and victory screen
 - ✅ Room progression with scaling difficulty
 - ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
-- ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards
-- ✅ **4 abilities implemented** - Front Arrow (+1 projectile), Multishot (side arrows), Attack Speed (+25%), Attack Boost (+30%)
-- ✅ **Ability stacking** - Multiple selections of same ability compound effects
+- ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards (using Container for proper click handling)
+- ✅ **8 abilities implemented** - All MVP abilities complete:
+  - Front Arrow (+1 projectile, -25% damage per level)
+  - Multishot (side arrows at 45°, -15% attack speed per level)
+  - Attack Speed (+25% multiplicative)
+  - Attack Boost (+30% damage multiplicative)
+  - Piercing Shot (arrows pass through enemies, -33% damage per enemy)
+  - Ricochet (arrows bounce 3x between enemies per level)
+  - Fire Damage (+18% DOT over 2 seconds, additive stacking)
+  - Crit Boost (+10% crit chance additive, +40% crit damage multiplicative)
+- ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
 - ✅ ESLint + TypeScript build passing
+- ✅ 86 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
 
 **TESTING:**
@@ -314,11 +323,14 @@ Coverage reports are generated in `coverage/` directory (HTML report at `coverag
 Visual test screenshots are saved to `test/screenshots/`
 
 **Unit-testable Game Logic:**
-- `src/systems/PlayerStats.ts` - Pure game logic (98% coverage)
+- `src/systems/PlayerStats.ts` - Pure game logic (86 tests, ~98% coverage)
   - Health system: damage, death detection, invincibility
-  - Ability stacking: Front Arrow, Multishot, Attack Speed, Attack Boost
+  - Ability stacking: All 8 abilities with correct penalty/bonus calculations
   - Leveling: XP accumulation, level-up triggers
-  - Stat calculations with ability penalties
+  - Stat calculations with ability penalties (Front Arrow damage reduction, Multishot attack speed reduction)
+  - Piercing damage: 33% reduction per enemy hit
+  - Fire DOT: Calculated based on current weapon damage
+  - Critical hits: Roll chance, damage multipliers, combination with other abilities
 
 **KNOWN BUGS:**
 1. ✅ **Map too large** - FIXED: Changed from 800x600 to 375x667 (portrait mode, iPhone SE size)
@@ -327,13 +339,19 @@ Visual test screenshots are saved to `test/screenshots/`
 4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
 5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
 6. ⚠️ **Room complete screen shows UI clutter** - When room is cleared and "ENTER" prompt appears, instruction text and health bar should be hidden for cleaner presentation
-7. ⚠️ **Ability selection not working** - LevelUpScene appears on level-up, cards highlight on hover/click, but clicking doesn't select ability and resume game. Event communication between LevelUpScene and GameScene may be broken. Check browser console for "Selected ability:" log.
+7. ✅ **Ability selection not working** - FIXED: Refactored LevelUpScene to use Phaser Container for grouping card elements, ensuring proper interactive hit areas. Child elements no longer block pointer events.
+8. ✅ **Joystick Y-axis inverted** - FIXED: nipplejs uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
 
 **NEXT PRIORITIES:**
-1. Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)
+1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
 2. Add boss fight for room 10 with 3 attack patterns
-3. Add basic audio (shoot, hit, level-up, death sounds)
-4. Polish ability UI with animations and feedback
+3. Implement gameplay effects for new abilities:
+   - Piercing: Bullets pass through enemies (track hit count per bullet)
+   - Ricochet: Bullets bounce to nearest enemy on hit
+   - Fire Damage: Apply DOT effect to enemies on hit
+   - Crit: Roll for crit on each hit, show damage numbers
+4. Add basic audio (shoot, hit, level-up, death sounds)
+5. Polish ability UI with animations and feedback
 
 ---
 

@@ -32,6 +32,30 @@ const ABILITIES: AbilityData[] = [
     description: '+30% damage',
     color: 0xff4488,
   },
+  {
+    id: 'piercing',
+    name: 'Piercing Shot',
+    description: 'Arrows pierce enemies\n-33% damage per hit',
+    color: 0x00ffaa,
+  },
+  {
+    id: 'ricochet',
+    name: 'Ricochet',
+    description: 'Arrows bounce 3x\nbetween enemies',
+    color: 0x88ff88,
+  },
+  {
+    id: 'fire_damage',
+    name: 'Fire Damage',
+    description: '18% weapon damage\nover 2 seconds',
+    color: 0xff6600,
+  },
+  {
+    id: 'crit_boost',
+    name: 'Crit Boost',
+    description: '+10% crit chance\n+40% crit damage',
+    color: 0xffff00,
+  },
 ]
 
 export interface LevelUpData {
@@ -115,18 +139,20 @@ export default class LevelUpScene extends Phaser.Scene {
     height: number,
     ability: AbilityData
   ) {
-    // Card background
-    const card = this.add
-      .rectangle(x, y, width, height, 0x222222, 1)
-      .setStrokeStyle(3, ability.color)
-      .setInteractive({ useHandCursor: true })
+    // Use a container to group all card elements
+    const container = this.add.container(x, y)
+
+    // Card background (positioned relative to container at 0,0)
+    const card = this.add.rectangle(0, 0, width, height, 0x222222, 1).setStrokeStyle(3, ability.color)
+    container.add(card)
 
     // Colored top strip
-    this.add.rectangle(x, y - height / 2 + 15, width - 6, 26, ability.color)
+    const topStrip = this.add.rectangle(0, -height / 2 + 15, width - 6, 26, ability.color)
+    container.add(topStrip)
 
     // Ability name
-    this.add
-      .text(x, y - height / 2 + 15, ability.name, {
+    const nameText = this.add
+      .text(0, -height / 2 + 15, ability.name, {
         fontSize: '11px',
         fontFamily: 'Arial',
         color: '#ffffff',
@@ -135,13 +161,15 @@ export default class LevelUpScene extends Phaser.Scene {
         wordWrap: { width: width - 10 },
       })
       .setOrigin(0.5)
+    container.add(nameText)
 
     // Ability icon (simple shape based on type)
-    this.createAbilityIcon(x, y - 10, ability.id)
+    const iconGraphics = this.createAbilityIcon(0, -10, ability.id)
+    container.add(iconGraphics)
 
     // Description
-    this.add
-      .text(x, y + 40, ability.description, {
+    const descText = this.add
+      .text(0, 40, ability.description, {
         fontSize: '10px',
         fontFamily: 'Arial',
         color: '#cccccc',
@@ -149,26 +177,31 @@ export default class LevelUpScene extends Phaser.Scene {
         lineSpacing: 4,
       })
       .setOrigin(0.5)
+    container.add(descText)
+
+    // Make the container interactive with the card's size as hit area
+    container.setSize(width, height)
+    container.setInteractive({ useHandCursor: true })
 
     // Hover effects
-    card.on('pointerover', () => {
+    container.on('pointerover', () => {
       card.setFillStyle(0x333333)
-      card.setScale(1.05)
+      container.setScale(1.05)
     })
 
-    card.on('pointerout', () => {
+    container.on('pointerout', () => {
       card.setFillStyle(0x222222)
-      card.setScale(1)
+      container.setScale(1)
     })
 
     // Use pointerdown for selection (more reliable than pointerup)
-    card.on('pointerdown', () => {
+    container.on('pointerdown', () => {
       card.setFillStyle(0x444444)
       this.selectAbility(ability.id)
     })
   }
 
-  private createAbilityIcon(x: number, y: number, abilityId: string) {
+  private createAbilityIcon(x: number, y: number, abilityId: string): Phaser.GameObjects.Graphics {
     const graphics = this.add.graphics()
 
     switch (abilityId) {
@@ -208,7 +241,53 @@ export default class LevelUpScene extends Phaser.Scene {
         graphics.fillTriangle(x, y - 20, x - 8, y + 10, x + 8, y + 10)
         graphics.fillRect(x - 12, y + 10, 24, 6)
         break
+
+      case 'piercing':
+        // Arrow going through target
+        graphics.fillStyle(0x00ffaa, 1)
+        graphics.fillTriangle(x, y - 15, x - 6, y + 5, x + 6, y + 5)
+        graphics.fillCircle(x, y + 10, 8)
+        graphics.fillStyle(0x222222, 1)
+        graphics.fillCircle(x, y + 10, 4)
+        break
+
+      case 'ricochet':
+        // Bouncing arrow pattern
+        graphics.fillStyle(0x88ff88, 1)
+        graphics.fillTriangle(x - 15, y - 10, x - 10, y, x - 5, y - 10)
+        graphics.fillTriangle(x, y, x + 5, y + 10, x + 10, y)
+        graphics.fillTriangle(x + 15, y + 10, x + 20, y + 20, x + 25, y + 10)
+        break
+
+      case 'fire_damage':
+        // Fire icon
+        graphics.fillStyle(0xff6600, 1)
+        graphics.fillCircle(x, y, 12)
+        graphics.fillTriangle(x, y - 20, x - 8, y - 5, x + 8, y - 5)
+        graphics.fillStyle(0xffaa00, 1)
+        graphics.fillCircle(x, y, 6)
+        break
+
+      case 'crit_boost':
+        // Critical hit star
+        graphics.fillStyle(0xffff00, 1)
+        graphics.beginPath()
+        graphics.moveTo(x, y - 18)
+        graphics.lineTo(x + 5, y - 5)
+        graphics.lineTo(x + 18, y - 5)
+        graphics.lineTo(x + 8, y + 5)
+        graphics.lineTo(x + 12, y + 18)
+        graphics.lineTo(x, y + 10)
+        graphics.lineTo(x - 12, y + 18)
+        graphics.lineTo(x - 8, y + 5)
+        graphics.lineTo(x - 18, y - 5)
+        graphics.lineTo(x - 5, y - 5)
+        graphics.closePath()
+        graphics.fill()
+        break
     }
+
+    return graphics
   }
 
   private selectAbility(abilityId: string) {

@@ -341,6 +341,172 @@ describe('PlayerStats', () => {
         expect(stats.getAttackSpeed()).toBeCloseTo(3.0517578125)
       })
     })
+
+    describe('Piercing Shot', () => {
+      it('increments piercing level', () => {
+        expect(stats.getPiercingLevel()).toBe(0)
+        stats.addPiercing()
+        expect(stats.getPiercingLevel()).toBe(1)
+      })
+
+      it('stacks linearly', () => {
+        stats.addPiercing()
+        stats.addPiercing()
+        stats.addPiercing()
+        expect(stats.getPiercingLevel()).toBe(3)
+      })
+
+      it('calculates piercing damage with 33% reduction per hit', () => {
+        // First enemy hit: full damage
+        expect(stats.getPiercingDamage(0)).toBe(10)
+
+        // Second enemy hit: 67% of 10 = 6.7 -> 6
+        expect(stats.getPiercingDamage(1)).toBe(6)
+
+        // Third enemy hit: 67% of 6.7 = 4.489 -> 4
+        expect(stats.getPiercingDamage(2)).toBe(4)
+
+        // Fourth enemy hit: 67% of 4.489 = 3.007 -> 3
+        expect(stats.getPiercingDamage(3)).toBe(3)
+      })
+
+      it('piercing damage works with damage boost', () => {
+        stats.addDamageBoost(0.30) // 10 * 1.30 = 13
+        expect(stats.getPiercingDamage(0)).toBe(13)
+        // 13 * 0.67 = 8.71 -> 8
+        expect(stats.getPiercingDamage(1)).toBe(8)
+      })
+    })
+
+    describe('Ricochet', () => {
+      it('adds 3 bounces per level', () => {
+        expect(stats.getRicochetBounces()).toBe(0)
+        stats.addRicochet()
+        expect(stats.getRicochetBounces()).toBe(3)
+      })
+
+      it('stacks linearly (each level adds 3)', () => {
+        stats.addRicochet()
+        stats.addRicochet()
+        expect(stats.getRicochetBounces()).toBe(6)
+
+        stats.addRicochet()
+        expect(stats.getRicochetBounces()).toBe(9)
+      })
+    })
+
+    describe('Fire Damage', () => {
+      it('adds 18% fire damage', () => {
+        expect(stats.getFireDamagePercent()).toBe(0)
+        stats.addFireDamage()
+        expect(stats.getFireDamagePercent()).toBeCloseTo(0.18)
+      })
+
+      it('stacks additively', () => {
+        stats.addFireDamage()
+        stats.addFireDamage()
+        expect(stats.getFireDamagePercent()).toBeCloseTo(0.36)
+
+        stats.addFireDamage()
+        expect(stats.getFireDamagePercent()).toBeCloseTo(0.54)
+      })
+
+      it('calculates fire damage based on weapon damage', () => {
+        stats.addFireDamage() // 18% of 10 = 1.8 -> 1
+        expect(stats.getFireDamage()).toBe(1)
+      })
+
+      it('fire damage scales with attack boost', () => {
+        stats.addDamageBoost(0.30) // 10 * 1.30 = 13
+        stats.addFireDamage() // 18% of 13 = 2.34 -> 2
+        expect(stats.getFireDamage()).toBe(2)
+      })
+
+      it('returns 0 fire damage if no fire ability', () => {
+        expect(stats.getFireDamage()).toBe(0)
+      })
+    })
+
+    describe('Crit Boost', () => {
+      it('adds 10% crit chance', () => {
+        expect(stats.getCritChance()).toBe(0)
+        stats.addCritBoost()
+        expect(stats.getCritChance()).toBeCloseTo(0.10)
+      })
+
+      it('crit chance stacks additively', () => {
+        stats.addCritBoost()
+        stats.addCritBoost()
+        expect(stats.getCritChance()).toBeCloseTo(0.20)
+
+        stats.addCritBoost()
+        expect(stats.getCritChance()).toBeCloseTo(0.30)
+      })
+
+      it('crit chance caps at 100%', () => {
+        for (let i = 0; i < 15; i++) {
+          stats.addCritBoost()
+        }
+        expect(stats.getCritChance()).toBe(1)
+      })
+
+      it('base crit damage multiplier is 1.5 (150%)', () => {
+        expect(stats.getCritDamageMultiplier()).toBeCloseTo(1.5)
+      })
+
+      it('crit damage multiplier increases by 40% per level', () => {
+        // 1st crit boost: 1.5 * 1.40 = 2.1
+        stats.addCritBoost()
+        expect(stats.getCritDamageMultiplier()).toBeCloseTo(2.1)
+
+        // 2nd crit boost: 2.1 * 1.40 = 2.94
+        stats.addCritBoost()
+        expect(stats.getCritDamageMultiplier()).toBeCloseTo(2.94)
+
+        // 3rd crit boost: 2.94 * 1.40 = 4.116
+        stats.addCritBoost()
+        expect(stats.getCritDamageMultiplier()).toBeCloseTo(4.116)
+      })
+
+      it('calculates crit damage correctly', () => {
+        // Non-crit: base damage
+        expect(stats.getDamageWithCrit(false)).toBe(10)
+
+        // Crit without boost: 10 * 1.5 = 15
+        expect(stats.getDamageWithCrit(true)).toBe(15)
+      })
+
+      it('crit damage scales with crit boost', () => {
+        stats.addCritBoost() // Crit multiplier: 1.5 * 1.40 = 2.1
+        // Crit: 10 * 2.1 = 21 (but floating point: 10 * 2.0999... = 20.999... → 20)
+        expect(stats.getDamageWithCrit(true)).toBe(20)
+      })
+
+      it('crit damage combines with attack boost', () => {
+        stats.addDamageBoost(0.30) // 10 * 1.30 = 13
+        stats.addCritBoost() // Crit multiplier: 1.5 * 1.4 = 2.0999...
+        // Crit: 13 * 2.0999... = 27.299... -> 27
+        expect(stats.getDamageWithCrit(true)).toBe(27)
+      })
+
+      it('rollCrit returns boolean', () => {
+        // Without crit chance, always returns false
+        expect(stats.rollCrit()).toBe(false)
+        expect(stats.rollCrit()).toBe(false)
+        expect(stats.rollCrit()).toBe(false)
+      })
+
+      it('rollCrit can return true with 100% crit', () => {
+        // Set crit to 100%
+        for (let i = 0; i < 10; i++) {
+          stats.addCritBoost()
+        }
+        // With 100% crit chance, should always return true
+        expect(stats.rollCrit()).toBe(true)
+        expect(stats.rollCrit()).toBe(true)
+        expect(stats.rollCrit()).toBe(true)
+      })
+    })
   })
 
   // ============================================
@@ -355,6 +521,10 @@ describe('PlayerStats', () => {
       stats.addMultishot()
       stats.addAttackSpeedBoost(0.25)
       stats.addDamageBoost(0.30)
+      stats.addPiercing()
+      stats.addRicochet()
+      stats.addFireDamage()
+      stats.addCritBoost()
 
       // Reset
       stats.resetRunStats()
@@ -365,6 +535,11 @@ describe('PlayerStats', () => {
       expect(stats.getLevel()).toBe(1)
       expect(stats.getExtraProjectiles()).toBe(0)
       expect(stats.getMultishotCount()).toBe(0)
+      expect(stats.getPiercingLevel()).toBe(0)
+      expect(stats.getRicochetBounces()).toBe(0)
+      expect(stats.getFireDamagePercent()).toBe(0)
+      expect(stats.getCritChance()).toBe(0)
+      expect(stats.getCritDamageMultiplier()).toBeCloseTo(1.5)
       expect(stats.getDamage()).toBe(10)
       expect(stats.getAttackSpeed()).toBeCloseTo(1.0)
       expect(stats.isPlayerInvincible()).toBe(false)
@@ -380,6 +555,10 @@ describe('PlayerStats', () => {
       stats.addXP(5)
       stats.addFrontArrow()
       stats.addDamageBoost(0.30)
+      stats.addPiercing()
+      stats.addRicochet()
+      stats.addFireDamage()
+      stats.addCritBoost()
 
       const snapshot = stats.getStatsSnapshot()
 
@@ -390,6 +569,11 @@ describe('PlayerStats', () => {
       expect(snapshot.xpToLevelUp).toBe(10)
       expect(snapshot.extraProjectiles).toBe(1)
       expect(snapshot.multishotCount).toBe(0)
+      expect(snapshot.piercingLevel).toBe(1)
+      expect(snapshot.ricochetBounces).toBe(3)
+      expect(snapshot.fireDamagePercent).toBeCloseTo(0.18)
+      expect(snapshot.critChance).toBeCloseTo(0.10)
+      expect(snapshot.critDamageMultiplier).toBeCloseTo(2.1)
       // 10 * 1.30 * 0.75 = 9.75 -> 9
       expect(snapshot.damage).toBe(9)
       expect(snapshot.attackSpeed).toBeCloseTo(1.0)

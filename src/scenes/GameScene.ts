@@ -468,6 +468,18 @@ export default class GameScene extends Phaser.Scene {
       case 'attack_boost':
         this.player.addDamageBoost(0.30) // +30%
         break
+      case 'piercing':
+        this.player.addPiercing()
+        break
+      case 'ricochet':
+        this.player.addRicochet()
+        break
+      case 'fire_damage':
+        this.player.addFireDamage()
+        break
+      case 'crit_boost':
+        this.player.addCritBoost()
+        break
     }
     console.log(`Applied ability: ${abilityId}`)
   }
@@ -691,8 +703,10 @@ export default class GameScene extends Phaser.Scene {
       // Virtual joystick has priority
       if (this.joystickForce > 0) {
         // Convert angle and force to velocity
+        // nipplejs uses mathematical angles (counter-clockwise from right)
+        // Screen Y-axis is inverted (positive = down), so negate sin
         vx = Math.cos(this.joystickAngle) * this.joystickForce * maxVelocity
-        vy = Math.sin(this.joystickAngle) * this.joystickForce * maxVelocity
+        vy = -Math.sin(this.joystickAngle) * this.joystickForce * maxVelocity
       }
       // Fallback to keyboard controls for desktop testing
       else if (this.cursors) {

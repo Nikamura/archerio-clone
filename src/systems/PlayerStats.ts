@@ -25,10 +25,19 @@ export class PlayerStats {
   // Ability counters (linear stacking)
   private extraProjectiles: number = 0
   private multishotCount: number = 0
+  private piercingLevel: number = 0  // How many enemies bullet can pass through
+  private ricochetBounces: number = 0  // How many times bullet bounces
 
   // Ability multipliers (multiplicative stacking)
   private damageMultiplier: number = 1.0
   private attackSpeedMultiplier: number = 1.0
+
+  // Fire damage (DOT)
+  private fireDamagePercent: number = 0  // Percentage of weapon damage as fire DOT
+
+  // Critical hit
+  private critChance: number = 0  // 0-1 (e.g., 0.1 = 10%)
+  private critDamageMultiplier: number = 1.5  // Base crit multiplier (150%)
 
   constructor(options?: {
     maxHealth?: number
@@ -156,6 +165,61 @@ export class PlayerStats {
     return this.multishotCount
   }
 
+  getPiercingLevel(): number {
+    return this.piercingLevel
+  }
+
+  getRicochetBounces(): number {
+    return this.ricochetBounces
+  }
+
+  getFireDamagePercent(): number {
+    return this.fireDamagePercent
+  }
+
+  /**
+   * Calculate fire damage amount based on current weapon damage
+   */
+  getFireDamage(): number {
+    if (this.fireDamagePercent === 0) return 0
+    return Math.floor(this.getDamage() * this.fireDamagePercent)
+  }
+
+  getCritChance(): number {
+    return this.critChance
+  }
+
+  getCritDamageMultiplier(): number {
+    return this.critDamageMultiplier
+  }
+
+  /**
+   * Roll for a critical hit
+   * @returns true if this hit should be critical
+   */
+  rollCrit(): boolean {
+    return Math.random() < this.critChance
+  }
+
+  /**
+   * Calculate damage with possible critical hit
+   * @param isCrit whether this is a critical hit
+   */
+  getDamageWithCrit(isCrit: boolean): number {
+    const baseDamage = this.getDamage()
+    return isCrit ? Math.floor(baseDamage * this.critDamageMultiplier) : baseDamage
+  }
+
+  /**
+   * Calculate piercing damage reduction
+   * Each pierce reduces damage by 33%
+   * @param hitNumber which enemy this is (0 = first, 1 = second, etc)
+   */
+  getPiercingDamage(hitNumber: number): number {
+    const piercingPenalty = Math.pow(0.67, hitNumber)
+    return Math.floor(this.getDamage() * piercingPenalty)
+  }
+
   // ============================================
   // Ability Application (stacking)
   // ============================================
@@ -190,6 +254,39 @@ export class PlayerStats {
     this.damageMultiplier *= 1 + amount
   }
 
+  /**
+   * Add Piercing Shot ability (arrows pass through 1 additional enemy)
+   * Stacking: Each level adds +1 enemy the arrow can pierce
+   */
+  addPiercing(): void {
+    this.piercingLevel++
+  }
+
+  /**
+   * Add Ricochet ability (arrows bounce between enemies)
+   * Stacking: Each level adds +3 bounces
+   */
+  addRicochet(): void {
+    this.ricochetBounces += 3
+  }
+
+  /**
+   * Add Fire Damage ability (18% DOT)
+   * Stacking: Additive (each level adds +18% fire damage)
+   */
+  addFireDamage(): void {
+    this.fireDamagePercent += 0.18
+  }
+
+  /**
+   * Add Crit Boost ability (+10% chance, +40% damage)
+   * Stacking: Additive for chance, multiplicative for damage
+   */
+  addCritBoost(): void {
+    this.critChance = Math.min(1, this.critChance + 0.10)  // Cap at 100%
+    this.critDamageMultiplier *= 1.40  // +40% crit damage
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -203,8 +300,13 @@ export class PlayerStats {
     this.level = 1
     this.extraProjectiles = 0
     this.multishotCount = 0
+    this.piercingLevel = 0
+    this.ricochetBounces = 0
     this.damageMultiplier = 1.0
     this.attackSpeedMultiplier = 1.0
+    this.fireDamagePercent = 0
+    this.critChance = 0
+    this.critDamageMultiplier = 1.5
     this.isInvincible = false
   }
 
@@ -221,6 +323,11 @@ export class PlayerStats {
     attackSpeed: number
     extraProjectiles: number
     multishotCount: number
+    piercingLevel: number
+    ricochetBounces: number
+    fireDamagePercent: number
+    critChance: number
+    critDamageMultiplier: number
   } {
     return {
       health: this.health,
@@ -232,6 +339,11 @@ export class PlayerStats {
       attackSpeed: this.getAttackSpeed(),
       extraProjectiles: this.extraProjectiles,
       multishotCount: this.multishotCount,
+      piercingLevel: this.piercingLevel,
+      ricochetBounces: this.ricochetBounces,
+      fireDamagePercent: this.fireDamagePercent,
+      critChance: this.critChance,
+      critDamageMultiplier: this.critDamageMultiplier,
     }
   }
 }
