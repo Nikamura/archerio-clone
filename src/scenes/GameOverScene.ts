@@ -462,22 +462,17 @@ export default class GameOverScene extends Phaser.Scene {
     const pressColor = isVictory ? 0x00cc66 : 0x3a8edf
 
     button.on('pointerover', () => {
-      console.log('GameOverScene: Button hover')
       button.setFillStyle(hoverColor)
     })
 
     button.on('pointerout', () => {
-      console.log('GameOverScene: Button out')
       button.setFillStyle(buttonColor)
     })
 
+    // Use pointerdown for immediate response on touch devices
     button.on('pointerdown', () => {
-      console.log('GameOverScene: Button down')
+      console.log('GameOverScene: Button clicked - navigating to MainMenuScene')
       button.setFillStyle(pressColor)
-    })
-
-    button.on('pointerup', () => {
-      console.log('GameOverScene: Button up - triggering continue')
       this.continueGame()
     })
 
