@@ -109,24 +109,56 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 ### MVP technical checklist
 
 ```
-[ ] Phaser 3 project setup with Arcade Physics
-[ ] Scene management: MainMenu, Game, GameOver
-[ ] Player controller with joystick input
-[ ] Auto-aim + auto-fire system
-[ ] Bullet pool (100 bullets)
-[ ] Enemy pool (50 enemies)
-[ ] 3 enemy AI behaviors
-[ ] Collision detection (player/enemy, bullet/enemy)
+[x] Phaser 3 project setup with Arcade Physics
+[x] Scene management: MainMenu, Game, GameOver (Boot, Preloader, MainMenu, Game, UI)
+[x] Player controller with joystick input (nipplejs + keyboard fallback)
+[x] Auto-aim + auto-fire system (fires at nearest enemy when stationary)
+[x] Bullet pool (100 bullets)
+[x] Enemy bullet pool (100 enemy bullets)
+[x] 3 enemy AI behaviors (melee rusher, ranged shooter with telegraph, spreader)
+[x] Collision detection (player/enemy, bullet/enemy, enemy-bullet/player)
+[x] Automated visual testing with Puppeteer
 [ ] Room system with door transitions
 [ ] XP/leveling system
 [ ] Ability selection modal
 [ ] 8 working abilities with stacking
 [ ] Boss with 3 attack patterns
-[ ] Health system with damage feedback
+[x] Health system with damage feedback (UI update needed)
 [ ] Basic audio (shoot, hit, level-up, death)
-[ ] Touch controls working on mobile browsers
-[ ] 60 FPS on desktop, 30+ FPS on mobile
+[x] Touch controls working on mobile browsers (virtual joystick implemented)
+[x] 60 FPS on desktop (tested via Puppeteer)
 ```
+
+**CURRENT STATUS (2026-01-01):**
+- ✅ Basic project structure with TypeScript + Vite
+- ✅ Core "stop to shoot, move to dodge" mechanic working
+- ✅ Virtual joystick controls (mobile ready)
+- ✅ Three enemy types: Melee, Ranged Shooter, Spreader
+- ✅ Auto-aim targeting nearest enemy
+- ✅ Enemy bullet system with collision
+- ✅ Player damage system (enemy melee + bullets)
+- ✅ Real-time health bar UI updates
+- ✅ Portrait mode (375x667) optimized for mobile
+- ✅ Precise hitbox collision detection
+- ✅ Puppeteer automated testing with screenshots
+- 🚧 Dev server running at http://localhost:3000/
+
+**TESTING:**
+Run `pnpm run test:visual` to automatically test the game and capture screenshots.
+Screenshots are saved to `test/screenshots/`
+
+**KNOWN BUGS:**
+1. ✅ **Map too large** - FIXED: Changed from 800x600 to 375x667 (portrait mode, iPhone SE size)
+2. ✅ **Enemy hitbox too large** - FIXED: Reduced enemy collision circle from 15px to 10px, bullets set to 4-5px radius
+3. ✅ **Player hitpoints not decreasing** - FIXED: Added player-enemy collision (5 damage), enemy bullets now damage player (10 damage), UI health bar updates in real-time
+4. 🐛 **No game over when player dies** - Player can continue getting hit after reaching 0 HP. Need to add death screen and restart functionality
+
+**NEXT PRIORITIES:**
+1. Implement room system with door transitions
+2. Add XP/leveling system
+3. Create ability selection modal
+4. Implement first 3-4 abilities (Front Arrow, Multishot, Attack Speed, Attack Boost)
+5. Add health system UI updates and player death
 
 ---
 

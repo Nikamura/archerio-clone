@@ -1,0 +1,24 @@
+{
+  "name": "archerio-clone",
+  "version": "0.1.0",
+  "description": "Archer.io/Archero-style roguelike shooter web game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test:visual": "tsx test/visual-test.ts"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1",
+    "nipplejs": "^0.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "puppeteer": "^22.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12"
+  }
+}
