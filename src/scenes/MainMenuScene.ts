@@ -461,6 +461,7 @@ export default class MainMenuScene extends Phaser.Scene {
   private createChapterSelection(width: number) {
     const selectedChapterId = chapterManager.getSelectedChapter()
     const unlockedChapters = chapterManager.getUnlockedChapters()
+    console.log('MainMenuScene: Creating chapter selection. Unlocked chapters:', unlockedChapters)
 
     // Chapter selection label
     const chapterLabel = this.add.text(width / 2, 88, 'SELECT CHAPTER', {

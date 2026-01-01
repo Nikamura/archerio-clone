@@ -149,6 +149,14 @@ export default class GameScene extends Phaser.Scene {
     const chapterDef = getChapterDefinition(selectedChapter)
     const backgroundKey = chapterDef.theme.backgroundKey
 
+    // Start the chapter run for tracking
+    const started = chapterManager.startChapter(selectedChapter)
+    if (!started) {
+      console.error(`GameScene: Failed to start chapter ${selectedChapter}`)
+    } else {
+      console.log(`GameScene: Started chapter ${selectedChapter} run`)
+    }
+
     // Add chapter-specific background image (fallback to dungeonFloor if not loaded)
     const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : 'dungeonFloor'
     const bg = this.add.image(0, 0, bgKey).setOrigin(0)
@@ -383,6 +391,12 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
+    // Notify chapter manager of room advancement
+    const advanced = chapterManager.advanceRoom()
+    if (!advanced) {
+      console.warn('GameScene: Failed to advance room in chapter manager')
+    }
+
     // Clean up current room
     this.cleanupRoom()
 
@@ -609,6 +623,9 @@ export default class GameScene extends Phaser.Scene {
       this.isRoomCleared = true
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
+
+      // Notify chapter manager that room was cleared
+      chapterManager.clearRoom()
 
       // Notify UIScene to fade out HUD for cleaner presentation
       this.scene.get('UIScene').events.emit('roomCleared')
@@ -1198,6 +1215,9 @@ export default class GameScene extends Phaser.Scene {
     audioManager.playDeath()
     hapticManager.death() // Haptic feedback for player death
     console.log('Game Over! Enemies killed:', this.enemiesKilled)
+
+    // End the chapter run (failed)
+    chapterManager.endRun(true)
 
     // Stop player movement
     this.player.setVelocity(0, 0)

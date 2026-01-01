@@ -166,6 +166,10 @@ export class ChapterManager {
   private saveToStorage(): void {
     try {
       const data = this.toSaveData()
+      console.log('ChapterManager: Saving to storage:', { 
+        unlockedChapters: data.unlockedChapters,
+        selectedChapter: data.selectedChapter 
+      })
       localStorage.setItem(CHAPTER_STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
       console.error('ChapterManager: Failed to save data:', error)
@@ -181,7 +185,9 @@ export class ChapterManager {
       if (stored) {
         const data = JSON.parse(stored) as ChapterSaveData
         this.fromSaveData(data)
-        console.log(`ChapterManager: Loaded ${this.unlockedChapters.size} unlocked chapters from storage`)
+        console.log(`ChapterManager: Loaded ${this.unlockedChapters.size} unlocked chapters from storage:`, Array.from(this.unlockedChapters))
+      } else {
+        console.log('ChapterManager: No saved data found, starting fresh')
       }
     } catch (error) {
       console.error('ChapterManager: Failed to load data:', error)
@@ -523,9 +529,13 @@ export class ChapterManager {
     let newChapterUnlocked: ChapterId | null = null
     if (chapterId < 5) {
       const nextChapter = (chapterId + 1) as ChapterId
+      console.log(`ChapterManager: Checking if chapter ${nextChapter} should be unlocked. Currently unlocked:`, Array.from(this.unlockedChapters))
       if (!this.unlockedChapters.has(nextChapter)) {
+        console.log(`ChapterManager: Unlocking chapter ${nextChapter}`)
         this.unlockChapter(nextChapter)
         newChapterUnlocked = nextChapter
+      } else {
+        console.log(`ChapterManager: Chapter ${nextChapter} already unlocked`)
       }
     }
 
@@ -756,6 +766,12 @@ export class ChapterManager {
     currentRun: ChapterRunState | null
     chapterProgress: ChapterProgressData[]
   } {
+    console.log('ChapterManager Debug Snapshot:')
+    console.log('- Unlocked chapters:', Array.from(this.unlockedChapters))
+    console.log('- Selected chapter:', this.selectedChapter)
+    console.log('- Current run:', this.currentRun)
+    console.log('- LocalStorage value:', localStorage.getItem(CHAPTER_STORAGE_KEY))
+    
     return {
       selectedChapter: this.selectedChapter,
       unlockedChapters: this.getUnlockedChapters(),
@@ -807,3 +823,8 @@ export class ChapterManager {
 
 /** Global singleton instance for use throughout the game */
 export const chapterManager = new ChapterManager()
+
+// Expose to window for debugging in browser console
+if (typeof window !== 'undefined') {
+  ;(window as any).chapterManager = chapterManager
+}
