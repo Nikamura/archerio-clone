@@ -5,7 +5,7 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
   constructor(scene: Phaser.Scene) {
     super(scene.physics.world, scene, {
       classType: EnemyBullet,
-      maxSize: 100,
+      maxSize: 1000,
       runChildUpdate: true,
     })
 

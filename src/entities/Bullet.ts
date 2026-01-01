@@ -102,12 +102,28 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(time: number) {
+    if (!this.active) return
+
     // Deactivate bullet after lifetime expires
-    if (this.active && time - this.spawnTime > this.lifetime) {
-      this.setActive(false)
-      this.setVisible(false)
-      this.setVelocity(0, 0)
+    if (time - this.spawnTime > this.lifetime) {
+      this.deactivate()
+      return
     }
+
+    // Deactivate bullet if it goes off screen (with margin)
+    const margin = 50
+    const gameWidth = this.scene.scale.width
+    const gameHeight = this.scene.scale.height
+    if (this.x < -margin || this.x > gameWidth + margin ||
+        this.y < -margin || this.y > gameHeight + margin) {
+      this.deactivate()
+    }
+  }
+
+  deactivate() {
+    this.setActive(false)
+    this.setVisible(false)
+    this.setVelocity(0, 0)
   }
 
   /**
