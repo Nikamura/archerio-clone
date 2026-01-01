@@ -407,6 +407,17 @@ Visual test screenshots are saved to `test/screenshots/`
      - Then: Start GameScene and launch UIScene
      - Last: Stop GameOverScene (after all transitions complete)
    - **LESSON**: Always stop the current scene LAST when performing scene transitions from within that scene
+13. ✅ **TalentsScene content overflow (not scrollable)** - FIXED (2026-01-01):
+   - Issue: 9 talent cards with tier headers exceed the 667px screen height, content hidden below bonus panel
+   - Root cause: Talent grid was created without scroll functionality
+   - Fixed by implementing scrollable container:
+     - Created scroll container with geometry mask (viewport: y=140 to y=557, ~417px visible area)
+     - Talent cards and tier headers added to scroll container
+     - Mouse wheel scrolling: `input.on('wheel')` with 0.5x scroll speed
+     - Touch drag scrolling: Zone-based pointer tracking with drag start/move/end handlers
+     - Scroll position clamped to content bounds (0 to maxScroll)
+   - Fixed elements remain in place: header, spin button, bonus panel, back button
+   - **LESSON**: For Phaser 3 scrollable content, use Container + GeometryMask + pointer/wheel input handlers
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -544,16 +555,40 @@ Visual test screenshots are saved to `test/screenshots/`
     - Fusion logic implemented in EquipmentManager
     - findFusionCandidates(): Find groups of 3+ same type/rarity items
     - fuse(): Combine 3 items -> 1 higher rarity with averaged level
-    - UI implementation pending
-[~] Hero unlock and selection system
-    - UI elements added to MainMenuScene: Heroes, Equipment, Talents buttons
-    - Placeholder functionality (console logs "coming soon")
-    - Full hero selection menu pending
+    - EquipmentScene (src/scenes/EquipmentScene.ts): Full equipment UI (2026-01-01)
+      - 4 equipped slots at top (weapon, armor, ring, spirit) with rarity borders
+      - Scrollable inventory grid (4x4) showing unequipped items
+      - Item detail panel with stats, perks, level, and rarity display
+      - Equip/Unequip buttons with audio feedback
+      - Upgrade button with gold cost (uses CurrencyManager)
+      - Fusion button (auto-fuses first available group of 3 same type/rarity)
+      - Rarity colors: Common=#888888, Great=#00AA00, Rare=#0066FF, Epic=#AA00FF, Legendary=#FFD700
+      - Back button returns to MainMenuScene
+      - MainMenuScene "Equip" button navigates to EquipmentScene
+[x] Hero unlock and selection system (2026-01-01)
+    - HeroesScene (src/scenes/HeroesScene.ts): Full hero selection UI
+    - 3 heroes: Atreus (free), Helix (5000 gold), Meowgik (10000 gold)
+    - Hero cards display: name, level, passive ability, stats (ATK, HP, SPD, CRIT)
+    - Unlock heroes with gold via CurrencyManager
+    - Select unlocked heroes via SaveManager
+    - Visual feedback: selected hero highlighted, locked heroes dimmed
+    - Audio integration: menu sounds for selection/unlock
+    - MainMenuScene "Heroes" button navigates to HeroesScene
+    - **Hero icons** (2026-01-01): Unique 48x48 pixel art icons for each hero
+      - hero_atreus.png: Archer portrait
+      - hero_helix.png: Warrior with red rage aura
+      - hero_meowgik.png: Wizard with cat familiar
+      - Icons loaded in PreloaderScene, displayed in HeroesScene hero cards
+      - Locked heroes show grayscale tinted icons
 [x] Currency management and persistence (localStorage → IndexedDB)
     - CurrencyManager (src/systems/CurrencyManager.ts): gold, gems, scrolls, energy
     - Event-driven updates for UI integration
     - Gold drop calculations per enemy type
     - Save/load integration hooks (toSaveData/fromSaveData)
+    - **Default starting currencies** (2026-01-01): New players start with 1000 gold and 50 gems
+      - Defined in SaveManager.createDefaultSaveData()
+      - Only applies to new saves (existing progress not affected)
+      - Allows new players to unlock Helix hero (5000 gold) after a few runs
 [x] Talent lottery system (2026-01-01)
     - talentData.ts: Complete talent configuration system
       - TalentTier enum: COMMON (50%), RARE (35%), EPIC (15%)
@@ -579,6 +614,16 @@ Visual test screenshots are saved to `test/screenshots/`
       - calculateTotalBonuses(): Returns combined stats from all unlocked talents
       - Event system: talentUnlocked, talentUpgraded, spinFailed, dailyLimitReached
       - Save/load integration: toSaveData()/fromSaveData()
+    - TalentsScene (src/scenes/TalentsScene.ts): Full talent lottery UI (2026-01-01)
+      - Spin button with cost display and daily limit counter
+      - Talent grid showing all 9 talents organized by tier (Common/Rare/Epic)
+      - Tier colors: Common=#888888, Rare=#0066FF, Epic=#AA00FF
+      - Talent cards show name, level (Lv.X/max), description, and current bonus
+      - Spin animation with symbol cycling effect
+      - Result popup shows talent tier, name, new level, and bonus gained
+      - Total bonuses panel at bottom (HP, Attack, Dmg Reduction, Atk Speed, Crit, Equip Bonus)
+      - Audio integration for spin and result sounds
+      - MainMenuScene "Talents" button navigates to TalentsScene
 [x] Chapter progression with unlock gates (2026-01-01)
     - chapterData.ts: Complete chapter configuration system
       - ChapterId type: 1-5 with full type safety
@@ -601,10 +646,13 @@ Visual test screenshots are saved to `test/screenshots/`
       - Scaling access: getChapterScaling() for difficulty multipliers
       - Event system: chapterStarted, chapterCompleted, chapterFailed, roomEntered, roomCleared, chapterUnlocked, starRatingAchieved
       - Save/load integration: toSaveData()/fromSaveData()
-[x] Energy system with timer
-    - Max 20 energy, regenerates 1 per 12 minutes
-    - Timestamp-based regeneration on load
-    - getTimeUntilNextEnergy() for UI display
+[x] Energy system with timer (2026-01-01)
+    - Max 20 energy, regenerates 1 per 12 minutes (720000ms)
+    - Timestamp-based regeneration on load - persists across page refreshes
+    - CurrencyManager now saves/loads from localStorage (`archerio_currency_data` key)
+    - lastEnergyUpdate timestamp preserved for accurate offline regeneration
+    - getTimeUntilNextEnergy() and getFormattedTimeUntilNextEnergy() for UI display
+    - Timer continues from correct position after page refresh
 [ ] 5 chapter environments with unique enemy sets
 [ ] 15 boss encounters (3 per chapter × 5 chapters)
 [x] Save/load system for all progression (2026-01-01)
@@ -630,6 +678,14 @@ Visual test screenshots are saved to `test/screenshots/`
     - Energy timer: Updates every frame with "Next: MM:SS" countdown
     - Green color scheme for progression buttons (#6b8e23)
     - Mobile-optimized layout for 375x667 portrait resolution
+[x] MainMenuScene visual polish (2026-01-01)
+    - Dark dungeon stone wall background (menu_bg.png at 375x667)
+    - Animated torches flanking the title with flickering effects:
+      - Scale tween (0.95 to 1.05) with different timings per torch
+      - Alpha tween (0.8-0.85 to 1.0) for flame brightness variation
+    - Ember particles rising from torches using ADD blend mode
+    - All UI elements have depth (10) with black stroke for visibility
+    - Assets loaded in PreloaderScene: menuBg, torch
 [ ] Daily reward calendar
 [ ] Achievement tracking
 [ ] Expanded procedural generation (more room templates, enemy combinations)

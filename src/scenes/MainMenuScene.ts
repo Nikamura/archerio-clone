@@ -8,6 +8,8 @@ import { chapterManager } from '../systems/ChapterManager'
 export default class MainMenuScene extends Phaser.Scene {
   private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
   private energyTimerText?: Phaser.GameObjects.Text
+  private leftTorch?: Phaser.GameObjects.Image
+  private rightTorch?: Phaser.GameObjects.Image
 
   constructor() {
     super({ key: 'MainMenuScene' })
@@ -16,6 +18,18 @@ export default class MainMenuScene extends Phaser.Scene {
   create() {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
+
+    // ============================================
+    // BACKGROUND (depth 0)
+    // ============================================
+    const bg = this.add.image(width / 2, height / 2, 'menuBg')
+    bg.setDisplaySize(width, height)
+    bg.setDepth(0)
+
+    // ============================================
+    // ANIMATED TORCHES
+    // ============================================
+    this.createTorches(width)
 
     // Get saved difficulty or default to NORMAL
     this.selectedDifficulty = getCurrentDifficulty(this.game)
@@ -30,39 +44,56 @@ export default class MainMenuScene extends Phaser.Scene {
     const currentEnergy = currencyManager.get('energy')
     const maxEnergy = currencyManager.getMaxEnergy()
 
-    this.add.text(10, 10, `💰${currencyManager.get('gold')}`, {
+    const goldText = this.add.text(10, 10, `💰${currencyManager.get('gold')}`, {
       fontSize: '14px',
       color: '#FFD700',
+      stroke: '#000000',
+      strokeThickness: 2,
     })
+    goldText.setDepth(10)
 
-    this.add.text(width / 2, 10, `💎${currencyManager.get('gems')}`, {
+    const gemsText = this.add.text(width / 2, 10, `💎${currencyManager.get('gems')}`, {
       fontSize: '14px',
       color: '#00FFFF',
-    }).setOrigin(0.5, 0)
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    gemsText.setOrigin(0.5, 0)
+    gemsText.setDepth(10)
 
-    this.add.text(width - 10, 10, `⚡${currentEnergy}/${maxEnergy}`, {
+    const energyText = this.add.text(width - 10, 10, `⚡${currentEnergy}/${maxEnergy}`, {
       fontSize: '14px',
       color: '#FFFF00',
-    }).setOrigin(1, 0)
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    energyText.setOrigin(1, 0)
+    energyText.setDepth(10)
 
     // Energy timer (below energy)
     this.energyTimerText = this.add.text(width - 10, 28, '', {
       fontSize: '11px',
-      color: '#888888',
+      color: '#cccccc',
+      stroke: '#000000',
+      strokeThickness: 2,
     })
     this.energyTimerText.setOrigin(1, 0)
+    this.energyTimerText.setDepth(10)
     this.updateEnergyTimer()
 
     // ============================================
-    // TITLE
+    // TITLE (depth 10 to ensure visibility over background)
     // ============================================
 
     const title = this.add.text(width / 2, 60, 'ARCHER.IO', {
       fontSize: '36px',
       color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
     })
     title.setOrigin(0.5)
+    title.setDepth(10)
 
     // Stats line (compact)
     const stats = saveManager.getStatistics()
@@ -71,19 +102,27 @@ export default class MainMenuScene extends Phaser.Scene {
     const heroName = hero ? hero.name : 'Atreus'
     const selectedChapter = chapterManager.getSelectedChapter()
 
-    this.add.text(width / 2, 100, `${heroName} • Ch.${selectedChapter} • ${stats.totalKills} kills`, {
+    const statsText = this.add.text(width / 2, 100, `${heroName} • Ch.${selectedChapter} • ${stats.totalKills} kills`, {
       fontSize: '12px',
-      color: '#888888',
-    }).setOrigin(0.5)
+      color: '#cccccc',
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    statsText.setOrigin(0.5)
+    statsText.setDepth(10)
 
     // ============================================
     // DIFFICULTY SELECTION (Horizontal)
     // ============================================
 
-    this.add.text(width / 2, 130, 'DIFFICULTY', {
+    const difficultyLabel = this.add.text(width / 2, 130, 'DIFFICULTY', {
       fontSize: '14px',
-      color: '#666666',
-    }).setOrigin(0.5)
+      color: '#aaaaaa',
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    difficultyLabel.setOrigin(0.5)
+    difficultyLabel.setDepth(10)
 
     // Horizontal difficulty buttons
     const difficulties = [DifficultyLevel.EASY, DifficultyLevel.NORMAL, DifficultyLevel.HARD]
@@ -104,6 +143,7 @@ export default class MainMenuScene extends Phaser.Scene {
       button.setOrigin(0.5)
       button.setInteractive({ useHandCursor: true })
       button.setData('difficulty', difficulty)
+      button.setDepth(10)
 
       button.on('pointerover', () => {
         if (this.selectedDifficulty !== difficulty) {
@@ -148,6 +188,7 @@ export default class MainMenuScene extends Phaser.Scene {
     })
     playButton.setOrigin(0.5)
     playButton.setInteractive({ useHandCursor: true })
+    playButton.setDepth(10)
 
     playButton.on('pointerover', () => {
       playButton.setStyle({ backgroundColor: '#6bb6ff' })
@@ -187,6 +228,7 @@ export default class MainMenuScene extends Phaser.Scene {
       })
       button.setOrigin(0.5)
       button.setInteractive({ useHandCursor: true })
+      button.setDepth(10)
 
       button.on('pointerover', () => {
         button.setStyle({ backgroundColor: '#7fa32f' })
@@ -198,15 +240,27 @@ export default class MainMenuScene extends Phaser.Scene {
 
       button.on('pointerdown', () => {
         audioManager.playMenuSelect()
-        console.log(`${btn.action} - coming soon`)
+        if (btn.label === 'Heroes') {
+          this.scene.start('HeroesScene')
+        } else if (btn.label === 'Equip') {
+          this.scene.start('EquipmentScene')
+        } else if (btn.label === 'Talents') {
+          this.scene.start('TalentsScene')
+        } else {
+          console.log(`${btn.action} - coming soon`)
+        }
       })
     })
 
     // Instructions (bottom)
-    this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {
+    const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {
       fontSize: '12px',
-      color: '#666666',
-    }).setOrigin(0.5)
+      color: '#aaaaaa',
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    instructionsText.setOrigin(0.5)
+    instructionsText.setDepth(10)
   }
 
   update() {
@@ -227,5 +281,103 @@ export default class MainMenuScene extends Phaser.Scene {
 
     const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
     this.energyTimerText.setText(`Next: ${timeString}`)
+  }
+
+  private createTorches(width: number) {
+    // Title Y position (matches title in create())
+    const titleY = 60
+    const torchOffsetX = 80 // Distance from center to each torch
+
+    // Create left torch - smaller size
+    this.leftTorch = this.add.image(width / 2 - torchOffsetX, titleY, 'torch')
+    this.leftTorch.setDisplaySize(28, 28)
+    this.leftTorch.setDepth(1)
+
+    // Create right torch - smaller size
+    this.rightTorch = this.add.image(width / 2 + torchOffsetX, titleY, 'torch')
+    this.rightTorch.setDisplaySize(28, 28)
+    this.rightTorch.setDepth(1)
+
+    // Animate left torch - subtle flickering effect (slower)
+    this.tweens.add({
+      targets: this.leftTorch,
+      scaleX: { from: 0.98, to: 1.02 },
+      scaleY: { from: 0.98, to: 1.02 },
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    this.tweens.add({
+      targets: this.leftTorch,
+      alpha: { from: 0.9, to: 1.0 },
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Animate right torch - slightly different timing for natural look
+    this.tweens.add({
+      targets: this.rightTorch,
+      scaleX: { from: 0.98, to: 1.02 },
+      scaleY: { from: 0.98, to: 1.02 },
+      duration: 450,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: 100,
+    })
+
+    this.tweens.add({
+      targets: this.rightTorch,
+      alpha: { from: 0.9, to: 1.0 },
+      duration: 550,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: 80,
+    })
+
+    // Add ember particles rising from torches
+    this.createEmberParticles(width, titleY, torchOffsetX)
+  }
+
+  private createEmberParticles(width: number, titleY: number, torchOffsetX: number) {
+    // Create a simple ember particle texture
+    const graphics = this.add.graphics()
+    graphics.fillStyle(0xff6600, 1)
+    graphics.fillCircle(2, 2, 2)
+    graphics.generateTexture('ember', 4, 4)
+    graphics.destroy()
+
+    // Create ember emitter for left torch - smaller and less frequent
+    const leftEmitter = this.add.particles(width / 2 - torchOffsetX, titleY - 8, 'ember', {
+      speed: { min: 8, max: 20 },
+      angle: { min: 250, max: 290 },
+      scale: { start: 0.4, end: 0 },
+      alpha: { start: 0.8, end: 0 },
+      lifespan: { min: 400, max: 800 },
+      frequency: 400,
+      quantity: 1,
+      blendMode: Phaser.BlendModes.ADD,
+      tint: [0xff6600, 0xff8800, 0xffaa00],
+    })
+    leftEmitter.setDepth(2)
+
+    // Create ember emitter for right torch
+    const rightEmitter = this.add.particles(width / 2 + torchOffsetX, titleY - 8, 'ember', {
+      speed: { min: 8, max: 20 },
+      angle: { min: 250, max: 290 },
+      scale: { start: 0.4, end: 0 },
+      alpha: { start: 0.8, end: 0 },
+      lifespan: { min: 400, max: 800 },
+      frequency: 400,
+      quantity: 1,
+      blendMode: Phaser.BlendModes.ADD,
+      tint: [0xff6600, 0xff8800, 0xffaa00],
+    })
+    rightEmitter.setDepth(2)
   }
 }

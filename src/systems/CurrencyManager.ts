@@ -77,6 +77,9 @@ const DEFAULT_CURRENCIES: CurrencyState = {
   energy: 5, // Start with 5 energy for runs
 };
 
+/** LocalStorage key for currency data persistence */
+const CURRENCY_STORAGE_KEY = 'archerio_currency_data';
+
 // ============================================
 // CurrencyManager Class
 // ============================================
@@ -90,6 +93,60 @@ export class CurrencyManager {
     this.currencies = { ...DEFAULT_CURRENCIES };
     this.lastEnergyUpdate = Date.now();
     this.eventListeners = new Map();
+
+    // Load persisted data on initialization
+    this.loadFromStorage();
+  }
+
+  // ============================================
+  // Persistence (LocalStorage)
+  // ============================================
+
+  /**
+   * Load currency data from localStorage
+   * Calculates energy regeneration based on time since last save
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
+      if (!stored) {
+        return;
+      }
+
+      const data = JSON.parse(stored) as CurrencySaveData;
+      if (data.currencies) {
+        this.currencies = {
+          gold: data.currencies.gold ?? DEFAULT_CURRENCIES.gold,
+          gems: data.currencies.gems ?? DEFAULT_CURRENCIES.gems,
+          scrolls: data.currencies.scrolls ?? DEFAULT_CURRENCIES.scrolls,
+          energy: data.currencies.energy ?? DEFAULT_CURRENCIES.energy,
+        };
+      }
+
+      if (data.lastEnergyUpdate) {
+        this.lastEnergyUpdate = data.lastEnergyUpdate;
+      }
+
+      // Calculate energy regeneration based on time passed since last save
+      this.updateEnergyRegeneration();
+    } catch (error) {
+      console.warn('CurrencyManager: Failed to load from storage:', error);
+    }
+  }
+
+  /**
+   * Save currency data to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      const data: CurrencySaveData = {
+        currencies: { ...this.currencies },
+        lastEnergyUpdate: this.lastEnergyUpdate,
+      };
+      localStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.warn('CurrencyManager: Failed to save to storage:', error);
+    }
   }
 
   // ============================================
@@ -165,6 +222,9 @@ export class CurrencyManager {
       delta: newValue - oldValue,
     });
 
+    // Persist changes to storage
+    this.saveToStorage();
+
     return newValue;
   }
 
@@ -200,6 +260,9 @@ export class CurrencyManager {
       newValue,
       delta: -amount,
     });
+
+    // Persist changes to storage
+    this.saveToStorage();
 
     return true;
   }
@@ -244,6 +307,9 @@ export class CurrencyManager {
     const success = this.spend('energy', amount);
     if (success) {
       this.lastEnergyUpdate = Date.now();
+      // Note: saveToStorage() is already called by spend(), but we call again
+      // to ensure lastEnergyUpdate is persisted
+      this.saveToStorage();
     }
     return success;
   }
@@ -288,6 +354,9 @@ export class CurrencyManager {
         newValue,
         delta: actualRegen,
       });
+
+      // Persist the updated energy and timestamp
+      this.saveToStorage();
     }
 
     return actualRegen;
@@ -426,6 +495,7 @@ export class CurrencyManager {
   reset(): void {
     this.currencies = { ...DEFAULT_CURRENCIES };
     this.lastEnergyUpdate = Date.now();
+    this.saveToStorage();
   }
 
   // ============================================

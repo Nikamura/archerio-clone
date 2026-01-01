@@ -67,10 +67,19 @@ export default class PreloaderScene extends Phaser.Scene {
 
     // Load background
     this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.png')
+    this.load.image('menuBg', 'assets/backgrounds/menu_bg.png')
+
+    // Load menu effects
+    this.load.image('torch', 'assets/sprites/effect/torch.png')
 
     // Load ability icons
     this.load.image('abilityFrontArrow', 'assets/sprites/abilities/front_arrow.png')
     this.load.image('abilityMultishot', 'assets/sprites/abilities/multishot.png')
+
+    // Load hero icons
+    this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')
+    this.load.image('heroHelix', 'assets/sprites/ui/hero_helix.png')
+    this.load.image('heroMeowgik', 'assets/sprites/ui/hero_meowgik.png')
   }
 
   create() {

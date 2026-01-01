@@ -2,6 +2,9 @@ import Phaser from 'phaser'
 import BootScene from './scenes/BootScene'
 import PreloaderScene from './scenes/PreloaderScene'
 import MainMenuScene from './scenes/MainMenuScene'
+import HeroesScene from './scenes/HeroesScene'
+import EquipmentScene from './scenes/EquipmentScene'
+import TalentsScene from './scenes/TalentsScene'
 import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
@@ -20,7 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloaderScene, MainMenuScene, GameScene, UIScene, GameOverScene, LevelUpScene],
+  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, GameScene, UIScene, GameOverScene, LevelUpScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -241,8 +241,8 @@ function createDefaultSaveData(): SaveData {
     lastPlayedAt: now,
     selectedHeroId: 'atreus',
     heroes: getDefaultHeroes(),
-    gold: 0,
-    gems: 0,
+    gold: 1000, // Starting gold for new players
+    gems: 50, // Starting gems for new players
     scrolls: 0,
     inventory: [],
     equipped: {

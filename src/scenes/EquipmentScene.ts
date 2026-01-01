@@ -1,0 +1,759 @@
+/**
+ * EquipmentScene - Equipment management screen
+ *
+ * Displays equipped items, inventory grid, and allows
+ * equipping/unequipping, upgrading, and fusing items.
+ */
+
+import Phaser from 'phaser'
+import {
+  Equipment,
+  EquipmentSlotType,
+  EQUIPMENT_SLOTS,
+  Rarity,
+  RARITY_CONFIGS,
+} from '../systems/Equipment'
+import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
+import { currencyManager } from '../systems/CurrencyManager'
+import { audioManager } from '../systems/AudioManager'
+
+// Rarity colors as specified
+const RARITY_COLORS: Record<Rarity, string> = {
+  [Rarity.COMMON]: '#888888',
+  [Rarity.GREAT]: '#00AA00',
+  [Rarity.RARE]: '#0066FF',
+  [Rarity.EPIC]: '#AA00FF',
+  [Rarity.LEGENDARY]: '#FFD700',
+}
+
+// Slot display names
+const SLOT_NAMES: Record<EquipmentSlotType, string> = {
+  weapon: 'Weapon',
+  armor: 'Armor',
+  ring: 'Ring',
+  spirit: 'Spirit',
+}
+
+// Slot icons (emoji fallback)
+const SLOT_ICONS: Record<EquipmentSlotType, string> = {
+  weapon: '⚔',
+  armor: '🛡',
+  ring: '💍',
+  spirit: '👻',
+}
+
+interface InventorySlot {
+  container: Phaser.GameObjects.Container
+  background: Phaser.GameObjects.Rectangle
+  item: Equipment | null
+}
+
+export default class EquipmentScene extends Phaser.Scene {
+  // Layout constants
+  private readonly SLOT_SIZE = 70
+  private readonly SLOT_GAP = 10
+  private readonly INVENTORY_COLS = 4
+  private readonly INVENTORY_ROWS = 4
+  private readonly INVENTORY_SLOT_SIZE = 60
+
+  // UI elements
+  private equippedSlots: Map<EquipmentSlotType, Phaser.GameObjects.Container> = new Map()
+  private inventorySlots: InventorySlot[] = []
+  private detailPanel: Phaser.GameObjects.Container | null = null
+  private goldText: Phaser.GameObjects.Text | null = null
+  private fusionButton: Phaser.GameObjects.Text | null = null
+
+  // Scroll state for inventory
+  private inventoryContainer: Phaser.GameObjects.Container | null = null
+  private scrollOffset = 0
+  private maxScroll = 0
+
+  constructor() {
+    super({ key: 'EquipmentScene' })
+  }
+
+  create(): void {
+    const { width, height } = this.cameras.main
+
+    // Background
+    this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e)
+
+    // Header
+    this.createHeader()
+
+    // Equipped slots
+    this.createEquippedSlots()
+
+    // Inventory
+    this.createInventory()
+
+    // Gold display
+    this.createGoldDisplay()
+
+    // Back button
+    this.createBackButton()
+
+    // Listen for equipment changes
+    this.setupEventListeners()
+
+    // Initial render
+    this.refreshDisplay()
+  }
+
+  private createHeader(): void {
+    const { width } = this.cameras.main
+
+    this.add
+      .text(width / 2, 30, 'EQUIPMENT', {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    // Divider line
+    this.add.rectangle(width / 2, 55, width - 40, 2, 0x444444)
+  }
+
+  private createEquippedSlots(): void {
+    const { width } = this.cameras.main
+    const startY = 90
+    const totalWidth = EQUIPMENT_SLOTS.length * this.SLOT_SIZE + (EQUIPMENT_SLOTS.length - 1) * this.SLOT_GAP
+    const startX = (width - totalWidth) / 2 + this.SLOT_SIZE / 2
+
+    // Section label
+    this.add
+      .text(width / 2, startY - 15, 'EQUIPPED', {
+        fontSize: '12px',
+        color: '#666666',
+      })
+      .setOrigin(0.5)
+
+    EQUIPMENT_SLOTS.forEach((slot, index) => {
+      const x = startX + index * (this.SLOT_SIZE + this.SLOT_GAP)
+      const y = startY + this.SLOT_SIZE / 2 + 10
+
+      const container = this.createEquippedSlot(x, y, slot)
+      this.equippedSlots.set(slot, container)
+    })
+  }
+
+  private createEquippedSlot(x: number, y: number, slot: EquipmentSlotType): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y)
+
+    // Background
+    const bg = this.add.rectangle(0, 0, this.SLOT_SIZE, this.SLOT_SIZE, 0x2d2d44, 1)
+    bg.setStrokeStyle(2, 0x444466)
+    container.add(bg)
+
+    // Slot icon (shown when empty)
+    const icon = this.add
+      .text(0, -5, SLOT_ICONS[slot], {
+        fontSize: '24px',
+      })
+      .setOrigin(0.5)
+    icon.setName('icon')
+    container.add(icon)
+
+    // Slot label
+    const label = this.add
+      .text(0, 25, SLOT_NAMES[slot], {
+        fontSize: '10px',
+        color: '#888888',
+      })
+      .setOrigin(0.5)
+    container.add(label)
+
+    // Item display (hidden by default)
+    const itemBg = this.add.rectangle(0, 0, this.SLOT_SIZE - 8, this.SLOT_SIZE - 8, 0x333355, 1)
+    itemBg.setVisible(false)
+    itemBg.setName('itemBg')
+    container.add(itemBg)
+
+    const itemText = this.add
+      .text(0, -5, '', {
+        fontSize: '10px',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: this.SLOT_SIZE - 12 },
+      })
+      .setOrigin(0.5)
+    itemText.setName('itemText')
+    container.add(itemText)
+
+    const levelText = this.add
+      .text(0, 18, '', {
+        fontSize: '9px',
+        color: '#aaaaaa',
+      })
+      .setOrigin(0.5)
+    levelText.setName('levelText')
+    container.add(levelText)
+
+    // Make interactive
+    bg.setInteractive({ useHandCursor: true })
+    bg.on('pointerdown', () => this.onEquippedSlotClick(slot))
+    bg.on('pointerover', () => {
+      bg.setFillStyle(0x3d3d54)
+    })
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x2d2d44)
+    })
+
+    container.setData('slot', slot)
+    return container
+  }
+
+  private createInventory(): void {
+    const { width, height } = this.cameras.main
+    const inventoryY = 230
+
+    // Section label
+    this.add
+      .text(width / 2, inventoryY - 15, 'INVENTORY', {
+        fontSize: '12px',
+        color: '#666666',
+      })
+      .setOrigin(0.5)
+
+    // Create scrollable container
+    const totalWidth =
+      this.INVENTORY_COLS * this.INVENTORY_SLOT_SIZE + (this.INVENTORY_COLS - 1) * 8
+    const startX = (width - totalWidth) / 2 + this.INVENTORY_SLOT_SIZE / 2
+    const visibleHeight = height - inventoryY - 120 // Leave room for buttons
+
+    // Mask for scrolling
+    const maskGraphics = this.add.graphics()
+    maskGraphics.fillStyle(0xffffff)
+    maskGraphics.fillRect(20, inventoryY, width - 40, visibleHeight)
+    const mask = maskGraphics.createGeometryMask()
+
+    this.inventoryContainer = this.add.container(0, 0)
+    this.inventoryContainer.setMask(mask)
+
+    // Create inventory slots
+    const inventory = equipmentManager.getInventory()
+    const totalSlots = Math.max(this.INVENTORY_COLS * this.INVENTORY_ROWS, inventory.length + 4)
+    const rows = Math.ceil(totalSlots / this.INVENTORY_COLS)
+
+    for (let i = 0; i < totalSlots; i++) {
+      const col = i % this.INVENTORY_COLS
+      const row = Math.floor(i / this.INVENTORY_COLS)
+      const x = startX + col * (this.INVENTORY_SLOT_SIZE + 8)
+      const y = inventoryY + 10 + row * (this.INVENTORY_SLOT_SIZE + 8)
+
+      const slotData = this.createInventorySlot(x, y, i)
+      this.inventorySlots.push(slotData)
+    }
+
+    // Calculate max scroll
+    const contentHeight = rows * (this.INVENTORY_SLOT_SIZE + 8)
+    this.maxScroll = Math.max(0, contentHeight - visibleHeight)
+
+    // Setup scroll input
+    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
+      this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY * 0.5, 0, this.maxScroll)
+      this.updateInventoryScroll()
+    })
+  }
+
+  private createInventorySlot(x: number, y: number, index: number): InventorySlot {
+    const container = this.add.container(x, y)
+    if (this.inventoryContainer) {
+      this.inventoryContainer.add(container)
+    }
+
+    // Background
+    const bg = this.add.rectangle(0, 0, this.INVENTORY_SLOT_SIZE, this.INVENTORY_SLOT_SIZE, 0x252540, 1)
+    bg.setStrokeStyle(1, 0x3a3a55)
+    container.add(bg)
+
+    // Item text (hidden by default)
+    const itemText = this.add
+      .text(0, -8, '', {
+        fontSize: '9px',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: this.INVENTORY_SLOT_SIZE - 8 },
+      })
+      .setOrigin(0.5)
+    itemText.setName('itemText')
+    container.add(itemText)
+
+    const levelText = this.add
+      .text(0, 15, '', {
+        fontSize: '8px',
+        color: '#aaaaaa',
+      })
+      .setOrigin(0.5)
+    levelText.setName('levelText')
+    container.add(levelText)
+
+    // Make interactive
+    bg.setInteractive({ useHandCursor: true })
+    bg.on('pointerdown', () => this.onInventorySlotClick(index))
+    bg.on('pointerover', () => {
+      const slot = this.inventorySlots[index]
+      if (slot && slot.item) {
+        bg.setFillStyle(0x353550)
+      }
+    })
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x252540)
+    })
+
+    return {
+      container,
+      background: bg,
+      item: null,
+    }
+  }
+
+  private updateInventoryScroll(): void {
+    this.inventorySlots.forEach((slot) => {
+      slot.container.y -= this.scrollOffset
+    })
+  }
+
+  private createGoldDisplay(): void {
+    const { width, height } = this.cameras.main
+    const gold = currencyManager.get('gold')
+
+    this.goldText = this.add
+      .text(20, height - 100, `Gold: ${gold}`, {
+        fontSize: '16px',
+        color: '#FFD700',
+      })
+      .setOrigin(0, 0.5)
+
+    // Fusion button
+    this.fusionButton = this.add
+      .text(width - 20, height - 100, 'FUSE', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#6b4aa3',
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(1, 0.5)
+
+    this.fusionButton.setInteractive({ useHandCursor: true })
+    this.fusionButton.on('pointerdown', () => this.onFusionClick())
+    this.fusionButton.on('pointerover', () => {
+      this.fusionButton?.setStyle({ backgroundColor: '#7b5ab3' })
+    })
+    this.fusionButton.on('pointerout', () => {
+      this.fusionButton?.setStyle({ backgroundColor: '#6b4aa3' })
+    })
+
+    this.updateFusionButton()
+  }
+
+  private createBackButton(): void {
+    const { width, height } = this.cameras.main
+
+    const backButton = this.add
+      .text(width / 2, height - 40, 'BACK', {
+        fontSize: '18px',
+        color: '#ffffff',
+        backgroundColor: '#444455',
+        padding: { x: 40, y: 10 },
+      })
+      .setOrigin(0.5)
+
+    backButton.setInteractive({ useHandCursor: true })
+    backButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.scene.start('MainMenuScene')
+    })
+    backButton.on('pointerover', () => {
+      backButton.setStyle({ backgroundColor: '#555566' })
+    })
+    backButton.on('pointerout', () => {
+      backButton.setStyle({ backgroundColor: '#444455' })
+    })
+  }
+
+  private setupEventListeners(): void {
+    equipmentManager.on(EQUIPMENT_EVENTS.INVENTORY_CHANGED, () => {
+      this.refreshDisplay()
+    })
+    equipmentManager.on(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, () => {
+      this.refreshDisplay()
+    })
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_UPGRADED, () => {
+      this.refreshDisplay()
+      this.updateGoldDisplay()
+    })
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_FUSED, () => {
+      this.refreshDisplay()
+      this.hideDetailPanel()
+    })
+  }
+
+  private refreshDisplay(): void {
+    this.refreshEquippedSlots()
+    this.refreshInventorySlots()
+    this.updateFusionButton()
+    this.updateGoldDisplay()
+  }
+
+  private refreshEquippedSlots(): void {
+    EQUIPMENT_SLOTS.forEach((slot) => {
+      const container = this.equippedSlots.get(slot)
+      if (!container) return
+
+      const equipped = equipmentManager.getEquipped(slot)
+      const icon = container.getByName('icon') as Phaser.GameObjects.Text
+      const itemBg = container.getByName('itemBg') as Phaser.GameObjects.Rectangle
+      const itemText = container.getByName('itemText') as Phaser.GameObjects.Text
+      const levelText = container.getByName('levelText') as Phaser.GameObjects.Text
+      const bg = container.list[0] as Phaser.GameObjects.Rectangle
+
+      if (equipped) {
+        // Show item
+        icon.setVisible(false)
+        itemBg.setVisible(true)
+        itemText.setVisible(true)
+        levelText.setVisible(true)
+
+        // Set rarity color
+        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[equipped.rarity])
+        itemBg.setStrokeStyle(2, rarityColor.color)
+        bg.setStrokeStyle(2, rarityColor.color)
+
+        // Set item info
+        itemText.setText(this.getShortName(equipped.name))
+        levelText.setText(`Lv.${equipped.level}`)
+      } else {
+        // Show empty slot
+        icon.setVisible(true)
+        itemBg.setVisible(false)
+        itemText.setVisible(false)
+        levelText.setVisible(false)
+        bg.setStrokeStyle(2, 0x444466)
+      }
+    })
+  }
+
+  private refreshInventorySlots(): void {
+    const inventory = equipmentManager.getInventory()
+    const allEquipped = equipmentManager.getAllEquipped()
+    const equippedIds = new Set(
+      Object.values(allEquipped)
+        .filter((item): item is Equipment => item !== null)
+        .map((item) => item.id)
+    )
+
+    // Filter out equipped items from inventory display
+    const unequippedInventory = inventory.filter((item) => !equippedIds.has(item.id))
+
+    this.inventorySlots.forEach((slot, index) => {
+      const item = unequippedInventory[index] ?? null
+      slot.item = item
+
+      const itemText = slot.container.getByName('itemText') as Phaser.GameObjects.Text
+      const levelText = slot.container.getByName('levelText') as Phaser.GameObjects.Text
+
+      if (item) {
+        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[item.rarity])
+        slot.background.setStrokeStyle(2, rarityColor.color)
+
+        itemText.setText(this.getShortName(item.name))
+        itemText.setVisible(true)
+        levelText.setText(`Lv.${item.level}`)
+        levelText.setVisible(true)
+      } else {
+        slot.background.setStrokeStyle(1, 0x3a3a55)
+        itemText.setVisible(false)
+        levelText.setVisible(false)
+      }
+    })
+  }
+
+  private getShortName(name: string): string {
+    // Shorten long names for display
+    const words = name.split(' ')
+    if (words.length > 2) {
+      return words.slice(0, 2).join(' ')
+    }
+    return name
+  }
+
+  private onEquippedSlotClick(slot: EquipmentSlotType): void {
+    audioManager.playMenuSelect()
+    const equipped = equipmentManager.getEquipped(slot)
+
+    if (equipped) {
+      // Show detail panel with unequip option
+      this.showDetailPanel(equipped, true)
+    }
+  }
+
+  private onInventorySlotClick(index: number): void {
+    const slot = this.inventorySlots[index]
+    if (!slot || !slot.item) return
+
+    audioManager.playMenuSelect()
+    this.showDetailPanel(slot.item, false)
+  }
+
+  private showDetailPanel(item: Equipment, isEquipped: boolean): void {
+    this.hideDetailPanel()
+
+    const { width, height } = this.cameras.main
+    const panelWidth = width - 40
+    const panelHeight = 200
+    const panelY = height - panelHeight - 60
+
+    this.detailPanel = this.add.container(width / 2, panelY + panelHeight / 2)
+
+    // Panel background
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 0.95)
+    const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[item.rarity])
+    bg.setStrokeStyle(3, rarityColor.color)
+    this.detailPanel.add(bg)
+
+    // Close button
+    const closeBtn = this.add
+      .text(panelWidth / 2 - 15, -panelHeight / 2 + 15, 'X', {
+        fontSize: '18px',
+        color: '#ff6666',
+      })
+      .setOrigin(0.5)
+    closeBtn.setInteractive({ useHandCursor: true })
+    closeBtn.on('pointerdown', () => this.hideDetailPanel())
+    this.detailPanel.add(closeBtn)
+
+    // Item name with rarity
+    const rarityConfig = RARITY_CONFIGS[item.rarity]
+    const nameText = this.add
+      .text(0, -panelHeight / 2 + 30, `${item.name} (${rarityConfig.name})`, {
+        fontSize: '16px',
+        color: RARITY_COLORS[item.rarity],
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    this.detailPanel.add(nameText)
+
+    // Level and max level
+    const levelInfo = this.add
+      .text(0, -panelHeight / 2 + 55, `Level ${item.level} / ${rarityConfig.maxLevel}`, {
+        fontSize: '12px',
+        color: '#aaaaaa',
+      })
+      .setOrigin(0.5)
+    this.detailPanel.add(levelInfo)
+
+    // Stats display
+    const statsY = -panelHeight / 2 + 80
+    let yOffset = 0
+    const statsEntries = Object.entries(item.baseStats)
+
+    statsEntries.forEach(([stat, value]) => {
+      if (value !== undefined && value !== 0) {
+        const statName = this.formatStatName(stat)
+        const statText = this.add
+          .text(-panelWidth / 2 + 20, statsY + yOffset, `${statName}: +${value}`, {
+            fontSize: '11px',
+            color: '#88ff88',
+          })
+          .setOrigin(0, 0)
+        this.detailPanel?.add(statText)
+        yOffset += 16
+      }
+    })
+
+    // Perks display
+    if (item.perks.length > 0) {
+      const perksLabel = this.add
+        .text(panelWidth / 2 - 20, statsY, 'Perks:', {
+          fontSize: '11px',
+          color: '#aaaaaa',
+        })
+        .setOrigin(1, 0)
+      this.detailPanel.add(perksLabel)
+
+      item.perks.forEach((perk, i) => {
+        const perkText = this.add
+          .text(panelWidth / 2 - 20, statsY + 16 + i * 14, this.formatPerkName(perk), {
+            fontSize: '10px',
+            color: '#ffaa00',
+          })
+          .setOrigin(1, 0)
+        this.detailPanel?.add(perkText)
+      })
+    }
+
+    // Action buttons
+    const buttonY = panelHeight / 2 - 35
+
+    if (isEquipped) {
+      // Unequip button
+      const unequipBtn = this.add
+        .text(-60, buttonY, 'UNEQUIP', {
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: '#aa4444',
+          padding: { x: 15, y: 8 },
+        })
+        .setOrigin(0.5)
+
+      unequipBtn.setInteractive({ useHandCursor: true })
+      unequipBtn.on('pointerdown', () => {
+        audioManager.playMenuSelect()
+        equipmentManager.unequip(item.slot)
+        this.hideDetailPanel()
+      })
+      unequipBtn.on('pointerover', () => unequipBtn.setStyle({ backgroundColor: '#bb5555' }))
+      unequipBtn.on('pointerout', () => unequipBtn.setStyle({ backgroundColor: '#aa4444' }))
+      this.detailPanel.add(unequipBtn)
+    } else {
+      // Equip button
+      const equipBtn = this.add
+        .text(-60, buttonY, 'EQUIP', {
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: '#44aa44',
+          padding: { x: 15, y: 8 },
+        })
+        .setOrigin(0.5)
+
+      equipBtn.setInteractive({ useHandCursor: true })
+      equipBtn.on('pointerdown', () => {
+        audioManager.playMenuSelect()
+        equipmentManager.equip(item)
+        this.hideDetailPanel()
+      })
+      equipBtn.on('pointerover', () => equipBtn.setStyle({ backgroundColor: '#55bb55' }))
+      equipBtn.on('pointerout', () => equipBtn.setStyle({ backgroundColor: '#44aa44' }))
+      this.detailPanel.add(equipBtn)
+    }
+
+    // Upgrade button
+    const canUpgrade = equipmentManager.canUpgrade(item)
+    const upgradeCost = equipmentManager.getUpgradeCost(item)
+    const canAfford = currencyManager.canAfford('gold', upgradeCost.gold)
+
+    const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#444455'
+    const upgradeBtn = this.add
+      .text(60, buttonY, `UPGRADE (${upgradeCost.gold}g)`, {
+        fontSize: '14px',
+        color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
+        backgroundColor: upgradeColor,
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+
+    if (canUpgrade.canUpgrade && canAfford) {
+      upgradeBtn.setInteractive({ useHandCursor: true })
+      upgradeBtn.on('pointerdown', () => this.onUpgradeClick(item))
+      upgradeBtn.on('pointerover', () => upgradeBtn.setStyle({ backgroundColor: '#5588bb' }))
+      upgradeBtn.on('pointerout', () => upgradeBtn.setStyle({ backgroundColor: '#4477aa' }))
+    }
+    this.detailPanel.add(upgradeBtn)
+
+    // Bring panel to top
+    this.children.bringToTop(this.detailPanel)
+  }
+
+  private hideDetailPanel(): void {
+    if (this.detailPanel) {
+      this.detailPanel.destroy()
+      this.detailPanel = null
+    }
+  }
+
+  private formatStatName(stat: string): string {
+    // Convert camelCase to readable format
+    return stat
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .replace('Percent', '%')
+  }
+
+  private formatPerkName(perk: string): string {
+    // Convert snake_case to readable format
+    return perk
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  private onUpgradeClick(item: Equipment): void {
+    const result = equipmentManager.upgrade(item, (cost) => {
+      return currencyManager.spend('gold', cost.gold)
+    })
+
+    if (result.success) {
+      audioManager.playAbilitySelect()
+      // Refresh the detail panel with updated stats
+      const isEquipped = equipmentManager.isEquipped(item.id)
+      this.showDetailPanel(item, isEquipped)
+    } else {
+      // Could show error message here
+      console.warn('Upgrade failed:', result.error)
+    }
+  }
+
+  private onFusionClick(): void {
+    const fusionCandidates = equipmentManager.findFusionCandidates()
+
+    if (fusionCandidates.size === 0) {
+      // No fusion available
+      return
+    }
+
+    // Get first available fusion group
+    const firstGroup = fusionCandidates.values().next().value as Equipment[]
+    if (firstGroup && firstGroup.length >= 3) {
+      const itemsToFuse = firstGroup.slice(0, 3)
+      const result = equipmentManager.fuse(itemsToFuse)
+
+      if (result.success) {
+        audioManager.playLevelUp()
+        // Show the new item
+        if (result.resultingItem) {
+          this.showDetailPanel(result.resultingItem, false)
+        }
+      } else {
+        console.warn('Fusion failed:', result.error)
+      }
+    }
+  }
+
+  private updateFusionButton(): void {
+    if (!this.fusionButton) return
+
+    const fusionCandidates = equipmentManager.findFusionCandidates()
+    const hasFusionAvailable = fusionCandidates.size > 0
+
+    if (hasFusionAvailable) {
+      this.fusionButton.setStyle({
+        backgroundColor: '#6b4aa3',
+        color: '#ffffff',
+      })
+      this.fusionButton.setInteractive({ useHandCursor: true })
+    } else {
+      this.fusionButton.setStyle({
+        backgroundColor: '#3a3a55',
+        color: '#666666',
+      })
+      this.fusionButton.disableInteractive()
+    }
+  }
+
+  private updateGoldDisplay(): void {
+    if (this.goldText) {
+      const gold = currencyManager.get('gold')
+      this.goldText.setText(`Gold: ${gold}`)
+    }
+  }
+
+  shutdown(): void {
+    // Clean up event listeners
+    equipmentManager.off(EQUIPMENT_EVENTS.INVENTORY_CHANGED)
+    equipmentManager.off(EQUIPMENT_EVENTS.EQUIPPED_CHANGED)
+    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_UPGRADED)
+    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_FUSED)
+  }
+}
