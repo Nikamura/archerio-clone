@@ -227,13 +227,22 @@ export default class BurrowerEnemy extends Enemy {
   }
 
   /**
-   * Override takeDamage to only take damage when vulnerable
+   * Override takeDamage to apply reduced damage when burrowed
    */
   takeDamage(amount: number): boolean {
+    // Take reduced damage when underground, full damage when surfaced
+    const damageMultiplier = this.isVulnerable() ? 1.0 : 0.3
+    const actualDamage = amount * damageMultiplier
+
+    // Add brief flash even when underground to give feedback
     if (!this.isVulnerable()) {
-      return false // No damage while burrowed
+      this.setTint(0xff9999)
+      this.scene.time.delayedCall(100, () => {
+        this.clearTint()
+      })
     }
-    return super.takeDamage(amount)
+
+    return super.takeDamage(actualDamage)
   }
 
   destroy(fromScene?: boolean): void {
