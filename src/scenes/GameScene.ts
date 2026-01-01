@@ -101,15 +101,19 @@ export default class GameScene extends Phaser.Scene {
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
     const handleVisibilityChange = () => {
-      if (document.hidden) {
+      // Only handle if scene is active and created
+      if (document.hidden && this.scene.isActive() && this.player) {
         console.log('GameScene: Page hidden, resetting joystick state')
         this.resetJoystickState()
       }
     }
 
     const handleBlur = () => {
-      console.log('GameScene: Window blur, resetting joystick state')
-      this.resetJoystickState()
+      // Only handle if scene is active and created
+      if (this.scene.isActive() && this.player) {
+        console.log('GameScene: Window blur, resetting joystick state')
+        this.resetJoystickState()
+      }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -260,12 +264,26 @@ export default class GameScene extends Phaser.Scene {
       padding: { x: 5, y: 5 },
     })
 
-    // Update debug text every frame
-    this.events.on('update', () => {
-      const enemyCount = this.enemies.getChildren().length
-      debugText.setText(
-        `Arrow keys or touch to move\nStop to shoot!\nEnemies: ${enemyCount}`
-      )
+    // Update debug text every frame - with safety checks
+    const updateDebugText = () => {
+      // Only update if scene is still active and objects exist
+      if (this.scene.isActive() && this.enemies && debugText.active) {
+        try {
+          const enemyCount = this.enemies.getChildren().length
+          debugText.setText(
+            `Arrow keys or touch to move\nStop to shoot!\nEnemies: ${enemyCount}`
+          )
+        } catch (error) {
+          console.warn('GameScene: Error updating debug text:', error)
+        }
+      }
+    }
+    
+    this.events.on('update', updateDebugText)
+    
+    // Clean up event listener on shutdown
+    this.events.once('shutdown', () => {
+      this.events.off('update', updateDebugText)
     })
 
     // Update UIScene with room info

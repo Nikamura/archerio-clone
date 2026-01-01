@@ -113,6 +113,18 @@ export default class Joystick {
       this.manager.destroy()
       this.manager = null
     }
+    
+    // CRITICAL: Remove any lingering nipplejs DOM elements
+    // nipplejs creates DOM elements that might not be cleaned up properly
+    if (this.container) {
+      const nippleElements = this.container.querySelectorAll('.nipple, [class*="nipple"]')
+      nippleElements.forEach((el) => {
+        if (el.parentNode) {
+          el.parentNode.removeChild(el)
+        }
+      })
+    }
+    
     this.container = null
   }
 

@@ -134,6 +134,27 @@ export default class GameOverScene extends Phaser.Scene {
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
+    // CRITICAL: Ensure this scene receives input and is on top
+    this.input.enabled = true
+    this.scene.bringToTop()
+
+    // Debug: Log any pointer events to diagnose input issues
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      console.log('GameOverScene: Global pointerdown at', pointer.x, pointer.y)
+      
+      // Visual feedback: show a small circle where user tapped (debug mode)
+      if (this.game.registry.get('debug')) {
+        const circle = this.add.circle(pointer.x, pointer.y, 20, 0xff0000, 0.5)
+        this.tweens.add({
+          targets: circle,
+          alpha: 0,
+          scale: 2,
+          duration: 500,
+          onComplete: () => circle.destroy()
+        })
+      }
+    })
+
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
 
@@ -293,14 +314,15 @@ export default class GameOverScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const buttonWidth = 200
     const buttonHeight = 50
-    const buttonText = 'CONTINUE'
+    const buttonText = 'MAIN MENU'
     const buttonColor = isVictory ? 0x00ff88 : 0x4a9eff
 
     const button = this.add
       .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
       .setInteractive({ useHandCursor: true })
+      .setDepth(100) // Ensure button is above everything
 
-    this.add
+    const text = this.add
       .text(width / 2, y, buttonText, {
         fontSize: '24px',
         fontFamily: 'Arial',
@@ -308,25 +330,37 @@ export default class GameOverScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setDepth(101) // Text above button
 
     // Button hover effects
     const hoverColor = isVictory ? 0x33ffaa : 0x6ab0ff
     const pressColor = isVictory ? 0x00cc66 : 0x3a8edf
 
     button.on('pointerover', () => {
+      console.log('GameOverScene: Button hover')
       button.setFillStyle(hoverColor)
     })
 
     button.on('pointerout', () => {
+      console.log('GameOverScene: Button out')
       button.setFillStyle(buttonColor)
     })
 
     button.on('pointerdown', () => {
+      console.log('GameOverScene: Button down')
       button.setFillStyle(pressColor)
     })
 
     button.on('pointerup', () => {
+      console.log('GameOverScene: Button up - triggering continue')
       this.continueGame()
+    })
+
+    // Debug: Log if button is interactive
+    console.log('GameOverScene: Continue button created', {
+      interactive: button.input?.enabled,
+      position: { x: button.x, y: button.y },
+      size: { width: buttonWidth, height: buttonHeight }
     })
   }
 
@@ -361,24 +395,33 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   /**
-   * Collect rewards and return to main menu or restart
+   * Collect rewards and return to main menu
    */
   private continueGame() {
+    console.log('GameOverScene: continueGame() called')
+    
+    // Prevent multiple calls
+    if (this.rewardsCollected) {
+      console.log('GameOverScene: Already continuing, ignoring duplicate call')
+      return
+    }
+    
     // Collect rewards first
     this.collectRewards()
 
-    // Play game start sound
-    audioManager.playGameStart()
+    // Play menu select sound
+    audioManager.playMenuSelect()
 
     // Stop all tweens to prevent rendering updates during shutdown
     this.tweens.killAll()
 
+    console.log('GameOverScene: Returning to main menu...')
+    
     // GameScene already stopped itself before launching GameOverScene
     // UIScene was also stopped by GameScene
-    // Just start fresh game scenes
+    // Return to main menu
     // start() will shut down the current scene (GameOverScene) correctly
-    this.scene.start('GameScene')
-    this.scene.launch('UIScene')
+    this.scene.start('MainMenuScene')
   }
 
   /**
