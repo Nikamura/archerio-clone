@@ -168,6 +168,10 @@ export default class LevelUpScene extends Phaser.Scene {
     // Set canvas pointer events to ensure touch works
     if (this.game.canvas) {
       this.game.canvas.style.pointerEvents = 'auto'
+      // Also re-enable the parent container; Safari can inherit a 'none' from the joystick
+      if (this.game.canvas.parentElement) {
+        this.game.canvas.parentElement.style.pointerEvents = 'auto'
+      }
     }
 
     // Dark overlay background with fade in

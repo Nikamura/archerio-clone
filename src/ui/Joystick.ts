@@ -109,8 +109,8 @@ export default class Joystick {
         }
       })
       
-      // Disable pointer events on the container to prevent it from blocking input
-      this.container.style.pointerEvents = 'none'
+      // Keep pointer events enabled so the Phaser canvas stays clickable on iOS
+      this.container.style.pointerEvents = 'auto'
     }
   }
 
