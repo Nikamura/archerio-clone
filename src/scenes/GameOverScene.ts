@@ -4,6 +4,7 @@ import { saveManager } from '../systems/SaveManager'
 import { achievementManager } from '../systems/AchievementManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { chestManager } from '../systems/ChestManager'
+import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
 import {
   calculateChestRewards,
   getTotalChests,
@@ -21,6 +22,7 @@ export interface GameOverData {
   abilitiesGained?: number
   bossDefeated?: boolean
   goldEarned?: number
+  completionResult?: ChapterCompletionResult
 }
 
 /**
@@ -75,19 +77,31 @@ export default class GameOverScene extends Phaser.Scene {
    * Record this run's statistics to persistent save data
    */
   private recordRunStats(): void {
+    const selectedChapter = chapterManager.getSelectedChapter()
+    const isVictory = this.stats.isVictory === true
+    const stars = this.stats.completionResult?.stars ?? 0
+
     saveManager.recordRun({
       kills: this.stats.enemiesKilled,
       roomsCleared: this.stats.roomsCleared,
       playTimeMs: this.stats.playTimeMs ?? 0,
-      bossDefeated: this.stats.isVictory === true,
+      bossDefeated: isVictory,
       abilitiesGained: this.stats.abilitiesGained ?? 0,
-      victory: this.stats.isVictory === true,
+      victory: isVictory,
     })
+
+    // Update chapter progress in SaveManager for persistence
+    saveManager.updateChapterProgress(
+      selectedChapter,
+      this.stats.roomsCleared,
+      isVictory,
+      stars
+    )
 
     // Log updated statistics
     const totalStats = saveManager.getStatistics()
     console.log(
-      `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}`
+      `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`
     )
 
     // Check achievements after recording stats
@@ -117,6 +131,9 @@ export default class GameOverScene extends Phaser.Scene {
     const height = this.cameras.main.height
     const isVictory = this.stats.isVictory
 
+    // Register shutdown event
+    this.events.once('shutdown', this.shutdown, this)
+
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
 
@@ -138,8 +155,9 @@ export default class GameOverScene extends Phaser.Scene {
     const lineHeight = 32
 
     // Rooms cleared
+    const totalRooms = chapterManager.getTotalRooms()
     this.add
-      .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/10`, {
+      .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/${totalRooms}`, {
         fontSize: '20px',
         fontFamily: 'Arial',
         color: '#ffffff',
@@ -352,13 +370,21 @@ export default class GameOverScene extends Phaser.Scene {
     // Play game start sound
     audioManager.playGameStart()
 
+    // Stop all tweens to prevent rendering updates during shutdown
+    this.tweens.killAll()
+
     // GameScene already stopped itself before launching GameOverScene
     // UIScene was also stopped by GameScene
     // Just start fresh game scenes
+    // start() will shut down the current scene (GameOverScene) correctly
     this.scene.start('GameScene')
     this.scene.launch('UIScene')
+  }
 
-    // Stop this scene last - following CLAUDE.md guidance
-    this.scene.stop('GameOverScene')
+  /**
+   * Clean up scene resources
+   */
+  shutdown() {
+    this.tweens.killAll()
   }
 }

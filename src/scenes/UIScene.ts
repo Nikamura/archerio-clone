@@ -23,6 +23,9 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
+    // Register shutdown event
+    this.events.once('shutdown', this.shutdown, this)
+
     // Create HUD container for easy visibility toggling
     this.hudContainer = this.add.container(0, 0)
     this.isHudVisible = true
@@ -96,7 +99,7 @@ export default class UIScene extends Phaser.Scene {
     this.roomText = this.add.text(
       this.cameras.main.width / 2,
       20,
-      'Room 1/10',
+      '',
       {
         fontSize: '20px',
         color: '#ffffff',

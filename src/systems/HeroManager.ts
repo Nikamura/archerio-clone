@@ -33,6 +33,12 @@ import {
 } from '../config/heroData'
 
 // ============================================
+// Constants
+// ============================================
+
+const HERO_STORAGE_KEY = 'arrow_game_hero_data'
+
+// ============================================
 // HeroManager Class
 // ============================================
 
@@ -57,6 +63,37 @@ export class HeroManager extends Phaser.Events.EventEmitter {
     this.unlockedHeroes = new Set(defaults.unlockedHeroes)
     this.selectedHeroId = defaults.selectedHeroId
     this.heroProgress = defaults.heroProgress
+
+    // Load persisted data
+    this.loadFromStorage()
+  }
+
+  /**
+   * Save hero data to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      const data = this.toSaveData()
+      localStorage.setItem(HERO_STORAGE_KEY, JSON.stringify(data))
+    } catch (error) {
+      console.error('HeroManager: Failed to save data:', error)
+    }
+  }
+
+  /**
+   * Load hero data from localStorage
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(HERO_STORAGE_KEY)
+      if (stored) {
+        const data = JSON.parse(stored) as HeroSaveData
+        this.fromSaveData(data)
+        console.log(`HeroManager: Loaded ${this.unlockedHeroes.size} heroes from storage`)
+      }
+    } catch (error) {
+      console.error('HeroManager: Failed to load data:', error)
+    }
   }
 
   /**
@@ -148,6 +185,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
         }
       }
     }
+    this.saveToStorage()
   }
 
   // ============================================
@@ -184,6 +222,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
       newHeroId: heroId,
     }
     this.emit(HERO_EVENTS.HERO_SELECTED, event)
+    this.saveToStorage()
     this.onSave()
 
     return true
@@ -259,6 +298,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
       currency: hero.unlockCurrency === 'free' ? 'gold' : hero.unlockCurrency,
     }
     this.emit(HERO_EVENTS.HERO_UNLOCKED, event)
+    this.saveToStorage()
     this.onSave()
 
     return true
@@ -326,6 +366,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
     }
     this.emit(HERO_EVENTS.HERO_LEVELED_UP, event)
     this.emit(HERO_EVENTS.HERO_STATS_CHANGED, { heroId })
+    this.saveToStorage()
     this.onSave()
 
     return true
@@ -499,6 +540,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
   resetHeroProgress(heroId: HeroId): void {
     this.heroProgress[heroId] = createDefaultHeroProgress()
     this.emit(HERO_EVENTS.HERO_STATS_CHANGED, { heroId })
+    this.saveToStorage()
     this.onSave()
   }
 
@@ -510,6 +552,7 @@ export class HeroManager extends Phaser.Events.EventEmitter {
     this.unlockedHeroes = new Set(defaults.unlockedHeroes)
     this.selectedHeroId = defaults.selectedHeroId
     this.heroProgress = defaults.heroProgress
+    this.saveToStorage()
     this.onSave()
   }
 }

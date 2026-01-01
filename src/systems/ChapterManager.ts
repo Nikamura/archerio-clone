@@ -125,6 +125,7 @@ export type ChapterEventCallback = (data: ChapterEventData) => void
 
 /** Default starting chapter */
 const DEFAULT_CHAPTER: ChapterId = 1
+const CHAPTER_STORAGE_KEY = 'arrow_game_chapter_data'
 
 // ============================================
 // ChapterManager Class
@@ -154,6 +155,37 @@ export class ChapterManager {
 
     // Initialize progress for chapter 1
     this.initializeChapterProgress(1)
+
+    // Load from persistent storage
+    this.loadFromStorage()
+  }
+
+  /**
+   * Save chapter data to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      const data = this.toSaveData()
+      localStorage.setItem(CHAPTER_STORAGE_KEY, JSON.stringify(data))
+    } catch (error) {
+      console.error('ChapterManager: Failed to save data:', error)
+    }
+  }
+
+  /**
+   * Load chapter data from localStorage
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(CHAPTER_STORAGE_KEY)
+      if (stored) {
+        const data = JSON.parse(stored) as ChapterSaveData
+        this.fromSaveData(data)
+        console.log(`ChapterManager: Loaded ${this.unlockedChapters.size} unlocked chapters from storage`)
+      }
+    } catch (error) {
+      console.error('ChapterManager: Failed to load data:', error)
+    }
   }
 
   // ============================================
@@ -219,6 +251,7 @@ export class ChapterManager {
     }
 
     this.selectedChapter = chapterId
+    this.saveToStorage()
     return true
   }
 
@@ -257,6 +290,7 @@ export class ChapterManager {
 
     this.unlockedChapters.add(chapterId)
     this.initializeChapterProgress(chapterId)
+    this.saveToStorage()
 
     this.emit('chapterUnlocked', {
       type: 'chapterUnlocked',
@@ -403,6 +437,7 @@ export class ChapterManager {
     const progress = this.chapterProgress.get(this.currentRun.chapterId)
     if (progress && nextRoom > progress.highestRoom) {
       progress.highestRoom = nextRoom
+      this.saveToStorage()
     }
 
     const roomType = this.getRoomType(nextRoom)
@@ -497,6 +532,9 @@ export class ChapterManager {
     // End the run
     this.currentRun.isActive = false
 
+    // Save persistent progress
+    this.saveToStorage()
+
     // Emit events
     this.emit('starRatingAchieved', {
       type: 'starRatingAchieved',
@@ -536,6 +574,7 @@ export class ChapterManager {
     const progress = this.chapterProgress.get(chapterId)
     if (progress && currentRoom > progress.highestRoom) {
       progress.highestRoom = currentRoom
+      this.saveToStorage()
     }
 
     this.currentRun.isActive = false
@@ -701,6 +740,7 @@ export class ChapterManager {
     this.selectedChapter = DEFAULT_CHAPTER
     this.currentRun = null
     this.initializeChapterProgress(1)
+    this.saveToStorage()
   }
 
   // ============================================
@@ -731,6 +771,7 @@ export class ChapterManager {
     if (isValidChapterId(chapterId)) {
       this.unlockedChapters.add(chapterId)
       this.initializeChapterProgress(chapterId)
+      this.saveToStorage()
     }
   }
 
@@ -755,6 +796,8 @@ export class ChapterManager {
     if (chapterId < 5) {
       this.forceUnlockChapter((chapterId + 1) as ChapterId)
     }
+
+    this.saveToStorage()
   }
 }
 

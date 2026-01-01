@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import { saveManager } from '../systems/SaveManager'
 import { setDifficulty } from '../config/difficulty'
+import { audioManager } from '../systems/AudioManager'
+import { hapticManager } from '../systems/HapticManager'
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -31,6 +33,11 @@ export default class BootScene extends Phaser.Scene {
 
     // Apply difficulty setting to game registry
     setDifficulty(this.game, settings.difficulty)
+
+    // Apply audio and haptic settings
+    audioManager.setEnabled(settings.audioEnabled)
+    audioManager.setVolume(settings.audioVolume)
+    hapticManager.enabled = settings.vibrationEnabled
 
     // Store save manager reference in registry for global access
     this.game.registry.set('saveManager', saveManager)

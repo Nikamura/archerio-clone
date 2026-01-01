@@ -61,7 +61,7 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false
   private enemiesKilled: number = 0
   private currentRoom: number = 1
-  private readonly totalRooms: number = 10
+  private totalRooms: number = 20
   private isRoomCleared: boolean = false
   private doorSprite: Phaser.GameObjects.Sprite | null = null
   private doorText: Phaser.GameObjects.Text | null = null
@@ -84,10 +84,14 @@ export default class GameScene extends Phaser.Scene {
     this.difficultyConfig = getDifficultyConfig(this.game)
     console.log('Starting game with difficulty:', this.difficultyConfig.label)
 
+    // Register shutdown event
+    this.events.once('shutdown', this.shutdown, this)
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
     this.currentRoom = 1
+    this.totalRooms = chapterManager.getTotalRooms()
     this.isRoomCleared = false
     this.doorSprite = null
     this.doorText = null
@@ -568,6 +572,12 @@ export default class GameScene extends Phaser.Scene {
     audioManager.playVictory()
     console.log('Victory! All rooms cleared!')
 
+    // Complete chapter in manager to unlock next chapter and calculate rewards
+    const completionResult = chapterManager.completeChapter(
+      this.player.getHealth(),
+      this.player.getMaxHealth()
+    )
+
     // Clean up joystick
     if (this.joystick) {
       this.joystick.destroy()
@@ -589,6 +599,7 @@ export default class GameScene extends Phaser.Scene {
         playTimeMs,
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
+        completionResult: completionResult ?? undefined,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting

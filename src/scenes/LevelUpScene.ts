@@ -157,6 +157,9 @@ export default class LevelUpScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
+    // Register shutdown event
+    this.events.once('shutdown', this.shutdown, this)
+
     // Ensure this scene receives input
     this.input.enabled = true
     this.scene.bringToTop()
@@ -470,5 +473,12 @@ export default class LevelUpScene extends Phaser.Scene {
     // Emit event to GameScene using global game events
     console.log('LevelUpScene: emitting abilitySelected')
     this.game.events.emit('abilitySelected', abilityId)
+  }
+
+  /**
+   * Clean up scene resources
+   */
+  shutdown() {
+    this.tweens.killAll()
   }
 }
