@@ -545,7 +545,10 @@ Visual test screenshots are saved to `test/screenshots/`
     - findFusionCandidates(): Find groups of 3+ same type/rarity items
     - fuse(): Combine 3 items -> 1 higher rarity with averaged level
     - UI implementation pending
-[ ] Hero unlock and selection system
+[~] Hero unlock and selection system
+    - UI elements added to MainMenuScene: Heroes, Equipment, Talents buttons
+    - Placeholder functionality (console logs "coming soon")
+    - Full hero selection menu pending
 [x] Currency management and persistence (localStorage → IndexedDB)
     - CurrencyManager (src/systems/CurrencyManager.ts): gold, gems, scrolls, energy
     - Event-driven updates for UI integration
@@ -619,6 +622,14 @@ Visual test screenshots are saved to `test/screenshots/`
     - Integrated with BootScene (loads on game start)
     - Integrated with GameOverScene (records run stats)
     - Integrated with MainMenuScene (persists difficulty changes)
+[x] MainMenuScene UI for V1 progression systems (2026-01-01)
+    - Currency display (top): Gold, Gems, Energy with regen timer
+    - Player stats: Current hero name, total runs, total kills
+    - Chapter indicator: Shows selected chapter
+    - Menu buttons: Heroes, Equipment, Talents (placeholder functionality)
+    - Energy timer: Updates every frame with "Next: MM:SS" countdown
+    - Green color scheme for progression buttons (#6b8e23)
+    - Mobile-optimized layout for 375x667 portrait resolution
 [ ] Daily reward calendar
 [ ] Achievement tracking
 [ ] Expanded procedural generation (more room templates, enemy combinations)
