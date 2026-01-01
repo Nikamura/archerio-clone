@@ -273,7 +273,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] Boss with 3 attack patterns (spread, barrage, charge)
 [x] Health system with damage feedback (UI update needed)
 [x] Difficulty selection (Easy/Normal/Hard with stat modifiers)
-[ ] Basic audio (shoot, hit, level-up, death)
+[x] Basic audio (shoot, hit, level-up, death)
 [x] Touch controls working on mobile browsers (virtual joystick implemented)
 [x] 60 FPS on desktop (tested via Puppeteer)
 ```
@@ -325,8 +325,13 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Easy: +50% player HP, +20% damage/speed, -30% enemy HP, -25% enemy damage, -20% spawns
   - Hard: -20% player HP, -10% damage/speed, +40% enemy HP, +30% enemy damage, +30% spawns
   - Difficulty persists across runs (saved in game registry)
+- ✅ **Audio system** (2026-01-01):
+  - Web Audio API synthesis - no external audio files needed
+  - All sounds generated at runtime using oscillators
+  - Sounds: shoot, hit, player_hit, level_up, ability_select, room_clear, death, victory, menu_select, game_start
+  - Integrated into all game events: shooting, damage, level-up, room completion, game over
 - ✅ ESLint + TypeScript build passing
-- ✅ 86 unit tests passing with high coverage
+- ✅ 92 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
 
 **TESTING:**
@@ -398,7 +403,10 @@ Visual test screenshots are saved to `test/screenshots/`
    - Added difficulty selection (Easy/Normal/Hard)
    - Hard mode: +50% boss HP, +30% boss damage, +40% enemy HP, +30% enemy damage
    - Easy mode: -40% boss HP, -25% boss damage, -30% enemy HP for beginners
-5. Add basic audio (shoot, hit, level-up, death sounds)
+5. ✅ ~~Add basic audio (shoot, hit, level-up, death sounds)~~ - DONE (2026-01-01):
+   - Created AudioManager class using Web Audio API synthesis
+   - Sounds: shoot, hit, player_hit, level_up, ability_select, room_clear, death, victory, menu_select, game_start
+   - No external audio files needed - all sounds generated at runtime
 6. ✅ ~~**Generate game assets using AI image generation**~~ - DONE (2026-01-01):
    - All sprites regenerated with proper sizes:
      - Player (archer.png): 64x64
@@ -409,6 +417,8 @@ Visual test screenshots are saved to `test/screenshots/`
      - 8 Ability icons: 48x48 each
      - Dungeon background: 375x667
 7. Polish ability UI with animations and feedback
+
+**MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
 ---
 
