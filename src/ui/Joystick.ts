@@ -44,6 +44,30 @@ export default class Joystick {
         this.onEnd()
       }
     })
+
+    // Additional safety: listen for any touch end events on the container
+    // This helps catch cases where nipplejs might miss the end event
+    const handleTouchEnd = () => {
+      // Small delay to let nipplejs process its own end event first
+      window.setTimeout(() => {
+        // Only trigger if there are no active touches
+        if (!document.querySelector('.nipple')) {
+          console.log('Joystick: Detected touch end without nipplejs end event, forcing reset')
+          if (this.onEnd) {
+            this.onEnd()
+          }
+        }
+      }, 50)
+    }
+
+    this.container.addEventListener('touchend', handleTouchEnd)
+    this.container.addEventListener('touchcancel', handleTouchEnd)
+
+    // Store cleanup function for later
+    ;(this.manager as any)._touchEndCleanup = () => {
+      this.container?.removeEventListener('touchend', handleTouchEnd)
+      this.container?.removeEventListener('touchcancel', handleTouchEnd)
+    }
   }
 
   setOnMove(callback: (angle: number, force: number) => void) {
@@ -59,6 +83,10 @@ export default class Joystick {
     // on the zone is to destroy it and recreate it later.
     if (this.manager) {
       console.log('Joystick: destroying manager to release input')
+      // Trigger onEnd callback to reset joystick state before destroying
+      if (this.onEnd) {
+        this.onEnd()
+      }
       this.manager.destroy()
       this.manager = null
     }
@@ -73,9 +101,28 @@ export default class Joystick {
 
   destroy() {
     if (this.manager) {
+      // Clean up touch event listeners
+      if ((this.manager as any)._touchEndCleanup) {
+        ;(this.manager as any)._touchEndCleanup()
+      }
+      
+      // Trigger onEnd callback to reset joystick state before destroying
+      if (this.onEnd) {
+        this.onEnd()
+      }
       this.manager.destroy()
       this.manager = null
     }
     this.container = null
+  }
+
+  /**
+   * Force reset the joystick state
+   * Useful for recovering from stuck input states
+   */
+  reset() {
+    if (this.onEnd) {
+      this.onEnd()
+    }
   }
 }

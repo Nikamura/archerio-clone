@@ -98,6 +98,29 @@ export default class GameScene extends Phaser.Scene {
       })
     }
 
+    // Handle browser visibility changes and focus loss
+    // This prevents stuck input states when user switches apps or screen turns off
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('GameScene: Page hidden, resetting joystick state')
+        this.resetJoystickState()
+      }
+    }
+
+    const handleBlur = () => {
+      console.log('GameScene: Window blur, resetting joystick state')
+      this.resetJoystickState()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleBlur)
+
+    // Cleanup listeners on shutdown
+    this.events.once('shutdown', () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleBlur)
+    })
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
@@ -885,10 +908,13 @@ export default class GameScene extends Phaser.Scene {
     // Level up celebration particles
     this.particles.emitLevelUp(this.player.x, this.player.y)
 
+    // Reset joystick state before pausing to prevent stuck input
+    this.resetJoystickState()
+
     // Pause game physics
     this.physics.pause()
 
-    // Hide joystick so it doesn't block the UI
+    // Hide joystick so it doesn't block the UI (hide() now calls resetJoystickState internally)
     if (this.joystick) {
       console.log('GameScene: hiding joystick')
       this.joystick.hide()
@@ -903,12 +929,15 @@ export default class GameScene extends Phaser.Scene {
       try {
         this.applyAbility(abilityId)
         console.log('GameScene: resuming physics and showing joystick')
+        // Ensure joystick state is reset before resuming
+        this.resetJoystickState()
         this.physics.resume()
         if (this.joystick) {
           this.joystick.show()
         }
       } catch (error) {
         console.error('GameScene: Error applying ability:', error)
+        this.resetJoystickState() // Reset even on error
         this.physics.resume() // Resume anyway to prevent soft-lock
         if (this.joystick) {
           this.joystick.show()
@@ -1429,6 +1458,17 @@ export default class GameScene extends Phaser.Scene {
     // Update performance monitor
     performanceMonitor.update(delta)
 
+    // Safety check: If physics is paused but joystick has force, reset it
+    // This handles edge cases where input state gets stuck
+    if (!this.physics.world.isPaused && this.joystickForce > 0) {
+      // Check if there's actual touch input - if not, this is likely a stuck state
+      // We'll add a small timeout mechanism here
+      if (!this.input.activePointer.isDown) {
+        console.warn('GameScene: Detected stuck joystick state without active touch, resetting')
+        this.resetJoystickState()
+      }
+    }
+
     if (this.player) {
       this.player.update(time, delta)
 
@@ -1516,6 +1556,26 @@ export default class GameScene extends Phaser.Scene {
         this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
         this.particles.getActiveEmitterCount()
       )
+    }
+  }
+
+  /**
+   * Reset joystick state to prevent stuck input
+   * Called when pausing, resuming, or when browser loses focus
+   */
+  private resetJoystickState() {
+    console.log('GameScene: Resetting joystick state')
+    this.joystickForce = 0
+    this.joystickAngle = 0
+    
+    // Also reset the joystick UI if it exists
+    if (this.joystick) {
+      this.joystick.reset()
+    }
+    
+    // Stop player movement immediately
+    if (this.player && this.player.body) {
+      this.player.setVelocity(0, 0)
     }
   }
 
