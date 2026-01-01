@@ -60,6 +60,7 @@ export default class Joystick {
       height: 100%;
       pointer-events: auto;
       touch-action: none;
+      z-index: 1000;
     `
     this.container.appendChild(this.joystickZone)
   }
