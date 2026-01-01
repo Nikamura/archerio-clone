@@ -137,11 +137,19 @@ export interface LevelUpData {
   playerLevel: number
 }
 
+const SELECTION_TIME_MS = 5000 // 5 seconds to choose
+
 export default class LevelUpScene extends Phaser.Scene {
   private playerLevel: number = 1
   private buttons: Phaser.GameObjects.Rectangle[] = []
   private abilityCards: Phaser.GameObjects.Container[] = []
   private titleContainer?: Phaser.GameObjects.Container
+  private selectedAbilities: AbilityData[] = []
+  private selectionTimer?: Phaser.Time.TimerEvent
+  private progressBar?: Phaser.GameObjects.Rectangle
+  private progressBarBg?: Phaser.GameObjects.Rectangle
+  private timerText?: Phaser.GameObjects.Text
+  private isSelecting: boolean = false
 
   constructor() {
     super({ key: 'LevelUpScene' })
@@ -151,6 +159,12 @@ export default class LevelUpScene extends Phaser.Scene {
     this.playerLevel = data?.playerLevel || 1
     this.buttons = []
     this.abilityCards = []
+    this.selectedAbilities = []
+    this.selectionTimer = undefined
+    this.progressBar = undefined
+    this.progressBarBg = undefined
+    this.timerText = undefined
+    this.isSelecting = false
   }
 
   create() {
@@ -222,7 +236,7 @@ export default class LevelUpScene extends Phaser.Scene {
     })
 
     // Select 3 random abilities
-    const selectedAbilities = this.selectRandomAbilities(3)
+    this.selectedAbilities = this.selectRandomAbilities(3)
 
     // Create ability cards - vertically stacked with staggered animation
     const buttonWidth = width - 60
@@ -230,7 +244,7 @@ export default class LevelUpScene extends Phaser.Scene {
     const startY = 180
     const spacing = 100
 
-      selectedAbilities.forEach((ability, index) => {
+      this.selectedAbilities.forEach((ability, index) => {
         const y = startY + index * spacing
         // Delay each card's creation for stagger effect
         this.time.delayedCall(DURATION.FAST + index * 100, () => {
@@ -240,6 +254,15 @@ export default class LevelUpScene extends Phaser.Scene {
             console.error('LevelUpScene: Error creating ability card:', error)
           }
         })
+      })
+
+      // Create progress bar at bottom
+      this.createProgressBar(width, height)
+
+      // Start selection timer after cards are shown
+      const totalCardDelay = DURATION.FAST + (this.selectedAbilities.length - 1) * 100 + DURATION.NORMAL
+      this.time.delayedCall(totalCardDelay, () => {
+        this.startSelectionTimer()
       })
 
       console.log('LevelUpScene: Created for level', this.playerLevel)
@@ -296,6 +319,132 @@ export default class LevelUpScene extends Phaser.Scene {
   private selectRandomAbilities(count: number): AbilityData[] {
     const shuffled = [...ABILITIES].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, count)
+  }
+
+  private createProgressBar(width: number, height: number) {
+    const barWidth = width - 60
+    const barHeight = 8
+    const barY = height - 50
+
+    // Background bar
+    this.progressBarBg = this.add.rectangle(width / 2, barY, barWidth, barHeight, 0x333333)
+    this.progressBarBg.setStrokeStyle(1, 0x666666)
+    this.progressBarBg.setDepth(100)
+
+    // Progress bar (starts full, depletes over time)
+    this.progressBar = this.add.rectangle(
+      width / 2 - barWidth / 2 + barWidth / 2,
+      barY,
+      barWidth,
+      barHeight - 2,
+      0xffdd00
+    )
+    this.progressBar.setOrigin(0.5, 0.5)
+    this.progressBar.setDepth(101)
+
+    // Timer text above progress bar
+    this.timerText = this.add.text(width / 2, barY - 18, '5.0', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    this.timerText.setDepth(102)
+
+    // Start invisible - will fade in when timer starts
+    this.progressBarBg.setAlpha(0)
+    this.progressBar.setAlpha(0)
+    this.timerText.setAlpha(0)
+  }
+
+  private startSelectionTimer() {
+    if (this.isSelecting) return
+
+    const width = this.cameras.main.width
+    const barWidth = width - 60
+
+    // Fade in progress bar
+    this.tweens.add({
+      targets: [this.progressBarBg, this.progressBar, this.timerText],
+      alpha: 1,
+      duration: DURATION.FAST,
+      ease: EASING.EASE_OUT,
+    })
+
+    const startTime = this.time.now
+
+    // Update progress bar every frame
+    const updateEvent = this.time.addEvent({
+      delay: 16, // ~60fps
+      loop: true,
+      callback: () => {
+        if (this.isSelecting) {
+          updateEvent.destroy()
+          return
+        }
+
+        const elapsed = this.time.now - startTime
+        const remaining = Math.max(0, SELECTION_TIME_MS - elapsed)
+        const progress = remaining / SELECTION_TIME_MS
+
+        // Update progress bar width
+        if (this.progressBar) {
+          this.progressBar.setDisplaySize(barWidth * progress, 6)
+          // Shift origin to keep bar left-aligned
+          this.progressBar.setX(width / 2 - barWidth / 2 + (barWidth * progress) / 2)
+
+          // Change color as time runs out: yellow -> orange -> red
+          if (progress < 0.3) {
+            this.progressBar.setFillStyle(0xff3333) // Red
+          } else if (progress < 0.6) {
+            this.progressBar.setFillStyle(0xff9933) // Orange
+          }
+        }
+
+        // Update timer text
+        if (this.timerText) {
+          this.timerText.setText((remaining / 1000).toFixed(1))
+          if (progress < 0.3) {
+            this.timerText.setColor('#ff3333')
+          } else if (progress < 0.6) {
+            this.timerText.setColor('#ff9933')
+          }
+        }
+
+        // Time's up - select random ability
+        if (remaining <= 0) {
+          updateEvent.destroy()
+          this.selectRandomAbilityOnTimeout()
+        }
+      },
+    })
+
+    this.selectionTimer = updateEvent
+  }
+
+  private selectRandomAbilityOnTimeout() {
+    if (this.isSelecting || this.selectedAbilities.length === 0) return
+
+    // Pick random ability from the 3 shown
+    const randomIndex = Math.floor(Math.random() * this.selectedAbilities.length)
+    const randomAbility = this.selectedAbilities[randomIndex]
+    const randomContainer = this.abilityCards[randomIndex]
+
+    console.log('LevelUpScene: Auto-selecting ability due to timeout:', randomAbility.id)
+
+    // Briefly highlight the selected card
+    if (randomContainer) {
+      this.tweens.add({
+        targets: randomContainer,
+        scale: 1.1,
+        duration: 100,
+        yoyo: true,
+        onComplete: () => {
+          this.selectAbility(randomAbility.id, randomContainer)
+        },
+      })
+    } else {
+      this.selectAbility(randomAbility.id)
+    }
   }
 
   private createAbilityCard(
@@ -439,6 +588,24 @@ export default class LevelUpScene extends Phaser.Scene {
   private selectAbility(abilityId: string, selectedContainer?: Phaser.GameObjects.Container) {
     console.log('LevelUpScene: selectAbility called', abilityId)
 
+    // Prevent double selection
+    if (this.isSelecting) return
+    this.isSelecting = true
+
+    // Stop the selection timer
+    if (this.selectionTimer) {
+      this.selectionTimer.destroy()
+      this.selectionTimer = undefined
+    }
+
+    // Hide progress bar
+    this.tweens.add({
+      targets: [this.progressBarBg, this.progressBar, this.timerText],
+      alpha: 0,
+      duration: DURATION.FAST,
+      ease: EASING.EASE_IN,
+    })
+
     try {
       // Disable all buttons to prevent double selection
       this.buttons.forEach(btn => {
@@ -522,6 +689,10 @@ export default class LevelUpScene extends Phaser.Scene {
    * Clean up scene resources
    */
   shutdown() {
+    if (this.selectionTimer) {
+      this.selectionTimer.destroy()
+      this.selectionTimer = undefined
+    }
     this.tweens.killAll()
   }
 }
