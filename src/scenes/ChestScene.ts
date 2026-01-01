@@ -344,7 +344,8 @@ export default class ChestScene extends Phaser.Scene {
   }
 
   private createOpeningParticles(x: number, y: number, rarity: Rarity): void {
-    const color = RARITY_COLORS[rarity]
+    const rarityConfig = RARITY_CONFIGS[rarity]
+    const color = Phaser.Display.Color.HexStringToColor(rarityConfig.color).color
 
     // Create particle texture
     const graphics = this.add.graphics()

@@ -108,7 +108,6 @@ export default class HeroesScene extends Phaser.Scene {
     
     // Use the icon from HERO_DEFINITIONS
     const heroDef = HERO_DEFINITIONS[heroState.id as HeroId]
-    const iconKey = heroDef.icon
     
     // In PreloaderScene icons are named differently (heroAtreus vs hero_atreus)
     // Let's normalize to what's in PreloaderScene
