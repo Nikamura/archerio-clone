@@ -29,7 +29,7 @@ import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
-import { getRoomGenerator, type RoomGenerator, type GeneratedRoom } from '../systems/RoomGenerator'
+import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -75,6 +75,8 @@ export default class GameScene extends Phaser.Scene {
   // Room generation system
   private roomGenerator!: RoomGenerator
   private currentGeneratedRoom: GeneratedRoom | null = null
+  private pendingEnemySpawns: number = 0
+  private activeWaveTimers: Phaser.Time.TimerEvent[] = []
 
   constructor() {
     super({ key: 'GameScene' })
@@ -430,6 +432,9 @@ export default class GameScene extends Phaser.Scene {
       this.doorText = null
     }
 
+    this.cancelWaveTimers()
+    this.pendingEnemySpawns = 0
+
     // Reset boss state
     this.boss = null
     this.scene.get('UIScene').events.emit('hideBossHealth')
@@ -458,6 +463,9 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
+    this.cancelWaveTimers()
+    this.pendingEnemySpawns = 0
+
     // Get current chapter and its configuration
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
     const chapterDef = getChapterDefinition(selectedChapter)
@@ -485,6 +493,75 @@ export default class GameScene extends Phaser.Scene {
     this.spawnEnemiesFromGeneration(this.currentGeneratedRoom)
   }
 
+  private cancelWaveTimers(): void {
+    this.activeWaveTimers.forEach((timer) => timer.remove(false))
+    this.activeWaveTimers = []
+  }
+
+  private spawnEnemyFromPosition(
+    spawn: SpawnPosition,
+    enemyOptions: { healthMultiplier: number; damageMultiplier: number }
+  ): void {
+    const { x, y, enemyType } = spawn
+    let enemy: Enemy
+
+    switch (enemyType) {
+      case 'ranged':
+        enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        break
+      case 'spreader':
+        enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        break
+      case 'bomber':
+        enemy = new BomberEnemy(
+          this, x, y, this.bombPool, enemyOptions,
+          (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
+        )
+        break
+      case 'tank':
+        enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        break
+      case 'charger':
+        enemy = new ChargerEnemy(this, x, y, enemyOptions)
+        break
+      case 'burrower':
+        enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        break
+      case 'healer':
+        enemy = new HealerEnemy(this, x, y, enemyOptions)
+        break
+      case 'spawner':
+        enemy = new SpawnerEnemy(this, x, y, enemyOptions)
+        break
+      default:
+        enemy = new Enemy(this, x, y, enemyOptions)
+    }
+
+    this.add.existing(enemy)
+    this.physics.add.existing(enemy)
+
+    // Set enemy group reference for healer and spawner enemies
+    if (enemy instanceof HealerEnemy) {
+      enemy.setEnemyGroup(this.enemies)
+    }
+    if (enemy instanceof SpawnerEnemy) {
+      enemy.setEnemyGroup(this.enemies)
+    }
+
+    // Set up physics body with centered circular hitbox
+    const body = enemy.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const displaySize = enemy.displayWidth
+      const radius = Math.floor(displaySize * 0.4)
+      const offset = (displaySize - radius * 2) / 2
+      body.setSize(displaySize, displaySize)
+      body.setCircle(radius, offset, offset)
+      body.setCollideWorldBounds(true)
+    }
+
+    this.enemies.add(enemy)
+  }
+
   /**
    * Spawn enemies using positions from the room generator
    */
@@ -504,71 +581,34 @@ export default class GameScene extends Phaser.Scene {
       damageMultiplier: this.difficultyConfig.enemyDamageMultiplier,
     }
 
-    let spawned = 0
-
-    for (const spawn of generatedRoom.enemySpawns) {
-      const { x, y, enemyType } = spawn
-      let enemy: Enemy
-
-      switch (enemyType) {
-        case 'ranged':
-          enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-          break
-        case 'spreader':
-          enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-          break
-        case 'bomber':
-          enemy = new BomberEnemy(
-            this, x, y, this.bombPool, enemyOptions,
-            (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
-          )
-          break
-        case 'tank':
-          enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-          break
-        case 'charger':
-          enemy = new ChargerEnemy(this, x, y, enemyOptions)
-          break
-        case 'burrower':
-          enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-          break
-        case 'healer':
-          enemy = new HealerEnemy(this, x, y, enemyOptions)
-          break
-        case 'spawner':
-          enemy = new SpawnerEnemy(this, x, y, enemyOptions)
-          break
-        default:
-          enemy = new Enemy(this, x, y, enemyOptions)
-      }
-
-      this.add.existing(enemy)
-      this.physics.add.existing(enemy)
-
-      // Set enemy group reference for healer and spawner enemies
-      if (enemy instanceof HealerEnemy) {
-        enemy.setEnemyGroup(this.enemies)
-      }
-      if (enemy instanceof SpawnerEnemy) {
-        enemy.setEnemyGroup(this.enemies)
-      }
-
-      // Set up physics body with centered circular hitbox
-      const body = enemy.body as Phaser.Physics.Arcade.Body
-      if (body) {
-        const displaySize = enemy.displayWidth
-        const radius = Math.floor(displaySize * 0.4)
-        const offset = (displaySize - radius * 2) / 2
-        body.setSize(displaySize, displaySize)
-        body.setCircle(radius, offset, offset)
-        body.setCollideWorldBounds(true)
-      }
-
-      this.enemies.add(enemy)
-      spawned++
+    this.pendingEnemySpawns = generatedRoom.enemySpawns.length
+    if (this.pendingEnemySpawns === 0) {
+      console.log(`Room ${this.currentRoom}: No enemies to spawn`)
+      return
     }
 
-    console.log(`Room ${this.currentRoom}: Spawned ${spawned} enemies using procedural generation`)
+    const totalSpawns = generatedRoom.enemySpawns.length
+    const waveCount = totalSpawns <= 6 ? 2 : 3
+    const chunkSize = Math.ceil(totalSpawns / waveCount)
+    const waveDelay = 1500 // ms between waves
+
+    for (let i = 0; i < waveCount; i++) {
+      const waveSpawns = generatedRoom.enemySpawns.slice(i * chunkSize, (i + 1) * chunkSize)
+      if (waveSpawns.length === 0) continue
+
+      const delay = i === 0 ? 0 : waveDelay * i
+      const timer = this.time.delayedCall(delay, () => {
+        waveSpawns.forEach((spawn) => {
+          this.spawnEnemyFromPosition(spawn, enemyOptions)
+          this.pendingEnemySpawns = Math.max(0, this.pendingEnemySpawns - 1)
+        })
+        this.checkRoomCleared()
+      })
+
+      this.activeWaveTimers.push(timer)
+    }
+
+    console.log(`Room ${this.currentRoom}: Scheduled ${totalSpawns} enemies across ${waveCount} waves`)
   }
 
   private spawnBoss() {
@@ -619,7 +659,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.isRoomCleared) return
 
     const enemyCount = this.enemies.getChildren().filter(e => e.active).length
-    if (enemyCount === 0) {
+    if (enemyCount === 0 && this.pendingEnemySpawns === 0) {
       this.isRoomCleared = true
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')

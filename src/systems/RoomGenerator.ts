@@ -549,9 +549,9 @@ export class RoomGenerator {
     // Select layout based on room type
     const layout = this.selectLayout(roomType)
 
-    // Calculate total enemies
+    // Calculate total enemies (doubled for higher difficulty)
     const roomScaling = Math.floor(roomNumber / 5)
-    const totalEnemies = baseEnemyCount + extraEnemiesPerRoom + roomScaling
+    const totalEnemies = (baseEnemyCount + extraEnemiesPerRoom + roomScaling) * 2
 
     // Get chapter enemy pool
     const chapterDef = getChapterDefinition(chapterId)
