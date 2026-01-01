@@ -15,14 +15,13 @@ export type ChapterId = 1 | 2 | 3 | 4 | 5
 /**
  * Enemy types available in the game
  * MVP enemies: melee, ranged, spreader
- * V1 enemies: bomber, burrower, tank, charger, healer, spawner
+ * V1 enemies: bomber, tank, charger, healer, spawner
  */
 export type EnemyType =
   | 'melee'
   | 'ranged'
   | 'spreader'
   | 'bomber'
-  | 'burrower'
   | 'tank'
   | 'charger'
   | 'healer'
@@ -119,6 +118,8 @@ export interface ChapterDefinition {
   theme: ChapterTheme
   /** Available enemy types for this chapter */
   enemyTypes: EnemyType[]
+  /** Available tactical combination names for this chapter */
+  tacticComboNames: string[]
   /** Boss type for chapter boss fight */
   bossType: BossType
   /** All boss types available in this chapter (for variety) */
@@ -228,6 +229,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       musicKey: 'music_dungeon',
     },
     enemyTypes: ['melee', 'ranged', 'spreader'],
+    tacticComboNames: ['Melee Rush', 'Ranged Support', 'Spread Formation'],
     bossType: 'demon',
     bossPool: ['demon'],
     miniBossType: 'spreader', // Larger spreader as mini-boss
@@ -257,7 +259,14 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       accentColor: 0x8bc34a,
       musicKey: 'music_forest',
     },
-    enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower'],
+    enemyTypes: ['melee', 'ranged', 'spreader', 'bomber'],
+    tacticComboNames: [
+      'Ranged Support',
+      'Sniper Nest',
+      'Spread Formation',
+      'Bomber Support',
+      'Melee Rush',
+    ],
     bossType: 'treant',
     bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
     miniBossType: 'bomber',
@@ -287,7 +296,14 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       accentColor: 0x00bfff,
       musicKey: 'music_ice',
     },
-    enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower', 'tank', 'charger'],
+    enemyTypes: ['melee', 'spreader', 'tank', 'charger'],
+    tacticComboNames: [
+      'Spread Formation',
+      'Charge Assault',
+      'Blitz Squad',
+      'Double Trouble',
+      'Heavy Hitters',
+    ],
     bossType: 'frost_giant',
     bossPool: ['frost_giant', 'ice_golem', 'frost_wyrm', 'crystal_guardian'],
     miniBossType: 'tank',
@@ -317,10 +333,17 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       accentColor: 0xff4500,
       musicKey: 'music_volcano',
     },
-    enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower', 'tank', 'charger', 'healer'],
+    enemyTypes: ['melee', 'ranged', 'bomber', 'healer', 'spawner'],
+    tacticComboNames: [
+      'Bomber Support',
+      'Healer Tank',
+      'Siege Warfare',
+      'Spawner Den',
+      'Full Support',
+    ],
     bossType: 'inferno_demon', // Main boss for chapter 4
     bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
-    miniBossType: 'charger',
+    miniBossType: 'healer',
     scaling: {
       enemyHpMultiplier: 1.6, // +60% HP
       enemyDamageMultiplier: 1.45, // +45% damage
@@ -352,11 +375,17 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       'ranged',
       'spreader',
       'bomber',
-      'burrower',
       'tank',
       'charger',
       'healer',
       'spawner',
+    ],
+    tacticComboNames: [
+      'Chaos Formation',
+      'Full Support',
+      'Infinite Army',
+      'Heavy Hitters',
+      'Elite Guard',
     ],
     bossType: 'final_boss', // Main boss for chapter 5 (final challenge)
     bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses

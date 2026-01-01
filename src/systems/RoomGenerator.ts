@@ -436,14 +436,6 @@ export const ENEMY_COMBINATIONS: EnemyCombination[] = [
     synergy: 'AOE denial while melee closes in',
   },
   {
-    name: 'Burrower Ambush',
-    description: 'Burrowers with surface support',
-    enemies: ['burrower', 'burrower', 'ranged', 'spreader'],
-    minRoom: 5,
-    weight: 1,
-    synergy: 'Unpredictable burrowers + constant fire from ranged',
-  },
-  {
     name: 'Healer Tank',
     description: 'Tank protected by healer',
     enemies: ['tank', 'healer', 'melee', 'melee'],
@@ -480,7 +472,7 @@ export const ENEMY_COMBINATIONS: EnemyCombination[] = [
   {
     name: 'Chaos Formation',
     description: 'All elite enemies',
-    enemies: ['tank', 'charger', 'bomber', 'burrower', 'spreader'],
+    enemies: ['tank', 'charger', 'bomber', 'healer', 'spreader'],
     minRoom: 9,
     weight: 0.7,
     synergy: 'Pure chaos - every enemy type demands attention',
@@ -492,14 +484,6 @@ export const ENEMY_COMBINATIONS: EnemyCombination[] = [
     minRoom: 8,
     weight: 0.9,
     synergy: 'Constant AOE and projectiles with tanky frontline',
-  },
-  {
-    name: 'Underground Terror',
-    description: 'Multiple burrowers',
-    enemies: ['burrower', 'burrower', 'burrower', 'healer'],
-    minRoom: 7,
-    weight: 0.8,
-    synergy: 'Never know where the next attack comes from',
   },
   {
     name: 'Infinite Army',
@@ -558,7 +542,7 @@ export class RoomGenerator {
     const enemyPool = chapterDef.enemyTypes
 
     // Select enemy combination or generate random composition
-    const combination = this.selectCombination(roomNumber, enemyPool)
+    const combination = this.selectCombination(chapterId, roomNumber, enemyPool)
 
     // Generate enemy types based on combination or random selection
     const enemyTypes = this.generateEnemyTypes(
@@ -605,9 +589,27 @@ export class RoomGenerator {
   }
 
   /**
-   * Select an enemy combination based on room number
+   * Get available combinations for a specific chapter
+   * Filters by chapter-specific combo names and room requirements
+   */
+  private getAvailableCombinationsForChapter(
+    roomNumber: number,
+    allowedComboNames: string[]
+  ): EnemyCombination[] {
+    return ENEMY_COMBINATIONS.filter(combo => {
+      // Must be in the allowed list for this chapter
+      if (!allowedComboNames.includes(combo.name)) return false
+      // Must meet room progression requirement
+      if (combo.minRoom > roomNumber) return false
+      return true
+    })
+  }
+
+  /**
+   * Select an enemy combination based on room number and chapter
    */
   private selectCombination(
+    chapterId: ChapterId,
     roomNumber: number,
     enemyPool: EnemyType[]
   ): EnemyCombination | null {
@@ -616,29 +618,37 @@ export class RoomGenerator {
       return null
     }
 
-    // Filter combinations that are available for this room
-    const availableCombos = ENEMY_COMBINATIONS.filter(combo => {
-      if (combo.minRoom > roomNumber) return false
-      // Check if all enemies in combo are available in chapter
-      return combo.enemies.every(enemy => enemyPool.includes(enemy))
-    })
+    // Get chapter definition and allowed combo names
+    const chapterDef = getChapterDefinition(chapterId)
+    const allowedComboNames = chapterDef.tacticComboNames
 
-    if (availableCombos.length === 0) {
+    // Get chapter-specific available combos
+    const availableCombos = this.getAvailableCombinationsForChapter(
+      roomNumber,
+      allowedComboNames
+    )
+
+    // Also verify all enemies in combo are available in chapter pool
+    const validCombos = availableCombos.filter(combo =>
+      combo.enemies.every(enemy => enemyPool.includes(enemy))
+    )
+
+    if (validCombos.length === 0) {
       return null
     }
 
     // Weighted random selection
-    const totalWeight = availableCombos.reduce((sum, c) => sum + c.weight, 0)
+    const totalWeight = validCombos.reduce((sum, c) => sum + c.weight, 0)
     let random = Math.random() * totalWeight
 
-    for (const combo of availableCombos) {
+    for (const combo of validCombos) {
       random -= combo.weight
       if (random <= 0) {
         return combo
       }
     }
 
-    return availableCombos[availableCombos.length - 1]
+    return validCombos[validCombos.length - 1]
   }
 
   /**
@@ -683,7 +693,6 @@ export class RoomGenerator {
       spreader: roomNumber >= 3 ? 1.5 : 0.5,
       charger: roomNumber >= 3 ? 1.2 : 0.3,
       bomber: roomNumber >= 5 ? 1.2 : 0.2,
-      burrower: roomNumber >= 5 ? 1 : 0.2,
       tank: roomNumber >= 7 ? 1 : 0.1,
       healer: roomNumber >= 6 ? 1.2 : 0.1,
       spawner: roomNumber >= 8 ? 0.8 : 0,

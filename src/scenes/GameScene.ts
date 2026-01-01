@@ -6,7 +6,6 @@ import SpreaderEnemy from '../entities/SpreaderEnemy'
 import BomberEnemy from '../entities/BomberEnemy'
 import TankEnemy from '../entities/TankEnemy'
 import ChargerEnemy from '../entities/ChargerEnemy'
-import BurrowerEnemy from '../entities/BurrowerEnemy'
 import HealerEnemy from '../entities/HealerEnemy'
 import SpawnerEnemy from '../entities/SpawnerEnemy'
 import Boss from '../entities/Boss'
@@ -523,9 +522,6 @@ export default class GameScene extends Phaser.Scene {
         break
       case 'charger':
         enemy = new ChargerEnemy(this, x, y, enemyOptions)
-        break
-      case 'burrower':
-        enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
         break
       case 'healer':
         enemy = new HealerEnemy(this, x, y, enemyOptions)
