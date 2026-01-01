@@ -288,14 +288,14 @@ export default class MainMenuScene extends Phaser.Scene {
     const titleY = 60
     const torchOffsetX = 80 // Distance from center to each torch
 
-    // Create left torch - smaller size
+    // Create left torch - small size
     this.leftTorch = this.add.image(width / 2 - torchOffsetX, titleY, 'torch')
-    this.leftTorch.setDisplaySize(28, 28)
+    this.leftTorch.setDisplaySize(16, 16)
     this.leftTorch.setDepth(1)
 
-    // Create right torch - smaller size
+    // Create right torch - small size
     this.rightTorch = this.add.image(width / 2 + torchOffsetX, titleY, 'torch')
-    this.rightTorch.setDisplaySize(28, 28)
+    this.rightTorch.setDisplaySize(16, 16)
     this.rightTorch.setDepth(1)
 
     // Animate left torch - subtle flickering effect (slower)
@@ -348,12 +348,12 @@ export default class MainMenuScene extends Phaser.Scene {
     // Create a simple ember particle texture
     const graphics = this.add.graphics()
     graphics.fillStyle(0xff6600, 1)
-    graphics.fillCircle(2, 2, 2)
-    graphics.generateTexture('ember', 4, 4)
+    graphics.fillCircle(1, 1, 1)
+    graphics.generateTexture('ember', 2, 2)
     graphics.destroy()
 
     // Create ember emitter for left torch - smaller and less frequent
-    const leftEmitter = this.add.particles(width / 2 - torchOffsetX, titleY - 8, 'ember', {
+    const leftEmitter = this.add.particles(width / 2 - torchOffsetX, titleY - 5, 'ember', {
       speed: { min: 8, max: 20 },
       angle: { min: 250, max: 290 },
       scale: { start: 0.4, end: 0 },
@@ -367,7 +367,7 @@ export default class MainMenuScene extends Phaser.Scene {
     leftEmitter.setDepth(2)
 
     // Create ember emitter for right torch
-    const rightEmitter = this.add.particles(width / 2 + torchOffsetX, titleY - 8, 'ember', {
+    const rightEmitter = this.add.particles(width / 2 + torchOffsetX, titleY - 5, 'ember', {
       speed: { min: 8, max: 20 },
       angle: { min: 250, max: 290 },
       scale: { start: 0.4, end: 0 },
