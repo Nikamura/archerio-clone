@@ -265,7 +265,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] Ability selection modal (LevelUpScene with 3 random choices)
 [x] 4 working abilities with stacking (Front Arrow, Multishot, Attack Speed, Attack Boost)
 [x] 4 more abilities (Piercing, Ricochet, Fire Damage, Crit Boost)
-[ ] Boss with 3 attack patterns
+[x] Boss with 3 attack patterns (spread, barrage, charge)
 [x] Health system with damage feedback (UI update needed)
 [ ] Basic audio (shoot, hit, level-up, death)
 [x] Touch controls working on mobile browsers (virtual joystick implemented)
@@ -299,6 +299,12 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Fire Damage (+18% DOT over 2 seconds, additive stacking)
   - Crit Boost (+10% crit chance additive, +40% crit damage multiplicative)
 - ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
+- ✅ **Boss fight** - Room 10 boss with 3 attack patterns:
+  - Spread Shot: 8 projectiles in circular pattern (2 waves)
+  - Barrage: Telegraph for 0.8s, then fire 3 fast projectiles at player
+  - Charge: Wind up with visual warning, then dash at player
+  - 200 HP (10 XP reward), boss health bar UI at bottom of screen
+- ✅ **Simplified ability selection** - Large vertically-stacked buttons for reliable touch input
 - ✅ ESLint + TypeScript build passing
 - ✅ 86 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
@@ -347,7 +353,7 @@ Visual test screenshots are saved to `test/screenshots/`
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
-2. Add boss fight for room 10 with 3 attack patterns
+2. ✅ ~~Add boss fight for room 10 with 3 attack patterns~~ - DONE (spread, barrage, charge attacks)
 3. Implement gameplay effects for new abilities:
    - Piercing: Bullets pass through enemies (track hit count per bullet)
    - Ricochet: Bullets bounce to nearest enemy on hit

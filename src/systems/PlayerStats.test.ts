@@ -115,35 +115,46 @@ describe('PlayerStats', () => {
     })
 
     it('XP accumulates correctly', () => {
-      stats.addXP(3)
-      expect(stats.getXP()).toBe(3)
-      stats.addXP(5)
-      expect(stats.getXP()).toBe(8)
+      stats.addXP(1)
+      expect(stats.getXP()).toBe(1)
+      stats.addXP(1)
+      expect(stats.getXP()).toBe(2)
     })
 
-    it('levels up at 10 XP by default', () => {
-      const leveledUp = stats.addXP(10)
+    it('first level up requires only 3 XP', () => {
+      const leveledUp = stats.addXP(3)
       expect(leveledUp).toBe(true)
       expect(stats.getLevel()).toBe(2)
     })
 
+    it('subsequent levels require 10 XP', () => {
+      stats.addXP(3) // Level 2
+      expect(stats.getLevel()).toBe(2)
+      expect(stats.getXPToLevelUp()).toBe(10)
+
+      stats.addXP(9)
+      expect(stats.getLevel()).toBe(2) // Not yet
+      stats.addXP(1)
+      expect(stats.getLevel()).toBe(3) // Now level 3
+    })
+
     it('XP resets to 0 after level up', () => {
-      stats.addXP(10)
+      stats.addXP(3)
       expect(stats.getXP()).toBe(0)
     })
 
     it('returns false when not leveling up', () => {
-      const leveledUp = stats.addXP(5)
+      const leveledUp = stats.addXP(2)
       expect(leveledUp).toBe(false)
       expect(stats.getLevel()).toBe(1)
     })
 
     it('multiple kills accumulate before level up', () => {
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 2; i++) {
         const leveledUp = stats.addXP(1)
         expect(leveledUp).toBe(false)
       }
-      expect(stats.getXP()).toBe(9)
+      expect(stats.getXP()).toBe(2)
       expect(stats.getLevel()).toBe(1)
 
       const finalKill = stats.addXP(1)
@@ -152,7 +163,7 @@ describe('PlayerStats', () => {
     })
 
     it('can level up multiple times', () => {
-      stats.addXP(10) // Level 2
+      stats.addXP(3)  // Level 2 (first level needs only 3)
       stats.addXP(10) // Level 3
       stats.addXP(10) // Level 4
       expect(stats.getLevel()).toBe(4)
@@ -160,16 +171,18 @@ describe('PlayerStats', () => {
 
     it('getXPPercentage returns correct value', () => {
       expect(stats.getXPPercentage()).toBe(0)
-      stats.addXP(5)
-      expect(stats.getXPPercentage()).toBe(0.5)
+      stats.addXP(1)
+      expect(stats.getXPPercentage()).toBeCloseTo(1/3)  // 1/3 of 3 XP needed
     })
 
-    it('can use custom XP threshold', () => {
+    it('can use custom XP threshold for levels 2+', () => {
       const customStats = new PlayerStats({ xpToLevelUp: 5 })
-      customStats.addXP(4)
-      expect(customStats.getLevel()).toBe(1)
-      customStats.addXP(1)
+      customStats.addXP(3) // Level 2 (first level always 3)
       expect(customStats.getLevel()).toBe(2)
+      customStats.addXP(4)
+      expect(customStats.getLevel()).toBe(2)
+      customStats.addXP(1)
+      expect(customStats.getLevel()).toBe(3)
     })
   })
 
@@ -552,7 +565,7 @@ describe('PlayerStats', () => {
   describe('Stats Snapshot', () => {
     it('returns correct snapshot of current state', () => {
       stats.takeDamage(20)
-      stats.addXP(5)
+      stats.addXP(2)  // Only 2 XP so we stay at level 1 (needs 3 for first level up)
       stats.addFrontArrow()
       stats.addDamageBoost(0.30)
       stats.addPiercing()
@@ -565,8 +578,8 @@ describe('PlayerStats', () => {
       expect(snapshot.health).toBe(80)
       expect(snapshot.maxHealth).toBe(100)
       expect(snapshot.level).toBe(1)
-      expect(snapshot.xp).toBe(5)
-      expect(snapshot.xpToLevelUp).toBe(10)
+      expect(snapshot.xp).toBe(2)
+      expect(snapshot.xpToLevelUp).toBe(3)  // First level requires only 3 XP
       expect(snapshot.extraProjectiles).toBe(1)
       expect(snapshot.multishotCount).toBe(0)
       expect(snapshot.piercingLevel).toBe(1)

@@ -3,6 +3,7 @@ import Player from '../entities/Player'
 import Enemy from '../entities/Enemy'
 import RangedShooterEnemy from '../entities/RangedShooterEnemy'
 import SpreaderEnemy from '../entities/SpreaderEnemy'
+import Boss from '../entities/Boss'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
@@ -29,6 +30,7 @@ export default class GameScene extends Phaser.Scene {
   private doorSprite: Phaser.GameObjects.Sprite | null = null
   private doorText: Phaser.GameObjects.Text | null = null
   private isTransitioning: boolean = false
+  private boss: Boss | null = null
 
   constructor() {
     super({ key: 'GameScene' })
@@ -251,6 +253,10 @@ export default class GameScene extends Phaser.Scene {
       this.doorText = null
     }
 
+    // Reset boss state
+    this.boss = null
+    this.scene.get('UIScene').events.emit('hideBossHealth')
+
     // Destroy all enemies
     this.enemies.clear(true, true)
 
@@ -266,6 +272,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private spawnEnemiesForRoom() {
+    // Room 10 is the boss room
+    if (this.currentRoom === this.totalRooms) {
+      this.spawnBoss()
+      return
+    }
+
     // Scale difficulty based on room number
     const baseEnemies = 4
     const additionalEnemies = Math.floor(this.currentRoom / 2)
@@ -292,6 +304,33 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.spawnEnemiesOfTypes(enemyTypes)
+  }
+
+  private spawnBoss() {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Spawn boss at center-top of screen
+    const bossX = width / 2
+    const bossY = height / 3
+
+    this.boss = new Boss(this, bossX, bossY, this.enemyBulletPool)
+    this.add.existing(this.boss)
+    this.physics.add.existing(this.boss)
+
+    // Set up physics body for boss (larger hitbox)
+    const body = this.boss.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      body.setCircle(25, 7, 7) // Larger hitbox for boss
+      body.setCollideWorldBounds(true)
+    }
+
+    this.enemies.add(this.boss)
+
+    // Show boss health bar in UI
+    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+
+    console.log('Boss spawned at', bossX, bossY)
   }
 
   private checkRoomCleared() {
@@ -412,16 +451,28 @@ export default class GameScene extends Phaser.Scene {
     // Damage enemy using player's damage stat
     const killed = enemySprite.takeDamage(this.player.getDamage())
 
+    // Update boss health bar if this is the boss
+    if (this.boss && enemySprite === this.boss && !killed) {
+      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+    }
+
     if (killed) {
       // Track kill
       this.enemiesKilled++
 
-      // Add XP to player
-      const leveledUp = this.player.addXP(1)
+      // Add XP to player (boss gives 10 XP)
+      const xpGain = this.boss && enemySprite === this.boss ? 10 : 1
+      const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
       if (leveledUp) {
         this.handleLevelUp()
+      }
+
+      // Clear boss reference if boss was killed
+      if (this.boss && enemySprite === this.boss) {
+        this.boss = null
+        this.scene.get('UIScene').events.emit('hideBossHealth')
       }
 
       // Remove enemy from group and destroy

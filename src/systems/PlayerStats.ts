@@ -15,7 +15,7 @@ export class PlayerStats {
 
   // XP and leveling
   private currentXP: number = 0
-  private xpToLevelUp: number
+  private baseXpToLevelUp: number
   private level: number = 1
 
   // Base stats
@@ -49,7 +49,19 @@ export class PlayerStats {
     this.health = this.maxHealth
     this.baseDamage = options?.baseDamage ?? 10
     this.baseAttackSpeed = options?.baseAttackSpeed ?? 1.0
-    this.xpToLevelUp = options?.xpToLevelUp ?? 10
+    this.baseXpToLevelUp = options?.xpToLevelUp ?? 10
+  }
+
+  /**
+   * Get XP required to level up from current level
+   * Level 1→2 requires only 3 XP for faster intro to abilities
+   * All other levels use the base XP requirement (default 10)
+   */
+  private getXpRequiredForCurrentLevel(): number {
+    if (this.level === 1) {
+      return 3  // Fast first level-up
+    }
+    return this.baseXpToLevelUp
   }
 
   // ============================================
@@ -111,7 +123,8 @@ export class PlayerStats {
    */
   addXP(amount: number): boolean {
     this.currentXP += amount
-    if (this.currentXP >= this.xpToLevelUp) {
+    const xpRequired = this.getXpRequiredForCurrentLevel()
+    if (this.currentXP >= xpRequired) {
       this.currentXP = 0
       this.level++
       return true
@@ -124,7 +137,7 @@ export class PlayerStats {
   }
 
   getXPToLevelUp(): number {
-    return this.xpToLevelUp
+    return this.getXpRequiredForCurrentLevel()
   }
 
   getLevel(): number {
@@ -132,7 +145,7 @@ export class PlayerStats {
   }
 
   getXPPercentage(): number {
-    return this.currentXP / this.xpToLevelUp
+    return this.currentXP / this.getXpRequiredForCurrentLevel()
   }
 
   // ============================================
@@ -334,7 +347,7 @@ export class PlayerStats {
       maxHealth: this.maxHealth,
       level: this.level,
       xp: this.currentXP,
-      xpToLevelUp: this.xpToLevelUp,
+      xpToLevelUp: this.getXpRequiredForCurrentLevel(),
       damage: this.getDamage(),
       attackSpeed: this.getAttackSpeed(),
       extraProjectiles: this.extraProjectiles,

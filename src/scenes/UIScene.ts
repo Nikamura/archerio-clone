@@ -8,6 +8,12 @@ export default class UIScene extends Phaser.Scene {
   private levelText!: Phaser.GameObjects.Text
   private roomText!: Phaser.GameObjects.Text
 
+  // Boss health bar
+  private bossHealthBar!: Phaser.GameObjects.Graphics
+  private bossHealthBarBg!: Phaser.GameObjects.Graphics
+  private bossNameText!: Phaser.GameObjects.Text
+  private bossHealthContainer!: Phaser.GameObjects.Container
+
   constructor() {
     super({ key: 'UIScene' })
   }
@@ -54,6 +60,17 @@ export default class UIScene extends Phaser.Scene {
       this.updateRoomCounter(currentRoom, totalRooms)
     })
 
+    // Listen for boss health events
+    this.events.on('showBossHealth', (health: number, maxHealth: number) => {
+      this.showBossHealthBar(health, maxHealth)
+    })
+    this.events.on('updateBossHealth', (health: number, maxHealth: number) => {
+      this.updateBossHealthBar(health, maxHealth)
+    })
+    this.events.on('hideBossHealth', () => {
+      this.hideBossHealthBar()
+    })
+
     // Room counter
     this.roomText = this.add.text(
       this.cameras.main.width / 2,
@@ -67,7 +84,64 @@ export default class UIScene extends Phaser.Scene {
     )
     this.roomText.setOrigin(0.5, 0)
 
+    // Create boss health bar (initially hidden)
+    this.createBossHealthBar()
+
     console.log('UIScene: Created')
+  }
+
+  private createBossHealthBar() {
+    const width = this.cameras.main.width
+    const barWidth = width - 40 // Full width with padding
+    const barHeight = 16
+    const yPos = this.cameras.main.height - 50 // Bottom of screen
+
+    // Container to group all boss UI elements
+    this.bossHealthContainer = this.add.container(0, 0)
+
+    // Background
+    this.bossHealthBarBg = this.add.graphics()
+    this.bossHealthBarBg.fillStyle(0x000000, 0.7)
+    this.bossHealthBarBg.fillRect(20, yPos, barWidth, barHeight)
+
+    // Health bar
+    this.bossHealthBar = this.add.graphics()
+
+    // Boss name
+    this.bossNameText = this.add.text(width / 2, yPos - 20, 'BOSS', {
+      fontSize: '16px',
+      color: '#ff4444',
+      fontStyle: 'bold',
+    })
+    this.bossNameText.setOrigin(0.5, 0.5)
+
+    // Add to container
+    this.bossHealthContainer.add([this.bossHealthBarBg, this.bossHealthBar, this.bossNameText])
+    this.bossHealthContainer.setVisible(false)
+  }
+
+  private showBossHealthBar(health: number, maxHealth: number) {
+    this.bossHealthContainer.setVisible(true)
+    this.updateBossHealthBar(health, maxHealth)
+  }
+
+  private updateBossHealthBar(health: number, maxHealth: number) {
+    const width = this.cameras.main.width
+    const barWidth = width - 44
+    const barHeight = 12
+    const yPos = this.cameras.main.height - 48
+
+    const percentage = Math.max(0, health / maxHealth)
+
+    this.bossHealthBar.clear()
+    this.bossHealthBar.fillStyle(0xff2222, 1) // Red for boss
+    this.bossHealthBar.fillRect(22, yPos, barWidth * percentage, barHeight)
+  }
+
+  private hideBossHealthBar() {
+    if (this.bossHealthContainer) {
+      this.bossHealthContainer.setVisible(false)
+    }
   }
 
   updateHealthBar(percentage: number) {
