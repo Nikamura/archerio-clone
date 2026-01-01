@@ -173,9 +173,9 @@ export default class MainMenuScene extends Phaser.Scene {
     difficultyLabel.setDepth(10)
 
     // Horizontal difficulty buttons
-    const difficulties = [DifficultyLevel.EASY, DifficultyLevel.NORMAL, DifficultyLevel.HARD]
-    const buttonWidth = 90
-    const totalWidth = buttonWidth * 3 + 20
+    const difficulties = [DifficultyLevel.EASY, DifficultyLevel.NORMAL, DifficultyLevel.HARD, DifficultyLevel.INSANITY]
+    const buttonWidth = 80
+    const totalWidth = buttonWidth * 4 + 30
     const startX = (width - totalWidth) / 2 + buttonWidth / 2
 
     difficulties.forEach((difficulty, index) => {

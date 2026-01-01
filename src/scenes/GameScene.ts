@@ -471,7 +471,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Calculate base enemy count (scales with room number and difficulty)
     const baseEnemies = 4
-    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier)
+    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) + this.difficultyConfig.extraEnemyCount
 
     // Use the RoomGenerator to create a procedurally generated room
     this.currentGeneratedRoom = this.roomGenerator.generateRoom(
@@ -735,7 +735,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Calculate base enemy count for room 1
     const baseEnemies = 4
-    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier)
+    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) + this.difficultyConfig.extraEnemyCount
 
     // Use the RoomGenerator for room 1
     this.currentGeneratedRoom = this.roomGenerator.generateRoom(

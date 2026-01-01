@@ -7,6 +7,7 @@ export enum DifficultyLevel {
   EASY = 'easy',
   NORMAL = 'normal',
   HARD = 'hard',
+  INSANITY = 'insanity',
 }
 
 export interface DifficultyConfig {
@@ -19,6 +20,7 @@ export interface DifficultyConfig {
   enemyHealthMultiplier: number
   enemyDamageMultiplier: number
   enemySpawnMultiplier: number
+  extraEnemyCount: number // Flat bonus enemies added per room
 
   // Boss modifiers
   bossHealthMultiplier: number
@@ -44,6 +46,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     enemyHealthMultiplier: 0.7, // -30% health
     enemyDamageMultiplier: 0.75, // -25% damage
     enemySpawnMultiplier: 0.8, // -20% enemy count
+    extraEnemyCount: 0,
 
     // Boss nerfs
     bossHealthMultiplier: 0.6, // -40% health
@@ -67,6 +70,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     enemyHealthMultiplier: 1.0,
     enemyDamageMultiplier: 1.0,
     enemySpawnMultiplier: 1.0,
+    extraEnemyCount: 0,
 
     // Standard boss
     bossHealthMultiplier: 1.0,
@@ -90,6 +94,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     enemyHealthMultiplier: 1.4, // +40% health
     enemyDamageMultiplier: 1.3, // +30% damage
     enemySpawnMultiplier: 1.3, // +30% enemy count
+    extraEnemyCount: 0,
 
     // Boss buffs
     bossHealthMultiplier: 1.5, // +50% health
@@ -102,6 +107,30 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     label: 'HARD',
     description: 'For veterans - tough enemies, less health',
     color: '#ff0000',
+  },
+  [DifficultyLevel.INSANITY]: {
+    // Player nerfs (same as hard)
+    playerMaxHealth: 80,
+    playerDamage: 9,
+    playerAttackSpeed: 0.9,
+
+    // Enemy buffs (same multipliers as hard, but +10 extra enemies)
+    enemyHealthMultiplier: 1.4,
+    enemyDamageMultiplier: 1.3,
+    enemySpawnMultiplier: 1.3,
+    extraEnemyCount: 10, // +10 monsters compared to hard
+
+    // Boss buffs (same as hard)
+    bossHealthMultiplier: 1.5,
+    bossDamageMultiplier: 1.3,
+
+    // Reward - highest gold for insanity mode
+    goldMultiplier: 2.0, // +100% gold
+
+    // Display
+    label: 'INSANITY',
+    description: 'Pure chaos - 10 extra monsters per room',
+    color: '#ff00ff',
   },
 }
 
