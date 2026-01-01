@@ -219,3 +219,5 @@ src/
 4. Ability stacking correctness (especially multiplicative effects)
 5. Performance with 50+ entities on screen
 6. Touch targets on mobile (actual device testing required)
+
+every time you make changes, update @game_plan.md to be always up to date and have latest information. 
