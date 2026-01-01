@@ -333,6 +333,111 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     safeZones: [{ x: 0.5, y: 0.75, radius: 0.2 }],
     playerSpawnSafeRadius: 0.2,
   },
+
+  // Circular Formation (2 variants)
+  {
+    type: 'open_arena',
+    name: 'Circular Siege',
+    description: 'Enemies arranged in a circle around center',
+    spawnZones: [
+      { x: 0.5, y: 0.15, radius: 0.1, weight: 1 },
+      { x: 0.2, y: 0.3, radius: 0.1, weight: 1 },
+      { x: 0.8, y: 0.3, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.5, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.5, radius: 0.1, weight: 1 },
+      { x: 0.25, y: 0.65, radius: 0.08, weight: 0.8 },
+      { x: 0.75, y: 0.65, radius: 0.08, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Wave Formation (2 variants)
+  {
+    type: 'gauntlet',
+    name: 'Advancing Wave',
+    description: 'Enemies in rows advancing toward player',
+    spawnZones: [
+      { x: 0.25, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.5, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.75, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.35, y: 0.32, radius: 0.1, weight: 1 },
+      { x: 0.65, y: 0.32, radius: 0.1, weight: 1 },
+      { x: 0.5, y: 0.48, radius: 0.12, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.18 }],
+    playerSpawnSafeRadius: 0.3,
+  },
+  {
+    type: 'gauntlet',
+    name: 'Staggered Lines',
+    description: 'Multiple staggered enemy lines',
+    spawnZones: [
+      { x: 0.3, y: 0.2, radius: 0.1, weight: 1 },
+      { x: 0.7, y: 0.2, radius: 0.1, weight: 1 },
+      { x: 0.2, y: 0.38, radius: 0.1, weight: 1 },
+      { x: 0.5, y: 0.35, radius: 0.12, weight: 1 },
+      { x: 0.8, y: 0.38, radius: 0.1, weight: 1 },
+      { x: 0.35, y: 0.55, radius: 0.08, weight: 0.7 },
+      { x: 0.65, y: 0.55, radius: 0.08, weight: 0.7 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
+    playerSpawnSafeRadius: 0.28,
+  },
+
+  // Crossfire Pattern
+  {
+    type: 'split_arena',
+    name: 'Crossfire',
+    description: 'Enemies positioned for crossfire tactics',
+    spawnZones: [
+      { x: 0.15, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.5, radius: 0.1, weight: 1.2 },
+      { x: 0.85, y: 0.5, radius: 0.1, weight: 1.2 },
+      { x: 0.5, y: 0.2, radius: 0.15, weight: 1 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.5, radius: 0.1 },
+      { x: 0.5, y: 0.85, radius: 0.12 },
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+
+  // Defensive Positions
+  {
+    type: 'corner_rooms',
+    name: 'Defensive Perimeter',
+    description: 'Enemies positioned defensively around the room',
+    spawnZones: [
+      { x: 0.2, y: 0.2, radius: 0.1, weight: 1.2 },
+      { x: 0.8, y: 0.2, radius: 0.1, weight: 1.2 },
+      { x: 0.5, y: 0.3, radius: 0.15, weight: 1.5 },
+      { x: 0.2, y: 0.55, radius: 0.08, weight: 0.8 },
+      { x: 0.8, y: 0.55, radius: 0.08, weight: 0.8 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.6, radius: 0.1 },
+      { x: 0.5, y: 0.85, radius: 0.12 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Central Nexus
+  {
+    type: 'maze_lite',
+    name: 'Central Nexus',
+    description: 'Enemies converge from multiple points toward center',
+    spawnZones: [
+      { x: 0.5, y: 0.28, radius: 0.18, weight: 2 }, // Strong center
+      { x: 0.2, y: 0.25, radius: 0.1, weight: 0.8 },
+      { x: 0.8, y: 0.25, radius: 0.1, weight: 0.8 },
+      { x: 0.25, y: 0.5, radius: 0.1, weight: 0.8 },
+      { x: 0.75, y: 0.5, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.25,
+  },
 ]
 
 /**
@@ -493,6 +598,58 @@ export const ENEMY_COMBINATIONS: EnemyCombination[] = [
     minRoom: 9,
     weight: 0.6,
     synergy: 'Kill spawners immediately or face endless minions',
+  },
+
+  // Mid-game variety combinations (Rooms 4-6)
+  {
+    name: 'Fire Support',
+    description: 'Bombers with ranged protection',
+    enemies: ['bomber', 'ranged', 'ranged', 'melee', 'melee'],
+    minRoom: 4,
+    weight: 1,
+    synergy: 'AOE zone denial with ranged pressure',
+  },
+  {
+    name: 'Coordinated Strike',
+    description: 'Chargers and spreaders create chaos',
+    enemies: ['charger', 'charger', 'spreader', 'ranged'],
+    minRoom: 5,
+    weight: 0.9,
+    synergy: 'Forced movement into spread patterns',
+  },
+  {
+    name: 'Guardian Formation',
+    description: 'Healer with protected escorts',
+    enemies: ['healer', 'melee', 'melee', 'melee', 'ranged'],
+    minRoom: 6,
+    weight: 1.1,
+    synergy: 'Focus the healer while melee swarms',
+  },
+
+  // Heavy and elite combinations (Rooms 7+)
+  {
+    name: 'Heavy Hitters',
+    description: 'Tank duo with charger support',
+    enemies: ['tank', 'tank', 'charger', 'charger'],
+    minRoom: 7,
+    weight: 0.9,
+    synergy: 'Slow but deadly frontline with fast flankers',
+  },
+  {
+    name: 'Artillery Line',
+    description: 'Multiple bombers with tank frontline',
+    enemies: ['tank', 'bomber', 'bomber', 'bomber'],
+    minRoom: 7,
+    weight: 0.8,
+    synergy: 'Constant AOE bombardment behind tank shield',
+  },
+  {
+    name: 'Elite Guard',
+    description: 'Ultimate enemy formation',
+    enemies: ['tank', 'healer', 'spawner', 'bomber', 'charger', 'spreader'],
+    minRoom: 10,
+    weight: 0.5,
+    synergy: 'Every enemy type that demands priority - extreme danger',
   },
 ]
 

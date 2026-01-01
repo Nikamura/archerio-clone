@@ -296,6 +296,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       'Spread Formation',
       'Bomber Support',
       'Melee Rush',
+      'Fire Support',
     ],
     bossType: 'treant',
     bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
@@ -413,6 +414,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       'Siege Warfare',
       'Spawner Den',
       'Full Support',
+      'Fire Support',
+      'Guardian Formation',
     ],
     bossType: 'inferno_demon', // Main boss for chapter 4
     bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
@@ -488,6 +491,10 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       'Infinite Army',
       'Heavy Hitters',
       'Elite Guard',
+      'Fire Support',
+      'Coordinated Strike',
+      'Guardian Formation',
+      'Artillery Line',
     ],
     bossType: 'final_boss', // Main boss for chapter 5 (final challenge)
     bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses

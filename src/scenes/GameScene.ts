@@ -32,6 +32,9 @@ import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPos
 import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES } from './LevelUpScene'
 
+// Velocity smoothing for extra smooth movement
+const VELOCITY_SMOOTHING = 0.2 // 0-1, lower = smoother but more input lag
+
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
   private player!: Player
@@ -45,6 +48,10 @@ export default class GameScene extends Phaser.Scene {
   private joystick!: Joystick
   private joystickAngle: number = 0
   private joystickForce: number = 0
+
+  // Smoothed velocity for extra-smooth movement
+  private smoothedVelocityX: number = 0
+  private smoothedVelocityY: number = 0
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -82,6 +89,11 @@ export default class GameScene extends Phaser.Scene {
   // Seeded random for deterministic runs
   private runRng!: SeededRandom
   private runSeedString: string = ''
+
+  // Performance optimization: cache nearest enemy
+  private cachedNearestEnemy: Enemy | null = null
+  private nearestEnemyCacheFrame: number = 0
+  private readonly NEAREST_ENEMY_CACHE_FRAMES = 3 // Recalculate every 3 frames
 
   constructor() {
     super({ key: 'GameScene' })
@@ -932,6 +944,9 @@ export default class GameScene extends Phaser.Scene {
       // Remove enemy from group and destroy
       enemySprite.destroy()
 
+      // Invalidate nearest enemy cache since enemies changed
+      this.invalidateNearestEnemyCache()
+
       // Check if room is cleared
       this.checkRoomCleared()
     }
@@ -1444,6 +1459,38 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Get the nearest enemy with caching for performance
+   * Only recalculates every NEAREST_ENEMY_CACHE_FRAMES frames
+   */
+  private getCachedNearestEnemy(): Enemy | null {
+    const currentFrame = this.game.getFrame()
+
+    // Check if cache is stale
+    if (currentFrame - this.nearestEnemyCacheFrame >= this.NEAREST_ENEMY_CACHE_FRAMES) {
+      this.cachedNearestEnemy = this.findNearestEnemy()
+      this.nearestEnemyCacheFrame = currentFrame
+    }
+
+    // Validate cached enemy is still valid (active, has body, not destroyed)
+    if (this.cachedNearestEnemy &&
+        (!this.cachedNearestEnemy.active || !this.cachedNearestEnemy.body)) {
+      // Cache is invalid, force refresh
+      this.cachedNearestEnemy = this.findNearestEnemy()
+      this.nearestEnemyCacheFrame = currentFrame
+    }
+
+    return this.cachedNearestEnemy
+  }
+
+  /**
+   * Invalidate the nearest enemy cache (call when enemies die or spawn)
+   */
+  private invalidateNearestEnemyCache(): void {
+    this.nearestEnemyCacheFrame = 0
+    this.cachedNearestEnemy = null
+  }
+
+  /**
    * Find nearest enemy to a position, excluding a specific enemy
    * Used for ricochet targeting
    */
@@ -1670,6 +1717,9 @@ export default class GameScene extends Phaser.Scene {
     // Remove enemy
     e.destroy()
 
+    // Invalidate nearest enemy cache since enemies changed
+    this.invalidateNearestEnemyCache()
+
     // Check if room cleared
     this.checkRoomCleared()
   }
@@ -1709,12 +1759,22 @@ export default class GameScene extends Phaser.Scene {
         if (this.cursors?.down?.isDown || this.wasdKeys?.S?.isDown) vy = maxVelocity
       }
 
-      this.player.setVelocity(vx, vy)
+      // Apply velocity smoothing for extra-smooth movement
+      // This lerps between current smoothed velocity and target velocity
+      this.smoothedVelocityX += (vx - this.smoothedVelocityX) * VELOCITY_SMOOTHING
+      this.smoothedVelocityY += (vy - this.smoothedVelocityY) * VELOCITY_SMOOTHING
+
+      // Snap to zero when very close to prevent micro-jitter
+      if (Math.abs(this.smoothedVelocityX) < 1) this.smoothedVelocityX = 0
+      if (Math.abs(this.smoothedVelocityY) < 1) this.smoothedVelocityY = 0
+
+      this.player.setVelocity(this.smoothedVelocityX, this.smoothedVelocityY)
 
       // CORE MECHANIC: Auto-fire when player is stationary
+      // Uses cached nearest enemy for performance (recalculates every 3 frames)
       if (!this.player.isPlayerMoving()) {
         if (time - this.lastShotTime > this.getEffectiveFireRate()) {
-          const nearestEnemy = this.findNearestEnemy()
+          const nearestEnemy = this.getCachedNearestEnemy()
           if (nearestEnemy) {
             this.shootAtEnemy(nearestEnemy)
           }
@@ -1780,12 +1840,16 @@ export default class GameScene extends Phaser.Scene {
     console.log('GameScene: Resetting joystick state')
     this.joystickForce = 0
     this.joystickAngle = 0
-    
+
+    // Reset smoothed velocity to prevent residual movement
+    this.smoothedVelocityX = 0
+    this.smoothedVelocityY = 0
+
     // Also reset the joystick UI if it exists
     if (this.joystick) {
       this.joystick.reset()
     }
-    
+
     // Stop player movement immediately
     if (this.player && this.player.body) {
       this.player.setVelocity(0, 0)

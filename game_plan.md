@@ -1023,9 +1023,31 @@ Visual test screenshots are saved to `test/screenshots/`
     - Files created:
       - `src/systems/ScreenShake.ts`: Camera shake system
       - `src/systems/ParticleManager.ts`: Particle effects system
-[ ] Expanded procedural generation (more room templates, enemy combinations)
-[ ] Performance optimization pass (target 50+ entities at 60 FPS)
+[x] Expanded procedural generation (more room templates, enemy combinations) (2026-01-01)
+    - Added 6 new room layouts: Circular Siege, Advancing Wave, Staggered Lines, Crossfire, Defensive Perimeter, Central Nexus
+    - Total: 22 room templates (was 16)
+    - Added 5 new enemy combinations:
+      - Heavy Hitters (tank duo + charger support, room 7+)
+      - Elite Guard (ultimate formation with all enemy types, room 10+)
+      - Fire Support (bomber + ranged combo, room 4+)
+      - Coordinated Strike (charger + spreader chaos, room 5+)
+      - Guardian Formation (healer with escorts, room 6+)
+      - Artillery Line (tank frontline with bomber barrage, room 7+)
+    - Total: 20 enemy combinations (was 14)
+    - Updated chapter tacticComboNames to include new combos
+[x] Performance optimization pass (target 50+ entities at 60 FPS) (2026-01-01)
+    - Cached nearest enemy calculation (recalculates every 3 frames instead of every frame)
+    - Added `getCachedNearestEnemy()` with validation and auto-invalidation
+    - Cache invalidation on enemy death (bullet kills and DOT kills)
+    - Optimized health bar updates:
+      - Only redraws when health value changes
+      - Position-only updates when enemy moves (skips if position unchanged)
+      - Tracks `lastHealthBarValue`, `lastHealthBarX`, `lastHealthBarY` to avoid redundant redraws
+    - Fixed browser global linting issues in Joystick.ts
 ```
+
+**V1 COMPLETE!** All features implemented. Ready for V2 monetization and content expansion.
+
 
 ---
 

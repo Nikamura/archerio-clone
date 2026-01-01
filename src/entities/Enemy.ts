@@ -49,6 +49,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private healthBarWidth: number = 30
   private healthBarHeight: number = 4
   private healthBarOffsetY: number = -22 // Position above enemy
+  private lastHealthBarValue: number = -1 // Track last health to avoid redraws
+  private lastHealthBarX: number = 0 // Track last position for cheap updates
+  private lastHealthBarY: number = 0
 
   constructor(
     scene: Phaser.Scene,
@@ -115,14 +118,30 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Redraw the health bar (only call when health actually changes)
+   * For position-only updates, use updateHealthBarPosition()
+   */
   private updateHealthBar(): void {
     if (!this.healthBar) return
 
     // Only show if damaged but not dead
     if (this.health >= this.maxHealth || this.health <= 0) {
       this.healthBar.setVisible(false)
+      this.lastHealthBarValue = -1
       return
     }
+
+    // Skip redraw if health hasn't changed (optimization)
+    if (this.health === this.lastHealthBarValue) {
+      // Just update position if needed
+      this.updateHealthBarPosition()
+      return
+    }
+
+    this.lastHealthBarValue = this.health
+    this.lastHealthBarX = this.x
+    this.lastHealthBarY = this.y
 
     this.healthBar.setVisible(true)
     this.healthBar.clear()
@@ -135,6 +154,43 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.healthBar.fillRect(barX, barY, this.healthBarWidth, this.healthBarHeight)
 
     // Health fill (green to red based on health percentage)
+    const healthPercent = this.health / this.maxHealth
+    const fillWidth = this.healthBarWidth * healthPercent
+    const color = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000
+    this.healthBar.fillStyle(color, 1)
+    this.healthBar.fillRect(barX, barY, fillWidth, this.healthBarHeight)
+
+    // Border
+    this.healthBar.lineStyle(1, 0x000000, 0.8)
+    this.healthBar.strokeRect(barX, barY, this.healthBarWidth, this.healthBarHeight)
+  }
+
+  /**
+   * Update health bar position only (cheap operation)
+   * Called every frame while health bar is visible
+   */
+  private updateHealthBarPosition(): void {
+    if (!this.healthBar?.visible) return
+
+    // Only redraw if position actually changed (optimization)
+    if (this.x === this.lastHealthBarX && this.y === this.lastHealthBarY) {
+      return
+    }
+
+    this.lastHealthBarX = this.x
+    this.lastHealthBarY = this.y
+
+    // Must redraw graphics since Phaser graphics can't just move
+    this.healthBar.clear()
+
+    const barX = this.x - this.healthBarWidth / 2
+    const barY = this.y + this.healthBarOffsetY
+
+    // Background (dark gray)
+    this.healthBar.fillStyle(0x333333, 0.8)
+    this.healthBar.fillRect(barX, barY, this.healthBarWidth, this.healthBarHeight)
+
+    // Health fill
     const healthPercent = this.health / this.maxHealth
     const fillWidth = this.healthBarWidth * healthPercent
     const color = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000
@@ -377,9 +433,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
     }
 
-    // Update health bar position (if visible)
+    // Update health bar position (if visible) - optimized position-only update
     if (this.healthBar?.visible) {
-      this.updateHealthBar()
+      this.updateHealthBarPosition()
     }
 
     return false
