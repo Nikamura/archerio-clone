@@ -16,6 +16,7 @@ import EnemyBulletPool from '../systems/EnemyBulletPool'
 import BombPool from '../systems/BombPool'
 import GoldPool from '../systems/GoldPool'
 import HealthPool from '../systems/HealthPool'
+import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
@@ -58,6 +59,7 @@ export default class GameScene extends Phaser.Scene {
   private bombPool!: BombPool
   private goldPool!: GoldPool
   private healthPool!: HealthPool
+  private damageNumberPool!: DamageNumberPool
   private enemies!: Phaser.Physics.Arcade.Group
   private lastShotTime: number = 0
   private fireRate: number = 500 // ms between shots
@@ -210,6 +212,7 @@ export default class GameScene extends Phaser.Scene {
     this.goldPool = new GoldPool(this)
     this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier) // Apply difficulty gold scaling
     this.healthPool = new HealthPool(this)
+    this.damageNumberPool = new DamageNumberPool(this)
 
     // Create visual effects systems
     this.screenShake = createScreenShake(this)
@@ -842,6 +845,9 @@ export default class GameScene extends Phaser.Scene {
     const killed = enemySprite.takeDamage(damage)
     audioManager.playHit()
 
+    // Show damage number
+    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, bulletSprite.isCriticalHit())
+
     // Visual effects for hit
     if (bulletSprite.isCriticalHit()) {
       this.particles.emitCrit(enemySprite.x, enemySprite.y)
@@ -1151,6 +1157,9 @@ export default class GameScene extends Phaser.Scene {
     const damageTaken = playerSprite.takeDamage(bulletDamage)
     if (!damageTaken) return
 
+    // Show damage number
+    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, bulletDamage)
+
     audioManager.playPlayerHit()
     hapticManager.heavy() // Haptic feedback for taking damage
 
@@ -1192,6 +1201,9 @@ export default class GameScene extends Phaser.Scene {
     // Try to damage player (respects invincibility)
     const damageTaken = playerSprite.takeDamage(damage)
     if (!damageTaken) return
+
+    // Show damage number
+    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, damage)
 
     audioManager.playPlayerHit()
     hapticManager.heavy() // Haptic feedback for taking damage
@@ -1892,6 +1904,10 @@ export default class GameScene extends Phaser.Scene {
     if (this.healthPool) {
       this.healthPool.destroy(true)
       this.healthPool = null!
+    }
+    if (this.damageNumberPool) {
+      this.damageNumberPool.destroy()
+      this.damageNumberPool = null!
     }
 
     // Clean up enemies group
