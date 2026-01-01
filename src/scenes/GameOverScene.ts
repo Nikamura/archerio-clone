@@ -352,15 +352,13 @@ export default class GameOverScene extends Phaser.Scene {
     // Play game start sound
     audioManager.playGameStart()
 
-    // Stop other scenes first
-    this.scene.stop('GameScene')
-    this.scene.stop('UIScene')
-
-    // Start fresh game
+    // GameScene already stopped itself before launching GameOverScene
+    // UIScene was also stopped by GameScene
+    // Just start fresh game scenes
     this.scene.start('GameScene')
     this.scene.launch('UIScene')
 
-    // Stop this scene last
+    // Stop this scene last - following CLAUDE.md guidance
     this.scene.stop('GameOverScene')
   }
 }

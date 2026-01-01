@@ -13,6 +13,13 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private fireDamage: number = 0 // Fire DOT damage to apply on hit
   private isCrit: boolean = false // Whether this bullet is a critical hit
 
+  // New V1 ability tracking
+  private freezeChance: number = 0 // Chance to freeze enemies
+  private poisonDamage: number = 0 // Poison DOT damage to apply on hit
+  private lightningChainCount: number = 0 // Number of enemies lightning can chain to
+  private wallBounceCount: number = 0 // Current wall bounces used
+  private maxWallBounces: number = 0 // Maximum wall bounces allowed
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'bulletSprite')
     scene.add.existing(this)
@@ -40,6 +47,10 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     maxBounces?: number
     fireDamage?: number
     isCrit?: boolean
+    freezeChance?: number
+    poisonDamage?: number
+    lightningChainCount?: number
+    maxWallBounces?: number
   }) {
     this.setPosition(x, y)
     this.setActive(true)
@@ -56,6 +67,13 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.fireDamage = options?.fireDamage ?? 0
     this.isCrit = options?.isCrit ?? false
 
+    // Reset new V1 ability tracking
+    this.freezeChance = options?.freezeChance ?? 0
+    this.poisonDamage = options?.poisonDamage ?? 0
+    this.lightningChainCount = options?.lightningChainCount ?? 0
+    this.wallBounceCount = 0
+    this.maxWallBounces = options?.maxWallBounces ?? 0
+
     // Set velocity based on angle
     const vx = Math.cos(angle) * this.speed
     const vy = Math.sin(angle) * this.speed
@@ -68,6 +86,15 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     if (this.isCrit) {
       this.setTint(0xffff00) // Yellow tint for crits
       this.setScale(1.3)
+    } else if (this.freezeChance > 0) {
+      this.setTint(0x66ccff) // Blue tint for ice
+      this.setScale(1)
+    } else if (this.poisonDamage > 0) {
+      this.setTint(0x66ff66) // Green tint for poison
+      this.setScale(1)
+    } else if (this.lightningChainCount > 0) {
+      this.setTint(0x9966ff) // Purple tint for lightning
+      this.setScale(1)
     } else {
       this.clearTint()
       this.setScale(1)
@@ -144,5 +171,64 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   isCriticalHit(): boolean {
     return this.isCrit
+  }
+
+  // New V1 ability getters
+  getFreezeChance(): number {
+    return this.freezeChance
+  }
+
+  /**
+   * Roll for freeze based on bullet's freeze chance
+   */
+  rollFreeze(): boolean {
+    return Math.random() < this.freezeChance
+  }
+
+  getPoisonDamage(): number {
+    return this.poisonDamage
+  }
+
+  getLightningChainCount(): number {
+    return this.lightningChainCount
+  }
+
+  getMaxWallBounces(): number {
+    return this.maxWallBounces
+  }
+
+  getWallBounceCount(): number {
+    return this.wallBounceCount
+  }
+
+  /**
+   * Check if bullet can bounce off walls
+   */
+  canBounceOffWall(): boolean {
+    return this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces
+  }
+
+  /**
+   * Bounce bullet off a wall (reflects velocity)
+   * @param isVertical true if hit vertical wall (left/right), false if horizontal (top/bottom)
+   */
+  bounceOffWall(isVertical: boolean): void {
+    if (!this.canBounceOffWall()) return
+
+    this.wallBounceCount++
+
+    // Get current velocity
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (!body) return
+
+    // Reflect velocity based on which wall was hit
+    if (isVertical) {
+      body.velocity.x *= -1
+    } else {
+      body.velocity.y *= -1
+    }
+
+    // Update rotation to face new direction
+    this.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
   }
 }

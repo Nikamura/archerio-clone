@@ -15,10 +15,15 @@ export default class Boss extends Enemy {
   // Telegraph line for barrage attack
   private telegraphLines: Phaser.GameObjects.Line[] = []
 
+  // AOE danger zone graphics for spread attack
+  private spreadDangerZone: Phaser.GameObjects.Graphics | null = null
+  private spreadDangerRadius: number = 120
+
   // Charge attack properties
   private chargeTargetX: number = 0
   private chargeTargetY: number = 0
   private chargeSpeed: number = 400
+  private chargeTrailLine: Phaser.GameObjects.Line | null = null
 
   // Boss-specific properties
   private bossHealth: number
@@ -56,6 +61,18 @@ export default class Boss extends Enemy {
       line.setLineWidth(2)
       this.telegraphLines.push(line)
     }
+
+    // Create AOE danger zone graphics for spread attack
+    this.spreadDangerZone = scene.add.graphics()
+    this.spreadDangerZone.setDepth(0)
+    this.spreadDangerZone.setVisible(false)
+
+    // Create charge trail line
+    this.chargeTrailLine = scene.add.line(0, 0, 0, 0, 0, 0, 0xff4400, 0.5)
+    this.chargeTrailLine.setOrigin(0, 0)
+    this.chargeTrailLine.setVisible(false)
+    this.chargeTrailLine.setDepth(0)
+    this.chargeTrailLine.setLineWidth(4)
 
     console.log('Boss created at', x, y, 'with', this.bossHealth, 'HP')
   }
@@ -170,8 +187,50 @@ export default class Boss extends Enemy {
   private handleSpreadPhase(time: number) {
     this.setVelocity(0, 0)
 
-    // Slight delay before firing
-    if (time - this.phaseStartTime > 300) {
+    const windupDuration = 500 // 0.5 seconds to show danger zone
+    const elapsed = time - this.phaseStartTime
+
+    // Show pulsing danger zone
+    if (this.spreadDangerZone) {
+      this.spreadDangerZone.setVisible(true)
+      this.spreadDangerZone.clear()
+
+      // Pulsing effect
+      const pulsePhase = (elapsed % 200) / 200
+      const pulseAlpha = 0.15 + pulsePhase * 0.2
+
+      // Draw circular danger zone
+      this.spreadDangerZone.fillStyle(0xff0000, pulseAlpha)
+      this.spreadDangerZone.fillCircle(this.x, this.y, this.spreadDangerRadius)
+
+      // Draw pulsing ring at edge
+      this.spreadDangerZone.lineStyle(3, 0xff0000, 0.6 + pulsePhase * 0.4)
+      this.spreadDangerZone.strokeCircle(this.x, this.y, this.spreadDangerRadius)
+
+      // Draw direction lines for projectiles
+      const numLines = 8
+      for (let i = 0; i < numLines; i++) {
+        const angle = (Math.PI * 2 * i) / numLines
+        const innerRadius = 30
+        const outerRadius = this.spreadDangerRadius
+        const x1 = this.x + Math.cos(angle) * innerRadius
+        const y1 = this.y + Math.sin(angle) * innerRadius
+        const x2 = this.x + Math.cos(angle) * outerRadius
+        const y2 = this.y + Math.sin(angle) * outerRadius
+
+        this.spreadDangerZone.lineStyle(2, 0xff4400, 0.4 + pulsePhase * 0.3)
+        this.spreadDangerZone.lineBetween(x1, y1, x2, y2)
+      }
+    }
+
+    // Fire after windup
+    if (elapsed > windupDuration) {
+      // Hide danger zone
+      if (this.spreadDangerZone) {
+        this.spreadDangerZone.setVisible(false)
+        this.spreadDangerZone.clear()
+      }
+
       this.fireSpreadAttack()
       this.phase = 'idle'
       this.lastAttackTime = time
@@ -265,8 +324,31 @@ export default class Boss extends Enemy {
     this.chargeTargetX = playerX
     this.chargeTargetY = playerY
 
+    // Show charge trail line (pulsing)
+    if (this.chargeTrailLine) {
+      this.chargeTrailLine.setVisible(true)
+
+      // Pulsing alpha based on elapsed time
+      const pulsePhase = (elapsed % 150) / 150
+      const alpha = 0.3 + pulsePhase * 0.5
+      this.chargeTrailLine.setAlpha(alpha)
+
+      // Line width grows as charge approaches
+      const lineWidth = 4 + (elapsed / windupDuration) * 6
+      this.chargeTrailLine.setLineWidth(lineWidth)
+
+      // Draw line from boss to player
+      this.chargeTrailLine.setTo(this.x, this.y, playerX, playerY)
+    }
+
     if (elapsed > windupDuration) {
       this.clearTint()
+
+      // Hide charge trail
+      if (this.chargeTrailLine) {
+        this.chargeTrailLine.setVisible(false)
+      }
+
       this.phase = 'charging'
       this.phaseStartTime = time
 
@@ -302,6 +384,18 @@ export default class Boss extends Enemy {
       if (line) line.destroy()
     })
     this.telegraphLines = []
+
+    // Clean up spread danger zone
+    if (this.spreadDangerZone) {
+      this.spreadDangerZone.destroy()
+      this.spreadDangerZone = null
+    }
+
+    // Clean up charge trail line
+    if (this.chargeTrailLine) {
+      this.chargeTrailLine.destroy()
+      this.chargeTrailLine = null
+    }
 
     super.destroy(fromScene)
   }

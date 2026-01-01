@@ -35,13 +35,29 @@ export type RoomType = 'combat' | 'angel' | 'miniboss' | 'boss'
 
 /**
  * Boss types for each chapter
+ * Each chapter has 3 bosses (room 10 miniboss variant, room 20 main boss, room 20 alternate)
  */
 export type BossType =
-  | 'demon' // Chapter 1 - Dark Dungeon
-  | 'treant' // Chapter 2 - Forest Ruins
-  | 'frost_giant' // Chapter 3 - Frozen Caves
-  | 'magma_wyrm' // Chapter 4 - Volcanic Depths
-  | 'void_lord' // Chapter 5 - Shadow Realm
+  // Chapter 1 - Dark Dungeon
+  | 'demon'
+  // Chapter 2 - Forest Ruins
+  | 'treant'
+  | 'tree_guardian'
+  | 'wild_boar'
+  | 'forest_spirit'
+  // Chapter 3 - Frozen Caves
+  | 'frost_giant'
+  | 'ice_golem'
+  | 'frost_wyrm'
+  | 'crystal_guardian'
+  // Chapter 4 - Volcanic Depths
+  | 'lava_golem'
+  | 'magma_wyrm'
+  | 'inferno_demon'
+  // Chapter 5 - Shadow Realm
+  | 'void_lord'
+  | 'nightmare'
+  | 'final_boss'
 
 /**
  * Chapter theme configuration
@@ -105,6 +121,8 @@ export interface ChapterDefinition {
   enemyTypes: EnemyType[]
   /** Boss type for chapter boss fight */
   bossType: BossType
+  /** All boss types available in this chapter (for variety) */
+  bossPool: BossType[]
   /** Mini-boss type (typically a stronger version of an enemy) */
   miniBossType: EnemyType
   /** Difficulty scaling compared to base */
@@ -211,6 +229,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     },
     enemyTypes: ['melee', 'ranged', 'spreader'],
     bossType: 'demon',
+    bossPool: ['demon'],
     miniBossType: 'spreader', // Larger spreader as mini-boss
     scaling: {
       enemyHpMultiplier: 1.0,
@@ -240,6 +259,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     },
     enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower'],
     bossType: 'treant',
+    bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
     miniBossType: 'bomber',
     scaling: {
       enemyHpMultiplier: 1.2, // +20% HP
@@ -269,6 +289,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     },
     enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower', 'tank', 'charger'],
     bossType: 'frost_giant',
+    bossPool: ['frost_giant', 'ice_golem', 'frost_wyrm', 'crystal_guardian'],
     miniBossType: 'tank',
     scaling: {
       enemyHpMultiplier: 1.4, // +40% HP
@@ -297,7 +318,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       musicKey: 'music_volcano',
     },
     enemyTypes: ['melee', 'ranged', 'spreader', 'bomber', 'burrower', 'tank', 'charger', 'healer'],
-    bossType: 'magma_wyrm',
+    bossType: 'inferno_demon', // Main boss for chapter 4
+    bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
     miniBossType: 'charger',
     scaling: {
       enemyHpMultiplier: 1.6, // +60% HP
@@ -336,7 +358,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       'healer',
       'spawner',
     ],
-    bossType: 'void_lord',
+    bossType: 'final_boss', // Main boss for chapter 5 (final challenge)
+    bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses
     miniBossType: 'spawner',
     scaling: {
       enemyHpMultiplier: 1.8, // +80% HP
@@ -539,4 +562,39 @@ export function getPreviousChapterId(currentChapterId: ChapterId): ChapterId | n
     return null
   }
   return (currentChapterId - 1) as ChapterId
+}
+
+/**
+ * Get a random boss from the chapter's boss pool
+ * @param chapterId The chapter to get a boss for
+ * @returns A random BossType from the chapter's pool
+ */
+export function getRandomBossForChapter(chapterId: ChapterId): BossType {
+  const chapter = CHAPTER_DEFINITIONS[chapterId]
+  const pool = chapter.bossPool
+
+  if (pool.length === 0) {
+    return chapter.bossType // Fallback to main boss
+  }
+
+  const randomIndex = Math.floor(Math.random() * pool.length)
+  return pool[randomIndex]
+}
+
+/**
+ * Get the main boss type for a chapter
+ * @param chapterId The chapter to get the boss for
+ * @returns The main BossType for the chapter
+ */
+export function getMainBossForChapter(chapterId: ChapterId): BossType {
+  return CHAPTER_DEFINITIONS[chapterId].bossType
+}
+
+/**
+ * Get all boss types in a chapter's pool
+ * @param chapterId The chapter to get bosses for
+ * @returns Array of all BossTypes available in the chapter
+ */
+export function getBossPoolForChapter(chapterId: ChapterId): BossType[] {
+  return [...CHAPTER_DEFINITIONS[chapterId].bossPool]
 }

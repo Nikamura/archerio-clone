@@ -59,6 +59,14 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('enemyMelee', 'assets/sprites/enemy/melee_slime.png')
     this.load.image('enemyRanged', 'assets/sprites/enemy/ranged_skeleton.png')
     this.load.image('enemySpreader', 'assets/sprites/enemy/spreader_eye.png')
+    this.load.image('enemyBurrower', 'assets/sprites/enemy/burrower.png')
+    this.load.image('enemyHealer', 'assets/sprites/enemy/healer.png')
+    this.load.image('enemySpawner', 'assets/sprites/enemy/spawner.png')
+    this.load.image('enemyMinion', 'assets/sprites/enemy/minion.png')
+    // New V1 enemy types
+    this.load.image('enemyBomber', 'assets/sprites/enemy/bomber.png')
+    this.load.image('enemyTank', 'assets/sprites/enemy/tank.png')
+    this.load.image('enemyCharger', 'assets/sprites/enemy/charger.png')
     this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
 
     // Load projectiles

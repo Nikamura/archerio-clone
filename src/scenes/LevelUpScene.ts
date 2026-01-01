@@ -9,6 +9,7 @@ interface AbilityData {
 }
 
 const ABILITIES: AbilityData[] = [
+  // Original 8 abilities
   {
     id: 'front_arrow',
     name: 'Front Arrow +1',
@@ -56,6 +57,55 @@ const ABILITIES: AbilityData[] = [
     name: 'Critical',
     description: '+10% crit, +40% dmg',
     color: 0xffff00,
+  },
+  // New 8 abilities for V1
+  {
+    id: 'ice_shot',
+    name: 'Ice Shot',
+    description: '15% freeze chance',
+    color: 0x66ccff,
+  },
+  {
+    id: 'poison_shot',
+    name: 'Poison',
+    description: '5% DOT, stacks 5x',
+    color: 0x66ff66,
+  },
+  {
+    id: 'lightning_chain',
+    name: 'Lightning',
+    description: 'Chain to 2 enemies',
+    color: 0x9966ff,
+  },
+  {
+    id: 'diagonal_arrows',
+    name: 'Diagonal Arrows',
+    description: '+2 arrows at 30°',
+    color: 0xff9966,
+  },
+  {
+    id: 'rear_arrow',
+    name: 'Rear Arrow',
+    description: '+1 backwards',
+    color: 0x6699ff,
+  },
+  {
+    id: 'bouncy_wall',
+    name: 'Bouncy Wall',
+    description: '2 wall bounces',
+    color: 0x99ff99,
+  },
+  {
+    id: 'bloodthirst',
+    name: 'Bloodthirst',
+    description: '+2 HP per kill',
+    color: 0xff3333,
+  },
+  {
+    id: 'rage',
+    name: 'Rage',
+    description: '+5% dmg per 10% HP lost',
+    color: 0xcc0000,
   },
 ]
 

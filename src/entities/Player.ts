@@ -172,6 +172,39 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats.addCritBoost()
   }
 
+  // New V1 ability application methods
+  addIceShot() {
+    this.stats.addIceShot()
+  }
+
+  addPoisonShot() {
+    this.stats.addPoisonShot()
+  }
+
+  addLightningChain() {
+    this.stats.addLightningChain()
+  }
+
+  addDiagonalArrows() {
+    this.stats.addDiagonalArrows()
+  }
+
+  addRearArrow() {
+    this.stats.addRearArrow()
+  }
+
+  addBouncyWall() {
+    this.stats.addBouncyWall()
+  }
+
+  addBloodthirst() {
+    this.stats.addBloodthirst()
+  }
+
+  addRage() {
+    this.stats.addRage()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats.getPiercingLevel()
@@ -207,6 +240,47 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getPiercingDamage(hitNumber: number): number {
     return this.stats.getPiercingDamage(hitNumber)
+  }
+
+  // New V1 ability getters
+  getFreezeChance(): number {
+    return this.stats.getFreezeChance()
+  }
+
+  rollFreeze(): boolean {
+    return this.stats.rollFreeze()
+  }
+
+  getPoisonDamagePercent(): number {
+    return this.stats.getPoisonDamagePercent()
+  }
+
+  getPoisonDamage(): number {
+    return this.stats.getPoisonDamage()
+  }
+
+  getLightningChainCount(): number {
+    return this.stats.getLightningChainCount()
+  }
+
+  getDiagonalArrows(): number {
+    return this.stats.getDiagonalArrows()
+  }
+
+  getRearArrows(): number {
+    return this.stats.getRearArrows()
+  }
+
+  getWallBounces(): number {
+    return this.stats.getWallBounces()
+  }
+
+  getBloodthirstHeal(): number {
+    return this.stats.getBloodthirstHeal()
+  }
+
+  getRageLevel(): number {
+    return this.stats.getRageLevel()
   }
 
   // Reset run-based stats

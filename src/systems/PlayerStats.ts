@@ -39,6 +39,17 @@ export class PlayerStats {
   private critChance: number = 0  // 0-1 (e.g., 0.1 = 10%)
   private critDamageMultiplier: number = 1.5  // Base crit multiplier (150%)
 
+  // New V1 abilities
+  private freezeChance: number = 0  // 0-1 (e.g., 0.15 = 15%)
+  private poisonDamagePercent: number = 0  // Percentage of weapon damage as poison DOT per second
+  private poisonMaxStacks: number = 5  // Maximum poison stacks
+  private lightningChainCount: number = 0  // Number of enemies lightning chains to
+  private diagonalArrows: number = 0  // Number of diagonal arrow pairs
+  private rearArrows: number = 0  // Number of rear arrows
+  private wallBounces: number = 0  // Number of times arrows bounce off walls
+  private bloodthirstHeal: number = 0  // HP healed per kill
+  private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
+
   constructor(options?: {
     maxHealth?: number
     baseDamage?: number
@@ -165,10 +176,22 @@ export class PlayerStats {
   /**
    * Calculate current damage with ability modifiers
    * Front Arrow reduces damage by 25% per extra projectile
+   * Rage adds +5% damage per 10% missing HP per level
    */
   getDamage(): number {
     const frontArrowPenalty = Math.pow(0.75, this.extraProjectiles)
-    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty)
+
+    // Calculate rage bonus based on missing HP
+    let rageBonus = 1.0
+    if (this.rageLevel > 0) {
+      const missingHpPercent = 1 - (this.health / this.maxHealth)
+      // +5% damage per 10% missing HP per level
+      // At 50% HP missing with level 1: 5 * 0.05 = 25% bonus
+      const bonusPercent = Math.floor(missingHpPercent * 10) * 0.05 * this.rageLevel
+      rageBonus = 1 + bonusPercent
+    }
+
+    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus)
   }
 
   /**
@@ -214,6 +237,60 @@ export class PlayerStats {
 
   getCritDamageMultiplier(): number {
     return this.critDamageMultiplier
+  }
+
+  // New V1 ability getters
+  getFreezeChance(): number {
+    return this.freezeChance
+  }
+
+  getPoisonDamagePercent(): number {
+    return this.poisonDamagePercent
+  }
+
+  /**
+   * Calculate poison damage amount based on current weapon damage
+   * Poison does 5% weapon damage per second
+   */
+  getPoisonDamage(): number {
+    if (this.poisonDamagePercent === 0) return 0
+    return Math.floor(this.getDamage() * this.poisonDamagePercent)
+  }
+
+  getPoisonMaxStacks(): number {
+    return this.poisonMaxStacks
+  }
+
+  getLightningChainCount(): number {
+    return this.lightningChainCount
+  }
+
+  getDiagonalArrows(): number {
+    return this.diagonalArrows
+  }
+
+  getRearArrows(): number {
+    return this.rearArrows
+  }
+
+  getWallBounces(): number {
+    return this.wallBounces
+  }
+
+  getBloodthirstHeal(): number {
+    return this.bloodthirstHeal
+  }
+
+  getRageLevel(): number {
+    return this.rageLevel
+  }
+
+  /**
+   * Roll for freeze effect
+   * @returns true if this hit should freeze the enemy
+   */
+  rollFreeze(): boolean {
+    return Math.random() < this.freezeChance
   }
 
   /**
@@ -310,6 +387,72 @@ export class PlayerStats {
     this.critDamageMultiplier *= 1.40  // +40% crit damage
   }
 
+  // New V1 ability application methods
+
+  /**
+   * Add Ice Shot ability (15% freeze chance per level)
+   * Stacking: Additive (each level adds +15% freeze chance)
+   */
+  addIceShot(): void {
+    this.freezeChance = Math.min(1, this.freezeChance + 0.15)  // Cap at 100%
+  }
+
+  /**
+   * Add Poison Shot ability (5% DOT per second, stacks up to 5x)
+   * Stacking: Additive poison damage per level
+   */
+  addPoisonShot(): void {
+    this.poisonDamagePercent += 0.05  // +5% weapon damage per second
+  }
+
+  /**
+   * Add Lightning Chain ability (chains to 2 additional enemies per level)
+   * Stacking: Each level adds +2 chain targets
+   */
+  addLightningChain(): void {
+    this.lightningChainCount += 2
+  }
+
+  /**
+   * Add Diagonal Arrows ability (+2 arrows at 30 degree angles)
+   * Stacking: Each level adds +2 diagonal arrows (1 pair)
+   */
+  addDiagonalArrows(): void {
+    this.diagonalArrows += 2
+  }
+
+  /**
+   * Add Rear Arrow ability (+1 arrow shooting backwards)
+   * Stacking: Each level adds +1 rear arrow
+   */
+  addRearArrow(): void {
+    this.rearArrows++
+  }
+
+  /**
+   * Add Bouncy Wall ability (arrows bounce off walls 2 times per level)
+   * Stacking: Each level adds +2 wall bounces
+   */
+  addBouncyWall(): void {
+    this.wallBounces += 2
+  }
+
+  /**
+   * Add Bloodthirst ability (+2 HP per kill per level)
+   * Stacking: Each level adds +2 HP healed per kill
+   */
+  addBloodthirst(): void {
+    this.bloodthirstHeal += 2
+  }
+
+  /**
+   * Add Rage ability (+5% damage per 10% missing HP per level)
+   * Stacking: Each level increases damage scaling
+   */
+  addRage(): void {
+    this.rageLevel++
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -331,6 +474,15 @@ export class PlayerStats {
     this.critChance = 0
     this.critDamageMultiplier = 1.5
     this.isInvincible = false
+    // Reset new V1 abilities
+    this.freezeChance = 0
+    this.poisonDamagePercent = 0
+    this.lightningChainCount = 0
+    this.diagonalArrows = 0
+    this.rearArrows = 0
+    this.wallBounces = 0
+    this.bloodthirstHeal = 0
+    this.rageLevel = 0
   }
 
   /**
@@ -351,6 +503,14 @@ export class PlayerStats {
     fireDamagePercent: number
     critChance: number
     critDamageMultiplier: number
+    freezeChance: number
+    poisonDamagePercent: number
+    lightningChainCount: number
+    diagonalArrows: number
+    rearArrows: number
+    wallBounces: number
+    bloodthirstHeal: number
+    rageLevel: number
   } {
     return {
       health: this.health,
@@ -367,6 +527,14 @@ export class PlayerStats {
       fireDamagePercent: this.fireDamagePercent,
       critChance: this.critChance,
       critDamageMultiplier: this.critDamageMultiplier,
+      freezeChance: this.freezeChance,
+      poisonDamagePercent: this.poisonDamagePercent,
+      lightningChainCount: this.lightningChainCount,
+      diagonalArrows: this.diagonalArrows,
+      rearArrows: this.rearArrows,
+      wallBounces: this.wallBounces,
+      bloodthirstHeal: this.bloodthirstHeal,
+      rageLevel: this.rageLevel,
     }
   }
 }

@@ -199,12 +199,18 @@ assets/
 - Single weapon type: basic bow with moderate speed
 - Projectiles use object pooling with off-screen recycling
 
-**Three enemy archetypes:**
+**Nine enemy archetypes:**
 | Enemy | Behavior | Attack |
 |-------|----------|--------|
 | Melee Rusher | Moves directly toward player | Contact damage |
 | Ranged Shooter | Stops periodically, fires at player | Single projectile with red telegraph line |
 | Spreader | Stationary, fires 4-direction pattern | Slow projectiles |
+| Charger | Normal speed, then dashes at player | High contact damage during charge (2.5x), stunned after |
+| Bomber | Medium speed, keeps distance | Throws AOE bombs that explode after 1.5s with warning circle |
+| Tank | Very slow, 3x health, large (48x48) | 8-way spread shot with charge-up animation |
+| Burrower | Burrows underground, surfaces near player | Spread attack on surfacing (6 projectiles) |
+| Healer | Stays away from player, heals nearby allies | Heals 10 HP to nearby enemies every 3s |
+| Spawner | Stationary, high health | Spawns up to 3 weak minion enemies |
 
 **Level structure:**
 - 10 rooms per run (linear progression)
@@ -262,7 +268,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] Auto-aim + auto-fire system (fires at nearest enemy when stationary)
 [x] Bullet pool (100 bullets)
 [x] Enemy bullet pool (100 enemy bullets)
-[x] 3 enemy AI behaviors (melee rusher, ranged shooter with telegraph, spreader)
+[x] 6 enemy AI behaviors (melee rusher, ranged shooter, spreader, burrower, healer, spawner)
 [x] Collision detection (player/enemy, bullet/enemy, enemy-bullet/player)
 [x] Automated visual testing with Puppeteer
 [x] Room system with door transitions
@@ -282,7 +288,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Basic project structure with TypeScript + Vite
 - ✅ Core "stop to shoot, move to dodge" mechanic working
 - ✅ Virtual joystick controls (mobile ready, Y-axis fixed) + WASD/arrow keyboard controls
-- ✅ Three enemy types: Melee, Ranged Shooter, Spreader
+- ✅ Nine enemy types: Melee, Ranged Shooter, Spreader, Charger, Bomber, Tank, Burrower, Healer, Spawner
 - ✅ Auto-aim targeting nearest enemy
 - ✅ Enemy bullet system with collision
 - ✅ Player damage system (enemy melee + bullets)
@@ -295,7 +301,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Room progression with scaling difficulty
 - ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
 - ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards (using Container for proper click handling)
-- ✅ **8 abilities implemented** - All MVP abilities complete:
+- ✅ **16 abilities implemented** - All MVP abilities + 8 new V1 abilities complete:
   - Front Arrow (+1 projectile, -25% damage per level)
   - Multishot (side arrows at 45°, -15% attack speed per level)
   - Attack Speed (+25% multiplicative)
@@ -304,6 +310,15 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Ricochet (arrows bounce 3x between enemies per level)
   - Fire Damage (+18% DOT over 2 seconds, additive stacking)
   - Crit Boost (+10% crit chance additive, +40% crit damage multiplicative)
+  - **New V1 Abilities (2026-01-01):**
+  - Ice Shot (15% freeze chance per level, 1.5s freeze duration, blue tint)
+  - Poison Shot (5% DOT per second for 4s, stacks up to 5x, green tint)
+  - Lightning Chain (chains to 2 nearby enemies per level, 50% damage, 150px range)
+  - Diagonal Arrows (+2 arrows at 30° angles per level, 80% damage)
+  - Rear Arrow (+1 backwards arrow per level, 70% damage)
+  - Bouncy Wall (2 wall bounces per level, full damage on bounces)
+  - Bloodthirst (+2 HP heal per kill per level, red flash visual)
+  - Rage (+5% damage per 10% missing HP per level, scales dynamically)
 - ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
 - ✅ **Boss fight** - Room 10 boss with 3 attack patterns:
   - Spread Shot: 8 projectiles in circular pattern (2 waves)
@@ -316,10 +331,56 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Ricochet: Bullets redirect to nearest enemy after hit, up to maxBounces times
   - Fire DOT: Enemies burn with orange tint, tick damage every 500ms for 2 seconds
   - Critical hits: Yellow tinted bullets deal increased damage (visual feedback)
-  - All effects work with Front Arrow and Multishot projectiles
+  - All effects work with Front Arrow, Multishot, Diagonal, and Rear Arrow projectiles
+  - **New V1 Ability Effects (2026-01-01):**
+  - Freeze: Enemies can't move or attack for 1.5s, blue tint visual, effect priority system
+  - Poison DOT: Stacking damage (up to 5 stacks), 1 tick/second for 4s, green tint visual
+  - Lightning Chain: Damages 2 nearby enemies per level at 50% damage, 150px max range
+  - Diagonal/Rear Arrows: Additional projectiles at fixed angles with damage reduction
+  - Wall Bounce: Bullets reflect off walls up to N times, maintaining full damage
+  - Bloodthirst: Heals player on any kill (bullet, fire, poison, or lightning chain)
+  - Rage: Dynamic damage scaling based on current missing HP percentage
 - ✅ **Enemy health bars** - Small health bars appear above enemies when damaged (hidden at full HP)
   - Color changes: green (>50%) → yellow (25-50%) → red (<25%)
   - Follows enemy movement, auto-hides when enemy dies or resets
+- ✅ **New enemy types** (2026-01-01):
+  - **Charger**: Fast dash attack enemy with telegraph
+    - Normal speed until charging, then very fast (350 speed)
+    - Wind-up phase (0.7s): Shakes, flashes red/cyan, shows direction line
+    - Charge phase (0.6s): Dashes toward player position, leaves trail
+    - Stunned phase (0.8s): Briefly stunned after charge (wobble effect)
+    - 2.5x contact damage during charge, normal otherwise
+    - Appears in mid-early rooms (room 3+)
+  - **Bomber**: AOE bomb-throwing enemy
+    - Medium speed, maintains 120-220px distance from player
+    - Throws bombs that land and explode after 1.5s fuse time
+    - Warning circle shows explosion radius (60px) before detonation
+    - Explosion animation with expanding circle
+    - Player knockback on hit
+    - Appears in mid-late rooms (room 5+)
+  - **Tank**: Slow, heavily armored 8-way spread shooter
+    - Very slow movement (30 speed), 3x normal health
+    - Larger sprite (48x48 vs normal 32x32)
+    - Charge-up attack (0.8s): Purple-to-red tint with pulse
+    - Fires 8 projectiles in all directions simultaneously
+    - Higher contact damage (1.5x normal)
+    - Appears in late rooms (room 7+)
+  - **Burrower**: Burrows underground (alpha 0.3, no collision), surfaces near player to attack
+    - Fires 6-projectile spread attack on surfacing
+    - Invulnerable while burrowed, dust particles when burrowing/surfacing
+    - Appears in mid-rooms (room 3+)
+  - **Healer**: Low health support enemy that stays away from player
+    - Heals 10 HP to all enemies within 150px range every 3 seconds
+    - Green healing aura visual, particles on heal
+    - Priority target for players
+  - **Spawner**: Stationary high-health enemy that creates minions
+    - Spawns up to 3 weak minion enemies every 4 seconds
+    - Purple spawn aura, visual pulse on spawn
+    - When spawner dies, all its minions die too
+    - Minions: 30% HP, 50% damage, fast movement
+    - Appears in late rooms (room 6+)
+  - Enemy group integration for healing and spawning mechanics
+  - BombPool and BombProjectile for bomber AOE attacks
 - ✅ **Difficulty selection** (2026-01-01):
   - Three difficulty modes: Easy, Normal, Hard
   - Easy: +50% player HP, +20% damage/speed, -30% enemy HP, -25% enemy damage, -20% spawns
@@ -330,6 +391,18 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - All sounds generated at runtime using oscillators
   - Sounds: shoot, hit, player_hit, level_up, ability_select, room_clear, death, victory, menu_select, game_start
   - Integrated into all game events: shooting, damage, level-up, room completion, game over
+- ✅ **Haptic feedback system** (2026-01-01):
+  - HapticManager (src/systems/HapticManager.ts) using Web Vibration API
+  - Graceful fallback for unsupported browsers
+  - Vibration patterns for game events:
+    - `light` (10ms): collecting gold/items, enemy death
+    - `medium` (25ms): shooting arrows
+    - `heavy` (50ms): taking damage
+    - `bossHit` (40ms): hitting the boss
+    - `death` ([100, 50, 100]ms): player death
+    - `levelUp` ([50, 30, 50, 30, 100]ms): level up celebration
+  - Toggleable via `hapticManager.enabled` property
+  - iOS Safari requires user interaction first (joystick touch satisfies this)
 - ✅ ESLint + TypeScript build passing
 - ✅ 92 unit tests passing with high coverage
 - 🚧 Dev server running at http://localhost:3000/
@@ -418,6 +491,20 @@ Visual test screenshots are saved to `test/screenshots/`
      - Scroll position clamped to content bounds (0 to maxScroll)
    - Fixed elements remain in place: header, spin button, bonus panel, back button
    - **LESSON**: For Phaser 3 scrollable content, use Container + GeometryMask + pointer/wheel input handlers
+14. ✅ **Equipment and talents lost on page refresh** - FIXED (2026-01-01):
+   - Issue: Equipment inventory, equipped items, and unlocked talents were not persisting across page refreshes
+   - Root cause: EquipmentManager and TalentManager had `toSaveData()`/`fromSaveData()` methods but:
+     - No localStorage key was defined for either manager
+     - No auto-save was triggered when data changed
+     - No data was loaded on game boot (managers started with empty state)
+   - Fixed by adding localStorage persistence directly to each manager:
+     - Added `EQUIPMENT_STORAGE_KEY = 'archerio_equipment_data'` and `TALENT_STORAGE_KEY = 'archerio_talent_data'`
+     - Added `saveToStorage()` method that calls `toSaveData()` and writes to localStorage
+     - Added `loadFromStorage()` method that reads localStorage and calls `fromSaveData()` on construction
+     - Added `saveToStorage()` calls after all mutating operations:
+       - EquipmentManager: addToInventory, removeFromInventory, equip, unequip, upgrade, clear
+       - TalentManager: spin (lottery state + talent upgrades), reset, forceUnlock
+   - **LESSON**: For singleton managers with save/load methods, always add auto-save on mutation and auto-load on construction
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -580,9 +667,9 @@ Visual test screenshots are saved to `test/screenshots/`
 **Audio and visual polish:**
 - 3 music tracks (menu, gameplay, boss)
 - Sound effects for all actions (differentiated by rarity)
-- Screen shake on damage/boss attacks
-- Particle effects for abilities and deaths
-- Visual telegraph for all enemy attacks
+- Screen shake on damage/boss attacks (IMPLEMENTED: ScreenShake system)
+- Particle effects for abilities and deaths (IMPLEMENTED: ParticleManager system)
+- Visual telegraph for all enemy attacks (IMPLEMENTED: Boss AOE danger zones)
 
 ### V1 technical additions
 
@@ -726,9 +813,36 @@ Visual test screenshots are saved to `test/screenshots/`
     - End-of-run rewards based on performance (rooms, kills, boss, victory)
     - GameOverScene enhanced with rewards display and chest icons
     - Integration with CurrencyManager for gold collection
-[ ] Chest opening UI with equipment drops
+[x] Chest opening UI with equipment drops
 [ ] Unique enemy sets per chapter
-[ ] 15 boss encounters (3 per chapter × 5 chapters)
+[x] 15 boss encounters (3 per chapter x 5 chapters) (2026-01-01)
+    - Created BaseBoss abstract class for shared boss functionality:
+      - Health management with damage multipliers
+      - Attack cycling with phase transitions
+      - Visual telegraph effects (lines, circles)
+      - Projectile firing helpers (spread, aimed shots)
+    - Created BossFactory for centralized boss instantiation:
+      - createBoss(scene, x, y, bossType, bulletPool, options)
+      - getBossDisplaySize(bossType) and getBossHitboxRadius(bossType)
+    - Chapter 1 - Dark Dungeon bosses: Boss (original demon boss)
+    - Chapter 2 - Forest Ruins bosses (all 3 complete):
+      - TreeGuardianBoss: Vine whip (line damage), root trap (area denial), leaf storm (spiral projectiles)
+      - WildBoarBoss: Fast charge, ground stomp (radial shockwave), summon minions
+      - ForestSpiritBoss: Teleport (disappear/reappear), homing orbs, mirror images (decoys)
+    - Chapter 3 - Frozen Caves bosses (all 3 complete):
+      - IceGolemBoss: Ice breath (cone AOE/slow), ice spikes (ground pound), shield reflect
+      - FrostWyrmBoss: Dive attack (off-screen), ice barrage, freezing roar (1sec freeze)
+      - CrystalGuardianBoss: Laser beam (sweep), crystal turrets (spawn/fire), crystal shatter (fragment damage)
+    - Chapter 4 - Volcanic Depths bosses:
+      - LavaGolemBoss: Lava pools (DOT zones), meteor shower, fire wave
+      - MagmaWyrmBoss: Burrow/emerge attack, fire breath sweep, segment trail
+      - InfernoDemonBoss: Flame pillars, teleport dash, enrage at 30% HP
+    - Chapter 5 - Shadow Realm bosses:
+      - VoidLordBoss: Darkness zones (DOT), shadow tentacles, phase shift (invulnerable)
+      - NightmareBoss: Screen distortion, clone multiplication, fear pulse
+      - FinalBoss: Multi-phase (fire 100-70%, shadow 70-40%, combined 40-0%), minion summoning
+    - Chapter-specific boss pools in chapterData.ts with random selection
+    - GameScene.spawnBoss() updated to use BossFactory with chapter scaling
 [x] Save/load system for all progression (2026-01-01)
     - SaveManager (src/systems/SaveManager.ts): Complete persistence system
     - Version migration support for future updates (migrateData function)
@@ -814,6 +928,57 @@ Visual test screenshots are saved to `test/screenshots/`
     - GameOverScene integration:
       - achievementManager.checkAchievements() called after run stats recorded
       - Ensures achievements update immediately after each run
+[x] Visual effects polish (2026-01-01)
+    - ScreenShake system (`src/systems/ScreenShake.ts`):
+      - Centralized camera shake management using Phaser's camera.shake()
+      - Configurable intensity presets: TINY, SMALL, MEDIUM, LARGE, EXTREME
+      - Duration presets: SHORT (100ms), MEDIUM (200ms), LONG (350ms), EXTENDED (500ms)
+      - Event-specific methods:
+        - onPlayerDamage(): Small shake when player takes damage
+        - onPlayerHeavyDamage(): Medium shake for heavy hits
+        - onPlayerDeath(): Large shake on death
+        - onBossAttack(): Medium shake for boss attacks
+        - onBossCharge(): Medium shake when boss charges
+        - onBossDeath(): Large extended shake on boss defeat
+        - onExplosion(): Medium shake for enemy death explosions
+        - onEnemyHit(): Tiny shake for bullet impacts
+        - onCriticalHit(): Small shake for crits
+      - Shake interruption control (force parameter)
+      - Enable/disable toggle for accessibility
+    - ParticleManager system (`src/systems/ParticleManager.ts`):
+      - Centralized particle effect management using Phaser's particle emitter
+      - Auto-generated 16x16 circular particle texture
+      - Particle effect types with unique configurations:
+        - death: Red enemy explosion (12 particles, gravity)
+        - bossDeath: Large red/orange explosion (40 particles, 2 waves)
+        - hit: Yellow/orange impact sparks (6 particles)
+        - crit: Bright yellow burst with ADD blend (10 particles)
+        - fire: Rising orange flames with ADD blend (4 particles)
+        - ice: Blue crystalline scatter (8 particles)
+        - levelUp: Colorful celebration burst (30 particles, ADD blend)
+        - goldCollect: Golden sparkles (5 particles)
+        - heal: Green rising particles (10 particles, ADD blend)
+      - Each effect has tuned speed, scale, lifespan, alpha, tint, and gravity
+      - Automatic emitter cleanup after particle lifespan
+      - Factory function createParticleManager() for easy instantiation
+    - Boss telegraph improvements:
+      - Spread attack danger zone: Red pulsing circle with direction lines
+      - Charge attack: Growing red line from boss to target player
+      - Barrage attack: Existing telegraph lines with pulsing alpha
+    - GameScene integration:
+      - Bullet hits trigger hit/crit particles + screen shake
+      - Fire DOT application shows fire particles
+      - Enemy deaths trigger death particles + explosion shake
+      - Boss death triggers large explosion particles + extended shake
+      - Player damage triggers screen shake (scaled by damage amount)
+      - Player death triggers death shake
+      - Level up triggers celebration particles
+      - Gold collection triggers gold sparkle particles
+      - Health pickup triggers heal particles
+      - Fire DOT kills show death + fire particles
+    - Files created:
+      - `src/systems/ScreenShake.ts`: Camera shake system
+      - `src/systems/ParticleManager.ts`: Particle effects system
 [ ] Expanded procedural generation (more room templates, enemy combinations)
 [ ] Performance optimization pass (target 50+ entities at 60 FPS)
 ```

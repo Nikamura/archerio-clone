@@ -24,6 +24,9 @@ export interface DifficultyConfig {
   bossHealthMultiplier: number
   bossDamageMultiplier: number
 
+  // Reward modifiers (effort:reward principle - harder = more gold)
+  goldMultiplier: number
+
   // Display
   label: string
   description: string
@@ -46,6 +49,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     bossHealthMultiplier: 0.6, // -40% health
     bossDamageMultiplier: 0.75, // -25% damage
 
+    // Reward - less gold for easier mode (effort:reward)
+    goldMultiplier: 0.7, // -30% gold
+
     // Display
     label: 'EASY',
     description: 'For beginners - more health, weaker enemies',
@@ -66,6 +72,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     bossHealthMultiplier: 1.0,
     bossDamageMultiplier: 1.0,
 
+    // Standard rewards
+    goldMultiplier: 1.0,
+
     // Display
     label: 'NORMAL',
     description: 'Balanced challenge',
@@ -85,6 +94,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     // Boss buffs
     bossHealthMultiplier: 1.5, // +50% health
     bossDamageMultiplier: 1.3, // +30% damage
+
+    // Reward - more gold for harder mode (effort:reward)
+    goldMultiplier: 1.5, // +50% gold
 
     // Display
     label: 'HARD',

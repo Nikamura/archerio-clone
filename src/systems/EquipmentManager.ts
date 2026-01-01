@@ -40,6 +40,13 @@ import {
 } from '../config/equipmentData'
 
 // ============================================
+// Constants
+// ============================================
+
+/** localStorage key for equipment data persistence */
+const EQUIPMENT_STORAGE_KEY = 'archerio_equipment_data'
+
+// ============================================
 // Event Types
 // ============================================
 
@@ -98,6 +105,8 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
 
   private constructor() {
     super()
+    // Load saved data on construction
+    this.loadFromStorage()
   }
 
   /**
@@ -158,6 +167,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
   addToInventory(equipment: Equipment): void {
     this.inventory.push(equipment)
     this.emit(EQUIPMENT_EVENTS.INVENTORY_CHANGED, { action: 'add', item: equipment })
+    this.saveToStorage()
   }
 
   /**
@@ -179,6 +189,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
 
     const removed = this.inventory.splice(index, 1)[0]
     this.emit(EQUIPMENT_EVENTS.INVENTORY_CHANGED, { action: 'remove', item: removed })
+    this.saveToStorage()
     return true
   }
 
@@ -321,6 +332,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
     this.invalidateStats()
     this.emit(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, { slot, item: equipment })
     this.emit(EQUIPMENT_EVENTS.STATS_CHANGED, this.getEquippedStats())
+    this.saveToStorage()
     return true
   }
 
@@ -334,6 +346,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
       this.invalidateStats()
       this.emit(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, { slot, item: null })
       this.emit(EQUIPMENT_EVENTS.STATS_CHANGED, this.getEquippedStats())
+      this.saveToStorage()
     }
     return item
   }
@@ -483,6 +496,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
 
     this.emit(EQUIPMENT_EVENTS.ITEM_UPGRADED, { item: equipment, newLevel: equipment.level })
     this.emit(EQUIPMENT_EVENTS.INVENTORY_CHANGED, { action: 'update', item: equipment })
+    this.saveToStorage()
 
     return { success: true, newLevel: equipment.level }
   }
@@ -667,6 +681,39 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
     this.invalidateStats()
     this.emit(EQUIPMENT_EVENTS.INVENTORY_CHANGED, { action: 'clear' })
     this.emit(EQUIPMENT_EVENTS.STATS_CHANGED, this.getEquippedStats())
+    this.saveToStorage()
+  }
+
+  // ============================================
+  // LocalStorage Persistence
+  // ============================================
+
+  /**
+   * Save equipment data to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      const data = this.toSaveData()
+      localStorage.setItem(EQUIPMENT_STORAGE_KEY, JSON.stringify(data))
+    } catch (error) {
+      console.error('EquipmentManager: Failed to save data:', error)
+    }
+  }
+
+  /**
+   * Load equipment data from localStorage
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(EQUIPMENT_STORAGE_KEY)
+      if (stored) {
+        const data = JSON.parse(stored) as EquipmentSaveData
+        this.fromSaveData(data)
+        console.log(`EquipmentManager: Loaded ${this.inventory.length} items from storage`)
+      }
+    } catch (error) {
+      console.error('EquipmentManager: Failed to load data:', error)
+    }
   }
 }
 

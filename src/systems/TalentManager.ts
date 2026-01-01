@@ -86,6 +86,9 @@ export type TalentEventCallback = (data: TalentEventData) => void
 // Constants
 // ============================================
 
+/** localStorage key for talent data persistence */
+const TALENT_STORAGE_KEY = 'archerio_talent_data'
+
 /** Base cost for lottery spin in gold */
 const BASE_SPIN_COST = 500
 
@@ -116,6 +119,8 @@ export class TalentManager {
     this.unlockedTalents = new Map()
     this.lotteryState = this.createFreshLotteryState()
     this.eventListeners = new Map()
+    // Load saved data on construction
+    this.loadFromStorage()
   }
 
   // ============================================
@@ -238,6 +243,8 @@ export class TalentManager {
 
     // Increment spins today
     this.lotteryState.spinsToday++
+    // Save lottery state immediately to persist spin count
+    this.saveToStorage()
 
     // Roll for talent
     const talent = this.rollRandomTalent()
@@ -252,6 +259,7 @@ export class TalentManager {
         const actualNewLevel = this.getTalentLevel(upgradableTalent.id) + 1
         this.unlockedTalents.set(upgradableTalent.id, actualNewLevel)
         this.invalidateBonusCache()
+        this.saveToStorage()
 
         const isNew = actualNewLevel === 1
         const eventType = isNew ? 'talentUnlocked' : 'talentUpgraded'
@@ -285,6 +293,7 @@ export class TalentManager {
     // Upgrade the talent
     this.unlockedTalents.set(talent.id, newLevel)
     this.invalidateBonusCache()
+    this.saveToStorage()
 
     const isNew = newLevel === 1
     const eventType = isNew ? 'talentUnlocked' : 'talentUpgraded'
@@ -562,6 +571,7 @@ export class TalentManager {
     this.unlockedTalents.clear()
     this.lotteryState = this.createFreshLotteryState()
     this.invalidateBonusCache()
+    this.saveToStorage()
   }
 
   // ============================================
@@ -601,6 +611,39 @@ export class TalentManager {
     const clampedLevel = Math.max(0, Math.min(level, talent.maxLevel))
     this.unlockedTalents.set(talentId, clampedLevel)
     this.invalidateBonusCache()
+    this.saveToStorage()
+  }
+
+  // ============================================
+  // LocalStorage Persistence
+  // ============================================
+
+  /**
+   * Save talent data to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      const data = this.toSaveData()
+      localStorage.setItem(TALENT_STORAGE_KEY, JSON.stringify(data))
+    } catch (error) {
+      console.error('TalentManager: Failed to save data:', error)
+    }
+  }
+
+  /**
+   * Load talent data from localStorage
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(TALENT_STORAGE_KEY)
+      if (stored) {
+        const data = JSON.parse(stored) as TalentSaveData
+        this.fromSaveData(data)
+        console.log(`TalentManager: Loaded ${this.unlockedTalents.size} talents from storage`)
+      }
+    } catch (error) {
+      console.error('TalentManager: Failed to load data:', error)
+    }
   }
 }
 

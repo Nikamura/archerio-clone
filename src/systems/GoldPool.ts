@@ -11,6 +11,7 @@ export default class GoldPool extends Phaser.Physics.Arcade.Group {
   private _poolScene: Phaser.Scene
   private floatingTextPool: Phaser.GameObjects.Text[] = []
   private maxFloatingTexts: number = 20
+  private _goldMultiplier: number = 1.0 // Difficulty-based gold multiplier
 
   constructor(scene: Phaser.Scene) {
     super(scene.physics.world, scene, {
@@ -115,6 +116,14 @@ export default class GoldPool extends Phaser.Physics.Arcade.Group {
   }
 
   /**
+   * Set the gold multiplier based on difficulty
+   * @param multiplier The multiplier to apply to all gold drops
+   */
+  setGoldMultiplier(multiplier: number): void {
+    this._goldMultiplier = multiplier
+  }
+
+  /**
    * Spawn gold at a position based on enemy type
    * @param x Spawn X position
    * @param y Spawn Y position
@@ -122,7 +131,8 @@ export default class GoldPool extends Phaser.Physics.Arcade.Group {
    * @returns The gold value spawned
    */
   spawnForEnemy(x: number, y: number, enemyType: EnemyType): number {
-    const goldValue = currencyManager.calculateEnemyGoldDrop(enemyType)
+    const baseGoldValue = currencyManager.calculateEnemyGoldDrop(enemyType)
+    const goldValue = Math.round(baseGoldValue * this._goldMultiplier)
     this.spawn(x, y, goldValue)
     return goldValue
   }
@@ -170,6 +180,39 @@ export default class GoldPool extends Phaser.Physics.Arcade.Group {
    */
   getActiveCount(): number {
     return this.getChildren().filter((child) => child.active).length
+  }
+
+  /**
+   * Magnetically collect all gold pickups instantly (called on room clear)
+   * @param playerX Player X position
+   * @param playerY Player Y position
+   * @returns Total gold collected
+   */
+  collectAll(playerX: number, playerY: number): number {
+    let totalCollected = 0
+
+    this.getChildren().forEach((child) => {
+      const gold = child as GoldPickup
+      if (gold.active) {
+        // Animate gold flying to player position
+        this._poolScene.tweens.add({
+          targets: gold,
+          x: playerX,
+          y: playerY,
+          duration: 300,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            const value = gold.collect()
+            if (value > 0) {
+              this.showFloatingText(playerX, playerY - 20, value)
+            }
+          },
+        })
+        totalCollected += gold.getValue()
+      }
+    })
+
+    return totalCollected
   }
 
   /**

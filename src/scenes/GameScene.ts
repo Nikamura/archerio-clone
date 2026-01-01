@@ -3,18 +3,30 @@ import Player from '../entities/Player'
 import Enemy from '../entities/Enemy'
 import RangedShooterEnemy from '../entities/RangedShooterEnemy'
 import SpreaderEnemy from '../entities/SpreaderEnemy'
+import BomberEnemy from '../entities/BomberEnemy'
+import TankEnemy from '../entities/TankEnemy'
+import ChargerEnemy from '../entities/ChargerEnemy'
+import BurrowerEnemy from '../entities/BurrowerEnemy'
+import HealerEnemy from '../entities/HealerEnemy'
+import SpawnerEnemy from '../entities/SpawnerEnemy'
 import Boss from '../entities/Boss'
 import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
+import BombPool from '../systems/BombPool'
 import GoldPool from '../systems/GoldPool'
+import HealthPool from '../systems/HealthPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, type BossType, type ChapterId } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager } from '../systems/SaveManager'
+import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
+import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
+import { hapticManager } from '../systems/HapticManager'
+import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -32,10 +44,16 @@ export default class GameScene extends Phaser.Scene {
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
+  private bombPool!: BombPool
   private goldPool!: GoldPool
+  private healthPool!: HealthPool
   private enemies!: Phaser.Physics.Arcade.Group
   private lastShotTime: number = 0
   private fireRate: number = 500 // ms between shots
+
+  // Visual effects systems
+  private screenShake!: ScreenShake
+  private particles!: ParticleManager
 
   // Game state tracking
   private isGameOver: boolean = false
@@ -97,10 +115,17 @@ export default class GameScene extends Phaser.Scene {
       baseAttackSpeed: this.difficultyConfig.playerAttackSpeed,
     })
 
-    // Create bullet pools and gold pool
+    // Create bullet pools, bomb pool, gold pool, and health pool
     this.bulletPool = new BulletPool(this)
     this.enemyBulletPool = new EnemyBulletPool(this)
+    this.bombPool = new BombPool(this)
     this.goldPool = new GoldPool(this)
+    this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier) // Apply difficulty gold scaling
+    this.healthPool = new HealthPool(this)
+
+    // Create visual effects systems
+    this.screenShake = createScreenShake(this)
+    this.particles = createParticleManager(this)
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
@@ -337,22 +362,43 @@ export default class GameScene extends Phaser.Scene {
     const totalEnemies = Math.round(scaledEnemies * this.difficultyConfig.enemySpawnMultiplier)
 
     // Generate enemy types based on room progress
+    // Enemy types by room:
+    // - Rooms 1-2: melee, ranged (basic)
+    // - Rooms 3-5: + spreader, charger (add some variety)
+    // - Rooms 6-8: + bomber, burrower, healer (more dangerous)
+    // - Rooms 9+:  + tank, spawner (all enemies)
     const enemyTypes: string[] = []
     for (let i = 0; i < totalEnemies; i++) {
       const roll = Math.random()
       if (this.currentRoom < 3) {
-        // Early rooms: mostly melee
-        enemyTypes.push(roll < 0.7 ? 'melee' : 'ranged')
+        // Early rooms: basic enemies only
+        enemyTypes.push(roll < 0.6 ? 'melee' : 'ranged')
       } else if (this.currentRoom < 6) {
-        // Mid rooms: balanced
-        if (roll < 0.4) enemyTypes.push('melee')
-        else if (roll < 0.8) enemyTypes.push('ranged')
-        else enemyTypes.push('spreader')
+        // Mid-early rooms: introduce spreader and charger
+        if (roll < 0.25) enemyTypes.push('melee')
+        else if (roll < 0.5) enemyTypes.push('ranged')
+        else if (roll < 0.75) enemyTypes.push('spreader')
+        else enemyTypes.push('charger')
+      } else if (this.currentRoom < 9) {
+        // Mid-late rooms: introduce bomber, burrower, healer
+        if (roll < 0.15) enemyTypes.push('melee')
+        else if (roll < 0.3) enemyTypes.push('ranged')
+        else if (roll < 0.45) enemyTypes.push('spreader')
+        else if (roll < 0.55) enemyTypes.push('charger')
+        else if (roll < 0.7) enemyTypes.push('bomber')
+        else if (roll < 0.85) enemyTypes.push('burrower')
+        else enemyTypes.push('healer')
       } else {
-        // Late rooms: more dangerous
-        if (roll < 0.3) enemyTypes.push('melee')
-        else if (roll < 0.6) enemyTypes.push('ranged')
-        else enemyTypes.push('spreader')
+        // Late rooms: all enemy types including tank and spawner
+        if (roll < 0.1) enemyTypes.push('melee')
+        else if (roll < 0.2) enemyTypes.push('ranged')
+        else if (roll < 0.3) enemyTypes.push('spreader')
+        else if (roll < 0.4) enemyTypes.push('charger')
+        else if (roll < 0.55) enemyTypes.push('bomber')
+        else if (roll < 0.65) enemyTypes.push('burrower')
+        else if (roll < 0.75) enemyTypes.push('healer')
+        else if (roll < 0.85) enemyTypes.push('spawner')
+        else enemyTypes.push('tank')
       }
     }
 
@@ -367,21 +413,28 @@ export default class GameScene extends Phaser.Scene {
     const bossX = width / 2
     const bossY = height / 3
 
-    // Difficulty modifiers for boss
+    // Get current chapter and select a boss from its pool
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const bossType: BossType = getRandomBossForChapter(selectedChapter)
+
+    // Difficulty modifiers for boss (combine difficulty config with chapter scaling)
+    const chapterDef = getChapterDefinition(selectedChapter)
     const bossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier,
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier,
     }
 
-    this.boss = new Boss(this, bossX, bossY, this.enemyBulletPool, bossOptions)
+    // Create the appropriate boss using the factory
+    const newBoss = createBoss(this, bossX, bossY, bossType, this.enemyBulletPool, bossOptions)
+    this.boss = newBoss as Boss // Type assertion for compatibility
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
     // Set up physics body for boss with centered circular hitbox
     const body = this.boss.body as Phaser.Physics.Arcade.Body
     if (body) {
-      const displaySize = 64 // Boss display size from Boss.ts
-      const radius = 25 // Larger hitbox for boss
+      const displaySize = getBossDisplaySize(bossType)
+      const radius = getBossHitboxRadius(bossType)
       const offset = (displaySize - radius * 2) / 2
       body.setSize(displaySize, displaySize)
       body.setCircle(radius, offset, offset)
@@ -393,7 +446,7 @@ export default class GameScene extends Phaser.Scene {
     // Show boss health bar in UI
     this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
 
-    console.log('Boss spawned at', bossX, bossY)
+    console.log(`Boss spawned: ${bossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
   }
 
   private checkRoomCleared() {
@@ -404,6 +457,18 @@ export default class GameScene extends Phaser.Scene {
       this.isRoomCleared = true
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
+
+      // Magnetically collect all remaining gold and health pickups
+      const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
+      if (collectedGold > 0) {
+        this.goldEarned += collectedGold
+        currencyManager.add('gold', collectedGold)
+        saveManager.addGold(collectedGold)
+      }
+      this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
+        this.player.heal(healAmount)
+        this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+      })
 
       // Show door after brief delay
       this.time.delayedCall(500, () => {
@@ -429,7 +494,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Brief delay before showing victory screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene
+      // Stop UIScene first
       this.scene.stop('UIScene')
 
       // Launch victory scene (reusing GameOverScene for now)
@@ -441,6 +506,9 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
       })
+
+      // Stop GameScene last - this prevents texture issues when restarting
+      this.scene.stop('GameScene')
     })
   }
 
@@ -489,12 +557,41 @@ export default class GameScene extends Phaser.Scene {
           case 'spreader':
             enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
             break
+          case 'bomber':
+            enemy = new BomberEnemy(
+              this, x, y, this.bombPool, enemyOptions,
+              (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
+            )
+            break
+          case 'tank':
+            enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+            break
+          case 'charger':
+            enemy = new ChargerEnemy(this, x, y, enemyOptions)
+            break
+          case 'burrower':
+            enemy = new BurrowerEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+            break
+          case 'healer':
+            enemy = new HealerEnemy(this, x, y, enemyOptions)
+            break
+          case 'spawner':
+            enemy = new SpawnerEnemy(this, x, y, enemyOptions)
+            break
           default:
             enemy = new Enemy(this, x, y, enemyOptions)
         }
 
         this.add.existing(enemy)
         this.physics.add.existing(enemy)
+
+        // Set enemy group reference for healer and spawner enemies
+        if (enemy instanceof HealerEnemy) {
+          enemy.setEnemyGroup(this.enemies)
+        }
+        if (enemy instanceof SpawnerEnemy) {
+          enemy.setEnemyGroup(this.enemies)
+        }
 
         // Set up physics body with centered circular hitbox
         const body = enemy.body as Phaser.Physics.Arcade.Body
@@ -515,6 +612,45 @@ export default class GameScene extends Phaser.Scene {
     }
 
     console.log(`Room ${this.currentRoom}: Spawned ${spawned} enemies`)
+  }
+
+  /**
+   * Handle bomb explosion damage to player
+   */
+  private handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
+    if (this.isGameOver) return
+
+    // Check if player is within explosion radius
+    const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
+    if (distanceToPlayer <= radius) {
+      // Try to damage player (respects invincibility)
+      const damageTaken = this.player.takeDamage(damage)
+      if (!damageTaken) return
+
+      audioManager.playPlayerHit()
+
+      // Update UI
+      this.updatePlayerHealthUI(this.player)
+
+      // Check for death
+      if (this.player.getHealth() <= 0) {
+        this.triggerGameOver()
+        return
+      }
+
+      // Flash player during invincibility
+      this.startInvincibilityFlash(this.player)
+
+      // Knockback from explosion center
+      const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y)
+      const knockbackForce = 200
+      this.player.setVelocity(
+        Math.cos(angle) * knockbackForce,
+        Math.sin(angle) * knockbackForce
+      )
+
+      console.log(`Player hit by bomb explosion! Health: ${this.player.getHealth()}`)
+    }
   }
 
   private bulletHitEnemy(
@@ -545,10 +681,37 @@ export default class GameScene extends Phaser.Scene {
     const killed = enemySprite.takeDamage(damage)
     audioManager.playHit()
 
+    // Visual effects for hit
+    if (bulletSprite.isCriticalHit()) {
+      this.particles.emitCrit(enemySprite.x, enemySprite.y)
+      this.screenShake.onCriticalHit()
+    } else {
+      this.particles.emitHit(enemySprite.x, enemySprite.y)
+      this.screenShake.onEnemyHit()
+    }
+
     // Apply fire DOT if bullet has fire damage
     const fireDamage = bulletSprite.getFireDamage()
     if (fireDamage > 0 && !killed) {
       enemySprite.applyFireDamage(fireDamage, 2000) // 2 second burn
+      this.particles.emitFire(enemySprite.x, enemySprite.y)
+    }
+
+    // Apply freeze if bullet has freeze chance and rolls successfully
+    if (!killed && bulletSprite.rollFreeze()) {
+      enemySprite.applyFreeze()
+    }
+
+    // Apply poison DOT if bullet has poison damage
+    const poisonDamage = bulletSprite.getPoisonDamage()
+    if (poisonDamage > 0 && !killed) {
+      enemySprite.applyPoisonDamage(poisonDamage)
+    }
+
+    // Handle lightning chain if bullet has lightning ability
+    const lightningChainCount = bulletSprite.getLightningChainCount()
+    if (lightningChainCount > 0 && !killed) {
+      this.applyLightningChain(enemySprite, damage * 0.5, lightningChainCount)
     }
 
     // Check if bullet should be deactivated or continue (piercing/ricochet)
@@ -575,14 +738,32 @@ export default class GameScene extends Phaser.Scene {
     const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
     if (isBoss && !killed) {
       this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
+      hapticManager.bossHit() // Haptic feedback for hitting boss
     }
 
     if (killed) {
       // Track kill
       this.enemiesKilled++
 
+      // Bloodthirst: Heal on kill
+      const bloodthirstHeal = this.player.getBloodthirstHeal()
+      if (bloodthirstHeal > 0) {
+        this.player.heal(bloodthirstHeal)
+        this.updatePlayerHealthUI(this.player)
+      }
+
+      // Death particles and screen shake
+      if (isBoss) {
+        this.particles.emitBossDeath(enemySprite.x, enemySprite.y)
+        this.screenShake.onBossDeath()
+      } else {
+        this.particles.emitDeath(enemySprite.x, enemySprite.y)
+        this.screenShake.onExplosion()
+        hapticManager.light() // Haptic feedback for enemy death
+      }
+
       // Spawn gold drop at enemy position
-      this.spawnGoldDrop(enemySprite)
+      this.spawnDrops(enemySprite)
 
       // Add XP to player (boss gives 10 XP)
       const xpGain = isBoss ? 10 : 1
@@ -630,17 +811,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Spawn gold at enemy death position and add to currency
+   * Spawn drops at enemy death position (50% gold, 5% health potion)
    */
-  private spawnGoldDrop(enemy: Enemy): void {
+  private spawnDrops(enemy: Enemy): void {
     const enemyType = this.getEnemyType(enemy)
-    const goldValue = this.goldPool.spawnForEnemy(enemy.x, enemy.y, enemyType)
-    console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
+
+    // 50% chance to drop gold
+    if (Math.random() < 0.5) {
+      const goldValue = this.goldPool.spawnForEnemy(enemy.x, enemy.y, enemyType)
+      console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
+    }
+
+    // 5% chance to drop health potion (heals 20 HP)
+    if (Math.random() < 0.05) {
+      this.healthPool.spawn(enemy.x, enemy.y, 20)
+      console.log('Health potion spawned!')
+    }
   }
 
   private handleLevelUp() {
     console.log('GameScene: handleLevelUp called')
     audioManager.playLevelUp()
+    hapticManager.levelUp() // Haptic feedback for level up
+
+    // Level up celebration particles
+    this.particles.emitLevelUp(this.player.x, this.player.y)
 
     // Pause game physics
     this.physics.pause()
@@ -687,6 +882,7 @@ export default class GameScene extends Phaser.Scene {
 
   private applyAbility(abilityId: string) {
     switch (abilityId) {
+      // Original 8 abilities
       case 'front_arrow':
         this.player.addFrontArrow()
         break
@@ -710,6 +906,31 @@ export default class GameScene extends Phaser.Scene {
         break
       case 'crit_boost':
         this.player.addCritBoost()
+        break
+      // New V1 abilities
+      case 'ice_shot':
+        this.player.addIceShot()
+        break
+      case 'poison_shot':
+        this.player.addPoisonShot()
+        break
+      case 'lightning_chain':
+        this.player.addLightningChain()
+        break
+      case 'diagonal_arrows':
+        this.player.addDiagonalArrows()
+        break
+      case 'rear_arrow':
+        this.player.addRearArrow()
+        break
+      case 'bouncy_wall':
+        this.player.addBouncyWall()
+        break
+      case 'bloodthirst':
+        this.player.addBloodthirst()
+        break
+      case 'rage':
+        this.player.addRage()
         break
     }
     this.abilitiesGained++
@@ -738,12 +959,21 @@ export default class GameScene extends Phaser.Scene {
     if (!damageTaken) return
 
     audioManager.playPlayerHit()
+    hapticManager.heavy() // Haptic feedback for taking damage
+
+    // Screen shake on player damage
+    if (bulletDamage >= 15) {
+      this.screenShake.onPlayerHeavyDamage()
+    } else {
+      this.screenShake.onPlayerDamage()
+    }
 
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
     // Check for death
     if (playerSprite.getHealth() <= 0) {
+      this.screenShake.onPlayerDeath()
       this.triggerGameOver()
       return
     }
@@ -771,12 +1001,17 @@ export default class GameScene extends Phaser.Scene {
     if (!damageTaken) return
 
     audioManager.playPlayerHit()
+    hapticManager.heavy() // Haptic feedback for taking damage
+
+    // Screen shake on player damage
+    this.screenShake.onPlayerDamage()
 
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
     // Check for death
     if (playerSprite.getHealth() <= 0) {
+      this.screenShake.onPlayerDeath()
       this.triggerGameOver()
       return
     }
@@ -841,6 +1076,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.isGameOver = true
     audioManager.playDeath()
+    hapticManager.death() // Haptic feedback for player death
     console.log('Game Over! Enemies killed:', this.enemiesKilled)
 
     // Stop player movement
@@ -859,7 +1095,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Brief delay before showing game over screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene
+      // Stop UIScene first
       this.scene.stop('UIScene')
 
       // Launch game over scene with stats
@@ -871,6 +1107,9 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
       })
+
+      // Stop GameScene last - this prevents texture issues when restarting
+      this.scene.stop('GameScene')
     })
   }
 
@@ -921,6 +1160,57 @@ export default class GameScene extends Phaser.Scene {
     return nearestEnemy
   }
 
+  /**
+   * Apply lightning chain damage to nearby enemies
+   * @param source The enemy that was hit
+   * @param damage Damage per chain hit (50% of original)
+   * @param chainCount Number of enemies to chain to
+   */
+  private applyLightningChain(source: Enemy, damage: number, chainCount: number): void {
+    const maxChainDistance = 150 // Max distance for lightning to jump
+
+    // Find nearby enemies excluding the source
+    const nearbyEnemies: Enemy[] = []
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy
+      if (e === source || !e.active) return
+
+      const distance = Phaser.Math.Distance.Between(source.x, source.y, e.x, e.y)
+      if (distance <= maxChainDistance) {
+        nearbyEnemies.push(e)
+      }
+    })
+
+    // Sort by distance and take only chainCount enemies
+    nearbyEnemies.sort((a, b) => {
+      const distA = Phaser.Math.Distance.Between(source.x, source.y, a.x, a.y)
+      const distB = Phaser.Math.Distance.Between(source.x, source.y, b.x, b.y)
+      return distA - distB
+    })
+
+    const targets = nearbyEnemies.slice(0, chainCount)
+
+    // Apply damage to each target
+    targets.forEach((target) => {
+      const killed = target.takeDamage(Math.floor(damage))
+
+      if (killed) {
+        this.enemiesKilled++
+        this.spawnDrops(target)
+
+        // Bloodthirst heal on kill
+        const bloodthirstHeal = this.player.getBloodthirstHeal()
+        if (bloodthirstHeal > 0) {
+          this.player.heal(bloodthirstHeal)
+          this.updatePlayerHealthUI(this.player)
+        }
+
+        target.destroy()
+        this.checkRoomCleared()
+      }
+    })
+  }
+
   private shootAtEnemy(enemy: Enemy) {
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
@@ -931,12 +1221,17 @@ export default class GameScene extends Phaser.Scene {
 
     const bulletSpeed = 400
 
-    // Gather ability options for bullets
+    // Gather ability options for bullets (including new V1 abilities)
     const bulletOptions = {
       maxPierces: this.player.getPiercingLevel(),
       maxBounces: this.player.getRicochetBounces(),
       fireDamage: this.player.getFireDamage(),
       isCrit: this.player.rollCrit(), // Roll crit for main projectile
+      // New V1 ability options
+      freezeChance: this.player.getFreezeChance(),
+      poisonDamage: this.player.getPoisonDamage(),
+      lightningChainCount: this.player.getLightningChainCount(),
+      maxWallBounces: this.player.getWallBounces(),
     }
 
     // Main projectile
@@ -970,8 +1265,36 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    // Diagonal Arrows: Arrows at 30 degree angles (80% damage)
+    const diagonalArrows = this.player.getDiagonalArrows()
+    if (diagonalArrows > 0) {
+      const diagonalAngle = Math.PI / 6 // 30 degrees
+      // diagonalArrows is in pairs (2 per level)
+      const pairs = Math.floor(diagonalArrows / 2)
+      for (let i = 0; i < pairs; i++) {
+        // Each diagonal projectile rolls its own crit
+        const diagOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        const diagOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        this.bulletPool.spawn(this.player.x, this.player.y, angle + diagonalAngle * (i + 1), bulletSpeed, diagOptions1)
+        this.bulletPool.spawn(this.player.x, this.player.y, angle - diagonalAngle * (i + 1), bulletSpeed, diagOptions2)
+      }
+    }
+
+    // Rear Arrow: Arrows shooting backwards (70% damage)
+    const rearArrows = this.player.getRearArrows()
+    if (rearArrows > 0) {
+      const rearAngle = angle + Math.PI // 180 degrees from forward
+      for (let i = 0; i < rearArrows; i++) {
+        // Slight spread for multiple rear arrows
+        const spreadOffset = i > 0 ? ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2)) * 0.1 : 0
+        const rearOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
+        this.bulletPool.spawn(this.player.x, this.player.y, rearAngle + spreadOffset, bulletSpeed, rearOptions)
+      }
+    }
+
     // Play shoot sound (once per attack, not per projectile)
     audioManager.playShoot()
+    hapticManager.medium() // Haptic feedback for shooting
     this.lastShotTime = this.time.now
   }
 
@@ -1027,11 +1350,23 @@ export default class GameScene extends Phaser.Scene {
           const diedFromFire = e.update(time, delta, this.player.x, this.player.y)
 
           if (diedFromFire) {
-            // Enemy died from fire DOT - handle like bullet kill
+            // Enemy died from fire/poison DOT - handle like bullet kill
             this.enemiesKilled++
 
+            // Bloodthirst: Heal on kill
+            const bloodthirstHeal = this.player.getBloodthirstHeal()
+            if (bloodthirstHeal > 0) {
+              this.player.heal(bloodthirstHeal)
+              this.updatePlayerHealthUI(this.player)
+            }
+
+            // Death particles with fire effect
+            this.particles.emitDeath(e.x, e.y)
+            this.particles.emitFire(e.x, e.y)
+            this.screenShake.onExplosion()
+
             // Spawn gold drop at enemy position
-            this.spawnGoldDrop(e)
+            this.spawnDrops(e)
 
             // Add XP to player (check if boss)
             const isBoss = this.boss && e === (this.boss as unknown as Enemy)
@@ -1064,7 +1399,20 @@ export default class GameScene extends Phaser.Scene {
         this.goldEarned += goldCollected
         currencyManager.add('gold', goldCollected)
         saveManager.addGold(goldCollected)
+        // Gold collect particles at player position
+        this.particles.emitGoldCollect(this.player.x, this.player.y)
+        hapticManager.light() // Haptic feedback for collecting gold
       }
+
+      // Update health pickups - check for collection
+      this.healthPool.updateAll(this.player.x, this.player.y, (healAmount) => {
+        this.player.heal(healAmount)
+        // Update health UI
+        this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+        // Heal particles at player position
+        this.particles.emitHeal(this.player.x, this.player.y)
+        hapticManager.light() // Haptic feedback for collecting health
+      })
     }
   }
 
@@ -1072,6 +1420,11 @@ export default class GameScene extends Phaser.Scene {
     // Clean up joystick when scene shuts down
     if (this.joystick) {
       this.joystick.destroy()
+    }
+
+    // Clean up particles
+    if (this.particles) {
+      this.particles.destroy()
     }
   }
 }
