@@ -1,14 +1,15 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 
 export default class TankEnemy extends Enemy {
   private lastShotTime: number = 0
-  private fireRate: number = 3500 // 3.5 seconds between shots (slower than spreader)
+  private fireRate: number = 3500 // Base 3.5 seconds between shots (slower than spreader)
   private bulletPool: EnemyBulletPool
   private isCharging: boolean = false
   private chargeStartTime: number = 0
   private chargeDuration: number = 800 // 0.8 seconds to charge up
+  private projectileSpeedMultiplier: number = 1.0
 
   // Tank has 3x normal health (handled by passing healthMultiplier * 3)
   private static readonly TANK_HEALTH_MULTIPLIER = 3.0
@@ -18,19 +19,23 @@ export default class TankEnemy extends Enemy {
     x: number,
     y: number,
     bulletPool: EnemyBulletPool,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     // Apply tank's 3x health multiplier on top of difficulty multiplier
-    const tankOptions = {
+    const tankOptions: EnemyOptions = {
       healthMultiplier: (options?.healthMultiplier ?? 1.0) * TankEnemy.TANK_HEALTH_MULTIPLIER,
       damageMultiplier: options?.damageMultiplier ?? 1.0,
+      speedMultiplier: options?.speedMultiplier ?? 1.0,
+      attackCooldownMultiplier: options?.attackCooldownMultiplier ?? 1.0,
+      projectileSpeedMultiplier: options?.projectileSpeedMultiplier ?? 1.0,
     }
     super(scene, x, y, tankOptions)
 
     this.bulletPool = bulletPool
+
+    // Apply chapter-specific modifiers
+    this.fireRate = 3500 * (options?.attackCooldownMultiplier ?? 1.0)
+    this.projectileSpeedMultiplier = options?.projectileSpeedMultiplier ?? 1.0
 
     // Use tank enemy sprite (fallback to melee if not loaded)
     if (scene.textures.exists('enemyTank')) {
@@ -65,7 +70,8 @@ export default class TankEnemy extends Enemy {
     )
 
     // Tank moves very slowly toward player
-    const slowSpeed = 30 // Very slow movement
+    const baseSpeed = 30 // Very slow base movement
+    const slowSpeed = baseSpeed * this.speedMultiplier
 
     if (!this.isCharging) {
       // Move toward player slowly
@@ -140,7 +146,8 @@ export default class TankEnemy extends Enemy {
   private fireSpread() {
     // Fire 8 projectiles in all directions
     const numProjectiles = 8
-    const speed = 180
+    const baseSpeed = 180
+    const speed = baseSpeed * this.projectileSpeedMultiplier
 
     for (let i = 0; i < numProjectiles; i++) {
       const angle = (Math.PI * 2 * i) / numProjectiles

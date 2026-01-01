@@ -1,29 +1,31 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 
 export default class RangedShooterEnemy extends Enemy {
   private lastShotTime: number = 0
-  private fireRate: number = 2000 // 2 seconds between shots
+  private fireRate: number = 2000 // Base 2 seconds between shots
   private isAiming: boolean = false
   private aimDuration: number = 500 // 0.5 seconds to aim
   private aimStartTime: number = 0
   private bulletPool: EnemyBulletPool
   private telegraphLine?: Phaser.GameObjects.Line
+  private projectileSpeedMultiplier: number = 1.0
 
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     bulletPool: EnemyBulletPool,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     super(scene, x, y, options)
 
     this.bulletPool = bulletPool
+
+    // Apply chapter-specific modifiers
+    this.fireRate = 2000 * (options?.attackCooldownMultiplier ?? 1.0)
+    this.projectileSpeedMultiplier = options?.projectileSpeedMultiplier ?? 1.0
 
     // Use ranged enemy sprite
     this.setTexture('enemyRanged')
@@ -60,15 +62,15 @@ export default class RangedShooterEnemy extends Enemy {
     const preferredDistance = 250
 
     if (!this.isAiming) {
+      const baseSpeed = 60
+      const speed = baseSpeed * this.speedMultiplier
       if (distanceToPlayer > preferredDistance + 50) {
         // Move closer
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        const speed = 60
         this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
       } else if (distanceToPlayer < preferredDistance - 50) {
         // Move away
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        const speed = 60
         this.setVelocity(-Math.cos(angle) * speed, -Math.sin(angle) * speed)
       } else {
         // Stop and prepare to shoot
@@ -123,7 +125,9 @@ export default class RangedShooterEnemy extends Enemy {
 
   private shoot(targetX: number, targetY: number) {
     const angle = Phaser.Math.Angle.Between(this.x, this.y, targetX, targetY)
-    this.bulletPool.spawn(this.x, this.y, angle, 250)
+    const baseSpeed = 250
+    const bulletSpeed = baseSpeed * this.projectileSpeedMultiplier
+    this.bulletPool.spawn(this.x, this.y, angle, bulletSpeed)
   }
 
   destroy(fromScene?: boolean) {

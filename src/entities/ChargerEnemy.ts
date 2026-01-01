@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 
 type ChargerPhase = 'idle' | 'windup' | 'charging' | 'stunned'
 
@@ -7,7 +7,7 @@ export default class ChargerEnemy extends Enemy {
   private phase: ChargerPhase = 'idle'
   private phaseStartTime: number = 0
   private lastChargeTime: number = 0
-  private chargeCooldown: number = 3000 // 3 seconds between charges
+  private chargeCooldown: number = 3000 // Base 3 seconds between charges
 
   // Charge properties
   private chargeSpeed: number = 350 // Very fast during charge
@@ -32,12 +32,15 @@ export default class ChargerEnemy extends Enemy {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     super(scene, x, y, options)
+
+    // Apply chapter-specific modifiers
+    this.chargeCooldown = 3000 * (options?.attackCooldownMultiplier ?? 1.0)
+    this.normalSpeed = 80 * (options?.speedMultiplier ?? 1.0)
+    // Charge speed also scales with speedMultiplier for thematic ice slides, etc.
+    this.chargeSpeed = 350 * (options?.speedMultiplier ?? 1.0)
 
     // Use charger enemy sprite (fallback to melee if not loaded)
     if (scene.textures.exists('enemyCharger')) {

@@ -91,6 +91,28 @@ export interface ChapterScaling {
 }
 
 /**
+ * Per-enemy-type stat modifiers for a chapter
+ * These make each chapter feel unique by adjusting enemy behavior
+ */
+export interface EnemyChapterModifiers {
+  /** Movement speed multiplier (1.0 = normal) */
+  speedMultiplier?: number
+  /** Attack speed/cooldown multiplier (lower = faster attacks) */
+  attackCooldownMultiplier?: number
+  /** Projectile speed multiplier for ranged enemies (1.0 = normal) */
+  projectileSpeedMultiplier?: number
+  /** Spawn selection weight for this enemy in this chapter (1.0 = normal) */
+  spawnWeight?: number
+  /** Special ability intensity (e.g., healer heal amount, spawner spawn rate) */
+  abilityIntensityMultiplier?: number
+}
+
+/**
+ * Enemy modifiers for all enemy types in a chapter
+ */
+export type ChapterEnemyModifiers = Partial<Record<EnemyType, EnemyChapterModifiers>>
+
+/**
  * Reward configuration for chapter completion
  */
 export interface ChapterRewards {
@@ -128,6 +150,8 @@ export interface ChapterDefinition {
   miniBossType: EnemyType
   /** Difficulty scaling compared to base */
   scaling: ChapterScaling
+  /** Per-enemy-type behavior modifiers for this chapter */
+  enemyModifiers: ChapterEnemyModifiers
   /** Completion rewards */
   rewards: ChapterRewards
   /** First-time completion bonus multiplier */
@@ -240,6 +264,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 1.0,
       bossDamageMultiplier: 1.0,
     },
+    // Chapter 1: Standard enemy behavior (tutorial chapter)
+    enemyModifiers: {
+      melee: { spawnWeight: 1.5 }, // More melee in early chapter
+      ranged: { spawnWeight: 1.0 },
+      spreader: { spawnWeight: 0.8 }, // Slightly fewer spreaders
+    },
     rewards: {
       gold: 500,
       gems: 20,
@@ -276,6 +306,26 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 1,
       bossHpMultiplier: 1.5, // +50% HP
       bossDamageMultiplier: 1.15,
+    },
+    // Chapter 2: Forest theme - ranged focus, agile melee
+    enemyModifiers: {
+      melee: {
+        speedMultiplier: 1.15, // Forest creatures are agile
+        spawnWeight: 1.0,
+      },
+      ranged: {
+        projectileSpeedMultiplier: 1.2, // Faster arrows
+        spawnWeight: 1.5, // More ranged enemies
+      },
+      spreader: {
+        attackCooldownMultiplier: 0.9, // Slightly faster attacks
+        spawnWeight: 1.0,
+      },
+      bomber: {
+        speedMultiplier: 0.85, // Slower movement
+        abilityIntensityMultiplier: 1.2, // Larger/more dangerous explosions
+        spawnWeight: 1.2,
+      },
     },
     rewards: {
       gold: 750,
@@ -314,6 +364,29 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 2.0, // +100% HP
       bossDamageMultiplier: 1.3,
     },
+    // Chapter 3: Ice theme - slow but powerful, chargers are deadly
+    enemyModifiers: {
+      melee: {
+        speedMultiplier: 0.85, // Slowed by ice
+        attackCooldownMultiplier: 1.1, // Slower attacks
+        spawnWeight: 1.0,
+      },
+      spreader: {
+        speedMultiplier: 0.8, // Very slow
+        projectileSpeedMultiplier: 1.15, // But faster projectiles
+        spawnWeight: 1.2,
+      },
+      tank: {
+        speedMultiplier: 0.75, // Extra slow
+        attackCooldownMultiplier: 1.3, // Much slower attacks but devastating
+        spawnWeight: 1.5, // More tanks in frozen caves
+      },
+      charger: {
+        speedMultiplier: 1.3, // Ice makes them slide faster when charging!
+        attackCooldownMultiplier: 0.8, // Charge more often
+        spawnWeight: 1.3,
+      },
+    },
     rewards: {
       gold: 1000,
       gems: 50,
@@ -350,6 +423,35 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 3,
       bossHpMultiplier: 2.5, // +150% HP
       bossDamageMultiplier: 1.45,
+    },
+    // Chapter 4: Fire theme - fast and aggressive, support enemies are key targets
+    enemyModifiers: {
+      melee: {
+        speedMultiplier: 1.2, // Fire-powered speed
+        attackCooldownMultiplier: 0.85, // Faster attacks
+        spawnWeight: 1.0,
+      },
+      ranged: {
+        attackCooldownMultiplier: 0.8, // Rapid fire
+        projectileSpeedMultiplier: 1.25, // Fast fireballs
+        spawnWeight: 1.0,
+      },
+      bomber: {
+        speedMultiplier: 1.1,
+        attackCooldownMultiplier: 0.75, // Throws bombs very often
+        abilityIntensityMultiplier: 1.3, // Larger explosions
+        spawnWeight: 1.4,
+      },
+      healer: {
+        speedMultiplier: 1.1, // Harder to catch
+        abilityIntensityMultiplier: 1.4, // Heals more
+        spawnWeight: 1.3, // More healers to prioritize
+      },
+      spawner: {
+        attackCooldownMultiplier: 0.7, // Spawns minions faster
+        abilityIntensityMultiplier: 1.3, // More minions
+        spawnWeight: 1.2,
+      },
     },
     rewards: {
       gold: 1500,
@@ -396,6 +498,51 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 4,
       bossHpMultiplier: 3.0, // +200% HP
       bossDamageMultiplier: 1.6,
+    },
+    // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
+    enemyModifiers: {
+      melee: {
+        speedMultiplier: 1.25, // Very fast
+        attackCooldownMultiplier: 0.75, // Rapid attacks
+        spawnWeight: 0.8, // Fewer basic melee
+      },
+      ranged: {
+        attackCooldownMultiplier: 0.7, // Very rapid fire
+        projectileSpeedMultiplier: 1.35, // Very fast projectiles
+        spawnWeight: 1.0,
+      },
+      spreader: {
+        attackCooldownMultiplier: 0.65, // Constant projectile spam
+        projectileSpeedMultiplier: 1.2,
+        spawnWeight: 1.2,
+      },
+      bomber: {
+        speedMultiplier: 1.2,
+        attackCooldownMultiplier: 0.6, // Bombs everywhere
+        abilityIntensityMultiplier: 1.5, // Huge explosions
+        spawnWeight: 1.3,
+      },
+      tank: {
+        speedMultiplier: 0.9, // Still slow but not as slow
+        attackCooldownMultiplier: 0.7, // Faster devastating attacks
+        spawnWeight: 1.2,
+      },
+      charger: {
+        speedMultiplier: 1.4, // Extremely fast charges
+        attackCooldownMultiplier: 0.65, // Charge very often
+        spawnWeight: 1.4,
+      },
+      healer: {
+        speedMultiplier: 1.2,
+        attackCooldownMultiplier: 0.6, // Heals very frequently
+        abilityIntensityMultiplier: 1.6, // Massive heals
+        spawnWeight: 1.5, // Priority targets
+      },
+      spawner: {
+        attackCooldownMultiplier: 0.5, // Constant minion spawning
+        abilityIntensityMultiplier: 1.5, // More minions per spawn
+        spawnWeight: 1.4,
+      },
     },
     rewards: {
       gold: 2500,
@@ -628,4 +775,47 @@ export function getMainBossForChapter(chapterId: ChapterId): BossType {
  */
 export function getBossPoolForChapter(chapterId: ChapterId): BossType[] {
   return [...CHAPTER_DEFINITIONS[chapterId].bossPool]
+}
+
+/**
+ * Get enemy modifiers for a specific enemy type in a chapter
+ * @param chapterId The chapter to get modifiers for
+ * @param enemyType The enemy type to get modifiers for
+ * @returns The modifiers for this enemy in this chapter, or default values
+ */
+export function getEnemyModifiers(
+  chapterId: ChapterId,
+  enemyType: EnemyType
+): EnemyChapterModifiers {
+  const chapter = CHAPTER_DEFINITIONS[chapterId]
+  const modifiers = chapter.enemyModifiers[enemyType]
+
+  // Return modifiers with defaults for any missing values
+  return {
+    speedMultiplier: modifiers?.speedMultiplier ?? 1.0,
+    attackCooldownMultiplier: modifiers?.attackCooldownMultiplier ?? 1.0,
+    projectileSpeedMultiplier: modifiers?.projectileSpeedMultiplier ?? 1.0,
+    spawnWeight: modifiers?.spawnWeight ?? 1.0,
+    abilityIntensityMultiplier: modifiers?.abilityIntensityMultiplier ?? 1.0,
+  }
+}
+
+/**
+ * Get all enemy modifiers for a chapter
+ * @param chapterId The chapter to get all modifiers for
+ * @returns All enemy modifiers defined for this chapter
+ */
+export function getChapterEnemyModifiers(chapterId: ChapterId): ChapterEnemyModifiers {
+  return { ...CHAPTER_DEFINITIONS[chapterId].enemyModifiers }
+}
+
+/**
+ * Get spawn weight for a specific enemy type in a chapter
+ * Convenience function for room generation
+ * @param chapterId The chapter
+ * @param enemyType The enemy type
+ * @returns The spawn weight (1.0 = normal)
+ */
+export function getEnemySpawnWeight(chapterId: ChapterId, enemyType: EnemyType): number {
+  return getEnemyModifiers(chapterId, enemyType).spawnWeight ?? 1.0
 }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 
 /**
  * Small minion enemy spawned by SpawnerEnemy
@@ -10,13 +10,10 @@ export class MinionEnemy extends Enemy {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     // Minions have very low health (30% of normal) and low damage (50%)
-    const minionOptions = {
+    const minionOptions: EnemyOptions = {
       ...options,
       healthMultiplier: (options?.healthMultiplier ?? 1.0) * 0.3,
       damageMultiplier: (options?.damageMultiplier ?? 1.0) * 0.5,
@@ -82,8 +79,8 @@ export class MinionEnemy extends Enemy {
  */
 export default class SpawnerEnemy extends Enemy {
   private lastSpawnTime: number = 0
-  private readonly spawnInterval: number = 4000 // Spawn every 4 seconds
-  private readonly maxMinions: number = 3 // Max minions alive at once
+  private spawnInterval: number = 4000 // Base spawn every 4 seconds
+  private maxMinions: number = 3 // Base max minions alive at once
   private spawnedMinions: MinionEnemy[] = []
 
   // Visual effects
@@ -95,25 +92,28 @@ export default class SpawnerEnemy extends Enemy {
   private enemyGroup: Phaser.Physics.Arcade.Group | null = null
 
   // Options to pass to spawned minions
-  private spawnOptions: { healthMultiplier?: number; damageMultiplier?: number }
+  private spawnOptions: EnemyOptions
 
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     // Spawners have high health (150% of normal)
-    const spawnerOptions = {
+    const spawnerOptions: EnemyOptions = {
       ...options,
       healthMultiplier: (options?.healthMultiplier ?? 1.0) * 1.5,
     }
     super(scene, x, y, spawnerOptions)
 
     this.spawnOptions = options ?? {}
+
+    // Apply chapter-specific modifiers
+    this.spawnInterval = 4000 * (options?.attackCooldownMultiplier ?? 1.0)
+    // Ability intensity increases max minions (rounded up)
+    const intensityMultiplier = options?.abilityIntensityMultiplier ?? 1.0
+    this.maxMinions = Math.max(3, Math.ceil(3 * intensityMultiplier))
 
     // Use texture (will be set externally or fallback to generated)
     if (scene.textures.exists('enemySpawner')) {

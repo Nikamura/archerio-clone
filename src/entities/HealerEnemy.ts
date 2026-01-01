@@ -1,11 +1,11 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 
 export default class HealerEnemy extends Enemy {
   private lastHealTime: number = 0
-  private readonly healInterval: number = 3000 // Heal every 3 seconds
+  private healInterval: number = 3000 // Base heal every 3 seconds
   private readonly healRange: number = 150 // Range to heal allies
-  private readonly healAmount: number = 10 // HP healed per tick
+  private healAmount: number = 10 // Base HP healed per tick
   private readonly preferredDistanceFromPlayer: number = 200
 
   // Visual effects
@@ -20,17 +20,18 @@ export default class HealerEnemy extends Enemy {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     // Healers have low health (60% of normal)
-    const healerOptions = {
+    const healerOptions: EnemyOptions = {
       ...options,
       healthMultiplier: (options?.healthMultiplier ?? 1.0) * 0.6,
     }
     super(scene, x, y, healerOptions)
+
+    // Apply chapter-specific modifiers
+    this.healInterval = 3000 * (options?.attackCooldownMultiplier ?? 1.0)
+    this.healAmount = Math.round(10 * (options?.abilityIntensityMultiplier ?? 1.0))
 
     // Use texture (will be set externally or fallback to generated)
     if (scene.textures.exists('enemyHealer')) {

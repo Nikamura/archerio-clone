@@ -1,25 +1,27 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 
 export default class SpreaderEnemy extends Enemy {
   private lastShotTime: number = 0
-  private fireRate: number = 3000 // 3 seconds between spreads
+  private fireRate: number = 3000 // Base 3 seconds between spreads
   private bulletPool: EnemyBulletPool
+  private projectileSpeedMultiplier: number = 1.0
 
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     bulletPool: EnemyBulletPool,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     super(scene, x, y, options)
 
     this.bulletPool = bulletPool
+
+    // Apply chapter-specific modifiers
+    this.fireRate = 3000 * (options?.attackCooldownMultiplier ?? 1.0)
+    this.projectileSpeedMultiplier = options?.projectileSpeedMultiplier ?? 1.0
 
     // Use spreader enemy sprite
     this.setTexture('enemySpreader')
@@ -70,8 +72,11 @@ export default class SpreaderEnemy extends Enemy {
       (Math.PI * 3) / 2, // Up
     ]
 
+    const baseSpeed = 150
+    const bulletSpeed = baseSpeed * this.projectileSpeedMultiplier
+
     directions.forEach((angle) => {
-      this.bulletPool.spawn(this.x, this.y, angle, 150) // Slower bullets
+      this.bulletPool.spawn(this.x, this.y, angle, bulletSpeed)
     })
   }
 }

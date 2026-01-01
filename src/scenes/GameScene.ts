@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import Player from '../entities/Player'
-import Enemy from '../entities/Enemy'
+import Enemy, { EnemyOptions } from '../entities/Enemy'
 import RangedShooterEnemy from '../entities/RangedShooterEnemy'
 import SpreaderEnemy from '../entities/SpreaderEnemy'
 import BomberEnemy from '../entities/BomberEnemy'
@@ -19,7 +19,7 @@ import HealthPool from '../systems/HealthPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, type BossType, type ChapterId } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
@@ -494,7 +494,7 @@ export default class GameScene extends Phaser.Scene {
 
   private spawnEnemyFromPosition(
     spawn: SpawnPosition,
-    enemyOptions: { healthMultiplier: number; damageMultiplier: number }
+    enemyOptions: EnemyOptions
   ): void {
     const { x, y, enemyType } = spawn
     let enemy: Enemy
@@ -566,11 +566,9 @@ export default class GameScene extends Phaser.Scene {
       graphics.destroy()
     }
 
-    // Difficulty modifiers for enemies
-    const enemyOptions = {
-      healthMultiplier: this.difficultyConfig.enemyHealthMultiplier,
-      damageMultiplier: this.difficultyConfig.enemyDamageMultiplier,
-    }
+    // Get chapter for enemy modifiers
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const chapterDef = getChapterDefinition(selectedChapter)
 
     this.pendingEnemySpawns = generatedRoom.enemySpawns.length
     if (this.pendingEnemySpawns === 0) {
@@ -590,6 +588,19 @@ export default class GameScene extends Phaser.Scene {
       const delay = i === 0 ? 0 : waveDelay * i
       const timer = this.time.delayedCall(delay, () => {
         waveSpawns.forEach((spawn) => {
+          // Get chapter-specific modifiers for this enemy type
+          const chapterModifiers = getEnemyModifiers(selectedChapter, spawn.enemyType as ChapterEnemyType)
+
+          // Combine difficulty config with chapter modifiers and chapter scaling
+          const enemyOptions = {
+            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier,
+            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier,
+            speedMultiplier: chapterModifiers.speedMultiplier,
+            attackCooldownMultiplier: chapterModifiers.attackCooldownMultiplier,
+            projectileSpeedMultiplier: chapterModifiers.projectileSpeedMultiplier,
+            abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
+          }
+
           this.spawnEnemyFromPosition(spawn, enemyOptions)
           this.pendingEnemySpawns = Math.max(0, this.pendingEnemySpawns - 1)
         })

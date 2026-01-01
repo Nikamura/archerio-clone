@@ -9,7 +9,7 @@
  * - Safe zones and obstacle awareness
  */
 
-import { ChapterId, EnemyType, getChapterDefinition, getRoomTypeForNumber, RoomType } from '../config/chapterData'
+import { ChapterId, EnemyType, getChapterDefinition, getRoomTypeForNumber, RoomType, getEnemySpawnWeight } from '../config/chapterData'
 import { SeededRandom } from './SeededRandom'
 
 // ============================================
@@ -566,7 +566,8 @@ export class RoomGenerator {
       totalEnemies,
       roomNumber,
       enemyPool,
-      combination
+      combination,
+      chapterId
     )
 
     // Generate spawn positions
@@ -675,7 +676,8 @@ export class RoomGenerator {
     count: number,
     roomNumber: number,
     enemyPool: EnemyType[],
-    combination: EnemyCombination | null
+    combination: EnemyCombination | null,
+    chapterId: ChapterId
   ): EnemyType[] {
     const enemies: EnemyType[] = []
 
@@ -686,7 +688,7 @@ export class RoomGenerator {
 
     // Fill remaining slots with random enemies from pool
     while (enemies.length < count) {
-      const enemy = this.selectRandomEnemy(roomNumber, enemyPool)
+      const enemy = this.selectRandomEnemy(roomNumber, enemyPool, chapterId)
       enemies.push(enemy)
     }
 
@@ -699,12 +701,12 @@ export class RoomGenerator {
   }
 
   /**
-   * Select a random enemy based on room progression and pool
+   * Select a random enemy based on room progression, pool, and chapter-specific weights
    */
-  private selectRandomEnemy(roomNumber: number, pool: EnemyType[]): EnemyType {
-    // Weight enemies based on room number
+  private selectRandomEnemy(roomNumber: number, pool: EnemyType[], chapterId: ChapterId): EnemyType {
+    // Base weights based on room number progression
     // Earlier rooms favor basic enemies, later rooms have more variety
-    const weights: Record<EnemyType, number> = {
+    const baseWeights: Record<EnemyType, number> = {
       melee: roomNumber < 5 ? 2 : 1,
       ranged: roomNumber < 5 ? 2 : 1,
       spreader: roomNumber >= 3 ? 1.5 : 0.5,
@@ -715,9 +717,16 @@ export class RoomGenerator {
       spawner: roomNumber >= 8 ? 0.8 : 0,
     }
 
+    // Apply chapter-specific spawn weight multipliers
+    const finalWeights: Record<EnemyType, number> = {} as Record<EnemyType, number>
+    for (const enemyType of pool) {
+      const chapterSpawnWeight = getEnemySpawnWeight(chapterId, enemyType)
+      finalWeights[enemyType] = baseWeights[enemyType] * chapterSpawnWeight
+    }
+
     // Filter pool and calculate total weight
-    const availableEnemies = pool.filter(e => weights[e] > 0)
-    const totalWeight = availableEnemies.reduce((sum, e) => sum + weights[e], 0)
+    const availableEnemies = pool.filter(e => finalWeights[e] > 0)
+    const totalWeight = availableEnemies.reduce((sum, e) => sum + finalWeights[e], 0)
 
     if (totalWeight === 0 || availableEnemies.length === 0) {
       return 'melee' // Fallback
@@ -726,7 +735,7 @@ export class RoomGenerator {
     // Weighted random selection (seeded)
     let random = this.rng.random() * totalWeight
     for (const enemy of availableEnemies) {
-      random -= weights[enemy]
+      random -= finalWeights[enemy]
       if (random <= 0) {
         return enemy
       }

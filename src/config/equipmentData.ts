@@ -244,12 +244,11 @@ export interface BaseEquipmentData {
 export const WEAPON_DATA: Record<WeaponType, BaseEquipmentData> = {
   [WeaponType.BRAVE_BOW]: {
     name: 'Brave Bow',
-    description: 'A balanced bow with standard projectiles',
+    description: 'A balanced bow with reliable accuracy',
     slot: 'weapon',
     baseStats: {
       attackDamage: 50,
-      attackSpeed: 0,
-      projectileSpeed: 0,
+      critChance: 0.03,
     },
   },
   [WeaponType.SAW_BLADE]: {
@@ -274,12 +273,12 @@ export const WEAPON_DATA: Record<WeaponType, BaseEquipmentData> = {
   },
   [WeaponType.DEATH_SCYTHE]: {
     name: 'Death Scythe',
-    description: 'Powerful but slow weapon with knockback',
+    description: 'Powerful but slow weapon with devastating crits',
     slot: 'weapon',
     baseStats: {
       attackDamage: 75, // +45% damage
       attackSpeedPercent: -0.25, // Much slower
-      projectileSpeed: 0,
+      critDamage: 0.15, // Rewards timing with big hits
     },
   },
 }

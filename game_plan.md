@@ -835,7 +835,30 @@ Visual test screenshots are saved to `test/screenshots/`
     - GameOverScene enhanced with rewards display and chest icons
     - Integration with CurrencyManager for gold collection
 [x] Chest opening UI with equipment drops
-[ ] Unique enemy sets per chapter
+[x] Unique enemy sets per chapter (2026-01-01)
+    - Added `EnemyChapterModifiers` interface to chapterData.ts:
+      - `speedMultiplier`: Movement speed modifier
+      - `attackCooldownMultiplier`: Attack frequency modifier (lower = faster)
+      - `projectileSpeedMultiplier`: Bullet/projectile speed modifier
+      - `spawnWeight`: Enemy selection weight modifier
+      - `abilityIntensityMultiplier`: Special ability intensity (heal amount, spawn rate)
+    - Each chapter has unique modifiers creating distinct gameplay feel:
+      - **Chapter 1 (Dark Dungeon)**: Standard enemies, more melee spawns
+      - **Chapter 2 (Forest Ruins)**: Agile melee (+15% speed), faster ranged projectiles (+20%), dangerous bombers
+      - **Chapter 3 (Frozen Caves)**: Slow but deadly theme - enemies slowed but chargers slide faster (+30%), tanks even tankier
+      - **Chapter 4 (Volcanic Depths)**: Fast and aggressive - all enemies attack faster, healers/spawners more potent
+      - **Chapter 5 (Shadow Realm)**: CHAOS - maximum danger with very fast attacks, extreme ability intensity
+    - RoomGenerator uses chapter-specific spawn weights for enemy selection
+    - GameScene passes chapter modifiers to all enemy constructors
+    - All enemy classes updated to use modifiers:
+      - Enemy (base): speedMultiplier for movement
+      - RangedShooterEnemy: attackCooldownMultiplier, projectileSpeedMultiplier
+      - SpreaderEnemy: attackCooldownMultiplier, projectileSpeedMultiplier
+      - BomberEnemy: attackCooldownMultiplier, speedMultiplier
+      - TankEnemy: attackCooldownMultiplier, projectileSpeedMultiplier, speedMultiplier
+      - ChargerEnemy: attackCooldownMultiplier, speedMultiplier (affects charge speed)
+      - HealerEnemy: attackCooldownMultiplier, abilityIntensityMultiplier (heal amount)
+      - SpawnerEnemy: attackCooldownMultiplier, abilityIntensityMultiplier (max minions)
 [x] 15 boss encounters (3 per chapter x 5 chapters) (2026-01-01)
     - Created BaseBoss abstract class for shared boss functionality:
       - Health management with damage multipliers

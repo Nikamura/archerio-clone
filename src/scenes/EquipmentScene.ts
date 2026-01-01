@@ -374,16 +374,22 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private refreshEquippedSlots(): void {
+    // Guard against being called when scene is not active
+    if (!this.scene.isActive()) return
+
     EQUIPMENT_SLOTS.forEach((slot) => {
       const container = this.equippedSlots.get(slot)
       if (!container) return
 
       const equipped = equipmentManager.getEquipped(slot)
-      const icon = container.getByName('icon') as Phaser.GameObjects.Text
-      const itemBg = container.getByName('itemBg') as Phaser.GameObjects.Rectangle
-      const itemSprite = container.getByName('itemSprite') as Phaser.GameObjects.Image
-      const levelText = container.getByName('levelText') as Phaser.GameObjects.Text
-      const bg = container.list[0] as Phaser.GameObjects.Rectangle
+      const icon = container.getByName('icon') as Phaser.GameObjects.Text | null
+      const itemBg = container.getByName('itemBg') as Phaser.GameObjects.Rectangle | null
+      const itemSprite = container.getByName('itemSprite') as Phaser.GameObjects.Image | null
+      const levelText = container.getByName('levelText') as Phaser.GameObjects.Text | null
+      const bg = container.list[0] as Phaser.GameObjects.Rectangle | undefined
+
+      // Guard against missing UI elements (can happen if scene not fully initialized)
+      if (!icon || !itemBg || !itemSprite || !levelText || !bg) return
 
       if (equipped) {
         // Show item
@@ -400,7 +406,7 @@ export default class EquipmentScene extends Phaser.Scene {
         // Set item sprite
         itemSprite.setTexture(`equip_${equipped.type}`)
         itemSprite.setScale((this.SLOT_SIZE - 20) / itemSprite.width)
-        
+
         // Set level info
         levelText.setText(`Lv.${equipped.level}`)
       } else {

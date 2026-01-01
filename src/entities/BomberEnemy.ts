@@ -1,10 +1,10 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyOptions } from './Enemy'
 import BombPool from '../systems/BombPool'
 
 export default class BomberEnemy extends Enemy {
   private lastThrowTime: number = 0
-  private throwCooldown: number = 2500 // 2.5 seconds between throws
+  private throwCooldown: number = 2500 // Base 2.5 seconds between throws
   private bombPool: BombPool
   private isWindingUp: boolean = false
   private windUpStartTime: number = 0
@@ -20,16 +20,17 @@ export default class BomberEnemy extends Enemy {
     x: number,
     y: number,
     bombPool: BombPool,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    },
+    options?: EnemyOptions,
     onBombExplode?: (x: number, y: number, radius: number, damage: number) => void
   ) {
     super(scene, x, y, options)
 
     this.bombPool = bombPool
     this.onBombExplode = onBombExplode
+
+    // Apply chapter-specific modifiers
+    this.throwCooldown = 2500 * (options?.attackCooldownMultiplier ?? 1.0)
+    // abilityIntensityMultiplier could be used for explosion radius in the future
 
     // Apply damage multiplier to bomb pool
     if (options?.damageMultiplier) {
@@ -75,16 +76,19 @@ export default class BomberEnemy extends Enemy {
     const maxDistance = 220
 
     if (!this.isWindingUp) {
+      const baseRetreatSpeed = 70
+      const baseApproachSpeed = 60
+      const retreatSpeed = baseRetreatSpeed * this.speedMultiplier
+      const approachSpeed = baseApproachSpeed * this.speedMultiplier
+
       if (distanceToPlayer < minDistance) {
         // Too close - retreat
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        const speed = 70
-        this.setVelocity(-Math.cos(angle) * speed, -Math.sin(angle) * speed)
+        this.setVelocity(-Math.cos(angle) * retreatSpeed, -Math.sin(angle) * retreatSpeed)
       } else if (distanceToPlayer > maxDistance) {
         // Too far - approach
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        const speed = 60
-        this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+        this.setVelocity(Math.cos(angle) * approachSpeed, Math.sin(angle) * approachSpeed)
       } else {
         // Good distance - stop and throw
         this.setVelocity(0, 0)

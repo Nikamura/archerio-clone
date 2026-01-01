@@ -1,9 +1,28 @@
 import Phaser from 'phaser'
 
+/**
+ * Options for enemy spawning with difficulty and chapter modifiers
+ */
+export interface EnemyOptions {
+  /** HP multiplier from difficulty/chapter (default 1.0) */
+  healthMultiplier?: number
+  /** Damage multiplier from difficulty/chapter (default 1.0) */
+  damageMultiplier?: number
+  /** Movement speed multiplier from chapter (default 1.0) */
+  speedMultiplier?: number
+  /** Attack cooldown multiplier from chapter (lower = faster attacks, default 1.0) */
+  attackCooldownMultiplier?: number
+  /** Projectile speed multiplier from chapter (default 1.0) */
+  projectileSpeedMultiplier?: number
+  /** Special ability intensity from chapter (heal amount, spawn rate, etc, default 1.0) */
+  abilityIntensityMultiplier?: number
+}
+
 export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private health: number
   private maxHealth: number
   protected damageMultiplier: number = 1.0 // For difficulty scaling
+  protected speedMultiplier: number = 1.0 // For chapter-specific speed
 
   // Fire DOT tracking
   private fireDamage: number = 0 // Damage per tick
@@ -35,10 +54,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+    options?: EnemyOptions
   ) {
     super(scene, x, y, 'enemyMelee')
 
@@ -47,6 +63,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.maxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0))
     this.health = this.maxHealth
     this.damageMultiplier = options?.damageMultiplier ?? 1.0
+    this.speedMultiplier = options?.speedMultiplier ?? 1.0
 
     // Set display size
     this.setDisplaySize(30, 30)
@@ -345,7 +362,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // Simple AI: move toward player
     const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-    const speed = 80
+    const baseSpeed = 80
+    const speed = baseSpeed * this.speedMultiplier
 
     this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
 
