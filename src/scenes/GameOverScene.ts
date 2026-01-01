@@ -5,6 +5,7 @@ import { achievementManager } from '../systems/AchievementManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { chestManager } from '../systems/ChestManager'
 import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
+import { debugToast } from '../systems/DebugToast'
 import {
   calculateChestRewards,
   getTotalChests,
@@ -144,9 +145,12 @@ export default class GameOverScene extends Phaser.Scene {
     // Debug: Log any pointer events to diagnose input issues
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       console.log('GameOverScene: Global pointerdown at', pointer.x, pointer.y)
-      
+
+      // Debug toast for mobile debugging
+      debugToast.logPointer('pointerdown', pointer.x, pointer.y, 'GameOverScene')
+
       // Visual feedback: show a small circle where user tapped (debug mode)
-      if (this.game.registry.get('debug')) {
+      if (debugToast.enabled) {
         const circle = this.add.circle(pointer.x, pointer.y, 20, 0xff0000, 0.5)
         this.tweens.add({
           targets: circle,
@@ -258,6 +262,17 @@ export default class GameOverScene extends Phaser.Scene {
     console.log(
       `GameOverScene: Created - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`
     )
+
+    // Log scene input state for debugging
+    if (debugToast.enabled) {
+      debugToast.show(`Scene: ${this.scene.key}`)
+      debugToast.show(`Input enabled: ${this.input.enabled}`)
+      debugToast.show(`isActive: ${this.scene.isActive()}`)
+
+      // List all running scenes
+      const activeScenes = this.scene.manager.getScenes(true).map(s => s.scene.key)
+      debugToast.show(`Active scenes: ${activeScenes.join(', ')}`)
+    }
   }
 
   /**
@@ -372,7 +387,8 @@ export default class GameOverScene extends Phaser.Scene {
     })
 
     // Copy to clipboard on click
-    seedContainer.on('pointerdown', () => {
+    seedContainer.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      debugToast.logPointer('Seed pointerdown', pointer.x, pointer.y, 'seed copy')
       this.copySeedToClipboard()
       // Flash feedback
       seedBg.setFillStyle(0x00ff88)
@@ -462,19 +478,32 @@ export default class GameOverScene extends Phaser.Scene {
     const pressColor = isVictory ? 0x00cc66 : 0x3a8edf
 
     button.on('pointerover', () => {
+      debugToast.show('Button: pointerover')
       button.setFillStyle(hoverColor)
     })
 
     button.on('pointerout', () => {
+      debugToast.show('Button: pointerout')
       button.setFillStyle(buttonColor)
     })
 
     // Use pointerdown for immediate response on touch devices
-    button.on('pointerdown', () => {
+    button.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       console.log('GameOverScene: Button clicked - navigating to MainMenuScene')
+      debugToast.logPointer('Button pointerdown', pointer.x, pointer.y, 'MAIN MENU btn')
       button.setFillStyle(pressColor)
       this.continueGame()
     })
+
+    // Log all interactive objects in scene for debugging
+    if (debugToast.enabled) {
+      debugToast.logInteractive('MAIN MENU btn', button.x, button.y, buttonWidth, buttonHeight)
+
+      // Add pointerup and pointermove for more debugging
+      button.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+        debugToast.logPointer('Button pointerup', pointer.x, pointer.y)
+      })
+    }
 
     // Debug: Log if button is interactive
     console.log('GameOverScene: Continue button created', {
