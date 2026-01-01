@@ -53,7 +53,7 @@ export interface ChestSaveData {
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'archerio_chest_data'
+const STORAGE_KEY = 'arrow_game_chest_data'
 
 const DEFAULT_INVENTORY: ChestInventory = {
   wooden: 0,

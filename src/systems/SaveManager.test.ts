@@ -565,7 +565,7 @@ describe('SaveManager', () => {
         gold: 500,
         // Missing many fields
       }
-      localStorageMock.setItem('archerio_save_data', JSON.stringify(partialData))
+      localStorageMock.setItem('arrow_game_save_data', JSON.stringify(partialData))
 
       const newManager = new SaveManager()
 
@@ -577,7 +577,7 @@ describe('SaveManager', () => {
     })
 
     it('should handle corrupted save data', () => {
-      localStorageMock.setItem('archerio_save_data', 'not valid json')
+      localStorageMock.setItem('arrow_game_save_data', 'not valid json')
 
       // Should not throw, should return defaults
       const newManager = new SaveManager()

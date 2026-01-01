@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { DifficultyLevel, DIFFICULTY_CONFIGS, setDifficulty, getCurrentDifficulty } from '../config/difficulty'
+import { ChapterId } from '../config/chapterData'
 import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
 import { currencyManager } from '../systems/CurrencyManager'
@@ -12,6 +13,7 @@ export default class MainMenuScene extends Phaser.Scene {
   private energyTimerText?: Phaser.GameObjects.Text
   private leftTorch?: Phaser.GameObjects.Image
   private rightTorch?: Phaser.GameObjects.Image
+  private chapterButtons: Phaser.GameObjects.Container[] = []
 
   constructor() {
     super({ key: 'MainMenuScene' })
@@ -87,8 +89,8 @@ export default class MainMenuScene extends Phaser.Scene {
     // TITLE (depth 10 to ensure visibility over background)
     // ============================================
 
-    const title = this.add.text(width / 2, 60, 'ARCHER.IO', {
-      fontSize: '36px',
+    const title = this.add.text(width / 2, 55, 'ARROW GAME', {
+      fontSize: '32px',
       color: '#ffffff',
       fontStyle: 'bold',
       stroke: '#000000',
@@ -97,27 +99,17 @@ export default class MainMenuScene extends Phaser.Scene {
     title.setOrigin(0.5)
     title.setDepth(10)
 
-    // Stats line (compact)
-    const stats = saveManager.getStatistics()
-    const heroId = saveManager.getSelectedHeroId()
-    const hero = saveManager.getHero(heroId)
-    const heroName = hero ? hero.name : 'Atreus'
-    const selectedChapter = chapterManager.getSelectedChapter()
+    // ============================================
+    // CHAPTER SELECTION
+    // ============================================
 
-    const statsText = this.add.text(width / 2, 100, `${heroName} • Ch.${selectedChapter} • ${stats.totalKills} kills`, {
-      fontSize: '12px',
-      color: '#cccccc',
-      stroke: '#000000',
-      strokeThickness: 2,
-    })
-    statsText.setOrigin(0.5)
-    statsText.setDepth(10)
+    this.createChapterSelection(width)
 
     // ============================================
     // DIFFICULTY SELECTION (Horizontal)
     // ============================================
 
-    const difficultyLabel = this.add.text(width / 2, 130, 'DIFFICULTY', {
+    const difficultyLabel = this.add.text(width / 2, 175, 'DIFFICULTY', {
       fontSize: '14px',
       color: '#aaaaaa',
       stroke: '#000000',
@@ -136,7 +128,7 @@ export default class MainMenuScene extends Phaser.Scene {
       const config = DIFFICULTY_CONFIGS[difficulty]
       const xPos = startX + index * (buttonWidth + 10)
 
-      const button = this.add.text(xPos, 160, config.label, {
+      const button = this.add.text(xPos, 200, config.label, {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: difficulty === this.selectedDifficulty ? config.color : '#444444',
@@ -182,7 +174,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // PLAY BUTTON (Center)
     // ============================================
 
-    const playButton = this.add.text(width / 2, 240, 'PLAY', {
+    const playButton = this.add.text(width / 2, 270, 'PLAY', {
       fontSize: '28px',
       color: '#ffffff',
       backgroundColor: '#4a9eff',
@@ -211,7 +203,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // MENU BUTTONS (Two rows for better layout)
     // ============================================
 
-    const menuY = 310
+    const menuY = 340
     const menuButtons = [
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },
@@ -255,7 +247,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // DAILY REWARD BUTTON (Below menu buttons)
     // ============================================
 
-    const dailyY = menuY + 60
+    const dailyY = menuY + 55
     const canClaimDaily = dailyRewardManager.canClaimToday()
 
     // Daily button container
@@ -315,7 +307,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // ACHIEVEMENTS BUTTON (Below daily rewards)
     // ============================================
 
-    const achieveY = dailyY + 50
+    const achieveY = dailyY + 45
     const unclaimedCount = achievementManager.getUnclaimedRewardsCount()
 
     const achieveButton = this.add.text(width / 2, achieveY, 'Achievements', {
@@ -384,6 +376,145 @@ export default class MainMenuScene extends Phaser.Scene {
   update() {
     // Update energy timer every frame
     this.updateEnergyTimer()
+  }
+
+  private createChapterSelection(width: number) {
+    const selectedChapterId = chapterManager.getSelectedChapter()
+    const unlockedChapters = chapterManager.getUnlockedChapters()
+
+    // Chapter selection label
+    const chapterLabel = this.add.text(width / 2, 88, 'SELECT CHAPTER', {
+      fontSize: '12px',
+      color: '#aaaaaa',
+      stroke: '#000000',
+      strokeThickness: 2,
+    })
+    chapterLabel.setOrigin(0.5)
+    chapterLabel.setDepth(10)
+
+    // Create chapter buttons (5 chapters)
+    const chapterIds: ChapterId[] = [1, 2, 3, 4, 5]
+    const chapterBtnSize = 60
+    const chapterGap = 8
+    const totalChapterWidth = chapterIds.length * chapterBtnSize + (chapterIds.length - 1) * chapterGap
+    const chapterStartX = (width - totalChapterWidth) / 2 + chapterBtnSize / 2
+    const chapterY = 130
+
+    this.chapterButtons = []
+
+    // Theme colors for each chapter
+    const chapterColors: Record<ChapterId, number> = {
+      1: 0x4a4a4a, // Dark Dungeon - gray stone
+      2: 0x2d5a27, // Forest Ruins - green
+      3: 0x4a8ab5, // Frozen Caves - ice blue
+      4: 0x8b2500, // Volcanic Depths - red/orange
+      5: 0x3d1a5c, // Shadow Realm - purple
+    }
+
+    chapterIds.forEach((chapterId, index) => {
+      const isUnlocked = unlockedChapters.includes(chapterId)
+      const isSelected = chapterId === selectedChapterId
+      const xPos = chapterStartX + index * (chapterBtnSize + chapterGap)
+
+      // Create container for chapter button
+      const container = this.add.container(xPos, chapterY)
+      container.setDepth(10)
+
+      // Background with chapter theme color
+      const themeColor = chapterColors[chapterId]
+      const bgColor = isSelected ? 0x4a9eff : (isUnlocked ? themeColor : 0x222222)
+      const bg = this.add.rectangle(0, 0, chapterBtnSize, chapterBtnSize, bgColor, 1)
+      bg.setStrokeStyle(3, isSelected ? 0xffffff : (isUnlocked ? 0xaaaaaa : 0x444444))
+
+      // Chapter icon (if loaded) or fallback to number
+      const iconKey = `chapterIcon${chapterId}`
+      let icon: Phaser.GameObjects.Image | null = null
+
+      if (this.textures.exists(iconKey)) {
+        icon = this.add.image(0, 0, iconKey)
+        icon.setDisplaySize(chapterBtnSize - 8, chapterBtnSize - 8)
+        if (!isUnlocked) {
+          icon.setTint(0x444444)
+        }
+        container.add(icon)
+      }
+
+      // Chapter number overlay (always visible)
+      const numText = this.add.text(0, 0, `${chapterId}`, {
+        fontSize: '28px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      })
+      numText.setOrigin(0.5)
+      if (!isUnlocked) {
+        numText.setAlpha(0.4)
+      }
+
+      // Lock overlay for locked chapters
+      if (!isUnlocked) {
+        const lockOverlay = this.add.rectangle(0, 0, chapterBtnSize, chapterBtnSize, 0x000000, 0.6)
+        const lockIcon = this.add.text(0, 0, '🔒', {
+          fontSize: '24px',
+        })
+        lockIcon.setOrigin(0.5)
+        container.add([lockOverlay, lockIcon])
+      }
+
+      container.add([bg, numText])
+      if (icon) {
+        container.sendToBack(icon)
+      }
+      container.sendToBack(bg)
+
+      // Make interactive if unlocked
+      if (isUnlocked) {
+        container.setSize(chapterBtnSize, chapterBtnSize)
+        container.setInteractive(
+          new Phaser.Geom.Rectangle(-chapterBtnSize / 2, -chapterBtnSize / 2, chapterBtnSize, chapterBtnSize),
+          Phaser.Geom.Rectangle.Contains
+        )
+
+        container.on('pointerover', () => {
+          if (chapterId !== chapterManager.getSelectedChapter()) {
+            bg.setFillStyle(0x666666)
+          }
+        })
+
+        container.on('pointerout', () => {
+          if (chapterId !== chapterManager.getSelectedChapter()) {
+            bg.setFillStyle(0x555555)
+          }
+        })
+
+        container.on('pointerdown', () => {
+          audioManager.playMenuSelect()
+          chapterManager.selectChapter(chapterId)
+          this.updateChapterButtons()
+        })
+      }
+
+      // Store reference
+      container.setData('chapterId', chapterId)
+      container.setData('bg', bg)
+      container.setData('themeColor', themeColor)
+      this.chapterButtons.push(container)
+    })
+  }
+
+  private updateChapterButtons() {
+    const selectedChapterId = chapterManager.getSelectedChapter()
+
+    this.chapterButtons.forEach((container) => {
+      const chapterId = container.getData('chapterId') as ChapterId
+      const bg = container.getData('bg') as Phaser.GameObjects.Rectangle
+      const themeColor = container.getData('themeColor') as number
+      const isSelected = chapterId === selectedChapterId
+
+      bg.setFillStyle(isSelected ? 0x4a9eff : themeColor)
+      bg.setStrokeStyle(3, isSelected ? 0xffffff : 0xaaaaaa)
+    })
   }
 
   private updateEnergyTimer() {

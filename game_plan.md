@@ -1,8 +1,8 @@
-# Archer.io Web Clone: Complete Development Plan
+# Arrow Game: Complete Development Plan
 
-The Archero-style roguelike shooter succeeds through a deceptively simple core mechanic: **stop to shoot, move to dodge**. This creates a fundamental tension between offense and defense that drives the entire game experience. Building a web-based clone requires carefully layering complexity onto this foundation without breaking what makes it work. This plan structures development into three fully playable versions, each complete and polished before moving forward.
+This roguelike shooter succeeds through a deceptively simple core mechanic: **stop to shoot, move to dodge**. This creates a fundamental tension between offense and defense that drives the entire game experience. This plan structures development into three fully playable versions, each complete and polished before moving forward.
 
-## The core loop that makes Archero work
+## The core loop that makes Arrow Game work
 
 The game's brilliance lies in splitting control: the player handles movement via virtual joystick while the game handles aiming and shooting automatically. When the player releases the joystick to stop moving, their character auto-fires at the nearest enemy. This creates **100+ micro-decisions per minute**—every moment of stillness is a calculated risk. According to design analyses, this mechanic achieves "the right amount of control and agency" while remaining "truly hyper-casual."
 
@@ -498,7 +498,7 @@ Visual test screenshots are saved to `test/screenshots/`
      - No auto-save was triggered when data changed
      - No data was loaded on game boot (managers started with empty state)
    - Fixed by adding localStorage persistence directly to each manager:
-     - Added `EQUIPMENT_STORAGE_KEY = 'archerio_equipment_data'` and `TALENT_STORAGE_KEY = 'archerio_talent_data'`
+     - Added `EQUIPMENT_STORAGE_KEY = 'arrow_game_equipment_data'` and `TALENT_STORAGE_KEY = 'arrow_game_talent_data'`
      - Added `saveToStorage()` method that calls `toSaveData()` and writes to localStorage
      - Added `loadFromStorage()` method that reads localStorage and calls `fromSaveData()` on construction
      - Added `saveToStorage()` calls after all mutating operations:
@@ -651,7 +651,7 @@ Visual test screenshots are saved to `test/screenshots/`
 - Boss variety: 3 unique bosses per chapter
 
 **Talent system (permanent progression):**
-- Spend gold to unlock random talents (Archero-style lottery)
+- Spend gold to unlock random talents (lottery system)
 - Common: +100 HP, +25 Attack per level
 - Rare: +1% Attack Speed, +50 healing per level-up
 - Epic: +3% equipment stats, Glory (start run with 1 ability)
@@ -793,7 +793,7 @@ Visual test screenshots are saved to `test/screenshots/`
 [x] Energy system with timer (2026-01-01)
     - Max 20 energy, regenerates 1 per 12 minutes (720000ms)
     - Timestamp-based regeneration on load - persists across page refreshes
-    - CurrencyManager now saves/loads from localStorage (`archerio_currency_data` key)
+    - CurrencyManager now saves/loads from localStorage (`arrow_game_currency_data` key)
     - lastEnergyUpdate timestamp preserved for accurate offline regeneration
     - getTimeUntilNextEnergy() and getFormattedTimeUntilNextEnergy() for UI display
     - Timer continues from correct position after page refresh

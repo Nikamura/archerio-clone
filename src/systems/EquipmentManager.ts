@@ -44,7 +44,7 @@ import {
 // ============================================
 
 /** localStorage key for equipment data persistence */
-const EQUIPMENT_STORAGE_KEY = 'archerio_equipment_data'
+const EQUIPMENT_STORAGE_KEY = 'arrow_game_equipment_data'
 
 // ============================================
 // Event Types

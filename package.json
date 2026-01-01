@@ -1,7 +1,7 @@
 {
-  "name": "archerio-clone",
+  "name": "arrow-game",
   "version": "0.1.0",
-  "description": "Archer.io/Archero-style roguelike shooter web game",
+  "description": "Arrow Game - roguelike shooter web game",
   "type": "module",
   "scripts": {
     "dev": "vite",

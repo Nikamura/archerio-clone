@@ -169,4 +169,14 @@ export default class UIScene extends Phaser.Scene {
   updateLevel(level: number) {
     this.levelText.setText(`Lv.${level}`)
   }
+
+  shutdown() {
+    // Remove all event listeners to prevent memory leaks
+    this.events.off('updateHealth')
+    this.events.off('updateXP')
+    this.events.off('updateRoom')
+    this.events.off('showBossHealth')
+    this.events.off('updateBossHealth')
+    this.events.off('hideBossHealth')
+  }
 }

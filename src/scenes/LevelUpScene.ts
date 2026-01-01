@@ -6,6 +6,7 @@ interface AbilityData {
   name: string
   description: string
   color: number
+  iconKey: string
 }
 
 const ABILITIES: AbilityData[] = [
@@ -15,48 +16,56 @@ const ABILITIES: AbilityData[] = [
     name: 'Front Arrow +1',
     description: '-25% damage',
     color: 0x44aaff,
+    iconKey: 'abilityFrontArrow',
   },
   {
     id: 'multishot',
     name: 'Multishot',
     description: '-15% attack speed',
     color: 0xff6644,
+    iconKey: 'abilityMultishot',
   },
   {
     id: 'attack_speed',
     name: 'Attack Speed',
     description: '+25% speed',
     color: 0xffdd00,
+    iconKey: 'abilityAttackSpeed',
   },
   {
     id: 'attack_boost',
     name: 'Attack Boost',
     description: '+30% damage',
     color: 0xff4488,
+    iconKey: 'abilityAttackBoost',
   },
   {
     id: 'piercing',
     name: 'Piercing',
     description: 'Pass through enemies',
     color: 0x00ffaa,
+    iconKey: 'abilityPiercing',
   },
   {
     id: 'ricochet',
     name: 'Ricochet',
     description: 'Bounce 3x',
     color: 0x88ff88,
+    iconKey: 'abilityRicochet',
   },
   {
     id: 'fire_damage',
     name: 'Fire',
     description: '18% DOT',
     color: 0xff6600,
+    iconKey: 'abilityFireDamage',
   },
   {
     id: 'crit_boost',
     name: 'Critical',
     description: '+10% crit, +40% dmg',
     color: 0xffff00,
+    iconKey: 'abilityCrit',
   },
   // New 8 abilities for V1
   {
@@ -64,48 +73,56 @@ const ABILITIES: AbilityData[] = [
     name: 'Ice Shot',
     description: '15% freeze chance',
     color: 0x66ccff,
+    iconKey: 'abilityIceShot',
   },
   {
     id: 'poison_shot',
     name: 'Poison',
     description: '5% DOT, stacks 5x',
     color: 0x66ff66,
+    iconKey: 'abilityPoisonShot',
   },
   {
     id: 'lightning_chain',
     name: 'Lightning',
     description: 'Chain to 2 enemies',
     color: 0x9966ff,
+    iconKey: 'abilityLightningChain',
   },
   {
     id: 'diagonal_arrows',
     name: 'Diagonal Arrows',
     description: '+2 arrows at 30°',
     color: 0xff9966,
+    iconKey: 'abilityDiagonalArrows',
   },
   {
     id: 'rear_arrow',
     name: 'Rear Arrow',
     description: '+1 backwards',
     color: 0x6699ff,
+    iconKey: 'abilityRearArrow',
   },
   {
     id: 'bouncy_wall',
     name: 'Bouncy Wall',
     description: '2 wall bounces',
     color: 0x99ff99,
+    iconKey: 'abilityBouncyWall',
   },
   {
     id: 'bloodthirst',
     name: 'Bloodthirst',
     description: '+2 HP per kill',
     color: 0xff3333,
+    iconKey: 'abilityBloodthirst',
   },
   {
     id: 'rage',
     name: 'Rage',
     description: '+5% dmg per 10% HP lost',
     color: 0xcc0000,
+    iconKey: 'abilityRage',
   },
 ]
 
@@ -186,9 +203,23 @@ export default class LevelUpScene extends Phaser.Scene {
     button.setStrokeStyle(3, ability.color)
     button.setInteractive({ useHandCursor: true })
 
+    // Icon on the left side
+    const iconX = x - width / 2 + 45
+    const textX = x + 15 // Shift text right to make room for icon
+
+    // Add ability icon
+    if (this.textures.exists(ability.iconKey)) {
+      const icon = this.add.image(iconX, y, ability.iconKey)
+      icon.setDisplaySize(48, 48)
+    } else {
+      // Fallback: colored circle if icon not loaded
+      const fallbackIcon = this.add.circle(iconX, y, 20, ability.color)
+      fallbackIcon.setStrokeStyle(2, 0xffffff)
+    }
+
     // Ability name (larger, on top line)
     this.add
-      .text(x, y - 15, ability.name, {
+      .text(textX, y - 15, ability.name, {
         fontSize: '20px',
         color: '#ffffff',
         fontStyle: 'bold',
@@ -197,7 +228,7 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Description (smaller, below name)
     this.add
-      .text(x, y + 15, ability.description, {
+      .text(textX, y + 15, ability.description, {
         fontSize: '14px',
         color: '#aaaaaa',
       })

@@ -68,6 +68,22 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('enemyTank', 'assets/sprites/enemy/tank.png')
     this.load.image('enemyCharger', 'assets/sprites/enemy/charger.png')
     this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
+    // Chapter 2 - Forest bosses
+    this.load.image('boss_tree_guardian', 'assets/sprites/boss/tree_guardian.png')
+    this.load.image('boss_wild_boar', 'assets/sprites/boss/wild_boar.png')
+    this.load.image('boss_forest_spirit', 'assets/sprites/boss/forest_spirit.png')
+    // Chapter 3 - Ice bosses
+    this.load.image('boss_ice_golem', 'assets/sprites/boss/ice_golem.png')
+    this.load.image('boss_frost_wyrm', 'assets/sprites/boss/frost_wyrm.png')
+    this.load.image('boss_crystal_guardian', 'assets/sprites/boss/crystal_guardian.png')
+    // Chapter 4 - Volcanic bosses
+    this.load.image('boss_magma_wyrm', 'assets/sprites/boss/magma_wyrm.png')
+    this.load.image('boss_inferno_demon', 'assets/sprites/boss/inferno_demon.png')
+    this.load.image('boss_lava_golem', 'assets/sprites/boss/lava_golem.png')
+    // Chapter 5 - Shadow bosses
+    this.load.image('boss_void_lord', 'assets/sprites/boss/void_lord.png')
+    this.load.image('boss_final_boss', 'assets/sprites/boss/final_boss.png')
+    this.load.image('boss_nightmare', 'assets/sprites/boss/nightmare.png')
 
     // Load projectiles
     this.load.image('bulletSprite', 'assets/sprites/projectile/player_arrow.png')
@@ -87,14 +103,36 @@ export default class PreloaderScene extends Phaser.Scene {
     // Load menu effects
     this.load.image('torch', 'assets/sprites/effect/torch.png')
 
-    // Load ability icons
+    // Load ability icons - MVP abilities
     this.load.image('abilityFrontArrow', 'assets/sprites/abilities/front_arrow.png')
     this.load.image('abilityMultishot', 'assets/sprites/abilities/multishot.png')
+    this.load.image('abilityAttackBoost', 'assets/sprites/abilities/attack_boost.png')
+    this.load.image('abilityAttackSpeed', 'assets/sprites/abilities/attack_speed.png')
+    this.load.image('abilityCrit', 'assets/sprites/abilities/crit.png')
+    this.load.image('abilityFireDamage', 'assets/sprites/abilities/fire_damage.png')
+    this.load.image('abilityPiercing', 'assets/sprites/abilities/piercing.png')
+    this.load.image('abilityRicochet', 'assets/sprites/abilities/ricochet.png')
+    // Load ability icons - V1 abilities
+    this.load.image('abilityRearArrow', 'assets/sprites/abilities/rear_arrow.png')
+    this.load.image('abilityDiagonalArrows', 'assets/sprites/abilities/diagonal_arrows.png')
+    this.load.image('abilityBouncyWall', 'assets/sprites/abilities/bouncy_wall.png')
+    this.load.image('abilityIceShot', 'assets/sprites/abilities/ice_shot.png')
+    this.load.image('abilityPoisonShot', 'assets/sprites/abilities/poison_shot.png')
+    this.load.image('abilityLightningChain', 'assets/sprites/abilities/lightning_chain.png')
+    this.load.image('abilityBloodthirst', 'assets/sprites/abilities/bloodthirst.png')
+    this.load.image('abilityRage', 'assets/sprites/abilities/rage.png')
 
     // Load hero icons
     this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')
     this.load.image('heroHelix', 'assets/sprites/ui/hero_helix.png')
     this.load.image('heroMeowgik', 'assets/sprites/ui/hero_meowgik.png')
+
+    // Load chapter icons
+    this.load.image('chapterIcon1', 'assets/sprites/ui/chapter1_icon.png')
+    this.load.image('chapterIcon2', 'assets/sprites/ui/chapter2_icon.png')
+    this.load.image('chapterIcon3', 'assets/sprites/ui/chapter3_icon.png')
+    this.load.image('chapterIcon4', 'assets/sprites/ui/chapter4_icon.png')
+    this.load.image('chapterIcon5', 'assets/sprites/ui/chapter5_icon.png')
   }
 
   create() {

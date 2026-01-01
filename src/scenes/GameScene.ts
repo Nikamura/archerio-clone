@@ -1417,14 +1417,69 @@ export default class GameScene extends Phaser.Scene {
   }
 
   shutdown() {
+    // Stop all delayed calls to prevent callbacks on destroyed objects
+    this.time.removeAllEvents()
+
     // Clean up joystick when scene shuts down
     if (this.joystick) {
       this.joystick.destroy()
+      this.joystick = null!
     }
 
     // Clean up particles
     if (this.particles) {
       this.particles.destroy()
+      this.particles = null!
+    }
+
+    // Clean up pools
+    if (this.bulletPool) {
+      this.bulletPool.destroy(true)
+      this.bulletPool = null!
+    }
+    if (this.enemyBulletPool) {
+      this.enemyBulletPool.destroy(true)
+      this.enemyBulletPool = null!
+    }
+    if (this.bombPool) {
+      this.bombPool.destroy(true)
+      this.bombPool = null!
+    }
+    if (this.goldPool) {
+      this.goldPool.destroy(true)
+      this.goldPool = null!
+    }
+    if (this.healthPool) {
+      this.healthPool.destroy(true)
+      this.healthPool = null!
+    }
+
+    // Clean up enemies group
+    if (this.enemies) {
+      this.enemies.destroy(true)
+      this.enemies = null!
+    }
+
+    // Clean up boss
+    if (this.boss) {
+      this.boss.destroy()
+      this.boss = null
+    }
+
+    // Clean up player
+    if (this.player) {
+      this.player.destroy()
+      this.player = null!
+    }
+
+    // Clean up door sprite
+    if (this.doorSprite) {
+      this.doorSprite.destroy()
+      this.doorSprite = null
+    }
+    if (this.doorText) {
+      this.doorText.destroy()
+      this.doorText = null
     }
   }
 }

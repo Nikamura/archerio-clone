@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Archer.io/Archero-style roguelike shooter web game built with Phaser 3. The core mechanic is **stop to shoot, move to dodge**: the player auto-fires when stationary and stops firing when moving, creating constant micro-decisions between offense and defense.
+Arrow Game is a roguelike shooter web game built with Phaser 3. The core mechanic is **stop to shoot, move to dodge**: the player auto-fires when stationary and stops firing when moving, creating constant micro-decisions between offense and defense.
 
 ## Development Commands
 
@@ -239,13 +239,13 @@ addItem(item: Item): void {
 ```
 
 **localStorage Keys** (defined as constants):
-- `archerio_save_data` - SaveManager
-- `archerio_currency_data` - CurrencyManager
-- `archerio_equipment_data` - EquipmentManager
-- `archerio_talent_data` - TalentManager
-- `archerio_chest_data` - ChestManager
-- `archerio_daily_reward_data` - DailyRewardManager
-- `archerio_achievement_data` - AchievementManager
+- `arrow_game_save_data` - SaveManager
+- `arrow_game_currency_data` - CurrencyManager
+- `arrow_game_equipment_data` - EquipmentManager
+- `arrow_game_talent_data` - TalentManager
+- `arrow_game_chest_data` - ChestManager
+- `arrow_game_daily_rewards` - DailyRewardManager
+- `arrow_game_achievements` - AchievementManager
 
 ## Mobile Conventions
 

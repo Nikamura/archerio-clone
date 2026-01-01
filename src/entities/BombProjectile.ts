@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
 
 export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
-  private fuseTime: number = 1500 // 1.5 seconds before explosion
-  private spawnTime: number = 0
+  private fuseTime: number = 2500 // 2.5 seconds before explosion
   private explosionRadius: number = 60
   private damage: number = 15
   private damageMultiplier: number = 1.0
@@ -59,7 +58,11 @@ export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(true)
     this.hasExploded = false
 
-    this.spawnTime = this.scene.time.now
+    // Clear any existing explosion timer
+    const existingTimer = this.getData('explosionTimer') as Phaser.Time.TimerEvent
+    if (existingTimer) {
+      existingTimer.destroy()
+    }
 
     // Calculate angle to target
     const angle = Phaser.Math.Angle.Between(x, y, targetX, targetY)
@@ -80,6 +83,14 @@ export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
         this.showWarning()
       }
     })
+
+    // Schedule explosion using timer (more reliable than update())
+    const explosionTimer = this.scene.time.delayedCall(this.fuseTime, () => {
+      if (this.active && !this.hasExploded) {
+        this.explode()
+      }
+    })
+    this.setData('explosionTimer', explosionTimer)
   }
 
   private showWarning() {
@@ -122,6 +133,12 @@ export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
     const pulseInterval = this.getData('pulseInterval') as Phaser.Time.TimerEvent
     if (pulseInterval) {
       pulseInterval.destroy()
+    }
+
+    // Clear explosion timer (in case explode was called early via onHitPlayer)
+    const explosionTimer = this.getData('explosionTimer') as Phaser.Time.TimerEvent
+    if (explosionTimer) {
+      explosionTimer.destroy()
     }
 
     // Clear warning circle
@@ -171,15 +188,6 @@ export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
     this.setVelocity(0, 0)
   }
 
-  update(time: number) {
-    if (!this.active || this.hasExploded) return
-
-    // Check if fuse time has elapsed
-    if (time - this.spawnTime > this.fuseTime) {
-      this.explode()
-    }
-  }
-
   // Also explode on direct hit with player
   onHitPlayer() {
     this.explode()
@@ -196,6 +204,12 @@ export default class BombProjectile extends Phaser.Physics.Arcade.Sprite {
     const pulseInterval = this.getData('pulseInterval') as Phaser.Time.TimerEvent
     if (pulseInterval) {
       pulseInterval.destroy()
+    }
+
+    // Clean up explosion timer
+    const explosionTimer = this.getData('explosionTimer') as Phaser.Time.TimerEvent
+    if (explosionTimer) {
+      explosionTimer.destroy()
     }
 
     super.destroy(fromScene)

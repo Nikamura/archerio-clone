@@ -51,7 +51,7 @@ export type AchievementEventCallback = (data: AchievementEventData) => void
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'archerio_achievements'
+const STORAGE_KEY = 'arrow_game_achievements'
 
 // ============================================
 // AchievementManager Class
