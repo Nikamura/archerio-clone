@@ -160,13 +160,20 @@ export default class LevelUpScene extends Phaser.Scene {
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
-    // Ensure this scene receives input
+    // CRITICAL: Ensure this scene receives input and is on top
     this.input.enabled = true
+    this.input.setTopOnly(false) // Allow all objects to receive input
     this.scene.bringToTop()
+    
+    // Set canvas pointer events to ensure touch works
+    if (this.game.canvas) {
+      this.game.canvas.style.pointerEvents = 'auto'
+    }
 
     // Dark overlay background with fade in
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
     bg.setInteractive() // Capture all clicks on background too
+    bg.setDepth(-1) // Ensure background is behind everything
 
     // Fade in overlay
     this.tweens.add({
@@ -178,6 +185,7 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Title container for animation
     this.titleContainer = this.add.container(width / 2, 100)
+    this.titleContainer.setDepth(1)
 
     // Title background glow
     const titleGlow = this.add.rectangle(0, 0, 250, 60, 0xffdd00, 0.15)
@@ -281,6 +289,7 @@ export default class LevelUpScene extends Phaser.Scene {
   ) {
     // Create container for the whole card
     const container = this.add.container(x, y)
+    container.setDepth(10 + index) // Ensure cards are above background
 
     // Outer glow/border effect
     const glowRect = this.add.rectangle(0, 0, cardWidth + 6, cardHeight + 6, ability.color, 0.2)

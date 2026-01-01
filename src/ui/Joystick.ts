@@ -12,6 +12,8 @@ export default class Joystick {
 
   create(container: HTMLElement) {
     this.container = container
+    // Ensure pointer events are enabled initially
+    this.container.style.pointerEvents = 'auto'
     this.internalCreate()
     console.log('Joystick created')
   }
@@ -87,14 +89,36 @@ export default class Joystick {
       if (this.onEnd) {
         this.onEnd()
       }
+      
+      // Clean up touch event listeners
+      if ((this.manager as any)._touchEndCleanup) {
+        ;(this.manager as any)._touchEndCleanup()
+      }
+      
       this.manager.destroy()
       this.manager = null
+    }
+    
+    // CRITICAL: Remove any lingering nipplejs DOM elements
+    // nipplejs creates DOM elements that might not be cleaned up properly
+    if (this.container) {
+      const nippleElements = this.container.querySelectorAll('.nipple, [class*="nipple"]')
+      nippleElements.forEach((el) => {
+        if (el.parentNode) {
+          el.parentNode.removeChild(el)
+        }
+      })
+      
+      // Disable pointer events on the container to prevent it from blocking input
+      this.container.style.pointerEvents = 'none'
     }
   }
 
   show() {
     if (!this.manager && this.container) {
       console.log('Joystick: recreating manager')
+      // Re-enable pointer events on the container
+      this.container.style.pointerEvents = 'auto'
       this.internalCreate()
     }
   }
