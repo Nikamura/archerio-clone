@@ -35,7 +35,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.clearTint()
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number) {
+  update(_time: number, _delta: number, playerX: number, playerY: number) {
     if (!this.active || !this.body) {
       return
     }

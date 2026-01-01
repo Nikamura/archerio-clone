@@ -3,6 +3,7 @@ import Phaser from 'phaser'
 export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics
   private healthBarBg!: Phaser.GameObjects.Graphics
+  private roomText!: Phaser.GameObjects.Text
 
   constructor() {
     super({ key: 'UIScene' })
@@ -23,8 +24,13 @@ export default class UIScene extends Phaser.Scene {
       this.updateHealthBar(healthPercentage)
     })
 
+    // Listen for room updates from GameScene
+    this.events.on('updateRoom', (currentRoom: number, totalRooms: number) => {
+      this.updateRoomCounter(currentRoom, totalRooms)
+    })
+
     // Room counter
-    const roomText = this.add.text(
+    this.roomText = this.add.text(
       this.cameras.main.width / 2,
       20,
       'Room 1/10',
@@ -34,7 +40,7 @@ export default class UIScene extends Phaser.Scene {
         fontStyle: 'bold',
       }
     )
-    roomText.setOrigin(0.5, 0)
+    this.roomText.setOrigin(0.5, 0)
 
     console.log('UIScene: Created')
   }
@@ -49,5 +55,9 @@ export default class UIScene extends Phaser.Scene {
 
     this.healthBar.fillStyle(color, 1)
     this.healthBar.fillRect(12, 12, percentage * 2, 20)
+  }
+
+  updateRoomCounter(currentRoom: number, totalRooms: number) {
+    this.roomText.setText(`Room ${currentRoom}/${totalRooms}`)
   }
 }

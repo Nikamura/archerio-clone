@@ -44,6 +44,148 @@ class BulletPool extends Phaser.Physics.Arcade.Group {
 
 ---
 
+## Asset Generation Scripts
+
+The project includes AI-powered scripts for generating game art assets using Google's Gemini API. All generated assets have transparent backgrounds (PNG) and are optimized for game use.
+
+**Requirements:**
+- Set `GEMINI_API_KEY` in `.env` file
+- Optionally set `GEMINI_MODEL` (default: `gemini-2.0-flash-exp`)
+
+### Generic Image Generation
+
+```bash
+pnpm run generate-image <prompt> [width] [height] [--output <path>]
+```
+
+Use for backgrounds, UI elements, and non-sprite assets:
+
+```bash
+# Examples
+pnpm run generate-image "dark dungeon stone floor texture" 512 512
+pnpm run generate-image "forest background parallax layer" 1024 768
+pnpm run generate-image "treasure chest icon" 64 64 --output assets/ui/chest.png
+```
+
+### Sprite Generation
+
+```bash
+pnpm run generate-sprite <description> [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--type, -t` | Sprite type: `player`, `enemy`, `boss`, `projectile`, `item`, `effect`, `ui`, `generic` |
+| `--size, -s` | Sprite size in pixels (default varies by type) |
+| `--style` | Art style: `"pixel art"`, `"hand-drawn"`, `"vector"` (default: pixel art) |
+| `--output, -o` | Output file/directory path |
+| `--anim, -a` | Animation type for multi-frame generation |
+| `--frames, -f` | Number of animation frames |
+| `--clean, -c` | **Recommended:** Remove background for true PNG transparency |
+
+**Sprite Types & Default Sizes:**
+| Type | Size | Use Case |
+|------|------|----------|
+| `player` | 64px | Hero characters |
+| `enemy` | 64px | Standard enemies |
+| `boss` | 128px | Boss enemies |
+| `projectile` | 32px | Bullets, arrows, spells |
+| `item` | 32px | Collectibles, pickups |
+| `effect` | 64px | Visual effects, particles |
+| `ui` | 48px | Interface icons |
+
+**Single Sprite Examples:**
+```bash
+pnpm run generate-sprite "archer with bow" --type player --clean
+pnpm run generate-sprite "red slime monster" --type enemy --clean
+pnpm run generate-sprite "golden arrow" --type projectile -c
+pnpm run generate-sprite "health potion" --type item --clean
+pnpm run generate-sprite "fire dragon" --type boss --size 128 -c
+```
+
+### Animation Sequences
+
+Generate multiple frames for animated sprites:
+
+**Animation Types & Default Frames:**
+| Animation | Frames | Description |
+|-----------|--------|-------------|
+| `idle` | 4 | Breathing/subtle movement |
+| `walk` | 6 | Walking cycle |
+| `run` | 6 | Running cycle |
+| `attack` | 4 | Attack swing/action |
+| `hit` | 3 | Damage reaction |
+| `death` | 4 | Death sequence |
+| `cast` | 4 | Spell casting |
+| `jump` | 4 | Jump arc |
+
+**Animation Examples:**
+```bash
+# Generate walk animation for player (6 frames) with clean backgrounds
+pnpm run generate-sprite "knight warrior" --type player --anim walk --clean
+
+# Generate idle animation for enemy (4 frames)
+pnpm run generate-sprite "green slime" --type enemy --anim idle -c
+
+# Generate attack animation with custom frame count
+pnpm run generate-sprite "wizard" --type player --anim attack --frames 6 --clean
+
+# Generate death animation
+pnpm run generate-sprite "skeleton" --type enemy --anim death -c
+```
+
+Animation frames are saved to: `assets/sprites/<type>/<name>_<anim>_<timestamp>/frame_XX.png`
+
+### Background Removal (Standalone)
+
+For existing images with checkerboard/solid backgrounds:
+
+```bash
+pnpm run remove-bg <image-path> [--tolerance <0-255>] [--output <path>]
+```
+
+**Examples:**
+```bash
+# Remove background from single image
+pnpm run remove-bg assets/sprites/enemy/slime.png
+
+# Process multiple images with glob pattern
+pnpm run remove-bg "assets/sprites/player/*.png" --tolerance 40
+
+# Custom output path
+pnpm run remove-bg image.png --output clean.png
+```
+
+The tolerance option (default: 35) controls how aggressively similar colors are removed. Higher values remove more.
+
+### Asset Organization
+
+Generated assets are automatically organized:
+```
+assets/
+├── generated/           # Generic images
+├── sprites/
+│   ├── player/          # Player sprites & animations
+│   ├── enemy/           # Enemy sprites & animations
+│   ├── boss/            # Boss sprites & animations
+│   ├── projectile/      # Bullet/arrow sprites
+│   ├── item/            # Collectible sprites
+│   ├── effect/          # Visual effect sprites
+│   └── ui/              # UI icons
+```
+
+### Best Practices
+
+1. **Always use `--clean`**: AI generates fake checkerboard backgrounds, use `--clean` or `-c` for true transparency
+2. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
+3. **Naming**: Use descriptive prompts that include key visual features
+4. **Review**: AI generation can vary - regenerate if needed
+5. **Animation**: For smooth animations, generate more frames and remove duplicates
+6. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
+
+---
+
 ## MVP: Minimum playable core loop
 
 **Goal:** A complete, fun 5-minute game session demonstrating the stop-to-shoot mechanic with basic progression. A player should be able to pick it up, understand it instantly, and want to play again.
@@ -118,7 +260,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] 3 enemy AI behaviors (melee rusher, ranged shooter with telegraph, spreader)
 [x] Collision detection (player/enemy, bullet/enemy, enemy-bullet/player)
 [x] Automated visual testing with Puppeteer
-[ ] Room system with door transitions
+[x] Room system with door transitions
 [ ] XP/leveling system
 [ ] Ability selection modal
 [ ] 8 working abilities with stacking
@@ -141,6 +283,10 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Portrait mode (375x667) optimized for mobile
 - ✅ Precise hitbox collision detection
 - ✅ Puppeteer automated testing with screenshots
+- ✅ Game over screen with death detection, kill tracking, and restart
+- ✅ Room system with 10 rooms, door transitions, and victory screen
+- ✅ Room progression with scaling difficulty
+- ✅ ESLint + TypeScript build passing
 - 🚧 Dev server running at http://localhost:3000/
 
 **TESTING:**
@@ -151,14 +297,14 @@ Screenshots are saved to `test/screenshots/`
 1. ✅ **Map too large** - FIXED: Changed from 800x600 to 375x667 (portrait mode, iPhone SE size)
 2. ✅ **Enemy hitbox too large** - FIXED: Reduced enemy collision circle from 15px to 10px, bullets set to 4-5px radius
 3. ✅ **Player hitpoints not decreasing** - FIXED: Added player-enemy collision (5 damage), enemy bullets now damage player (10 damage), UI health bar updates in real-time
-4. 🐛 **No game over when player dies** - Player can continue getting hit after reaching 0 HP. Need to add death screen and restart functionality
+4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
+5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
 
 **NEXT PRIORITIES:**
-1. Implement room system with door transitions
-2. Add XP/leveling system
-3. Create ability selection modal
-4. Implement first 3-4 abilities (Front Arrow, Multishot, Attack Speed, Attack Boost)
-5. Add health system UI updates and player death
+1. Add XP/leveling system (level up every 10 kills)
+2. Create ability selection modal (3 choices per level-up)
+3. Implement first 3-4 abilities (Front Arrow, Multishot, Attack Speed, Attack Boost)
+4. Add boss fight for room 10
 
 ---
 

@@ -1,13 +1,12 @@
-import nipplejs, { JoystickManager, EventData } from 'nipplejs'
+import nipplejs, { JoystickManager, JoystickOutputData } from 'nipplejs'
 
 export default class Joystick {
   private manager: JoystickManager | null = null
-  private scene: Phaser.Scene
   private onMove: ((angle: number, force: number) => void) | null = null
   private onEnd: (() => void) | null = null
 
-  constructor(scene: Phaser.Scene) {
-    this.scene = scene
+  constructor(_scene: Phaser.Scene) {
+    // Scene reference available if needed for future use
   }
 
   create(container: HTMLElement) {
@@ -21,11 +20,11 @@ export default class Joystick {
     })
 
     // Handle joystick movement
-    this.manager.on('move', (evt: any, data: EventData) => {
+    this.manager.on('move', (_evt, data: JoystickOutputData) => {
       if (this.onMove && data.angle && data.force !== undefined) {
         // Convert nipplejs angle to radians
         // nipplejs uses degrees where 0° is right, 90° is up
-        const angleRad = (data.angle.radian || 0)
+        const angleRad = data.angle.radian || 0
         this.onMove(angleRad, data.force)
       }
     })

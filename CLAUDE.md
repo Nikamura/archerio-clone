@@ -15,21 +15,36 @@ pnpm install
 # Development server with hot reload
 pnpm run dev
 
-# Build for production
+# Build for production (includes TypeScript type checking)
 pnpm run build
 
 # Preview production build
 pnpm run preview
 
-# Run linter
+# Run linter (must pass with 0 warnings)
 pnpm run lint
 
-# Run tests
-pnpm test
-
-# Run single test file
-pnpm test -- <test-file-path>
+# Run visual tests
+pnpm run test:visual
 ```
+
+## Code Quality Requirements
+
+**IMPORTANT:** All code changes must pass linting and TypeScript compilation before being considered complete.
+
+1. **TypeScript Build** (`pnpm run build`): Must compile without errors
+2. **ESLint** (`pnpm run lint`): Must pass with 0 warnings
+
+### Quick Verification
+```bash
+# Run both checks before committing
+pnpm run build && pnpm run lint
+```
+
+### Common Fixes
+- **Unused variables**: Prefix with underscore (e.g., `_delta` instead of `delta`)
+- **Phaser callback types**: Cast to `Phaser.Types.Physics.Arcade.ArcadePhysicsCallback`
+- **Body types**: Cast to `Phaser.Physics.Arcade.Body` when using arcade physics methods
 
 ## Architecture Overview
 

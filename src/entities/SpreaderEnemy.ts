@@ -28,7 +28,7 @@ export default class SpreaderEnemy extends Enemy {
     console.log('SpreaderEnemy created at', x, y)
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number) {
+  update(time: number, _delta: number, _playerX: number, _playerY: number) {
     if (!this.active || !this.body) {
       return
     }

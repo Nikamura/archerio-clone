@@ -51,8 +51,8 @@ export default class PreloaderScene extends Phaser.Scene {
       percentText.destroy()
     })
 
-    // TODO: Load game assets here
-    // For now, we'll use Phaser's built-in graphics
+    // Load game assets
+    this.load.image('portal', 'assets/sprites/door/portal.png')
   }
 
   create() {

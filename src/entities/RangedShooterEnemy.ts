@@ -36,7 +36,7 @@ export default class RangedShooterEnemy extends Enemy {
     console.log('RangedShooterEnemy created at', x, y)
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number) {
+  update(time: number, _delta: number, playerX: number, playerY: number) {
     if (!this.active || !this.body) {
       return
     }

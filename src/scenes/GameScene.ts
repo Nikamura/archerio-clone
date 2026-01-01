@@ -20,11 +20,30 @@ export default class GameScene extends Phaser.Scene {
   private lastShotTime: number = 0
   private fireRate: number = 500 // ms between shots
 
+  // Game state tracking
+  private isGameOver: boolean = false
+  private enemiesKilled: number = 0
+  private currentRoom: number = 1
+  private readonly totalRooms: number = 10
+  private isRoomCleared: boolean = false
+  private doorSprite: Phaser.GameObjects.Sprite | null = null
+  private doorText: Phaser.GameObjects.Text | null = null
+  private isTransitioning: boolean = false
+
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    // Reset game state
+    this.isGameOver = false
+    this.enemiesKilled = 0
+    this.currentRoom = 1
+    this.isRoomCleared = false
+    this.doorSprite = null
+    this.doorText = null
+    this.isTransitioning = false
+
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
@@ -46,7 +65,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.bulletPool,
       this.enemies,
-      this.bulletHitEnemy,
+      this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
@@ -55,7 +74,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.enemyBulletPool,
-      this.enemyBulletHitPlayer,
+      this.enemyBulletHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
@@ -64,7 +83,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.enemies,
-      this.enemyHitPlayer,
+      this.enemyHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
@@ -105,10 +124,223 @@ export default class GameScene extends Phaser.Scene {
       )
     })
 
+    // Update UIScene with room info
+    this.updateRoomUI()
+
     console.log('GameScene: Created')
   }
 
+  private updateRoomUI() {
+    this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
+  }
+
+  private spawnDoor() {
+    if (this.doorSprite) return
+
+    const width = this.cameras.main.width
+
+    // Create door at top center of the room
+    const doorX = width / 2
+    const doorY = 70
+
+    // Create the door sprite directly (not in a container - containers break physics)
+    // Portal image is 1408x768, scale to ~60px wide
+    this.doorSprite = this.add.sprite(doorX, doorY, 'portal')
+    const targetSize = 60
+    const scale = targetSize / this.doorSprite.width
+    this.doorSprite.setScale(scale)
+
+    // Add physics body for collision detection
+    this.physics.add.existing(this.doorSprite, true) // static body
+    const doorBody = this.doorSprite.body as Phaser.Physics.Arcade.StaticBody
+    // Set hitbox to match scaled size - offset to center the circle
+    const hitboxRadius = 25
+    const offsetX = (this.doorSprite.width * scale) / 2 - hitboxRadius
+    const offsetY = (this.doorSprite.height * scale) / 2 - hitboxRadius
+    doorBody.setCircle(hitboxRadius, offsetX, offsetY)
+
+    // Add overlap with player - this is the key collision
+    this.physics.add.overlap(
+      this.player,
+      this.doorSprite,
+      this.enterDoor as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Add "ENTER" text below door
+    this.doorText = this.add.text(doorX, doorY + 45, 'ENTER', {
+      fontSize: '12px',
+      color: '#00ff88',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+
+    // Glow animation - pulse scale and alpha
+    this.tweens.add({
+      targets: this.doorSprite,
+      scale: { from: scale * 0.9, to: scale * 1.1 },
+      alpha: { from: 0.8, to: 1 },
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Text pulse animation
+    this.tweens.add({
+      targets: this.doorText,
+      alpha: { from: 0.6, to: 1 },
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+    })
+
+    console.log('Door spawned at', doorX, doorY)
+  }
+
+  private enterDoor() {
+    if (this.isTransitioning || this.isGameOver) return
+
+    this.isTransitioning = true
+    console.log('Entering door to room', this.currentRoom + 1)
+
+    // Fade out
+    this.cameras.main.fadeOut(300, 0, 0, 0)
+
+    this.time.delayedCall(300, () => {
+      this.transitionToNextRoom()
+    })
+  }
+
+  private transitionToNextRoom() {
+    this.currentRoom++
+
+    // Check for victory
+    if (this.currentRoom > this.totalRooms) {
+      this.triggerVictory()
+      return
+    }
+
+    // Clean up current room
+    this.cleanupRoom()
+
+    // Spawn new enemies
+    this.spawnEnemiesForRoom()
+
+    // Reset room state
+    this.isRoomCleared = false
+    this.isTransitioning = false
+
+    // Update UI
+    this.updateRoomUI()
+
+    // Fade back in
+    this.cameras.main.fadeIn(300, 0, 0, 0)
+
+    console.log('Entered room', this.currentRoom)
+  }
+
+  private cleanupRoom() {
+    // Destroy door
+    if (this.doorSprite) {
+      this.doorSprite.destroy()
+      this.doorSprite = null
+    }
+    if (this.doorText) {
+      this.doorText.destroy()
+      this.doorText = null
+    }
+
+    // Destroy all enemies
+    this.enemies.clear(true, true)
+
+    // Clear all bullets
+    this.bulletPool.clear(true, true)
+    this.enemyBulletPool.clear(true, true)
+
+    // Reset player position
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    this.player.setPosition(width / 2, height - 100)
+    this.player.setVelocity(0, 0)
+  }
+
+  private spawnEnemiesForRoom() {
+    // Scale difficulty based on room number
+    const baseEnemies = 4
+    const additionalEnemies = Math.floor(this.currentRoom / 2)
+    const totalEnemies = Math.min(baseEnemies + additionalEnemies, 10)
+
+    // Generate enemy types based on room progress
+    const enemyTypes: string[] = []
+    for (let i = 0; i < totalEnemies; i++) {
+      const roll = Math.random()
+      if (this.currentRoom < 3) {
+        // Early rooms: mostly melee
+        enemyTypes.push(roll < 0.7 ? 'melee' : 'ranged')
+      } else if (this.currentRoom < 6) {
+        // Mid rooms: balanced
+        if (roll < 0.4) enemyTypes.push('melee')
+        else if (roll < 0.8) enemyTypes.push('ranged')
+        else enemyTypes.push('spreader')
+      } else {
+        // Late rooms: more dangerous
+        if (roll < 0.3) enemyTypes.push('melee')
+        else if (roll < 0.6) enemyTypes.push('ranged')
+        else enemyTypes.push('spreader')
+      }
+    }
+
+    this.spawnEnemiesOfTypes(enemyTypes)
+  }
+
+  private checkRoomCleared() {
+    if (this.isRoomCleared) return
+
+    const enemyCount = this.enemies.getChildren().filter(e => e.active).length
+    if (enemyCount === 0) {
+      this.isRoomCleared = true
+      console.log('Room', this.currentRoom, 'cleared!')
+
+      // Show door after brief delay
+      this.time.delayedCall(500, () => {
+        if (!this.isGameOver) {
+          this.spawnDoor()
+        }
+      })
+    }
+  }
+
+  private triggerVictory() {
+    this.isGameOver = true
+    console.log('Victory! All rooms cleared!')
+
+    // Clean up joystick
+    if (this.joystick) {
+      this.joystick.destroy()
+    }
+
+    // Brief delay before showing victory screen
+    this.time.delayedCall(500, () => {
+      // Stop UIScene
+      this.scene.stop('UIScene')
+
+      // Launch victory scene (reusing GameOverScene for now)
+      this.scene.launch('GameOverScene', {
+        roomsCleared: this.totalRooms,
+        enemiesKilled: this.enemiesKilled,
+        isVictory: true,
+      })
+    })
+  }
+
   private spawnEnemies() {
+    // Initial spawn for room 1
+    const enemyTypes = ['melee', 'melee', 'ranged', 'ranged']
+    this.spawnEnemiesOfTypes(enemyTypes)
+  }
+
+  private spawnEnemiesOfTypes(enemyTypes: string[]) {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
@@ -121,18 +353,16 @@ export default class GameScene extends Phaser.Scene {
       graphics.destroy()
     }
 
-    // Spawn 6 enemies (mix of types)
     let spawned = 0
     let attempts = 0
-    const maxAttempts = 30
-    const enemyTypes = ['melee', 'melee', 'ranged', 'ranged', 'spreader', 'spreader']
+    const maxAttempts = 50
 
     while (spawned < enemyTypes.length && attempts < maxAttempts) {
-      const x = Phaser.Math.Between(100, width - 100)
-      const y = Phaser.Math.Between(100, height - 100)
+      const x = Phaser.Math.Between(50, width - 50)
+      const y = Phaser.Math.Between(80, height - 150)
 
       // Don't spawn too close to player
-      if (Phaser.Math.Distance.Between(x, y, width / 2, height / 2) > 150) {
+      if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) > 120) {
         const enemyType = enemyTypes[spawned]
         let enemy: Enemy
 
@@ -151,25 +381,27 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.existing(enemy)
 
         // Set up physics body with smaller hitbox
-        if (enemy.body) {
-          enemy.body.setCircle(10) // Reduced from 15 to 10 for more precise collision
-          enemy.body.setCollideWorldBounds(true)
+        const body = enemy.body as Phaser.Physics.Arcade.Body
+        if (body) {
+          body.setCircle(10)
+          body.setCollideWorldBounds(true)
         }
 
         this.enemies.add(enemy)
         spawned++
-        console.log(`${enemyType} enemy ${spawned} created at ${x}, ${y}`)
       }
       attempts++
     }
 
-    console.log(`Spawned ${spawned} enemies`)
+    console.log(`Room ${this.currentRoom}: Spawned ${spawned} enemies`)
   }
 
   private bulletHitEnemy(
     bullet: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
+    if (this.isGameOver || this.isTransitioning) return
+
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const enemySprite = enemy as Enemy
 
@@ -181,23 +413,14 @@ export default class GameScene extends Phaser.Scene {
     const killed = enemySprite.takeDamage(10)
 
     if (killed) {
+      // Track kill
+      this.enemiesKilled++
+
       // Remove enemy from group and destroy
       enemySprite.destroy()
 
-      // Enemy died, respawn a new one after a delay
-      this.time.delayedCall(2000, () => {
-        if (this.scene.isActive()) {
-          const width = this.cameras.main.width
-          const height = this.cameras.main.height
-          const x = Phaser.Math.Between(100, width - 100)
-          const y = Phaser.Math.Between(100, height - 100)
-
-          const newEnemy = new Enemy(this, x, y)
-          this.add.existing(newEnemy)
-          this.physics.add.existing(newEnemy)
-          this.enemies.add(newEnemy)
-        }
-      })
+      // Check if room is cleared
+      this.checkRoomCleared()
     }
   }
 
@@ -205,24 +428,30 @@ export default class GameScene extends Phaser.Scene {
     player: Phaser.GameObjects.GameObject,
     bullet: Phaser.GameObjects.GameObject
   ) {
+    if (this.isGameOver) return
+
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const playerSprite = player as Player
 
-    // Deactivate bullet
+    // Deactivate bullet regardless of invincibility
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
 
-    // Damage player
-    playerSprite.takeDamage(10)
+    // Try to damage player (respects invincibility)
+    const damageTaken = playerSprite.takeDamage(10)
+    if (!damageTaken) return
 
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
-    // Flash player
-    playerSprite.setTint(0xff0000)
-    this.time.delayedCall(100, () => {
-      playerSprite.clearTint()
-    })
+    // Check for death
+    if (playerSprite.getHealth() <= 0) {
+      this.triggerGameOver()
+      return
+    }
+
+    // Flash player during invincibility
+    this.startInvincibilityFlash(playerSprite)
 
     console.log(`Player hit by bullet! Health: ${playerSprite.getHealth()}`)
   }
@@ -231,20 +460,26 @@ export default class GameScene extends Phaser.Scene {
     player: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
+    if (this.isGameOver) return
+
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
 
-    // Damage player (melee damage)
-    playerSprite.takeDamage(5)
+    // Try to damage player (respects invincibility)
+    const damageTaken = playerSprite.takeDamage(5)
+    if (!damageTaken) return
 
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
-    // Flash player
-    playerSprite.setTint(0xff0000)
-    this.time.delayedCall(100, () => {
-      playerSprite.clearTint()
-    })
+    // Check for death
+    if (playerSprite.getHealth() <= 0) {
+      this.triggerGameOver()
+      return
+    }
+
+    // Flash player during invincibility
+    this.startInvincibilityFlash(playerSprite)
 
     // Push player back slightly
     const angle = Phaser.Math.Angle.Between(
@@ -253,7 +488,7 @@ export default class GameScene extends Phaser.Scene {
       playerSprite.x,
       playerSprite.y
     )
-    const knockbackForce = 100
+    const knockbackForce = 150
     playerSprite.setVelocity(
       Math.cos(angle) * knockbackForce,
       Math.sin(angle) * knockbackForce
@@ -267,6 +502,65 @@ export default class GameScene extends Phaser.Scene {
 
     // Emit event to UIScene
     this.scene.get('UIScene').events.emit('updateHealth', healthPercentage)
+  }
+
+  private startInvincibilityFlash(player: Player) {
+    // Create flashing effect during invincibility
+    let flashCount = 0
+    const maxFlashes = 5
+    const flashInterval = 100
+
+    const flash = () => {
+      if (flashCount >= maxFlashes || !player.active || !player.isPlayerInvincible()) {
+        player.clearTint()
+        player.setAlpha(1)
+        return
+      }
+
+      // Alternate between red tint and transparent
+      if (flashCount % 2 === 0) {
+        player.setTint(0xff0000)
+        player.setAlpha(0.7)
+      } else {
+        player.clearTint()
+        player.setAlpha(1)
+      }
+
+      flashCount++
+      this.time.delayedCall(flashInterval, flash)
+    }
+
+    flash()
+  }
+
+  private triggerGameOver() {
+    if (this.isGameOver) return
+
+    this.isGameOver = true
+    console.log('Game Over! Enemies killed:', this.enemiesKilled)
+
+    // Stop player movement
+    this.player.setVelocity(0, 0)
+
+    // Flash player red and fade out
+    this.player.setTint(0xff0000)
+
+    // Clean up joystick
+    if (this.joystick) {
+      this.joystick.destroy()
+    }
+
+    // Brief delay before showing game over screen
+    this.time.delayedCall(500, () => {
+      // Stop UIScene
+      this.scene.stop('UIScene')
+
+      // Launch game over scene with stats
+      this.scene.launch('GameOverScene', {
+        roomsCleared: this.currentRoom - 1,
+        enemiesKilled: this.enemiesKilled,
+      })
+    })
   }
 
   private findNearestEnemy(): Enemy | null {
@@ -304,6 +598,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    // Skip update if game is over
+    if (this.isGameOver) return
+
     if (this.player) {
       this.player.update(time, delta)
 

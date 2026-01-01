@@ -4,6 +4,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   private health: number = 100
   private maxHealth: number = 100
   private isMoving: boolean = false
+  private isInvincible: boolean = false
+  private invincibilityDuration: number = 500 // ms of invincibility after being hit
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, '')
@@ -31,7 +33,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     console.log('Player created at', x, y)
   }
 
-  update(time: number, delta: number) {
+  update(_time: number, _delta: number) {
     // Check if player is moving
     const velocity = this.body?.velocity
     if (velocity) {
@@ -52,9 +54,25 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this
   }
 
-  takeDamage(amount: number) {
+  takeDamage(amount: number): boolean {
+    // Can't take damage while invincible
+    if (this.isInvincible) {
+      return false
+    }
+
     this.health = Math.max(0, this.health - amount)
-    // TODO: Emit event for UI update
+
+    // Start invincibility period
+    this.isInvincible = true
+    this.scene.time.delayedCall(this.invincibilityDuration, () => {
+      this.isInvincible = false
+    })
+
+    return true // Damage was taken
+  }
+
+  isPlayerInvincible(): boolean {
+    return this.isInvincible
   }
 
   heal(amount: number) {
