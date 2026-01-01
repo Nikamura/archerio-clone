@@ -8,7 +8,7 @@ import {
   EASING,
 } from '../systems/UIAnimations'
 
-interface AbilityData {
+export interface AbilityData {
   id: string
   name: string
   description: string
@@ -16,7 +16,7 @@ interface AbilityData {
   iconKey: string
 }
 
-const ABILITIES: AbilityData[] = [
+export const ABILITIES: AbilityData[] = [
   // Original 8 abilities
   {
     id: 'front_arrow',

@@ -279,12 +279,11 @@ export default class GameOverScene extends Phaser.Scene {
       const x = startX + index * chestDisplayWidth
       const config = CHEST_CONFIGS[chest.type]
 
-      // Chest icon (using emoji as fallback)
+      // Chest icon (fixed display size for consistent UI)
       this.add
-        .text(x, startY, config.icon, {
-          fontSize: '32px',
-        })
+        .image(x, startY, config.icon)
         .setOrigin(0.5)
+        .setDisplaySize(48, 48)
 
       // Count
       this.add

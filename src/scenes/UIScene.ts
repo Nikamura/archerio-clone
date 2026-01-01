@@ -1,4 +1,6 @@
 import Phaser from 'phaser'
+import { saveManager } from '../systems/SaveManager'
+import { type AbilityData } from './LevelUpScene'
 
 export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics
@@ -17,6 +19,10 @@ export default class UIScene extends Phaser.Scene {
   // HUD container for toggling visibility
   private hudContainer!: Phaser.GameObjects.Container
   private isHudVisible: boolean = true
+
+  // Auto level up toggle
+  private autoLevelUpToggle!: Phaser.GameObjects.Container
+  private autoLevelUpIcon!: Phaser.GameObjects.Text
 
   constructor() {
     super({ key: 'UIScene' })
@@ -95,6 +101,11 @@ export default class UIScene extends Phaser.Scene {
       this.fadeInHUD()
     })
 
+    // Listen for auto level up notifications
+    this.events.on('showAutoLevelUp', (ability: AbilityData) => {
+      this.showAutoLevelUpNotification(ability)
+    })
+
     // Room counter
     this.roomText = this.add.text(
       this.cameras.main.width / 2,
@@ -153,6 +164,9 @@ export default class UIScene extends Phaser.Scene {
 
     // Create boss health bar (initially hidden)
     this.createBossHealthBar()
+
+    // Create auto level up toggle button
+    this.createAutoLevelUpToggle()
 
     console.log('UIScene: Created')
   }
@@ -267,6 +281,141 @@ export default class UIScene extends Phaser.Scene {
     })
   }
 
+  /**
+   * Create auto level up toggle button in top right corner
+   */
+  private createAutoLevelUpToggle(): void {
+    const width = this.cameras.main.width
+    const isEnabled = saveManager.getAutoLevelUp()
+
+    // Create toggle container
+    this.autoLevelUpToggle = this.add.container(width - 30, 60)
+    this.autoLevelUpToggle.setDepth(50)
+
+    // Background circle
+    const bg = this.add.circle(0, 0, 18, 0x000000, 0.6)
+    bg.setStrokeStyle(2, isEnabled ? 0x00ff88 : 0x666666)
+    bg.setInteractive({ useHandCursor: true })
+    this.autoLevelUpToggle.add(bg)
+
+    // Lightning icon to represent auto/fast mode
+    this.autoLevelUpIcon = this.add.text(0, 0, '⚡', {
+      fontSize: '18px',
+    }).setOrigin(0.5)
+    this.autoLevelUpIcon.setAlpha(isEnabled ? 1 : 0.4)
+    this.autoLevelUpToggle.add(this.autoLevelUpIcon)
+
+    // Click handler to toggle
+    bg.on('pointerdown', () => {
+      const newState = saveManager.toggleAutoLevelUp()
+      this.updateAutoLevelUpToggle(newState)
+      console.log('UIScene: Auto level up toggled to', newState)
+    })
+
+    // Hover effects
+    bg.on('pointerover', () => {
+      bg.setScale(1.1)
+    })
+    bg.on('pointerout', () => {
+      bg.setScale(1)
+    })
+  }
+
+  /**
+   * Update toggle visual state
+   */
+  private updateAutoLevelUpToggle(enabled: boolean): void {
+    const bg = this.autoLevelUpToggle.getAt(0) as Phaser.GameObjects.Arc
+    bg.setStrokeStyle(2, enabled ? 0x00ff88 : 0x666666)
+    this.autoLevelUpIcon.setAlpha(enabled ? 1 : 0.4)
+
+    // Brief flash animation
+    this.tweens.add({
+      targets: this.autoLevelUpToggle,
+      scale: { from: 1.2, to: 1 },
+      duration: 150,
+      ease: 'Power2.easeOut',
+    })
+  }
+
+  /**
+   * Show notification when auto level up selects an ability
+   */
+  private showAutoLevelUpNotification(ability: AbilityData): void {
+    const width = this.cameras.main.width
+
+    // Create notification container at center-top of screen
+    const container = this.add.container(width / 2, 120)
+    container.setDepth(100)
+    container.setAlpha(0)
+    container.setScale(0.8)
+
+    // Background panel
+    const panelWidth = 220
+    const panelHeight = 60
+    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.85)
+    panel.setStrokeStyle(2, ability.color)
+    container.add(panel)
+
+    // Ability icon on the left
+    const iconX = -panelWidth / 2 + 30
+    if (this.textures.exists(ability.iconKey)) {
+      const icon = this.add.image(iconX, 0, ability.iconKey)
+      icon.setDisplaySize(36, 36)
+      container.add(icon)
+    }
+
+    // Text content offset to the right of the icon
+    const textOffsetX = 15
+
+    // "AUTO" label
+    const autoLabel = this.add.text(textOffsetX, -18, 'AUTO', {
+      fontSize: '10px',
+      color: '#888888',
+    }).setOrigin(0.5)
+    container.add(autoLabel)
+
+    // Ability name
+    const abilityName = this.add.text(textOffsetX, 2, ability.name, {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    container.add(abilityName)
+
+    // Description
+    const desc = this.add.text(textOffsetX, 20, ability.description, {
+      fontSize: '11px',
+      color: '#aaaaaa',
+    }).setOrigin(0.5)
+    container.add(desc)
+
+    // Animate in
+    this.tweens.add({
+      targets: container,
+      alpha: 1,
+      scale: 1,
+      y: 130,
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Hold for a moment then fade out
+        this.time.delayedCall(1200, () => {
+          this.tweens.add({
+            targets: container,
+            alpha: 0,
+            y: 100,
+            duration: 300,
+            ease: 'Power2.easeIn',
+            onComplete: () => {
+              container.destroy()
+            },
+          })
+        })
+      },
+    })
+  }
+
   shutdown() {
     // Remove all event listeners to prevent memory leaks
     this.events.off('updateHealth')
@@ -277,5 +426,6 @@ export default class UIScene extends Phaser.Scene {
     this.events.off('hideBossHealth')
     this.events.off('roomCleared')
     this.events.off('roomEntered')
+    this.events.off('showAutoLevelUp')
   }
 }

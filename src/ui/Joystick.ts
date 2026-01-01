@@ -5,6 +5,7 @@ export default class Joystick {
   private onMove: ((angle: number, force: number) => void) | null = null
   private onEnd: (() => void) | null = null
   private container: HTMLElement | null = null
+  private joystickZone: HTMLElement | null = null
 
   constructor(_scene: Phaser.Scene) {
     // Scene reference available if needed for future use
@@ -14,18 +15,40 @@ export default class Joystick {
     this.container = container
     // Ensure pointer events are enabled initially
     this.container.style.pointerEvents = 'auto'
+    this.createJoystickZone()
     this.internalCreate()
     console.log('Joystick created')
   }
 
-  private internalCreate() {
-    if (!this.container) return
+  /**
+   * Create a dedicated zone element for the joystick on the left side of the screen
+   * This prevents the joystick from capturing touches on UI elements on the right side
+   */
+  private createJoystickZone() {
+    if (!this.container || this.joystickZone) return
 
-    // Create joystick on left half of screen
+    this.joystickZone = document.createElement('div')
+    this.joystickZone.id = 'joystick-zone'
+    this.joystickZone.style.cssText = `
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 70%;
+      height: 100%;
+      pointer-events: auto;
+      touch-action: none;
+    `
+    this.container.appendChild(this.joystickZone)
+  }
+
+  private internalCreate() {
+    if (!this.joystickZone) return
+
+    // Create joystick on the dedicated left-side zone
     this.manager = nipplejs.create({
-      zone: this.container,
+      zone: this.joystickZone,
       mode: 'dynamic',
-      position: { left: '25%', top: '50%' },
+      position: { left: '35%', top: '50%' },
       color: 'rgba(74, 158, 255, 0.5)',
       size: 120,
     })
@@ -62,13 +85,13 @@ export default class Joystick {
       }, 50)
     }
 
-    this.container.addEventListener('touchend', handleTouchEnd)
-    this.container.addEventListener('touchcancel', handleTouchEnd)
+    this.joystickZone.addEventListener('touchend', handleTouchEnd)
+    this.joystickZone.addEventListener('touchcancel', handleTouchEnd)
 
     // Store cleanup function for later
     ;(this.manager as any)._touchEndCleanup = () => {
-      this.container?.removeEventListener('touchend', handleTouchEnd)
-      this.container?.removeEventListener('touchcancel', handleTouchEnd)
+      this.joystickZone?.removeEventListener('touchend', handleTouchEnd)
+      this.joystickZone?.removeEventListener('touchcancel', handleTouchEnd)
     }
   }
 
@@ -101,24 +124,24 @@ export default class Joystick {
     
     // CRITICAL: Remove any lingering nipplejs DOM elements
     // nipplejs creates DOM elements that might not be cleaned up properly
-    if (this.container) {
-      const nippleElements = this.container.querySelectorAll('.nipple, [class*="nipple"]')
+    if (this.joystickZone) {
+      const nippleElements = this.joystickZone.querySelectorAll('.nipple, [class*="nipple"]')
       nippleElements.forEach((el) => {
         if (el.parentNode) {
           el.parentNode.removeChild(el)
         }
       })
-      
-      // Keep pointer events enabled so the Phaser canvas stays clickable on iOS
+    }
+
+    // Keep pointer events enabled so the Phaser canvas stays clickable on iOS
+    if (this.container) {
       this.container.style.pointerEvents = 'auto'
     }
   }
 
   show() {
-    if (!this.manager && this.container) {
+    if (!this.manager && this.joystickZone) {
       console.log('Joystick: recreating manager')
-      // Re-enable pointer events on the container
-      this.container.style.pointerEvents = 'auto'
       this.internalCreate()
     }
   }
@@ -129,7 +152,7 @@ export default class Joystick {
       if ((this.manager as any)._touchEndCleanup) {
         ;(this.manager as any)._touchEndCleanup()
       }
-      
+
       // Trigger onEnd callback to reset joystick state before destroying
       if (this.onEnd) {
         this.onEnd()
@@ -137,18 +160,24 @@ export default class Joystick {
       this.manager.destroy()
       this.manager = null
     }
-    
+
     // CRITICAL: Remove any lingering nipplejs DOM elements
     // nipplejs creates DOM elements that might not be cleaned up properly
-    if (this.container) {
-      const nippleElements = this.container.querySelectorAll('.nipple, [class*="nipple"]')
+    if (this.joystickZone) {
+      const nippleElements = this.joystickZone.querySelectorAll('.nipple, [class*="nipple"]')
       nippleElements.forEach((el) => {
         if (el.parentNode) {
           el.parentNode.removeChild(el)
         }
       })
     }
-    
+
+    // Remove the joystick zone element
+    if (this.joystickZone && this.joystickZone.parentNode) {
+      this.joystickZone.parentNode.removeChild(this.joystickZone)
+      this.joystickZone = null
+    }
+
     this.container = null
   }
 

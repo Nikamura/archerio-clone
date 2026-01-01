@@ -44,6 +44,11 @@ export class MinionEnemy extends Enemy {
       return true
     }
 
+    // Validate player position before calculating angle
+    if (!isFinite(playerX) || !isFinite(playerY)) {
+      return false
+    }
+
     // Simple AI: rush toward player faster than normal enemies
     const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
     const speed = 100 // Faster than normal melee (80)
@@ -57,6 +62,14 @@ export class MinionEnemy extends Enemy {
       const worldBounds = this.scene.physics.world.bounds
       this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
+    }
+
+    // Ensure minion position stays valid
+    if (!isFinite(this.x) || !isFinite(this.y)) {
+      console.warn('MinionEnemy: Position became invalid, resetting to center')
+      const worldBounds = this.scene.physics.world.bounds
+      this.x = worldBounds.centerX
+      this.y = worldBounds.centerY
     }
 
     return false

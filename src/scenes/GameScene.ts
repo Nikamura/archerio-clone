@@ -29,6 +29,7 @@ import { heroManager } from '../systems/HeroManager'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
+import { ABILITIES } from './LevelUpScene'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -264,36 +265,6 @@ export default class GameScene extends Phaser.Scene {
         this.joystickForce = 0
       })
     }
-
-    // Debug text
-    const debugText = this.add.text(10, 50, '', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 5, y: 5 },
-    })
-
-    // Update debug text every frame - with safety checks
-    const updateDebugText = () => {
-      // Only update if scene is still active and objects exist
-      if (this.scene.isActive() && this.enemies && debugText.active) {
-        try {
-          const enemyCount = this.enemies.getChildren().length
-          debugText.setText(
-            `Arrow keys or touch to move\nStop to shoot!\nEnemies: ${enemyCount}`
-          )
-        } catch (error) {
-          console.warn('GameScene: Error updating debug text:', error)
-        }
-      }
-    }
-    
-    this.events.on('update', updateDebugText)
-    
-    // Clean up event listener on shutdown
-    this.events.once('shutdown', () => {
-      this.events.off('update', updateDebugText)
-    })
 
     // Update UIScene with room info
     this.updateRoomUI()
@@ -979,6 +950,12 @@ export default class GameScene extends Phaser.Scene {
     // Level up celebration particles
     this.particles.emitLevelUp(this.player.x, this.player.y)
 
+    // Check if auto level up is enabled
+    if (saveManager.getAutoLevelUp()) {
+      this.handleAutoLevelUp()
+      return
+    }
+
     // Reset joystick state before pausing to prevent stuck input
     this.resetJoystickState()
 
@@ -1026,6 +1003,23 @@ export default class GameScene extends Phaser.Scene {
     this.scene.launch('LevelUpScene', {
       playerLevel: this.player.getLevel(),
     })
+  }
+
+  /**
+   * Handle auto level up - randomly select an ability without showing the selection UI
+   */
+  private handleAutoLevelUp() {
+    // Select a random ability from all available
+    const randomIndex = Math.floor(Math.random() * ABILITIES.length)
+    const selectedAbility = ABILITIES[randomIndex]
+
+    console.log('GameScene: Auto level up selected:', selectedAbility.id)
+
+    // Apply the ability
+    this.applyAbility(selectedAbility.id)
+
+    // Notify UIScene to show the auto level up notification
+    this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility)
   }
 
   private applyAbility(abilityId: string) {
@@ -1293,11 +1287,34 @@ export default class GameScene extends Phaser.Scene {
     let nearestEnemy: Enemy | null = null
     let nearestDistance = Infinity
 
-    this.enemies.getChildren().forEach((enemy) => {
+    const children = this.enemies.getChildren()
+
+    // Safety check for player position
+    if (!this.player || !isFinite(this.player.x) || !isFinite(this.player.y)) {
+      console.warn('findNearestEnemy: Invalid player position', this.player?.x, this.player?.y)
+      return null
+    }
+
+    // Debug: Log when there are enemies in group but none are targetable
+    let activeCount = 0
+    let inactiveCount = 0
+    let bodylessCount = 0
+
+    children.forEach((enemy) => {
       const e = enemy as Enemy
 
-      // Only target active enemies
-      if (!e.active) return
+      // Debug: Track why enemies might be skipped
+      if (!e.active) {
+        inactiveCount++
+        return
+      }
+
+      if (!e.body) {
+        bodylessCount++
+        return
+      }
+
+      activeCount++
 
       const distance = Phaser.Math.Distance.Between(
         this.player.x,
@@ -1311,6 +1328,16 @@ export default class GameScene extends Phaser.Scene {
         nearestEnemy = e
       }
     })
+
+    // Debug: Warn if enemies exist but none are targetable
+    if (children.length > 0 && !nearestEnemy) {
+      console.warn(`findNearestEnemy: No target found! Total: ${children.length}, Active: ${activeCount}, Inactive: ${inactiveCount}, No body: ${bodylessCount}`)
+      // Log details about each enemy in the group
+      children.forEach((enemy, i) => {
+        const e = enemy as Enemy
+        console.warn(`  Enemy[${i}]: active=${e.active}, body=${!!e.body}, x=${e.x?.toFixed(0)}, y=${e.y?.toFixed(0)}, constructor=${e.constructor.name}`)
+      })
+    }
 
     return nearestEnemy
   }
@@ -1392,12 +1419,24 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private shootAtEnemy(enemy: Enemy) {
+    // Validate enemy position before shooting
+    if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
+      console.warn('shootAtEnemy: Invalid enemy position', enemy.x, enemy.y, enemy.constructor.name)
+      return
+    }
+
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
       this.player.y,
       enemy.x,
       enemy.y
     )
+
+    // Validate calculated angle
+    if (!isFinite(angle)) {
+      console.warn('shootAtEnemy: Invalid angle calculated', angle, 'player:', this.player.x, this.player.y, 'enemy:', enemy.x, enemy.y)
+      return
+    }
 
     const bulletSpeed = 400
 
@@ -1415,7 +1454,12 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Main projectile
-    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
+    const mainBullet = this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
+
+    // Debug: Log if bullet spawn failed or succeeded
+    if (!mainBullet) {
+      console.warn('shootAtEnemy: Failed to spawn main bullet - pool may be exhausted')
+    }
 
     // Front Arrow: Extra forward projectiles with slight spread
     const extraProjectiles = this.player.getExtraProjectiles()

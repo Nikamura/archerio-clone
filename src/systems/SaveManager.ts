@@ -107,6 +107,7 @@ export interface GameSettings {
   showDamageNumbers: boolean
   vibrationEnabled: boolean
   language: string
+  autoLevelUp: boolean
 }
 
 /**
@@ -213,6 +214,7 @@ function getDefaultSettings(): GameSettings {
     showDamageNumbers: true,
     vibrationEnabled: true,
     language: 'en',
+    autoLevelUp: false,
   }
 }
 
@@ -542,6 +544,22 @@ export class SaveManager {
    */
   getDifficulty(): DifficultyLevel {
     return this.data.settings.difficulty
+  }
+
+  /**
+   * Get auto level up setting
+   */
+  getAutoLevelUp(): boolean {
+    return this.data.settings.autoLevelUp ?? false
+  }
+
+  /**
+   * Toggle auto level up setting
+   */
+  toggleAutoLevelUp(): boolean {
+    this.data.settings.autoLevelUp = !this.data.settings.autoLevelUp
+    this.markDirty()
+    return this.data.settings.autoLevelUp
   }
 
   /**
