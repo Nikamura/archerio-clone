@@ -133,6 +133,38 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapterIcon3', 'assets/sprites/ui/chapter3_icon.png')
     this.load.image('chapterIcon4', 'assets/sprites/ui/chapter4_icon.png')
     this.load.image('chapterIcon5', 'assets/sprites/ui/chapter5_icon.png')
+    
+    // Load chest sprites
+    this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
+    this.load.image('chest_silver', 'assets/sprites/chest/silver.png')
+    this.load.image('chest_golden', 'assets/sprites/chest/golden.png')
+    
+    // Load equipment sprites
+    // Weapons
+    this.load.image('equip_brave_bow', 'assets/sprites/equipment/weapon/brave_bow.png')
+    this.load.image('equip_saw_blade', 'assets/sprites/equipment/weapon/saw_blade.png')
+    this.load.image('equip_staff', 'assets/sprites/equipment/weapon/staff.png')
+    this.load.image('equip_death_scythe', 'assets/sprites/equipment/weapon/death_scythe.png')
+    
+    // Armor
+    this.load.image('equip_vest', 'assets/sprites/equipment/armor/vest.png')
+    this.load.image('equip_robe', 'assets/sprites/equipment/armor/robe.png')
+    this.load.image('equip_phantom_cloak', 'assets/sprites/equipment/armor/phantom_cloak.png')
+    this.load.image('equip_golden_chestplate', 'assets/sprites/equipment/armor/golden_chestplate.png')
+    
+    // Rings
+    this.load.image('equip_bear_ring', 'assets/sprites/equipment/ring/bear_ring.png')
+    this.load.image('equip_wolf_ring', 'assets/sprites/equipment/ring/wolf_ring.png')
+    this.load.image('equip_serpent_ring', 'assets/sprites/equipment/ring/serpent_ring.png')
+    this.load.image('equip_falcon_ring', 'assets/sprites/equipment/ring/falcon_ring.png')
+    this.load.image('equip_lion_ring', 'assets/sprites/equipment/ring/lion_ring.png')
+    
+    // Spirits
+    this.load.image('equip_bat', 'assets/sprites/equipment/spirit/bat.png')
+    this.load.image('equip_laser_bat', 'assets/sprites/equipment/spirit/laser_bat.png')
+    this.load.image('equip_elf', 'assets/sprites/equipment/spirit/elf.png')
+    this.load.image('equip_living_bomb', 'assets/sprites/equipment/spirit/living_bomb.png')
+    this.load.image('equip_scythe_mage', 'assets/sprites/equipment/spirit/scythe_mage.png')
   }
 
   create() {

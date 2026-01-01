@@ -10,21 +10,12 @@ import {
   Equipment,
   EquipmentSlotType,
   EQUIPMENT_SLOTS,
-  Rarity,
   RARITY_CONFIGS,
 } from '../systems/Equipment'
 import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
-
-// Rarity colors as specified
-const RARITY_COLORS: Record<Rarity, string> = {
-  [Rarity.COMMON]: '#888888',
-  [Rarity.GREAT]: '#00AA00',
-  [Rarity.RARE]: '#0066FF',
-  [Rarity.EPIC]: '#AA00FF',
-  [Rarity.LEGENDARY]: '#FFD700',
-}
+import * as UIAnimations from '../systems/UIAnimations'
 
 // Slot display names
 const SLOT_NAMES: Record<EquipmentSlotType, string> = {
@@ -170,21 +161,18 @@ export default class EquipmentScene extends Phaser.Scene {
     itemBg.setName('itemBg')
     container.add(itemBg)
 
-    const itemText = this.add
-      .text(0, -5, '', {
-        fontSize: '10px',
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: this.SLOT_SIZE - 12 },
-      })
-      .setOrigin(0.5)
-    itemText.setName('itemText')
-    container.add(itemText)
+    const itemSprite = this.add.image(0, -5, '')
+    itemSprite.setVisible(false)
+    itemSprite.setName('itemSprite')
+    container.add(itemSprite)
 
     const levelText = this.add
-      .text(0, 18, '', {
-        fontSize: '9px',
-        color: '#aaaaaa',
+      .text(0, 20, '', {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2,
       })
       .setOrigin(0.5)
     levelText.setName('levelText')
@@ -223,7 +211,7 @@ export default class EquipmentScene extends Phaser.Scene {
     const visibleHeight = height - inventoryY - 120 // Leave room for buttons
 
     // Mask for scrolling
-    const maskGraphics = this.add.graphics()
+    const maskGraphics = this.make.graphics({})
     maskGraphics.fillStyle(0xffffff)
     maskGraphics.fillRect(20, inventoryY, width - 40, visibleHeight)
     const mask = maskGraphics.createGeometryMask()
@@ -247,12 +235,13 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     // Calculate max scroll
-    const contentHeight = rows * (this.INVENTORY_SLOT_SIZE + 8)
+    const contentHeight = rows * (this.INVENTORY_SLOT_SIZE + 8) + 20
     this.maxScroll = Math.max(0, contentHeight - visibleHeight)
 
     // Setup scroll input
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
-      this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY * 0.5, 0, this.maxScroll)
+      if (this.maxScroll <= 0) return
+      this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY, 0, this.maxScroll)
       this.updateInventoryScroll()
     })
   }
@@ -268,22 +257,19 @@ export default class EquipmentScene extends Phaser.Scene {
     bg.setStrokeStyle(1, 0x3a3a55)
     container.add(bg)
 
-    // Item text (hidden by default)
-    const itemText = this.add
-      .text(0, -8, '', {
-        fontSize: '9px',
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: this.INVENTORY_SLOT_SIZE - 8 },
-      })
-      .setOrigin(0.5)
-    itemText.setName('itemText')
-    container.add(itemText)
+    // Item sprite (hidden by default)
+    const itemSprite = this.add.image(0, -6, '')
+    itemSprite.setVisible(false)
+    itemSprite.setName('itemSprite')
+    container.add(itemSprite)
 
     const levelText = this.add
-      .text(0, 15, '', {
-        fontSize: '8px',
-        color: '#aaaaaa',
+      .text(0, 18, '', {
+        fontSize: '9px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2,
       })
       .setOrigin(0.5)
     levelText.setName('levelText')
@@ -310,9 +296,9 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private updateInventoryScroll(): void {
-    this.inventorySlots.forEach((slot) => {
-      slot.container.y -= this.scrollOffset
-    })
+    if (this.inventoryContainer) {
+      this.inventoryContainer.y = -this.scrollOffset
+    }
   }
 
   private createGoldDisplay(): void {
@@ -338,12 +324,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
     this.fusionButton.setInteractive({ useHandCursor: true })
     this.fusionButton.on('pointerdown', () => this.onFusionClick())
-    this.fusionButton.on('pointerover', () => {
-      this.fusionButton?.setStyle({ backgroundColor: '#7b5ab3' })
-    })
-    this.fusionButton.on('pointerout', () => {
-      this.fusionButton?.setStyle({ backgroundColor: '#6b4aa3' })
-    })
+    UIAnimations.applyButtonEffects(this, this.fusionButton)
 
     this.updateFusionButton()
   }
@@ -365,12 +346,7 @@ export default class EquipmentScene extends Phaser.Scene {
       audioManager.playMenuSelect()
       this.scene.start('MainMenuScene')
     })
-    backButton.on('pointerover', () => {
-      backButton.setStyle({ backgroundColor: '#555566' })
-    })
-    backButton.on('pointerout', () => {
-      backButton.setStyle({ backgroundColor: '#444455' })
-    })
+    UIAnimations.applyButtonEffects(this, backButton)
   }
 
   private setupEventListeners(): void {
@@ -405,7 +381,7 @@ export default class EquipmentScene extends Phaser.Scene {
       const equipped = equipmentManager.getEquipped(slot)
       const icon = container.getByName('icon') as Phaser.GameObjects.Text
       const itemBg = container.getByName('itemBg') as Phaser.GameObjects.Rectangle
-      const itemText = container.getByName('itemText') as Phaser.GameObjects.Text
+      const itemSprite = container.getByName('itemSprite') as Phaser.GameObjects.Image
       const levelText = container.getByName('levelText') as Phaser.GameObjects.Text
       const bg = container.list[0] as Phaser.GameObjects.Rectangle
 
@@ -413,22 +389,25 @@ export default class EquipmentScene extends Phaser.Scene {
         // Show item
         icon.setVisible(false)
         itemBg.setVisible(true)
-        itemText.setVisible(true)
+        itemSprite.setVisible(true)
         levelText.setVisible(true)
 
         // Set rarity color
-        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[equipped.rarity])
+        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_CONFIGS[equipped.rarity].color)
         itemBg.setStrokeStyle(2, rarityColor.color)
         bg.setStrokeStyle(2, rarityColor.color)
 
-        // Set item info
-        itemText.setText(this.getShortName(equipped.name))
+        // Set item sprite
+        itemSprite.setTexture(`equip_${equipped.type}`)
+        itemSprite.setScale((this.SLOT_SIZE - 20) / itemSprite.width)
+        
+        // Set level info
         levelText.setText(`Lv.${equipped.level}`)
       } else {
         // Show empty slot
         icon.setVisible(true)
         itemBg.setVisible(false)
-        itemText.setVisible(false)
+        itemSprite.setVisible(false)
         levelText.setVisible(false)
         bg.setStrokeStyle(2, 0x444466)
       }
@@ -451,32 +430,25 @@ export default class EquipmentScene extends Phaser.Scene {
       const item = unequippedInventory[index] ?? null
       slot.item = item
 
-      const itemText = slot.container.getByName('itemText') as Phaser.GameObjects.Text
+      const itemSprite = slot.container.getByName('itemSprite') as Phaser.GameObjects.Image
       const levelText = slot.container.getByName('levelText') as Phaser.GameObjects.Text
 
       if (item) {
-        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[item.rarity])
+        const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_CONFIGS[item.rarity].color)
         slot.background.setStrokeStyle(2, rarityColor.color)
 
-        itemText.setText(this.getShortName(item.name))
-        itemText.setVisible(true)
+        itemSprite.setTexture(`equip_${item.type}`)
+        itemSprite.setScale((this.INVENTORY_SLOT_SIZE - 16) / itemSprite.width)
+        itemSprite.setVisible(true)
+        
         levelText.setText(`Lv.${item.level}`)
         levelText.setVisible(true)
       } else {
         slot.background.setStrokeStyle(1, 0x3a3a55)
-        itemText.setVisible(false)
+        itemSprite.setVisible(false)
         levelText.setVisible(false)
       }
     })
-  }
-
-  private getShortName(name: string): string {
-    // Shorten long names for display
-    const words = name.split(' ')
-    if (words.length > 2) {
-      return words.slice(0, 2).join(' ')
-    }
-    return name
   }
 
   private onEquippedSlotClick(slot: EquipmentSlotType): void {
@@ -502,50 +474,74 @@ export default class EquipmentScene extends Phaser.Scene {
 
     const { width, height } = this.cameras.main
     const panelWidth = width - 40
-    const panelHeight = 200
-    const panelY = height - panelHeight - 60
+    const panelHeight = 280 // Increased height
+    const panelY = height / 2
 
-    this.detailPanel = this.add.container(width / 2, panelY + panelHeight / 2)
+    this.detailPanel = this.add.container(width / 2, panelY)
+
+    // Backdrop
+    const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
+    backdrop.setInteractive()
+    backdrop.on('pointerdown', () => this.hideDetailPanel())
+    this.detailPanel.add(backdrop)
 
     // Panel background
-    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 0.95)
-    const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_COLORS[item.rarity])
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 1)
+    const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_CONFIGS[item.rarity].color)
     bg.setStrokeStyle(3, rarityColor.color)
     this.detailPanel.add(bg)
 
     // Close button
     const closeBtn = this.add
-      .text(panelWidth / 2 - 15, -panelHeight / 2 + 15, 'X', {
-        fontSize: '18px',
-        color: '#ff6666',
+      .text(panelWidth / 2 - 20, -panelHeight / 2 + 20, '✕', {
+        fontSize: '24px',
+        color: '#ffffff',
       })
       .setOrigin(0.5)
     closeBtn.setInteractive({ useHandCursor: true })
     closeBtn.on('pointerdown', () => this.hideDetailPanel())
+    UIAnimations.applyButtonEffects(this, closeBtn)
     this.detailPanel.add(closeBtn)
+
+    // Item large sprite
+    const largeSprite = this.add.image(-panelWidth / 2 + 60, -panelHeight / 2 + 70, `equip_${item.type}`)
+    largeSprite.setScale(80 / largeSprite.width)
+    this.detailPanel.add(largeSprite)
 
     // Item name with rarity
     const rarityConfig = RARITY_CONFIGS[item.rarity]
     const nameText = this.add
-      .text(0, -panelHeight / 2 + 30, `${item.name} (${rarityConfig.name})`, {
-        fontSize: '16px',
-        color: RARITY_COLORS[item.rarity],
+      .text(-panelWidth / 2 + 110, -panelHeight / 2 + 50, item.name, {
+        fontSize: '20px',
+        color: rarityConfig.color,
         fontStyle: 'bold',
       })
-      .setOrigin(0.5)
+      .setOrigin(0, 0.5)
     this.detailPanel.add(nameText)
+
+    const rarityText = this.add
+      .text(-panelWidth / 2 + 110, -panelHeight / 2 + 75, rarityConfig.name, {
+        fontSize: '14px',
+        color: rarityConfig.color,
+      })
+      .setOrigin(0, 0.5)
+    this.detailPanel.add(rarityText)
 
     // Level and max level
     const levelInfo = this.add
-      .text(0, -panelHeight / 2 + 55, `Level ${item.level} / ${rarityConfig.maxLevel}`, {
+      .text(-panelWidth / 2 + 110, -panelHeight / 2 + 95, `Level ${item.level} / ${rarityConfig.maxLevel}`, {
         fontSize: '12px',
         color: '#aaaaaa',
       })
-      .setOrigin(0.5)
+      .setOrigin(0, 0.5)
     this.detailPanel.add(levelInfo)
 
+    // Divider
+    const divider = this.add.rectangle(0, -panelHeight / 2 + 130, panelWidth - 40, 1, 0x444466)
+    this.detailPanel.add(divider)
+
     // Stats display
-    const statsY = -panelHeight / 2 + 80
+    const statsY = -panelHeight / 2 + 150
     let yOffset = 0
     const statsEntries = Object.entries(item.baseStats)
 
@@ -553,48 +549,52 @@ export default class EquipmentScene extends Phaser.Scene {
       if (value !== undefined && value !== 0) {
         const statName = this.formatStatName(stat)
         const statText = this.add
-          .text(-panelWidth / 2 + 20, statsY + yOffset, `${statName}: +${value}`, {
-            fontSize: '11px',
+          .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: +${value}`, {
+            fontSize: '14px',
             color: '#88ff88',
           })
           .setOrigin(0, 0)
         this.detailPanel?.add(statText)
-        yOffset += 16
+        yOffset += 22
       }
     })
 
     // Perks display
     if (item.perks.length > 0) {
+      yOffset += 10
       const perksLabel = this.add
-        .text(panelWidth / 2 - 20, statsY, 'Perks:', {
-          fontSize: '11px',
+        .text(-panelWidth / 2 + 30, statsY + yOffset, 'Unique Perks:', {
+          fontSize: '14px',
           color: '#aaaaaa',
+          fontStyle: 'bold',
         })
-        .setOrigin(1, 0)
+        .setOrigin(0, 0)
       this.detailPanel.add(perksLabel)
+      yOffset += 22
 
-      item.perks.forEach((perk, i) => {
+      item.perks.forEach((perk) => {
         const perkText = this.add
-          .text(panelWidth / 2 - 20, statsY + 16 + i * 14, this.formatPerkName(perk), {
-            fontSize: '10px',
+          .text(-panelWidth / 2 + 40, statsY + yOffset, `• ${this.formatPerkName(perk)}`, {
+            fontSize: '13px',
             color: '#ffaa00',
           })
-          .setOrigin(1, 0)
+          .setOrigin(0, 0)
         this.detailPanel?.add(perkText)
+        yOffset += 20
       })
     }
 
     // Action buttons
-    const buttonY = panelHeight / 2 - 35
+    const buttonY = panelHeight / 2 - 40
 
     if (isEquipped) {
       // Unequip button
       const unequipBtn = this.add
-        .text(-60, buttonY, 'UNEQUIP', {
-          fontSize: '14px',
+        .text(-80, buttonY, 'UNEQUIP', {
+          fontSize: '16px',
           color: '#ffffff',
           backgroundColor: '#aa4444',
-          padding: { x: 15, y: 8 },
+          padding: { x: 20, y: 10 },
         })
         .setOrigin(0.5)
 
@@ -604,17 +604,16 @@ export default class EquipmentScene extends Phaser.Scene {
         equipmentManager.unequip(item.slot)
         this.hideDetailPanel()
       })
-      unequipBtn.on('pointerover', () => unequipBtn.setStyle({ backgroundColor: '#bb5555' }))
-      unequipBtn.on('pointerout', () => unequipBtn.setStyle({ backgroundColor: '#aa4444' }))
+      UIAnimations.applyButtonEffects(this, unequipBtn)
       this.detailPanel.add(unequipBtn)
     } else {
       // Equip button
       const equipBtn = this.add
-        .text(-60, buttonY, 'EQUIP', {
-          fontSize: '14px',
+        .text(-80, buttonY, 'EQUIP', {
+          fontSize: '16px',
           color: '#ffffff',
           backgroundColor: '#44aa44',
-          padding: { x: 15, y: 8 },
+          padding: { x: 20, y: 10 },
         })
         .setOrigin(0.5)
 
@@ -624,8 +623,7 @@ export default class EquipmentScene extends Phaser.Scene {
         equipmentManager.equip(item)
         this.hideDetailPanel()
       })
-      equipBtn.on('pointerover', () => equipBtn.setStyle({ backgroundColor: '#55bb55' }))
-      equipBtn.on('pointerout', () => equipBtn.setStyle({ backgroundColor: '#44aa44' }))
+      UIAnimations.applyButtonEffects(this, equipBtn)
       this.detailPanel.add(equipBtn)
     }
 
@@ -634,31 +632,33 @@ export default class EquipmentScene extends Phaser.Scene {
     const upgradeCost = equipmentManager.getUpgradeCost(item)
     const canAfford = currencyManager.canAfford('gold', upgradeCost.gold)
 
-    const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#444455'
+    const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#333344'
     const upgradeBtn = this.add
-      .text(60, buttonY, `UPGRADE (${upgradeCost.gold}g)`, {
-        fontSize: '14px',
+      .text(80, buttonY, `UPGRADE (${upgradeCost.gold}g)`, {
+        fontSize: '16px',
         color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
         backgroundColor: upgradeColor,
-        padding: { x: 12, y: 8 },
+        padding: { x: 20, y: 10 },
       })
       .setOrigin(0.5)
 
     if (canUpgrade.canUpgrade && canAfford) {
       upgradeBtn.setInteractive({ useHandCursor: true })
       upgradeBtn.on('pointerdown', () => this.onUpgradeClick(item))
-      upgradeBtn.on('pointerover', () => upgradeBtn.setStyle({ backgroundColor: '#5588bb' }))
-      upgradeBtn.on('pointerout', () => upgradeBtn.setStyle({ backgroundColor: '#4477aa' }))
+      UIAnimations.applyButtonEffects(this, upgradeBtn)
     }
     this.detailPanel.add(upgradeBtn)
 
-    // Bring panel to top
-    this.children.bringToTop(this.detailPanel)
+    // Animation in
+    UIAnimations.showModal(this, this.detailPanel)
   }
 
   private hideDetailPanel(): void {
     if (this.detailPanel) {
-      this.detailPanel.destroy()
+      const panel = this.detailPanel
+      UIAnimations.hideModal(this, panel, UIAnimations.DURATION.FAST, () => {
+        panel.destroy()
+      })
       this.detailPanel = null
     }
   }

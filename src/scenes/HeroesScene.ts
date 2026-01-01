@@ -1,78 +1,9 @@
 import Phaser from 'phaser'
-import { saveManager } from '../systems/SaveManager'
+import { heroManager } from '../systems/HeroManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
-
-/**
- * Hero configuration with stats, costs, and descriptions
- * This supplements the basic HeroData from SaveManager
- */
-interface HeroConfig {
-  id: string
-  name: string
-  description: string
-  passive: string
-  unlockCost: number
-  iconKey: string // Texture key for the hero icon
-  baseStats: {
-    attack: number
-    health: number
-    speed: number
-    critChance: number
-    critDamage: number
-  }
-}
-
-/**
- * Complete hero configurations
- */
-const HERO_CONFIGS: Record<string, HeroConfig> = {
-  atreus: {
-    id: 'atreus',
-    name: 'Atreus',
-    description: 'Balanced warrior with no weaknesses',
-    passive: 'None - Well-rounded stats',
-    unlockCost: 0, // Free starting hero
-    iconKey: 'heroAtreus',
-    baseStats: {
-      attack: 10,
-      health: 100,
-      speed: 150,
-      critChance: 5,
-      critDamage: 150,
-    },
-  },
-  helix: {
-    id: 'helix',
-    name: 'Helix',
-    description: 'Rage-powered berserker',
-    passive: '+5% damage per 10% missing HP',
-    unlockCost: 5000,
-    iconKey: 'heroHelix',
-    baseStats: {
-      attack: 12,
-      health: 80,
-      speed: 140,
-      critChance: 8,
-      critDamage: 160,
-    },
-  },
-  meowgik: {
-    id: 'meowgik',
-    name: 'Meowgik',
-    description: 'Mystical cat wizard',
-    passive: 'Summons spirit cats to attack',
-    unlockCost: 10000,
-    iconKey: 'heroMeowgik',
-    baseStats: {
-      attack: 8,
-      health: 90,
-      speed: 160,
-      critChance: 10,
-      critDamage: 140,
-    },
-  },
-}
+import { HERO_DEFINITIONS, type HeroId } from '../config/heroData'
+import type { HeroState } from '../systems/Hero'
 
 /**
  * HeroesScene - Displays hero selection and unlock interface
@@ -123,24 +54,21 @@ export default class HeroesScene extends Phaser.Scene {
   }
 
   private createHeroCards(width: number, _height: number): void {
-    const selectedHeroId = saveManager.getSelectedHeroId()
-    const heroIds = ['atreus', 'helix', 'meowgik']
+    const selectedHeroId = heroManager.getSelectedHeroId()
+    const heroIds = heroManager.getAllHeroStates().map(h => h.id)
     const cardHeight = 140
     const cardSpacing = 15
     const startY = 120
 
     heroIds.forEach((heroId, index) => {
-      const config = HERO_CONFIGS[heroId]
-      const heroData = saveManager.getHero(heroId)
-      const isUnlocked = heroData?.unlocked ?? false
+      const heroState = heroManager.getHeroState(heroId as HeroId)
       const isSelected = heroId === selectedHeroId
       const yPos = startY + index * (cardHeight + cardSpacing)
 
       const card = this.createHeroCard(
         width / 2,
         yPos,
-        config,
-        isUnlocked,
+        heroState,
         isSelected
       )
       this.heroCards.push(card)
@@ -150,12 +78,12 @@ export default class HeroesScene extends Phaser.Scene {
   private createHeroCard(
     x: number,
     y: number,
-    config: HeroConfig,
-    isUnlocked: boolean,
+    heroState: HeroState,
     isSelected: boolean
   ): Phaser.GameObjects.Container {
     const cardWidth = 340
     const cardHeight = 130
+    const isUnlocked = heroState.isUnlocked
 
     // Card background color based on state
     let bgColor = 0x2d2d3d // Default locked color
@@ -177,7 +105,16 @@ export default class HeroesScene extends Phaser.Scene {
     const iconSize = 48
     const iconX = -cardWidth / 2 + 15 + iconSize / 2
     const iconY = -cardHeight / 2 + 15 + iconSize / 2
-    const heroIcon = this.add.image(iconX, iconY, config.iconKey)
+    
+    // Use the icon from HERO_DEFINITIONS
+    const heroDef = HERO_DEFINITIONS[heroState.id as HeroId]
+    const iconKey = heroDef.icon
+    
+    // In PreloaderScene icons are named differently (heroAtreus vs hero_atreus)
+    // Let's normalize to what's in PreloaderScene
+    const preloaderIconKey = 'hero' + heroDef.id.charAt(0).toUpperCase() + heroDef.id.slice(1)
+    
+    const heroIcon = this.add.image(iconX, iconY, preloaderIconKey)
     heroIcon.setDisplaySize(iconSize, iconSize)
     // Apply grayscale tint if locked
     if (!isUnlocked) {
@@ -196,7 +133,7 @@ export default class HeroesScene extends Phaser.Scene {
 
     // Hero name
     const nameText = this.add
-      .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 12, config.name, {
+      .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 12, heroState.name, {
         fontSize: '20px',
         color: isUnlocked ? '#ffffff' : '#888888',
         fontStyle: 'bold',
@@ -205,10 +142,9 @@ export default class HeroesScene extends Phaser.Scene {
     container.add(nameText)
 
     // Level indicator (if unlocked)
-    const heroData = saveManager.getHero(config.id)
-    if (isUnlocked && heroData) {
+    if (isUnlocked) {
       const levelText = this.add
-        .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 36, `Lv.${heroData.level}`, {
+        .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 36, `Lv.${heroState.level}`, {
           fontSize: '12px',
           color: '#aaaaaa',
         })
@@ -218,7 +154,7 @@ export default class HeroesScene extends Phaser.Scene {
 
     // Passive ability description
     const passiveText = this.add
-      .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 52, config.passive, {
+      .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 52, heroDef.ability.description, {
         fontSize: '11px',
         color: '#88cc88',
         wordWrap: { width: cardWidth - textOffsetX - 20 },
@@ -227,13 +163,13 @@ export default class HeroesScene extends Phaser.Scene {
     container.add(passiveText)
 
     // Stats display
-    const stats = config.baseStats
+    const stats = heroState.computedStats
     const statsY = -cardHeight / 2 + 75
     const statsText = this.add
       .text(
         -cardWidth / 2 + 15,
         statsY,
-        `ATK: ${stats.attack}  HP: ${stats.health}  SPD: ${stats.speed}`,
+        `ATK: ${stats.attack}  HP: ${stats.maxHealth}  SPD: ${stats.attackSpeed}`,
         {
           fontSize: '11px',
           color: isUnlocked ? '#cccccc' : '#666666',
@@ -246,7 +182,7 @@ export default class HeroesScene extends Phaser.Scene {
       .text(
         -cardWidth / 2 + 15,
         statsY + 15,
-        `CRIT: ${stats.critChance}%  CRIT DMG: ${stats.critDamage}%`,
+        `CRIT: ${Math.round(stats.critChance * 100)}%  CRIT DMG: ${Math.round(stats.critDamage * 100)}%`,
         {
           fontSize: '11px',
           color: isUnlocked ? '#cccccc' : '#666666',
@@ -274,20 +210,21 @@ export default class HeroesScene extends Phaser.Scene {
           cardHeight / 2 - 25,
           'SELECT',
           '#4a9eff',
-          () => this.selectHero(config.id)
+          () => this.selectHero(heroState.id)
         )
         container.add(selectBtn)
       }
     } else {
       // Unlock button with cost
-      const canAfford = currencyManager.canAfford('gold', config.unlockCost)
+      const unlockInfo = heroManager.getUnlockCost(heroState.id)
+      const canAfford = heroManager.canUnlock(heroState.id)
       const btnColor = canAfford ? '#6b8e23' : '#555555'
       const unlockBtn = this.createButton(
         cardWidth / 2 - 70,
         cardHeight / 2 - 25,
-        `${config.unlockCost} G`,
+        `${unlockInfo.cost} ${unlockInfo.currency.toUpperCase()}`,
         btnColor,
-        () => this.unlockHero(config.id, config.unlockCost)
+        () => this.unlockHero(heroState.id)
       )
       container.add(unlockBtn)
 
@@ -346,7 +283,7 @@ export default class HeroesScene extends Phaser.Scene {
   }
 
   private selectHero(heroId: string): void {
-    const success = saveManager.selectHero(heroId)
+    const success = heroManager.select(heroId as HeroId)
     if (success) {
       audioManager.playAbilitySelect()
       // Refresh the scene to show updated selection
@@ -354,8 +291,8 @@ export default class HeroesScene extends Phaser.Scene {
     }
   }
 
-  private unlockHero(heroId: string, cost: number): void {
-    const canAfford = currencyManager.canAfford('gold', cost)
+  private unlockHero(heroId: string): void {
+    const canAfford = heroManager.canUnlock(heroId as HeroId)
     if (!canAfford) {
       // Flash gold text red to indicate insufficient funds
       if (this.goldText) {
@@ -367,10 +304,9 @@ export default class HeroesScene extends Phaser.Scene {
       return
     }
 
-    // Spend gold and unlock
-    const spent = currencyManager.spend('gold', cost)
-    if (spent) {
-      saveManager.unlockHero(heroId)
+    // Attempt to unlock
+    const success = heroManager.unlock(heroId as HeroId)
+    if (success) {
       audioManager.playLevelUp() // Use level up sound for unlock
       // Refresh the scene
       this.scene.restart()

@@ -14,24 +14,7 @@ import { chestManager } from '../systems/ChestManager'
 import { equipmentManager } from '../systems/EquipmentManager'
 import { Equipment, Rarity, RARITY_CONFIGS } from '../systems/Equipment'
 import { audioManager } from '../systems/AudioManager'
-
-// Rarity colors for equipment card borders
-const RARITY_COLORS: Record<Rarity, number> = {
-  [Rarity.COMMON]: 0x888888,
-  [Rarity.GREAT]: 0x22c55e,
-  [Rarity.RARE]: 0x3b82f6,
-  [Rarity.EPIC]: 0xa855f7,
-  [Rarity.LEGENDARY]: 0xeab308,
-}
-
-// Rarity color strings for text
-const RARITY_COLOR_STRINGS: Record<Rarity, string> = {
-  [Rarity.COMMON]: '#888888',
-  [Rarity.GREAT]: '#22c55e',
-  [Rarity.RARE]: '#3b82f6',
-  [Rarity.EPIC]: '#a855f7',
-  [Rarity.LEGENDARY]: '#eab308',
-}
+import * as UIAnimations from '../systems/UIAnimations'
 
 interface ChestSlot {
   container: Phaser.GameObjects.Container
@@ -135,13 +118,10 @@ export default class ChestScene extends Phaser.Scene {
     bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(config.color).color)
     container.add(bg)
 
-    // Chest icon (large)
-    const iconText = this.add
-      .text(-100, -5, config.icon, {
-        fontSize: '48px',
-      })
-      .setOrigin(0.5)
-    container.add(iconText)
+    // Chest icon
+    const chestSprite = this.add.image(-100, 0, `chest_${chestType}`)
+    chestSprite.setScale(64 / chestSprite.width)
+    container.add(chestSprite)
 
     // Chest name
     const nameText = this.add
@@ -308,12 +288,9 @@ export default class ChestScene extends Phaser.Scene {
     const chestContainer = this.add.container(width / 2, height / 2 - 50)
     chestContainer.setDepth(101)
 
-    const chestIcon = this.add
-      .text(0, 0, config.icon, {
-        fontSize: '80px',
-      })
-      .setOrigin(0.5)
-    chestContainer.add(chestIcon)
+    const chestSprite = this.add.image(0, 0, `chest_${chestType}`)
+    chestSprite.setScale(100 / chestSprite.width)
+    chestContainer.add(chestSprite)
 
     // Create glow effect behind chest
     const glow = this.add.circle(0, 0, 80, Phaser.Display.Color.HexStringToColor(config.color).color, 0.3)
@@ -400,8 +377,7 @@ export default class ChestScene extends Phaser.Scene {
   private showEquipmentReveal(equipment: Equipment, overlay: Phaser.GameObjects.Rectangle): void {
     const { width, height } = this.cameras.main
     const rarityConfig = RARITY_CONFIGS[equipment.rarity]
-    const rarityColor = RARITY_COLORS[equipment.rarity]
-    const rarityColorString = RARITY_COLOR_STRINGS[equipment.rarity]
+    const rarityColor = Phaser.Display.Color.HexStringToColor(rarityConfig.color).color
 
     this.revealContainer = this.add.container(width / 2, height / 2)
     this.revealContainer.setDepth(104)
@@ -437,22 +413,18 @@ export default class ChestScene extends Phaser.Scene {
       this.revealContainer.add(bannerText)
     }
 
-    // Equipment icon/name area
+    // Equipment sprite
     const iconY = -cardHeight / 2 + 80
-    const slotIcon = this.getSlotIcon(equipment.slot)
-    const iconText = this.add
-      .text(0, iconY, slotIcon, {
-        fontSize: '48px',
-      })
-      .setOrigin(0.5)
-    this.revealContainer.add(iconText)
+    const equipSprite = this.add.image(0, iconY, `equip_${equipment.type}`)
+    equipSprite.setScale(100 / equipSprite.width)
+    this.revealContainer.add(equipSprite)
 
     // Equipment name
-    const nameY = iconY + 50
+    const nameY = iconY + 65
     const nameText = this.add
       .text(0, nameY, equipment.name, {
-        fontSize: '20px',
-        color: rarityColorString,
+        fontSize: '22px',
+        color: rarityConfig.color,
         fontStyle: 'bold',
         align: 'center',
         wordWrap: { width: cardWidth - 40 },
@@ -461,17 +433,17 @@ export default class ChestScene extends Phaser.Scene {
     this.revealContainer.add(nameText)
 
     // Rarity label
-    const rarityY = nameY + 30
+    const rarityY = nameY + 35
     const rarityText = this.add
       .text(0, rarityY, rarityConfig.name.toUpperCase(), {
-        fontSize: '14px',
-        color: rarityColorString,
+        fontSize: '16px',
+        color: rarityConfig.color,
       })
       .setOrigin(0.5)
     this.revealContainer.add(rarityText)
 
     // Stats section
-    const statsStartY = rarityY + 40
+    const statsStartY = rarityY + 45
     let statsOffset = 0
     const statsEntries = Object.entries(equipment.baseStats)
 
@@ -480,12 +452,12 @@ export default class ChestScene extends Phaser.Scene {
         const statName = this.formatStatName(stat)
         const statText = this.add
           .text(0, statsStartY + statsOffset, `${statName}: +${value}`, {
-            fontSize: '14px',
+            fontSize: '15px',
             color: '#88ff88',
           })
           .setOrigin(0.5)
         this.revealContainer?.add(statText)
-        statsOffset += 22
+        statsOffset += 24
       }
     })
 
@@ -494,17 +466,18 @@ export default class ChestScene extends Phaser.Scene {
       const perksY = statsStartY + statsOffset + 15
 
       const perksLabel = this.add
-        .text(0, perksY, 'Perks:', {
-          fontSize: '12px',
+        .text(0, perksY, 'Unique Perks:', {
+          fontSize: '14px',
           color: '#aaaaaa',
+          fontStyle: 'bold',
         })
         .setOrigin(0.5)
       this.revealContainer.add(perksLabel)
 
       equipment.perks.forEach((perk, i) => {
         const perkText = this.add
-          .text(0, perksY + 18 + i * 18, this.formatPerkName(perk), {
-            fontSize: '12px',
+          .text(0, perksY + 20 + i * 20, this.formatPerkName(perk), {
+            fontSize: '13px',
             color: '#ffaa00',
           })
           .setOrigin(0.5)
@@ -517,11 +490,11 @@ export default class ChestScene extends Phaser.Scene {
 
     // Equip button
     const equipBtn = this.add
-      .text(-60, buttonY, 'EQUIP', {
-        fontSize: '16px',
+      .text(-65, buttonY, 'EQUIP', {
+        fontSize: '18px',
         color: '#ffffff',
         backgroundColor: '#44aa44',
-        padding: { x: 20, y: 10 },
+        padding: { x: 25, y: 12 },
       })
       .setOrigin(0.5)
 
@@ -531,17 +504,16 @@ export default class ChestScene extends Phaser.Scene {
       equipmentManager.equip(equipment)
       this.closeReveal(overlay)
     })
-    equipBtn.on('pointerover', () => equipBtn.setStyle({ backgroundColor: '#55bb55' }))
-    equipBtn.on('pointerout', () => equipBtn.setStyle({ backgroundColor: '#44aa44' }))
+    UIAnimations.applyButtonEffects(this, equipBtn)
     this.revealContainer.add(equipBtn)
 
     // Close button
     const closeBtn = this.add
-      .text(60, buttonY, 'CLOSE', {
-        fontSize: '16px',
+      .text(65, buttonY, 'CLOSE', {
+        fontSize: '18px',
         color: '#ffffff',
         backgroundColor: '#666677',
-        padding: { x: 20, y: 10 },
+        padding: { x: 25, y: 12 },
       })
       .setOrigin(0.5)
 
@@ -550,18 +522,11 @@ export default class ChestScene extends Phaser.Scene {
       audioManager.playMenuSelect()
       this.closeReveal(overlay)
     })
-    closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#777788' }))
-    closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#666677' }))
+    UIAnimations.applyButtonEffects(this, closeBtn)
     this.revealContainer.add(closeBtn)
 
     // Animate card appearing
-    this.tweens.add({
-      targets: this.revealContainer,
-      scale: 1,
-      alpha: 1,
-      duration: 300,
-      ease: 'Back.easeOut',
-    })
+    UIAnimations.showModal(this, this.revealContainer)
 
     // Pulsing glow animation
     this.tweens.add({
@@ -603,21 +568,6 @@ export default class ChestScene extends Phaser.Scene {
 
     // Update chest counts
     this.updateChestCounts()
-  }
-
-  private getSlotIcon(slot: string): string {
-    switch (slot) {
-      case 'weapon':
-        return '\u2694\uFE0F' // Crossed swords
-      case 'armor':
-        return '\uD83D\uDEE1\uFE0F' // Shield
-      case 'ring':
-        return '\uD83D\uDC8D' // Ring
-      case 'spirit':
-        return '\uD83D\uDC7B' // Ghost
-      default:
-        return '\u2753' // Question mark
-    }
   }
 
   private formatStatName(stat: string): string {

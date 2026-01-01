@@ -26,6 +26,7 @@ import { saveManager } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
+import { heroManager } from '../systems/HeroManager'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom } from '../systems/RoomGenerator'
@@ -87,6 +88,16 @@ export default class GameScene extends Phaser.Scene {
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
+    // Listen for debug skip level event
+    if (this.game.registry.get('debug')) {
+      this.game.events.on('debugSkipLevel', this.debugSkipLevel, this)
+      
+      // Cleanup listener on shutdown
+      this.events.once('shutdown', () => {
+        this.game.events.off('debugSkipLevel', this.debugSkipLevel, this)
+      })
+    }
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
@@ -118,12 +129,19 @@ export default class GameScene extends Phaser.Scene {
 
     console.log(`GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`)
 
+    // Get selected hero and stats
+    const selectedHeroId = heroManager.getSelectedHeroId()
+    const heroStats = heroManager.getSelectedHeroStats()
+    console.log(`GameScene: Selected hero ${selectedHeroId} with stats:`, heroStats)
+
     // Create player in center with difficulty-adjusted stats
     this.player = new Player(this, width / 2, height / 2, {
-      maxHealth: this.difficultyConfig.playerMaxHealth,
-      baseDamage: this.difficultyConfig.playerDamage,
-      baseAttackSpeed: this.difficultyConfig.playerAttackSpeed,
-    })
+      maxHealth: heroStats.maxHealth * (this.difficultyConfig.playerMaxHealth / 100), // Scale relative to difficulty
+      baseDamage: heroStats.attack * (this.difficultyConfig.playerDamage / 10), // Scale relative to difficulty
+      baseAttackSpeed: heroStats.attackSpeed * (this.difficultyConfig.playerAttackSpeed / 1.0), // Scale relative to difficulty
+      critChance: heroStats.critChance,
+      critDamage: heroStats.critDamage,
+    }, selectedHeroId)
 
     // Create bullet pools, bomb pool, gold pool, and health pool
     this.bulletPool = new BulletPool(this)
@@ -184,6 +202,14 @@ export default class GameScene extends Phaser.Scene {
       A: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+    }
+
+    // Debug keyboard controls
+    if (this.game.registry.get('debug')) {
+      const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
+      nKey.on('down', () => {
+        this.debugSkipLevel()
+      })
     }
 
     // Create virtual joystick
@@ -1064,6 +1090,31 @@ export default class GameScene extends Phaser.Scene {
     this.scene.get('UIScene').events.emit('updateHealth', healthPercentage)
   }
 
+  /**
+   * Debug functionality to skip the current level
+   */
+  private debugSkipLevel() {
+    if (this.isGameOver || this.isTransitioning) {
+      console.log('Debug: Skip ignored (GameOver:', this.isGameOver, 'Transitioning:', this.isTransitioning, ')')
+      return
+    }
+    
+    this.isTransitioning = true
+    console.log('Debug: Skipping level', this.currentRoom)
+
+    // Magnetically collect all remaining gold and health pickups before skipping
+    this.goldPool.collectAll(this.player.x, this.player.y)
+    this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
+      this.player.heal(healAmount)
+      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+    })
+
+    // Reset transition flag just before calling the transition method
+    // (transitionToNextRoom will set it to false when finished)
+    this.isTransitioning = false
+    this.transitionToNextRoom()
+  }
+
   private startInvincibilityFlash(player: Player) {
     // Create flashing effect during invincibility
     let flashCount = 0
@@ -1322,6 +1373,7 @@ export default class GameScene extends Phaser.Scene {
 
   private getEffectiveFireRate(): number {
     // Base fire rate modified by player's attack speed
+    if (!this.player) return this.fireRate
     return this.fireRate / this.player.getAttackSpeed()
   }
 

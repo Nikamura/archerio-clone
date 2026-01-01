@@ -49,6 +49,49 @@ export default class MainMenuScene extends Phaser.Scene {
     // Get saved difficulty or default to NORMAL
     this.selectedDifficulty = getCurrentDifficulty(this.game)
 
+    // Debug: Unlock all chapters button
+    if (this.game.registry.get('debug')) {
+      // Visible indicator
+      this.add.text(10, height - 20, 'DEBUG MODE ACTIVE', {
+        fontSize: '10px',
+        color: '#ff0000',
+        fontStyle: 'bold',
+      }).setDepth(100)
+
+      // Create a DOM button for debug unlock to avoid being blocked by the joystick
+      const btn = document.createElement('button')
+      btn.innerText = 'DEBUG: UNLOCK ALL'
+      btn.style.position = 'absolute'
+      btn.style.top = '50px'
+      btn.style.left = '10px'
+      btn.style.zIndex = '10000'
+      btn.style.backgroundColor = '#cc0000'
+      btn.style.color = 'white'
+      btn.style.border = 'none'
+      btn.style.padding = '10px'
+      btn.style.fontWeight = 'bold'
+      btn.style.cursor = 'pointer'
+      btn.style.borderRadius = '5px'
+
+      btn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        for (let i = 1; i <= 5; i++) {
+          chapterManager.forceUnlockChapter(i as ChapterId)
+        }
+        this.scene.restart()
+      }
+
+      document.body.appendChild(btn)
+
+      // Cleanup DOM button on scene shutdown
+      this.events.once('shutdown', () => {
+        if (btn.parentNode) {
+          btn.parentNode.removeChild(btn)
+        }
+      })
+    }
+
     // ============================================
     // CURRENCY DISPLAY (Top bar - compact)
     // ============================================

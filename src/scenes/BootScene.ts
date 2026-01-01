@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import { saveManager } from '../systems/SaveManager'
+import { heroManager } from '../systems/HeroManager'
+import { currencyManager } from '../systems/CurrencyManager'
 import { setDifficulty } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { hapticManager } from '../systems/HapticManager'
@@ -39,8 +41,26 @@ export default class BootScene extends Phaser.Scene {
     audioManager.setVolume(settings.audioVolume)
     hapticManager.enabled = settings.vibrationEnabled
 
+    // Initialize HeroManager with currency integration
+    heroManager.setCurrencyCallbacks({
+      getGold: () => currencyManager.get('gold'),
+      getGems: () => currencyManager.get('gems'),
+      spendGold: (amount) => currencyManager.spend('gold', amount),
+      spendGems: (amount) => currencyManager.spend('gems', amount),
+      onSave: () => saveManager.save()
+    })
+
+    // Check for debug mode in URL
+    const urlParams = new window.URLSearchParams(window.location.search)
+    const isDebug = urlParams.has('debug')
+    this.game.registry.set('debug', isDebug)
+    if (isDebug) {
+      console.log('BootScene: Debug mode enabled via URL')
+    }
+
     // Store save manager reference in registry for global access
     this.game.registry.set('saveManager', saveManager)
+    this.game.registry.set('heroManager', heroManager)
 
     // Log save status
     if (saveManager.exists()) {

@@ -55,12 +55,16 @@ export class PlayerStats {
     baseDamage?: number
     baseAttackSpeed?: number
     xpToLevelUp?: number
+    critChance?: number
+    critDamage?: number
   }) {
     this.maxHealth = options?.maxHealth ?? 100
     this.health = this.maxHealth
     this.baseDamage = options?.baseDamage ?? 10
     this.baseAttackSpeed = options?.baseAttackSpeed ?? 1.0
     this.baseXpToLevelUp = options?.xpToLevelUp ?? 10
+    this.critChance = options?.critChance ?? 0
+    this.critDamageMultiplier = options?.critDamage ?? 1.5
   }
 
   /**

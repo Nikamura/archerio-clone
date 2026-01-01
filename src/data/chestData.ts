@@ -35,7 +35,7 @@ export const CHEST_CONFIGS: Record<ChestType, ChestConfig> = {
     name: 'Wooden Chest',
     description: 'A simple wooden chest with basic rewards',
     color: '#8B4513', // SaddleBrown
-    icon: '\uD83D\uDCE6', // Box emoji (package)
+    icon: 'chest_wooden',
     dropRates: {
       [Rarity.COMMON]: 70,
       [Rarity.GREAT]: 25,
@@ -48,7 +48,7 @@ export const CHEST_CONFIGS: Record<ChestType, ChestConfig> = {
     name: 'Silver Chest',
     description: 'A reinforced chest with better rewards',
     color: '#C0C0C0', // Silver
-    icon: '\uD83C\uDF81', // Wrapped gift emoji
+    icon: 'chest_silver',
     dropRates: {
       [Rarity.COMMON]: 40,
       [Rarity.GREAT]: 40,
@@ -61,7 +61,7 @@ export const CHEST_CONFIGS: Record<ChestType, ChestConfig> = {
     name: 'Golden Chest',
     description: 'A legendary chest with premium rewards',
     color: '#FFD700', // Gold
-    icon: '\uD83C\uDFB2', // Die emoji (treasure)
+    icon: 'chest_golden',
     dropRates: {
       [Rarity.COMMON]: 0,
       [Rarity.GREAT]: 20,
