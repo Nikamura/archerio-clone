@@ -12,6 +12,11 @@ import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
 import LevelUpScene from './scenes/LevelUpScene'
+import { errorToast } from './systems/ErrorToast'
+
+// Initialize error toast for debugging on mobile
+// This sets up global error handlers to catch and display errors visually
+errorToast.setDuration(5000) // 5 seconds display
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

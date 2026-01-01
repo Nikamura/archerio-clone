@@ -154,25 +154,26 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   create() {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
+    try {
+      const width = this.cameras.main.width
+      const height = this.cameras.main.height
 
-    // Register shutdown event
-    this.events.once('shutdown', this.shutdown, this)
+      // Register shutdown event
+      this.events.once('shutdown', this.shutdown, this)
 
-    // CRITICAL: Ensure this scene receives input and is on top
-    this.input.enabled = true
-    this.input.setTopOnly(false) // Allow all objects to receive input
-    this.scene.bringToTop()
-    
-    // Set canvas pointer events to ensure touch works
-    if (this.game.canvas) {
-      this.game.canvas.style.pointerEvents = 'auto'
-      // Also re-enable the parent container; Safari can inherit a 'none' from the joystick
-      if (this.game.canvas.parentElement) {
-        this.game.canvas.parentElement.style.pointerEvents = 'auto'
+      // CRITICAL: Ensure this scene receives input and is on top
+      this.input.enabled = true
+      this.input.setTopOnly(false) // Allow all objects to receive input
+      this.scene.bringToTop()
+
+      // Set canvas pointer events to ensure touch works
+      if (this.game.canvas) {
+        this.game.canvas.style.pointerEvents = 'auto'
+        // Also re-enable the parent container; Safari can inherit a 'none' from the joystick
+        if (this.game.canvas.parentElement) {
+          this.game.canvas.parentElement.style.pointerEvents = 'auto'
+        }
       }
-    }
 
     // Dark overlay background with fade in
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
@@ -229,26 +230,36 @@ export default class LevelUpScene extends Phaser.Scene {
     const startY = 180
     const spacing = 100
 
-    selectedAbilities.forEach((ability, index) => {
-      const y = startY + index * spacing
-      // Delay each card's creation for stagger effect
-      this.time.delayedCall(DURATION.FAST + index * 100, () => {
-        this.createAbilityCard(width / 2, y, buttonWidth, buttonHeight, ability, index)
+      selectedAbilities.forEach((ability, index) => {
+        const y = startY + index * spacing
+        // Delay each card's creation for stagger effect
+        this.time.delayedCall(DURATION.FAST + index * 100, () => {
+          try {
+            this.createAbilityCard(width / 2, y, buttonWidth, buttonHeight, ability, index)
+          } catch (error) {
+            console.error('LevelUpScene: Error creating ability card:', error)
+          }
+        })
       })
-    })
 
-    console.log('LevelUpScene: Created for level', this.playerLevel)
+      console.log('LevelUpScene: Created for level', this.playerLevel)
+    } catch (error) {
+      console.error('LevelUpScene: Error in create:', error)
+      // Try to close the scene gracefully
+      this.scene.stop('LevelUpScene')
+    }
   }
 
   private createTitleParticles(width: number) {
-    // Create particle texture if not exists
-    if (!this.textures.exists('levelup_particle')) {
-      const graphics = this.add.graphics()
-      graphics.fillStyle(0xffdd00, 1)
-      graphics.fillCircle(4, 4, 4)
-      graphics.generateTexture('levelup_particle', 8, 8)
-      graphics.destroy()
-    }
+    try {
+      // Create particle texture if not exists
+      if (!this.textures.exists('levelup_particle')) {
+        const graphics = this.add.graphics()
+        graphics.fillStyle(0xffdd00, 1)
+        graphics.fillCircle(4, 4, 4)
+        graphics.generateTexture('levelup_particle', 8, 8)
+        graphics.destroy()
+      }
 
     // Create particle emitters on each side of title
     const leftEmitter = this.add.particles(width / 2 - 100, 100, 'levelup_particle', {
@@ -264,18 +275,22 @@ export default class LevelUpScene extends Phaser.Scene {
     })
     leftEmitter.setDepth(1)
 
-    const rightEmitter = this.add.particles(width / 2 + 100, 100, 'levelup_particle', {
-      speed: { min: 20, max: 50 },
-      angle: { min: 240, max: 300 },
-      scale: { start: 0.6, end: 0 },
-      alpha: { start: 0.8, end: 0 },
-      lifespan: { min: 600, max: 1000 },
-      frequency: 200,
-      quantity: 1,
-      blendMode: Phaser.BlendModes.ADD,
-      tint: [0xffdd00, 0xffaa00, 0xff8800],
-    })
-    rightEmitter.setDepth(1)
+      const rightEmitter = this.add.particles(width / 2 + 100, 100, 'levelup_particle', {
+        speed: { min: 20, max: 50 },
+        angle: { min: 240, max: 300 },
+        scale: { start: 0.6, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: { min: 600, max: 1000 },
+        frequency: 200,
+        quantity: 1,
+        blendMode: Phaser.BlendModes.ADD,
+        tint: [0xffdd00, 0xffaa00, 0xff8800],
+      })
+      rightEmitter.setDepth(1)
+    } catch (error) {
+      console.error('LevelUpScene: Error creating title particles:', error)
+      // Non-critical, continue without particles
+    }
   }
 
   private selectRandomAbilities(count: number): AbilityData[] {
@@ -291,9 +306,10 @@ export default class LevelUpScene extends Phaser.Scene {
     ability: AbilityData,
     index: number
   ) {
-    // Create container for the whole card
-    const container = this.add.container(x, y)
-    container.setDepth(10 + index) // Ensure cards are above background
+    try {
+      // Create container for the whole card
+      const container = this.add.container(x, y)
+      container.setDepth(10 + index) // Ensure cards are above background
 
     // Outer glow/border effect
     const glowRect = this.add.rectangle(0, 0, cardWidth + 6, cardHeight + 6, ability.color, 0.2)
@@ -410,10 +426,14 @@ export default class LevelUpScene extends Phaser.Scene {
           this.selectAbility(ability.id, container)
         },
       })
-    })
+      })
 
-    this.buttons.push(button)
-    this.abilityCards.push(container)
+      this.buttons.push(button)
+      this.abilityCards.push(container)
+    } catch (error) {
+      console.error('LevelUpScene: Error in createAbilityCard:', error)
+      // Card creation failed, but other cards might still work
+    }
   }
 
   private selectAbility(abilityId: string, selectedContainer?: Phaser.GameObjects.Container) {
@@ -479,13 +499,23 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   private finishSelection(abilityId: string) {
-    // Close this scene
-    console.log('LevelUpScene: stopping scene')
-    this.scene.stop('LevelUpScene')
+    try {
+      // Close this scene
+      console.log('LevelUpScene: stopping scene')
+      this.scene.stop('LevelUpScene')
 
-    // Emit event to GameScene using global game events
-    console.log('LevelUpScene: emitting abilitySelected')
-    this.game.events.emit('abilitySelected', abilityId)
+      // Emit event to GameScene using global game events
+      console.log('LevelUpScene: emitting abilitySelected')
+      this.game.events.emit('abilitySelected', abilityId)
+    } catch (error) {
+      console.error('LevelUpScene: Error in finishSelection:', error)
+      // Force scene stop if it hasn't stopped
+      try {
+        this.scene.stop('LevelUpScene')
+      } catch (stopError) {
+        console.error('LevelUpScene: Error stopping scene:', stopError)
+      }
+    }
   }
 
   /**
