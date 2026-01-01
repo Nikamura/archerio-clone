@@ -4,6 +4,8 @@ import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { chapterManager } from '../systems/ChapterManager'
+import { dailyRewardManager } from '../systems/DailyRewardManager'
+import { achievementManager } from '../systems/AchievementManager'
 
 export default class MainMenuScene extends Phaser.Scene {
   private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
@@ -251,6 +253,125 @@ export default class MainMenuScene extends Phaser.Scene {
         }
       })
     })
+
+    // ============================================
+    // DAILY REWARD BUTTON (Below menu buttons)
+    // ============================================
+
+    const dailyY = menuY + 60
+    const canClaimDaily = dailyRewardManager.canClaimToday()
+
+    // Daily button container
+    const dailyButton = this.add.text(width / 2, dailyY, 'Daily Rewards', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#8b4513',
+      padding: { x: 20, y: 10 },
+    })
+    dailyButton.setOrigin(0.5)
+    dailyButton.setInteractive({ useHandCursor: true })
+    dailyButton.setDepth(10)
+
+    dailyButton.on('pointerover', () => {
+      dailyButton.setStyle({ backgroundColor: '#a0522d' })
+    })
+
+    dailyButton.on('pointerout', () => {
+      dailyButton.setStyle({ backgroundColor: '#8b4513' })
+    })
+
+    dailyButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.scene.start('DailyRewardScene')
+    })
+
+    // Notification badge (if reward available)
+    if (canClaimDaily) {
+      const badgeX = dailyButton.x + dailyButton.width / 2 + 5
+      const badgeY = dailyButton.y - dailyButton.height / 2
+
+      // Red circle badge
+      const badge = this.add.circle(badgeX, badgeY, 8, 0xff4444)
+      badge.setDepth(11)
+
+      // Exclamation mark
+      const exclamation = this.add.text(badgeX, badgeY, '!', {
+        fontSize: '12px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      exclamation.setOrigin(0.5)
+      exclamation.setDepth(12)
+
+      // Pulse animation on badge
+      this.tweens.add({
+        targets: badge,
+        scale: { from: 1, to: 1.2 },
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
+
+    // ============================================
+    // ACHIEVEMENTS BUTTON (Below daily rewards)
+    // ============================================
+
+    const achieveY = dailyY + 50
+    const unclaimedCount = achievementManager.getUnclaimedRewardsCount()
+
+    const achieveButton = this.add.text(width / 2, achieveY, 'Achievements', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#4a4a8a',
+      padding: { x: 20, y: 10 },
+    })
+    achieveButton.setOrigin(0.5)
+    achieveButton.setInteractive({ useHandCursor: true })
+    achieveButton.setDepth(10)
+
+    achieveButton.on('pointerover', () => {
+      achieveButton.setStyle({ backgroundColor: '#5a5a9a' })
+    })
+
+    achieveButton.on('pointerout', () => {
+      achieveButton.setStyle({ backgroundColor: '#4a4a8a' })
+    })
+
+    achieveButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.scene.start('AchievementsScene')
+    })
+
+    // Notification badge (if unclaimed rewards)
+    if (unclaimedCount > 0) {
+      const achieveBadgeX = achieveButton.x + achieveButton.width / 2 + 5
+      const achieveBadgeY = achieveButton.y - achieveButton.height / 2
+
+      // Red circle badge with count
+      const achieveBadge = this.add.circle(achieveBadgeX, achieveBadgeY, 10, 0xff4444)
+      achieveBadge.setDepth(11)
+
+      // Badge count text
+      const badgeCount = this.add.text(achieveBadgeX, achieveBadgeY, `${unclaimedCount}`, {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      badgeCount.setOrigin(0.5)
+      badgeCount.setDepth(12)
+
+      // Pulse animation on badge
+      this.tweens.add({
+        targets: achieveBadge,
+        scale: { from: 1, to: 1.2 },
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
 
     // Instructions (bottom)
     const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {

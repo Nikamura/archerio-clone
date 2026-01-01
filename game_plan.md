@@ -258,7 +258,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 ```
 [x] Phaser 3 project setup with Arcade Physics
 [x] Scene management: MainMenu, Game, GameOver, LevelUp (Boot, Preloader, MainMenu, Game, UI, LevelUp)
-[x] Player controller with joystick input (nipplejs + keyboard fallback)
+[x] Player controller with joystick input (nipplejs + keyboard fallback with WASD support)
 [x] Auto-aim + auto-fire system (fires at nearest enemy when stationary)
 [x] Bullet pool (100 bullets)
 [x] Enemy bullet pool (100 enemy bullets)
@@ -281,7 +281,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 **CURRENT STATUS (2026-01-01):**
 - ✅ Basic project structure with TypeScript + Vite
 - ✅ Core "stop to shoot, move to dodge" mechanic working
-- ✅ Virtual joystick controls (mobile ready, Y-axis fixed)
+- ✅ Virtual joystick controls (mobile ready, Y-axis fixed) + WASD/arrow keyboard controls
 - ✅ Three enemy types: Melee, Ranged Shooter, Spreader
 - ✅ Auto-aim targeting nearest enemy
 - ✅ Enemy bullet system with collision
@@ -653,7 +653,17 @@ Visual test screenshots are saved to `test/screenshots/`
     - lastEnergyUpdate timestamp preserved for accurate offline regeneration
     - getTimeUntilNextEnergy() and getFormattedTimeUntilNextEnergy() for UI display
     - Timer continues from correct position after page refresh
-[ ] 5 chapter environments with unique enemy sets
+[x] 5 chapter environments with unique backgrounds (2026-01-01)
+    - Generated 5 unique AI backgrounds for each chapter (375x667 portrait resolution)
+    - Chapter 1: Dark Dungeon - dark stone dungeon with torches and cobwebs
+    - Chapter 2: Forest Ruins - overgrown ruins with vines and moss
+    - Chapter 3: Frozen Caves - ice cave with blue crystals and frost
+    - Chapter 4: Volcanic Depths - lava cave with red rocks and magma
+    - Chapter 5: Shadow Realm - dark void with purple energy swirls
+    - Backgrounds loaded in PreloaderScene: chapter1Bg, chapter2Bg, chapter3Bg, chapter4Bg, chapter5Bg
+    - GameScene dynamically selects background based on selected chapter from ChapterManager
+    - chapterData.ts updated with correct backgroundKey values for each chapter theme
+[ ] Unique enemy sets per chapter
 [ ] 15 boss encounters (3 per chapter × 5 chapters)
 [x] Save/load system for all progression (2026-01-01)
     - SaveManager (src/systems/SaveManager.ts): Complete persistence system
@@ -686,8 +696,60 @@ Visual test screenshots are saved to `test/screenshots/`
     - Ember particles rising from torches using ADD blend mode
     - All UI elements have depth (10) with black stroke for visibility
     - Assets loaded in PreloaderScene: menuBg, torch
-[ ] Daily reward calendar
-[ ] Achievement tracking
+[x] Daily reward calendar (2026-01-01)
+    - DailyRewardManager.ts: Complete 7-day reward cycle system
+      - Track consecutive login days (1-7 cycle)
+      - 48-hour streak timeout - resets to day 1 if missed
+      - Reward tiers: Day 1 (100 gold), Day 2 (200 gold), Day 3 (10 gems),
+        Day 4 (500 gold), Day 5 (20 gems), Day 6 (1000 gold), Day 7 (50 gems + full energy)
+      - canClaimToday(), claimReward(), getCurrentDay(), getTimeUntilNextClaim()
+      - Event emitter: rewardClaimed, streakReset, cycleCompleted
+      - LocalStorage persistence with save/load integration
+    - DailyRewardScene.ts: Calendar UI with 7-day horizontal grid
+      - Day cards show reward icon, amount, claim status (checkmark/waiting)
+      - Current day highlighted with pulsing border animation
+      - Claim button with particle burst effect on reward claim
+      - Timer showing time until next claim
+      - Popup animation displaying claimed rewards
+    - MainMenuScene integration:
+      - "Daily Rewards" button (brown #8b4513 color)
+      - Red notification badge with pulsing animation when reward available
+    - Registered DailyRewardScene in main.ts scene list
+[x] Achievement tracking (2026-01-01)
+    - achievementData.ts: Complete achievement configuration system
+      - AchievementId enum: 7 achievements with tiered progression
+      - Achievement interface with tiers, requirements, and rewards
+      - TIER_NAMES: Bronze/Silver/Gold/Platinum with corresponding colors
+      - Achievements track player statistics: kills, runs, bosses, playtime, heroes, equipment, talents
+    - Achievements with tiered rewards:
+      - First Blood: Kill 1/10/100/1000 enemies (10/50/200/500 gold)
+      - Survivor: Complete 1/5/25/100 runs (5/20/50/100 gems)
+      - Boss Slayer: Defeat 1/5/25/50 bosses (20/100/500/1000 gold)
+      - Dedicated: Play 10/50/100/500 minutes (10/50/100/200 gems)
+      - Hero Collector: Unlock 1/2/3 heroes (50/100/200 gems)
+      - Gear Up: Equip items in 1/2/3/4 slots (50/100/200/500 gold)
+      - Talent Scout: Unlock 3/6/9 talents (20/50/100 gems)
+    - AchievementManager.ts: Singleton manager for achievement tracking
+      - Progress tracking: getProgress(), getAllProgress()
+      - Reward system: claimReward(), claimAllRewards(), getUnclaimedRewards()
+      - Statistics integration: reads from SaveManager for live stat tracking
+      - checkAchievements(): Called after stat changes to detect new completions
+      - Event system: achievementUnlocked, rewardClaimed, progressUpdated
+      - LocalStorage persistence with save/load integration
+    - AchievementsScene.ts: Full achievement UI
+      - Scrollable achievement list with progress bars
+      - Tier indicators showing bronze/silver/gold/platinum status
+      - Claim buttons for each unclaimed tier with pulse animation
+      - "Claim All" button when multiple rewards available
+      - Total earned display (gold and gems)
+      - Back button returns to MainMenuScene
+    - MainMenuScene integration:
+      - "Achievements" button (purple #4a4a8a color)
+      - Red notification badge with count when unclaimed rewards available
+      - Pulsing animation on badge for visibility
+    - GameOverScene integration:
+      - achievementManager.checkAchievements() called after run stats recorded
+      - Ensures achievements update immediately after each run
 [ ] Expanded procedural generation (more room templates, enemy combinations)
 [ ] Performance optimization pass (target 50+ entities at 60 FPS)
 ```

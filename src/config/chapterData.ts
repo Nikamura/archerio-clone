@@ -203,7 +203,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     description: 'Ancient stone corridors lit by flickering torches.',
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'bg_dungeon',
+      backgroundKey: 'chapter1Bg',
       floorKey: 'floor_stone',
       primaryColor: 0x4a4a4a,
       accentColor: 0xff6600,
@@ -232,7 +232,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     description: 'Overgrown temples reclaimed by nature.',
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'bg_forest',
+      backgroundKey: 'chapter2Bg',
       floorKey: 'floor_moss',
       primaryColor: 0x2d5a27,
       accentColor: 0x8bc34a,
@@ -261,7 +261,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     description: 'Glacial caverns with crystalline formations.',
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'bg_ice',
+      backgroundKey: 'chapter3Bg',
       floorKey: 'floor_ice',
       primaryColor: 0x87ceeb,
       accentColor: 0x00bfff,
@@ -290,7 +290,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     description: 'Lava flows and scorching heat.',
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'bg_volcano',
+      backgroundKey: 'chapter4Bg',
       floorKey: 'floor_obsidian',
       primaryColor: 0x8b0000,
       accentColor: 0xff4500,
@@ -319,7 +319,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     description: 'The void between worlds. Ultimate darkness.',
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'bg_void',
+      backgroundKey: 'chapter5Bg',
       floorKey: 'floor_void',
       primaryColor: 0x1a0033,
       accentColor: 0x9932cc,

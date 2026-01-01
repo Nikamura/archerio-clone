@@ -69,6 +69,13 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.png')
     this.load.image('menuBg', 'assets/backgrounds/menu_bg.png')
 
+    // Load chapter-specific backgrounds
+    this.load.image('chapter1Bg', 'assets/backgrounds/chapter1_dungeon.png')
+    this.load.image('chapter2Bg', 'assets/backgrounds/chapter2_forest.png')
+    this.load.image('chapter3Bg', 'assets/backgrounds/chapter3_ice.png')
+    this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.png')
+    this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.png')
+
     // Load menu effects
     this.load.image('torch', 'assets/sprites/effect/torch.png')
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
+import { achievementManager } from '../systems/AchievementManager'
 
 export interface GameOverData {
   roomsCleared: number
@@ -42,6 +43,9 @@ export default class GameOverScene extends Phaser.Scene {
     console.log(
       `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}`
     )
+
+    // Check achievements after recording stats
+    achievementManager.checkAchievements()
   }
 
   create() {

@@ -10,11 +10,19 @@ import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
+import { chapterManager } from '../systems/ChapterManager'
+import { getChapterDefinition } from '../config/chapterData'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
   private player!: Player
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private wasdKeys!: {
+    W: Phaser.Input.Keyboard.Key
+    A: Phaser.Input.Keyboard.Key
+    S: Phaser.Input.Keyboard.Key
+    D: Phaser.Input.Keyboard.Key
+  }
   private joystick!: Joystick
   private joystickAngle: number = 0
   private joystickForce: number = 0
@@ -64,9 +72,17 @@ export default class GameScene extends Phaser.Scene {
     // Set physics world bounds to match camera/game size
     this.physics.world.setBounds(0, 0, width, height)
 
-    // Add background image
-    const bg = this.add.image(0, 0, 'dungeonFloor').setOrigin(0)
+    // Get selected chapter and its background
+    const selectedChapter = chapterManager.getSelectedChapter()
+    const chapterDef = getChapterDefinition(selectedChapter)
+    const backgroundKey = chapterDef.theme.backgroundKey
+
+    // Add chapter-specific background image (fallback to dungeonFloor if not loaded)
+    const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : 'dungeonFloor'
+    const bg = this.add.image(0, 0, bgKey).setOrigin(0)
     bg.setDisplaySize(width, height)
+
+    console.log(`GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`)
 
     // Create player in center with difficulty-adjusted stats
     this.player = new Player(this, width / 2, height / 2, {
@@ -110,8 +126,14 @@ export default class GameScene extends Phaser.Scene {
       this
     )
 
-    // Keyboard controls for desktop testing
+    // Keyboard controls for desktop testing (arrow keys + WASD)
     this.cursors = this.input.keyboard!.createCursorKeys()
+    this.wasdKeys = {
+      W: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      A: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+    }
 
     // Create virtual joystick
     this.joystick = new Joystick(this)
@@ -937,12 +959,12 @@ export default class GameScene extends Phaser.Scene {
         vx = Math.cos(this.joystickAngle) * this.joystickForce * maxVelocity
         vy = -Math.sin(this.joystickAngle) * this.joystickForce * maxVelocity
       }
-      // Fallback to keyboard controls for desktop testing
-      else if (this.cursors) {
-        if (this.cursors.left?.isDown) vx = -maxVelocity
-        if (this.cursors.right?.isDown) vx = maxVelocity
-        if (this.cursors.up?.isDown) vy = -maxVelocity
-        if (this.cursors.down?.isDown) vy = maxVelocity
+      // Fallback to keyboard controls for desktop testing (arrows + WASD)
+      else if (this.cursors || this.wasdKeys) {
+        if (this.cursors?.left?.isDown || this.wasdKeys?.A?.isDown) vx = -maxVelocity
+        if (this.cursors?.right?.isDown || this.wasdKeys?.D?.isDown) vx = maxVelocity
+        if (this.cursors?.up?.isDown || this.wasdKeys?.W?.isDown) vy = -maxVelocity
+        if (this.cursors?.down?.isDown || this.wasdKeys?.S?.isDown) vy = maxVelocity
       }
 
       this.player.setVelocity(vx, vy)
