@@ -1334,7 +1334,7 @@ export default class GameScene extends Phaser.Scene {
     bulletSprite.setVisible(false)
 
     // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
-    const baseBulletDamage = 10
+    const baseBulletDamage = 30 // Increased by 200%
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
     const chapterDef = getChapterDefinition(selectedChapter)
     const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
