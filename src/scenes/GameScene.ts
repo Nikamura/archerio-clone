@@ -13,6 +13,9 @@ import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
+import SpiritCatPool from '../systems/SpiritCatPool'
+import SpiritCat from '../entities/SpiritCat'
+import { getSpiritCatConfig, type SpiritCatConfig } from '../config/heroData'
 import BombPool from '../systems/BombPool'
 import GoldPool from '../systems/GoldPool'
 import HealthPool from '../systems/HealthPool'
@@ -109,6 +112,11 @@ export default class GameScene extends Phaser.Scene {
 
   // Damage aura visual effect
   private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
+
+  // Spirit cat system (Meowgik hero ability)
+  private spiritCatPool: SpiritCatPool | null = null
+  private spiritCatConfig: SpiritCatConfig | null = null
+  private lastSpiritCatSpawnTime: number = 0
 
   constructor() {
     super({ key: 'GameScene' })
@@ -277,6 +285,19 @@ export default class GameScene extends Phaser.Scene {
     this.healthPool = new HealthPool(this)
     this.damageNumberPool = new DamageNumberPool(this)
 
+    // Initialize spirit cat system if playing as Meowgik
+    if (selectedHeroId === 'meowgik') {
+      this.spiritCatPool = new SpiritCatPool(this)
+
+      // Get spirit cat config based on hero level and perks
+      const heroLevel = heroManager.getLevel('meowgik')
+      const unlockedPerks = new Set(heroManager.getUnlockedPerkLevels('meowgik'))
+      const baseAttack = heroStats.attack
+
+      this.spiritCatConfig = getSpiritCatConfig(heroLevel, unlockedPerks, baseAttack)
+      console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
+    }
+
     // Create visual effects systems
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
@@ -337,6 +358,17 @@ export default class GameScene extends Phaser.Scene {
       undefined,
       this
     )
+
+    // Spirit cats hit enemies (Meowgik ability)
+    if (this.spiritCatPool) {
+      this.physics.add.overlap(
+        this.spiritCatPool,
+        this.enemies,
+        this.spiritCatHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+        undefined,
+        this
+      )
+    }
 
     // Keyboard controls for desktop testing (arrow keys + WASD)
     this.cursors = this.input.keyboard!.createCursorKeys()
@@ -527,6 +559,11 @@ export default class GameScene extends Phaser.Scene {
     // Clear all bullets
     this.bulletPool.clear(true, true)
     this.enemyBulletPool.clear(true, true)
+
+    // Clear spirit cats
+    if (this.spiritCatPool) {
+      this.spiritCatPool.clear(true, true)
+    }
 
     // Clear any remaining gold pickups (they stay collected in goldEarned)
     this.goldPool.cleanup()
@@ -1809,6 +1846,137 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Update spirit cat spawning for Meowgik hero
+   */
+  private updateSpiritCats(time: number, playerX: number, playerY: number): void {
+    if (!this.spiritCatPool || !this.spiritCatConfig) return
+
+    // Calculate spawn interval from attack speed (attacks per second)
+    const spawnInterval = 1000 / this.spiritCatConfig.attackSpeed
+
+    // Check spawn interval
+    if (time - this.lastSpiritCatSpawnTime < spawnInterval) return
+
+    // Find nearest enemy to target
+    const target = this.getCachedNearestEnemy()
+    if (!target) return
+
+    // Spawn cats around the player
+    const catCount = this.spiritCatConfig.count
+    for (let i = 0; i < catCount; i++) {
+      // Spawn in circular pattern around player
+      const spawnAngle = (Math.PI * 2 * i) / catCount + (time * 0.001) // Rotating pattern
+      const spawnDistance = 40
+      const spawnX = playerX + Math.cos(spawnAngle) * spawnDistance
+      const spawnY = playerY + Math.sin(spawnAngle) * spawnDistance
+
+      this.spiritCatPool.spawn(
+        spawnX,
+        spawnY,
+        target,
+        this.spiritCatConfig.damage,
+        this.spiritCatConfig.canCrit
+      )
+    }
+
+    this.lastSpiritCatSpawnTime = time
+  }
+
+  /**
+   * Handle spirit cat hitting an enemy
+   */
+  private spiritCatHitEnemy(
+    cat: Phaser.GameObjects.GameObject,
+    enemy: Phaser.GameObjects.GameObject
+  ): void {
+    if (this.isGameOver || this.isTransitioning) return
+
+    const spiritCat = cat as SpiritCat
+    const enemySprite = enemy as Enemy
+
+    if (!spiritCat.active || !enemySprite.active) return
+
+    // Get damage and check crit
+    const damage = spiritCat.getDamage()
+    const isCrit = spiritCat.isCriticalHit()
+
+    // Damage enemy
+    const killed = enemySprite.takeDamage(damage)
+    audioManager.playHit()
+
+    // Show damage number
+    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, isCrit)
+
+    // Visual effects
+    if (isCrit) {
+      this.particles.emitCrit(enemySprite.x, enemySprite.y)
+      this.screenShake.onCriticalHit()
+    } else {
+      this.particles.emitHit(enemySprite.x, enemySprite.y)
+    }
+
+    // Deactivate cat on hit
+    spiritCat.deactivate()
+
+    // Update boss health bar if this is the boss
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
+    if (isBoss && !killed) {
+      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
+      hapticManager.bossHit()
+    }
+
+    if (killed) {
+      this.handleEnemyKilledBySpiritCat(enemySprite, isBoss ?? false)
+    }
+  }
+
+  /**
+   * Handle enemy death from spirit cat
+   */
+  private handleEnemyKilledBySpiritCat(enemy: Enemy, isBoss: boolean): void {
+    this.enemiesKilled++
+
+    // Bloodthirst: Heal on kill (if player has ability)
+    const bloodthirstHeal = this.player.getBloodthirstHeal()
+    if (bloodthirstHeal > 0) {
+      this.player.heal(bloodthirstHeal)
+      this.updatePlayerHealthUI(this.player)
+    }
+
+    // Death particles
+    if (isBoss) {
+      this.particles.emitBossDeath(enemy.x, enemy.y)
+      this.screenShake.onBossDeath()
+    } else {
+      this.particles.emitDeath(enemy.x, enemy.y)
+      this.screenShake.onExplosion()
+      hapticManager.light()
+    }
+
+    // Spawn drops
+    this.spawnDrops(enemy)
+
+    // Add XP
+    const xpGain = isBoss ? 10 : 1
+    const leveledUp = this.player.addXP(xpGain)
+    this.updateXPUI()
+
+    if (leveledUp) {
+      this.handleLevelUp()
+    }
+
+    // Clear boss reference
+    if (isBoss) {
+      this.boss = null
+      this.scene.get('UIScene').events.emit('hideBossHealth')
+    }
+
+    enemy.destroy()
+    this.invalidateNearestEnemyCache()
+    this.checkRoomCleared()
+  }
+
   private shootAtEnemy(enemy: Enemy) {
     // Validate enemy position before shooting
     if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
@@ -2081,6 +2249,11 @@ export default class GameScene extends Phaser.Scene {
       this.updateDamageAuraVisual(time, playerX, playerY)
       this.applyDamageAura(time, playerX, playerY)
 
+      // Spawn spirit cats if playing as Meowgik
+      if (this.spiritCatPool && this.spiritCatConfig) {
+        this.updateSpiritCats(time, playerX, playerY)
+      }
+
       // Update gold pickups - check for collection
       const goldCollected = this.goldPool.updateAll(playerX, playerY)
       if (goldCollected > 0) {
@@ -2179,6 +2352,11 @@ export default class GameScene extends Phaser.Scene {
       this.damageNumberPool.destroy()
       this.damageNumberPool = null!
     }
+    if (this.spiritCatPool) {
+      this.spiritCatPool.destroy(true)
+      this.spiritCatPool = null
+    }
+    this.spiritCatConfig = null
 
     // Clean up enemies group
     if (this.enemies) {
