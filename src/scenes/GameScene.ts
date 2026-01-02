@@ -895,6 +895,11 @@ export default class GameScene extends Phaser.Scene {
     const bulletSprite = bullet as Bullet
     const enemySprite = enemy as Enemy
 
+    // Skip if bullet has already hit this enemy (prevents duplicate collisions during piercing)
+    if (bulletSprite.hasHitEnemy(enemy)) {
+      return
+    }
+
     // Calculate damage based on bullet properties
     let damage = this.player.getDamage()
 
@@ -951,7 +956,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Check if bullet should be deactivated or continue (piercing/ricochet)
-    const shouldDeactivate = bulletSprite.onHit()
+    const shouldDeactivate = bulletSprite.onHit(enemy)
 
     // Handle ricochet - find nearest enemy and redirect
     if (!shouldDeactivate && bulletSprite.getBounceCount() < bulletSprite.getMaxBounces()) {
