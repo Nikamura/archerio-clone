@@ -80,6 +80,7 @@ export default class GameScene extends Phaser.Scene {
   private runStartTime: number = 0
   private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
+  private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
   // Room generation system
   private roomGenerator!: RoomGenerator
@@ -102,6 +103,9 @@ export default class GameScene extends Phaser.Scene {
 
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses
+
+  // Damage aura visual effect
+  private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
 
   constructor() {
     super({ key: 'GameScene' })
@@ -170,6 +174,7 @@ export default class GameScene extends Phaser.Scene {
     this.runStartTime = Date.now()
     this.abilitiesGained = 0
     this.goldEarned = 0
+    this.acquiredAbilities = new Map()
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -260,6 +265,10 @@ export default class GameScene extends Phaser.Scene {
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
     this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Create damage aura graphics (rendered below player)
+    this.damageAuraGraphics = this.add.graphics()
+    this.damageAuraGraphics.setDepth(this.player.depth - 1)
 
     // Initialize performance monitoring (debug mode only)
     if (this.game.config.physics?.arcade?.debug) {
@@ -786,6 +795,7 @@ export default class GameScene extends Phaser.Scene {
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
+        acquiredAbilities: this.getAcquiredAbilitiesArray(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1186,7 +1196,22 @@ export default class GameScene extends Phaser.Scene {
         break
     }
     this.abilitiesGained++
-    console.log(`Applied ability: ${abilityId} (total: ${this.abilitiesGained})`)
+
+    // Track ability with its level
+    const currentLevel = this.acquiredAbilities.get(abilityId) || 0
+    this.acquiredAbilities.set(abilityId, currentLevel + 1)
+
+    // Notify UIScene about ability update
+    this.scene.get('UIScene').events.emit('updateAbilities', this.getAcquiredAbilitiesArray())
+
+    console.log(`Applied ability: ${abilityId} (level: ${currentLevel + 1}, total: ${this.abilitiesGained})`)
+  }
+
+  /**
+   * Convert acquired abilities map to array for passing to other scenes
+   */
+  private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
+    return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
   }
 
   private enemyBulletHitPlayer(
@@ -1460,6 +1485,7 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
+        acquiredAbilities: this.getAcquiredAbilitiesArray(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1632,6 +1658,39 @@ export default class GameScene extends Phaser.Scene {
         this.checkRoomCleared()
       }
     })
+  }
+
+  /**
+   * Update the damage aura visual effect around the player
+   * Shows a pulsing circle when damage aura ability is active
+   */
+  private updateDamageAuraVisual(time: number, playerX: number, playerY: number): void {
+    if (!this.damageAuraGraphics) return
+
+    const auraRadius = this.player.getDamageAuraRadius()
+
+    // Clear previous frame
+    this.damageAuraGraphics.clear()
+
+    // Only draw if player has damage aura ability
+    if (auraRadius <= 0) return
+
+    // Create pulsing effect
+    const pulseSpeed = 0.003 // Pulse speed
+    const pulsePhase = (Math.sin(time * pulseSpeed) + 1) / 2 // 0 to 1
+    const pulseAlpha = 0.15 + pulsePhase * 0.2 // 0.15 to 0.35
+
+    // Outer ring - main aura boundary
+    this.damageAuraGraphics.lineStyle(3, 0xff4400, 0.5 + pulsePhase * 0.3)
+    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius)
+
+    // Inner glow - fills the aura area
+    this.damageAuraGraphics.fillStyle(0xff4400, pulseAlpha * 0.4)
+    this.damageAuraGraphics.fillCircle(playerX, playerY, auraRadius)
+
+    // Inner ring for depth effect
+    this.damageAuraGraphics.lineStyle(2, 0xff6600, 0.3 + pulsePhase * 0.2)
+    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius * 0.7)
   }
 
   /**
@@ -1970,7 +2029,8 @@ export default class GameScene extends Phaser.Scene {
         this.handleEnemyDOTDeath(e)
       }
 
-      // Apply damage aura if player has the ability
+      // Update damage aura visual and apply damage if player has the ability
+      this.updateDamageAuraVisual(time, playerX, playerY)
       this.applyDamageAura(time, playerX, playerY)
 
       // Update gold pickups - check for collection
@@ -2038,6 +2098,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.particles) {
       this.particles.destroy()
       this.particles = null!
+    }
+
+    // Clean up damage aura graphics
+    if (this.damageAuraGraphics) {
+      this.damageAuraGraphics.destroy()
+      this.damageAuraGraphics = null
     }
 
     // Clean up pools
