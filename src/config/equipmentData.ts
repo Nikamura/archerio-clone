@@ -447,6 +447,18 @@ const BASE_UPGRADE_COSTS: Record<Rarity, UpgradeCost> = {
 }
 
 /**
+ * Base sell prices by rarity
+ * Items sell for this base price + level bonus
+ */
+const BASE_SELL_PRICES: Record<Rarity, number> = {
+  [Rarity.COMMON]: 25,
+  [Rarity.GREAT]: 75,
+  [Rarity.RARE]: 200,
+  [Rarity.EPIC]: 500,
+  [Rarity.LEGENDARY]: 1200,
+}
+
+/**
  * Calculate upgrade cost for a specific level
  * Cost increases with level using a power curve
  */
@@ -478,6 +490,18 @@ export function calculateTotalUpgradeCost(
   }
 
   return { gold: totalGold, scrolls: totalScrolls }
+}
+
+/**
+ * Calculate sell price for an item
+ * Price = base price + (level - 1) * 10 * rarity multiplier
+ * Higher level items sell for more gold
+ */
+export function calculateSellPrice(rarity: Rarity, level: number): number {
+  const basePrice = BASE_SELL_PRICES[rarity]
+  const rarityMultiplier = RARITY_CONFIGS[rarity].statMultiplier
+  const levelBonus = (level - 1) * 10 * rarityMultiplier
+  return Math.floor(basePrice + levelBonus)
 }
 
 // ============================================

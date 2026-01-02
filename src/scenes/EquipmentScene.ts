@@ -364,6 +364,10 @@ export default class EquipmentScene extends Phaser.Scene {
       this.refreshDisplay()
       this.hideDetailPanel()
     })
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_SOLD, () => {
+      this.refreshDisplay()
+      this.updateGoldDisplay()
+    })
   }
 
   private refreshDisplay(): void {
@@ -591,7 +595,7 @@ export default class EquipmentScene extends Phaser.Scene {
     const buttonY = panelHeight / 2 - 40
 
     if (isEquipped) {
-      // Unequip button
+      // Unequip button (left)
       const unequipBtn = this.add
         .text(-80, buttonY, 'UNEQUIP', {
           fontSize: '16px',
@@ -610,13 +614,13 @@ export default class EquipmentScene extends Phaser.Scene {
       UIAnimations.applyButtonEffects(this, unequipBtn)
       this.detailPanel.add(unequipBtn)
     } else {
-      // Equip button
+      // Equip button (left)
       const equipBtn = this.add
-        .text(-80, buttonY, 'EQUIP', {
+        .text(-110, buttonY, 'EQUIP', {
           fontSize: '16px',
           color: '#ffffff',
           backgroundColor: '#44aa44',
-          padding: { x: 20, y: 10 },
+          padding: { x: 15, y: 10 },
         })
         .setOrigin(0.5)
 
@@ -628,20 +632,36 @@ export default class EquipmentScene extends Phaser.Scene {
       })
       UIAnimations.applyButtonEffects(this, equipBtn)
       this.detailPanel.add(equipBtn)
+
+      // Sell button (center) - only for inventory items
+      const sellPrice = equipmentManager.getSellPrice(item)
+      const sellBtn = this.add
+        .text(0, buttonY, `SELL (${sellPrice}g)`, {
+          fontSize: '16px',
+          color: '#ffffff',
+          backgroundColor: '#aa6622',
+          padding: { x: 15, y: 10 },
+        })
+        .setOrigin(0.5)
+
+      sellBtn.setInteractive({ useHandCursor: true })
+      sellBtn.on('pointerdown', () => this.onSellClick(item))
+      UIAnimations.applyButtonEffects(this, sellBtn)
+      this.detailPanel.add(sellBtn)
     }
 
-    // Upgrade button
+    // Upgrade button (right)
     const canUpgrade = equipmentManager.canUpgrade(item)
     const upgradeCost = equipmentManager.getUpgradeCost(item)
     const canAfford = currencyManager.canAfford('gold', upgradeCost.gold)
 
     const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#333344'
     const upgradeBtn = this.add
-      .text(80, buttonY, `UPGRADE (${upgradeCost.gold}g)`, {
+      .text(isEquipped ? 80 : 110, buttonY, `+LV (${upgradeCost.gold}g)`, {
         fontSize: '16px',
         color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
         backgroundColor: upgradeColor,
-        padding: { x: 20, y: 10 },
+        padding: { x: 15, y: 10 },
       })
       .setOrigin(0.5)
 
@@ -695,6 +715,15 @@ export default class EquipmentScene extends Phaser.Scene {
     } else {
       // Could show error message here
       console.warn('Upgrade failed:', result.error)
+    }
+  }
+
+  private onSellClick(item: Equipment): void {
+    const goldEarned = equipmentManager.sellItem(item.id)
+    if (goldEarned > 0) {
+      audioManager.playAbilitySelect()
+      this.hideDetailPanel()
+      this.updateGoldDisplay()
     }
   }
 
@@ -758,5 +787,6 @@ export default class EquipmentScene extends Phaser.Scene {
     equipmentManager.off(EQUIPMENT_EVENTS.EQUIPPED_CHANGED)
     equipmentManager.off(EQUIPMENT_EVENTS.ITEM_UPGRADED)
     equipmentManager.off(EQUIPMENT_EVENTS.ITEM_FUSED)
+    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_SOLD)
   }
 }
