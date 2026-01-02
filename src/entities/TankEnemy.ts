@@ -162,7 +162,7 @@ export default class TankEnemy extends Enemy {
    */
   getDamage(): number {
     // Tank deals 1.5x normal melee damage on contact
-    const baseDamage = 8 // Higher than normal enemy's 5
+    const baseDamage = 24 // Higher than normal enemy's 15 (increased by 200%)
     return Math.round(baseDamage * this.damageMultiplier)
   }
 }

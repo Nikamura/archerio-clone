@@ -1326,12 +1326,15 @@ export default class GameScene extends Phaser.Scene {
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const playerSprite = player as Player
 
+    // Skip if bullet is already inactive (prevents multiple damage from same bullet)
+    if (!bulletSprite.active) return
+
     // Deactivate bullet regardless of invincibility
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
 
     // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
-    const baseBulletDamage = 10
+    const baseBulletDamage = 30 // Increased by 200%
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
     const chapterDef = getChapterDefinition(selectedChapter)
     const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
@@ -1391,6 +1394,15 @@ export default class GameScene extends Phaser.Scene {
 
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
+
+    // Check melee attack cooldown - enemies can only hit once per cooldown period
+    const currentTime = this.time.now
+    if (!enemySprite.canMeleeAttack(currentTime)) {
+      return
+    }
+
+    // Record this attack to start cooldown
+    enemySprite.recordMeleeAttack(currentTime)
 
     // Get enemy damage (scaled by difficulty) and apply talent damage reduction
     const baseDamage = enemySprite.getDamage()
