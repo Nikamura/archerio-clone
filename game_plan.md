@@ -14,7 +14,7 @@ The roguelike layer compounds this with run-based ability selection. Every level
 
 **Recommended stack:**
 - **Engine:** Phaser 3.6+ with Arcade Physics (significantly faster than Matter.js for this genre)
-- **Touch controls:** nipplejs for virtual joystick + phaser3-rex-plugins as backup
+- **Touch controls:** Native Phaser Graphics for virtual joystick
 - **ECS (optional):** bitECS for 1000+ entity management, though standard OOP works for MVP
 - **Build:** Vite or Webpack with tree-shaking
 
@@ -264,7 +264,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 ```
 [x] Phaser 3 project setup with Arcade Physics
 [x] Scene management: MainMenu, Game, GameOver, LevelUp (Boot, Preloader, MainMenu, Game, UI, LevelUp)
-[x] Player controller with joystick input (nipplejs + keyboard fallback with WASD support)
+[x] Player controller with joystick input (native Phaser joystick + keyboard fallback with WASD support)
 [x] Auto-aim + auto-fire system (fires at nearest enemy when stationary)
 [x] Bullet pool (100 bullets)
 [x] Enemy bullet pool (100 enemy bullets)
@@ -468,7 +468,7 @@ Visual test screenshots are saved to `test/screenshots/`
    - Phaser Containers require explicit hit area geometry (not just `setSize()` + `setInteractive()`)
    - Used `new Phaser.Geom.Rectangle(-width/2, -height/2, width, height)` as hit area (offset because container origin is center)
    - Added `this.input.enabled = true` and `this.scene.bringToTop()` to ensure input is captured when launched over GameScene
-8. ✅ **Joystick Y-axis inverted** - FIXED: nipplejs uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
+8. ✅ **Joystick Y-axis inverted** - FIXED: Joystick uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
 9. ✅ **AI-generated sprites too large** - FIXED (2026-01-01):
    - AI image generation created 1024x1024+ sprites instead of 32-64px
    - Resized all sprites using ImageMagick: player (64x64), bullets (32x32)
