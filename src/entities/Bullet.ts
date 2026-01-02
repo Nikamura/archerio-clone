@@ -221,4 +221,8 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   getLightningChainCount(): number {
     return this.lightningChainCount
   }
+
+  getSpawnTime(): number {
+    return this.spawnTime
+  }
 }

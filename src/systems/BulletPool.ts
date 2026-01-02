@@ -24,10 +24,43 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
     fireDamage?: number
     isCrit?: boolean
   }): Bullet | null {
-    const bullet = this.get(x, y) as Bullet
+    let bullet = this.get(x, y) as Bullet | null
+
+    // If pool is exhausted, recycle the oldest active bullet
+    if (!bullet) {
+      bullet = this.recycleOldestBullet()
+    }
+
     if (bullet) {
       bullet.fire(x, y, angle, speed, options)
     }
     return bullet
+  }
+
+  /**
+   * Recycle the oldest active bullet when pool is exhausted.
+   * This ensures gameplay continues smoothly even with high bullet counts.
+   */
+  private recycleOldestBullet(): Bullet | null {
+    let oldest: Bullet | null = null
+    let oldestSpawnTime = Infinity
+
+    this.children.iterate((child) => {
+      const bullet = child as Bullet
+      if (bullet.active) {
+        const spawnTime = bullet.getSpawnTime()
+        if (spawnTime < oldestSpawnTime) {
+          oldestSpawnTime = spawnTime
+          oldest = bullet
+        }
+      }
+      return true
+    })
+
+    if (oldest !== null) {
+      (oldest as Bullet).deactivate()
+      return oldest
+    }
+    return null
   }
 }

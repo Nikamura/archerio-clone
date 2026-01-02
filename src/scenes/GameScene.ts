@@ -1834,12 +1834,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Main projectile
-    const mainBullet = this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
-
-    // Debug: Log if bullet spawn failed or succeeded
-    if (!mainBullet) {
-      console.warn('shootAtEnemy: Failed to spawn main bullet - pool may be exhausted')
-    }
+    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
 
     // Front Arrow: Extra forward projectiles with slight spread
     const extraProjectiles = this.player.getExtraProjectiles()
