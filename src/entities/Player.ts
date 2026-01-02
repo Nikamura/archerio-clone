@@ -5,6 +5,7 @@ import { themeManager } from '../systems/ThemeManager'
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   private stats: PlayerStats
   private isMoving: boolean = false
+  private hitboxRadius: number = 16
 
   constructor(
     scene: Phaser.Scene,
@@ -44,19 +45,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // Set size to match sprite (original archer is 64x64, icons are 48x48)
     // We'll normalize all heroes to 64x64 for consistent hitboxes/gameplay
     this.setDisplaySize(64, 64)
-    this.setCollideWorldBounds(true)
+    // Don't use setCollideWorldBounds - it doesn't work correctly with setCircle + offset
+    // We manually clamp position in update() instead
     this.setDrag(800, 800)
 
     // Set up centered circular hitbox for player
-    // Note: Only use setCircle without setSize - calling setSize first can cause
-    // world bounds collision to use incorrect body dimensions
     if (this.body) {
       const body = this.body as Phaser.Physics.Arcade.Body
       const displaySize = 64
-      const radius = 16 // Player hitbox - not too large to allow dodging
+      this.hitboxRadius = 16 // Player hitbox - not too large to allow dodging
       // Offset centers the 32px diameter circle within the 64px display
-      const offset = (displaySize - radius * 2) / 2
-      body.setCircle(radius, offset, offset)
+      const offset = (displaySize - this.hitboxRadius * 2) / 2
+      body.setCircle(this.hitboxRadius, offset, offset)
     }
 
     console.log('Player created at', x, y, 'with stats:', statsOptions)
@@ -72,6 +72,30 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // Rotate player to face movement direction
     if (this.isMoving && velocity) {
       this.rotation = Math.atan2(velocity.y, velocity.x)
+    }
+
+    // Manually clamp position to world bounds based on hitbox radius
+    // This is more reliable than setCollideWorldBounds with setCircle + offset
+    const camera = this.scene.cameras.main
+    const minX = this.hitboxRadius
+    const maxX = camera.width - this.hitboxRadius
+    const minY = this.hitboxRadius
+    const maxY = camera.height - this.hitboxRadius
+
+    if (this.x < minX) {
+      this.x = minX
+      if (this.body) this.body.velocity.x = 0
+    } else if (this.x > maxX) {
+      this.x = maxX
+      if (this.body) this.body.velocity.x = 0
+    }
+
+    if (this.y < minY) {
+      this.y = minY
+      if (this.body) this.body.velocity.y = 0
+    } else if (this.y > maxY) {
+      this.y = maxY
+      if (this.body) this.body.velocity.y = 0
     }
   }
 
