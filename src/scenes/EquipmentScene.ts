@@ -374,9 +374,6 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private refreshEquippedSlots(): void {
-    // Guard against being called when scene is not active
-    if (!this.scene.isActive()) return
-
     EQUIPMENT_SLOTS.forEach((slot) => {
       const container = this.equippedSlots.get(slot)
       if (!container) return
