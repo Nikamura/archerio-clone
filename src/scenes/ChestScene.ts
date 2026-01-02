@@ -118,9 +118,9 @@ export default class ChestScene extends Phaser.Scene {
     bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(config.color).color)
     container.add(bg)
 
-    // Chest icon
+    // Chest icon - use setDisplaySize to avoid scaling issues with missing textures
     const chestSprite = this.add.image(-100, 0, `chest_${chestType}`)
-    chestSprite.setScale(64 / chestSprite.width)
+    chestSprite.setDisplaySize(64, 64)
     container.add(chestSprite)
 
     // Chest name
@@ -288,8 +288,9 @@ export default class ChestScene extends Phaser.Scene {
     const chestContainer = this.add.container(width / 2, height / 2 - 50)
     chestContainer.setDepth(101)
 
+    // Use setDisplaySize to avoid scaling issues with missing textures
     const chestSprite = this.add.image(0, 0, `chest_${chestType}`)
-    chestSprite.setScale(100 / chestSprite.width)
+    chestSprite.setDisplaySize(100, 100)
     chestContainer.add(chestSprite)
 
     // Create glow effect behind chest
@@ -414,10 +415,10 @@ export default class ChestScene extends Phaser.Scene {
       this.revealContainer.add(bannerText)
     }
 
-    // Equipment sprite
+    // Equipment sprite - use setDisplaySize to avoid scaling issues with missing textures
     const iconY = -cardHeight / 2 + 80
     const equipSprite = this.add.image(0, iconY, `equip_${equipment.type}`)
-    equipSprite.setScale(100 / equipSprite.width)
+    equipSprite.setDisplaySize(100, 100)
     this.revealContainer.add(equipSprite)
 
     // Equipment name
