@@ -538,8 +538,11 @@ export default class EquipmentScene extends Phaser.Scene {
       const item = unequippedInventory[index] ?? null
       slot.item = item
 
-      const itemSprite = slot.container.getByName('itemSprite') as Phaser.GameObjects.Image
-      const levelText = slot.container.getByName('levelText') as Phaser.GameObjects.Text
+      const itemSprite = slot.container.getByName('itemSprite') as Phaser.GameObjects.Image | null
+      const levelText = slot.container.getByName('levelText') as Phaser.GameObjects.Text | null
+
+      // Guard against missing UI elements (can happen if scene not fully initialized)
+      if (!itemSprite || !levelText) return
 
       if (item) {
         const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_CONFIGS[item.rarity].color)
@@ -548,7 +551,7 @@ export default class EquipmentScene extends Phaser.Scene {
         itemSprite.setTexture(`equip_${item.type}`)
         itemSprite.setScale((this.INVENTORY_SLOT_SIZE - 16) / itemSprite.width)
         itemSprite.setVisible(true)
-        
+
         levelText.setText(`Lv.${item.level}`)
         levelText.setVisible(true)
       } else {
