@@ -9,9 +9,27 @@ export class AudioManager {
   private context: InstanceType<BrowserAudioContext> | null = null;
   private masterVolume = 0.3;
   private enabled = true;
+  private visibilityHandler: (() => void) | null = null;
 
   constructor() {
     // AudioContext will be created on first user interaction (browser requirement)
+    this.setupVisibilityHandler();
+  }
+
+  /**
+   * Set up visibility change handler to resume audio when app returns from background
+   */
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = () => {
+      if (!document.hidden && this.context && this.context.state === 'suspended') {
+        // Page became visible and audio context is suspended - resume it
+        this.context.resume().catch((err) => {
+          console.warn('Failed to resume AudioContext on visibility change:', err);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   private getContext(): InstanceType<BrowserAudioContext> | null {
@@ -24,6 +42,14 @@ export class AudioManager {
         return null;
       }
     }
+
+    // If context is suspended (e.g., after returning from background), try to resume it
+    if (this.context.state === 'suspended') {
+      this.context.resume().catch(() => {
+        // Silently ignore - will retry on next interaction
+      });
+    }
+
     return this.context;
   }
 
