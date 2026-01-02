@@ -7,6 +7,7 @@ import { chestManager } from '../systems/ChestManager'
 import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
 import { debugToast } from '../systems/DebugToast'
 import { ABILITIES } from './LevelUpScene'
+import { errorReporting } from '../systems/ErrorReportingManager'
 import {
   calculateChestRewards,
   getTotalChests,
@@ -143,6 +144,13 @@ export default class GameOverScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
     const isVictory = this.stats.isVictory
+
+    // Track game end for error context
+    errorReporting.setScene('GameOverScene')
+    errorReporting.addBreadcrumb('game', isVictory ? 'Victory' : 'Game Over', {
+      roomsCleared: this.stats.roomsCleared,
+      enemiesKilled: this.stats.enemiesKilled,
+    })
 
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)

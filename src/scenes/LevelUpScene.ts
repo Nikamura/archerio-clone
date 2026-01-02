@@ -7,6 +7,7 @@ import {
   DURATION,
   EASING,
 } from '../systems/UIAnimations'
+import { errorReporting } from '../systems/ErrorReportingManager'
 
 export interface AbilityData {
   id: string
@@ -594,6 +595,9 @@ export default class LevelUpScene extends Phaser.Scene {
 
   private selectAbility(abilityId: string, selectedContainer?: Phaser.GameObjects.Container) {
     console.log('LevelUpScene: selectAbility called', abilityId)
+
+    // Track ability selection for error context
+    errorReporting.addBreadcrumb('game', `Selected ability: ${abilityId}`)
 
     // Prevent double selection
     if (this.isSelecting) return
