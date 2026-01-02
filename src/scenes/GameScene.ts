@@ -1128,6 +1128,9 @@ export default class GameScene extends Phaser.Scene {
       case 'rage':
         this.player.addRage()
         break
+      case 'speed_boost':
+        this.player.addSpeedBoost()
+        break
     }
     this.abilitiesGained++
     console.log(`Applied ability: ${abilityId} (total: ${this.abilitiesGained})`)
@@ -1830,7 +1833,8 @@ export default class GameScene extends Phaser.Scene {
       const playerX = this.player.x
       const playerY = this.player.y
 
-      const maxVelocity = 200
+      const baseVelocity = 200
+      const maxVelocity = baseVelocity * this.player.getMovementSpeedMultiplier()
       let vx = 0
       let vy = 0
 
