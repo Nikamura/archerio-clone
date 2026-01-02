@@ -2,18 +2,14 @@
 /**
  * ErrorReportingManager - Remote error tracking with Sentry
  *
- * Setup:
- * 1. Create a free account at https://sentry.io
- * 2. Create a new Browser JavaScript project
- * 3. Copy your DSN and set it in your environment:
- *    - Development: Create .env.local with VITE_SENTRY_DSN=your-dsn
- *    - Production: Set VITE_SENTRY_DSN in your hosting environment
- *
  * Features:
  * - Automatic capture of unhandled errors and promise rejections
+ * - Console.warn and console.error automatically sent to Sentry
  * - Game context (current scene, player stats, chapter/room)
  * - Breadcrumbs for debugging (scene transitions, level ups, etc.)
- * - Source maps support for readable stack traces (configure in Sentry)
+ * - Device info and session duration tracking
+ *
+ * To override the DSN, set VITE_SENTRY_DSN environment variable.
  */
 
 import * as Sentry from '@sentry/browser'
@@ -47,13 +43,9 @@ class ErrorReportingManager {
   }
 
   private init(): void {
-    // Get DSN from environment variable (set in .env.local or hosting platform)
+    // Use configured DSN or fall back to environment variable
     const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
-
-    if (!dsn) {
-      console.log('[ErrorReporting] No VITE_SENTRY_DSN configured - remote error reporting disabled')
-      return
-    }
+      || 'https://d502f4929eac926a86ecbd32b31c112a@o315779.ingest.us.sentry.io/4510640322248704'
 
     try {
       Sentry.init({
@@ -65,9 +57,15 @@ class ErrorReportingManager {
         // 1.0 = 100% of errors, 0.1 = 10% of errors
         sampleRate: 1.0,
 
-        // Performance monitoring (optional - uses quota)
-        // Uncomment if you want performance insights
-        // tracesSampleRate: 0.1,
+        // Enable experimental logging
+        _experiments: {
+          enableLogs: true,
+        },
+
+        // Add console logging integration
+        integrations: [
+          Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+        ],
 
         // Filter out noise
         ignoreErrors: [
