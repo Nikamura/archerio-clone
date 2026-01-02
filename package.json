@@ -19,6 +19,7 @@
     "optimize-assets": "tsx scripts/optimize-assets.ts"
   },
   "dependencies": {
+    "@sentry/browser": "^10.32.1",
     "phaser": "^3.80.1"
   },
   "devDependencies": {

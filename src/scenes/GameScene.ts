@@ -34,6 +34,7 @@ import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES } from './LevelUpScene'
+import { errorReporting } from '../systems/ErrorReportingManager'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -170,6 +171,16 @@ export default class GameScene extends Phaser.Scene {
     this.abilitiesGained = 0
     this.goldEarned = 0
     this.acquiredAbilities = new Map()
+
+    // Update error reporting context
+    const selectedHero = heroManager.getSelectedHeroId()
+    errorReporting.setScene('GameScene')
+    errorReporting.setProgress(chapterManager.getSelectedChapter(), this.currentRoom)
+    errorReporting.setPlayerStats(1, 100, selectedHero || undefined)
+    errorReporting.addBreadcrumb('game', 'Game started', {
+      chapter: chapterManager.getSelectedChapter(),
+      hero: selectedHero,
+    })
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -467,6 +478,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Fade back in
     this.cameras.main.fadeIn(300, 0, 0, 0)
+
+    // Update error reporting context for new room
+    errorReporting.setProgress(chapterManager.getSelectedChapter(), this.currentRoom)
+    errorReporting.addBreadcrumb('game', `Entered room ${this.currentRoom}`)
 
     console.log('Entered room', this.currentRoom)
   }

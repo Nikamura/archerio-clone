@@ -2,7 +2,11 @@
 /**
  * ErrorToast - Global error display system for debugging on mobile
  * Shows errors as visual popups that auto-dismiss
+ *
+ * Also reports errors to remote tracking (Sentry) when configured
  */
+
+import { errorReporting } from './ErrorReportingManager'
 
 interface ToastMessage {
   id: number
@@ -86,11 +90,14 @@ class ErrorToastManager {
   }
 
   /**
-   * Show an error in the toast
+   * Show an error in the toast and report to remote tracking
    */
   showError(error: Error): void {
     const message = `${error.name}: ${error.message}\n${error.stack || ''}`
     this.show(message)
+
+    // Report to remote error tracking (Sentry)
+    errorReporting.captureError(error)
   }
 
   /**
