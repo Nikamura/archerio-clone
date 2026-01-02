@@ -114,7 +114,7 @@ export default class PreloaderScene extends Phaser.Scene {
     // Load ability icons - V1 abilities
     this.load.image('abilityRearArrow', 'assets/sprites/abilities/rear_arrow.png')
     this.load.image('abilityDiagonalArrows', 'assets/sprites/abilities/diagonal_arrows.png')
-    this.load.image('abilityBouncyWall', 'assets/sprites/abilities/bouncy_wall.png')
+    this.load.image('abilityDamageAura', 'assets/sprites/abilities/damage_aura.png')
     this.load.image('abilityIceShot', 'assets/sprites/abilities/ice_shot.png')
     this.load.image('abilityPoisonShot', 'assets/sprites/abilities/poison_shot.png')
     this.load.image('abilityLightningChain', 'assets/sprites/abilities/lightning_chain.png')
