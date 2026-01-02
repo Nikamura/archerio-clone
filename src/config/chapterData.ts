@@ -302,10 +302,10 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
     miniBossType: 'bomber',
     scaling: {
-      enemyHpMultiplier: 2.0, // +100% HP - requires items to complete
-      enemyDamageMultiplier: 1.3, // +30% damage
-      extraEnemiesPerRoom: 2,
-      bossHpMultiplier: 2.5, // +150% HP
+      enemyHpMultiplier: 2.5, // Exponential scaling: ~2.5x per chapter
+      enemyDamageMultiplier: 1.3,
+      extraEnemiesPerRoom: 1,
+      bossHpMultiplier: 3.0,
       bossDamageMultiplier: 1.3,
     },
     // Chapter 2: Forest theme - ranged focus, agile melee
@@ -359,11 +359,11 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     bossPool: ['frost_giant', 'ice_golem', 'frost_wyrm', 'crystal_guardian'],
     miniBossType: 'tank',
     scaling: {
-      enemyHpMultiplier: 3.5, // +250% HP - significantly harder
-      enemyDamageMultiplier: 1.5, // +50% damage
-      extraEnemiesPerRoom: 3,
-      bossHpMultiplier: 4.0, // +300% HP
-      bossDamageMultiplier: 1.5,
+      enemyHpMultiplier: 7.0, // Exponential scaling continues
+      enemyDamageMultiplier: 1.6,
+      extraEnemiesPerRoom: 2,
+      bossHpMultiplier: 8.0,
+      bossDamageMultiplier: 1.6,
     },
     // Chapter 3: Ice theme - slow but powerful, chargers are deadly
     enemyModifiers: {
@@ -421,11 +421,11 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
     miniBossType: 'healer',
     scaling: {
-      enemyHpMultiplier: 5.0, // +400% HP - requires strong items
-      enemyDamageMultiplier: 1.75, // +75% damage
-      extraEnemiesPerRoom: 4,
-      bossHpMultiplier: 6.0, // +500% HP
-      bossDamageMultiplier: 1.75,
+      enemyHpMultiplier: 18.0, // Exponential scaling ramps up
+      enemyDamageMultiplier: 2.0,
+      extraEnemiesPerRoom: 3,
+      bossHpMultiplier: 20.0,
+      bossDamageMultiplier: 2.0,
     },
     // Chapter 4: Fire theme - fast and aggressive, support enemies are key targets
     enemyModifiers: {
@@ -500,11 +500,11 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses
     miniBossType: 'spawner',
     scaling: {
-      enemyHpMultiplier: 7.0, // +600% HP - endgame challenge
-      enemyDamageMultiplier: 2.0, // +100% damage
-      extraEnemiesPerRoom: 5,
-      bossHpMultiplier: 8.0, // +700% HP
-      bossDamageMultiplier: 2.0,
+      enemyHpMultiplier: 50.0, // 50x harder than chapter 1
+      enemyDamageMultiplier: 2.5,
+      extraEnemiesPerRoom: 4,
+      bossHpMultiplier: 60.0,
+      bossDamageMultiplier: 2.5,
     },
     // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
     enemyModifiers: {
