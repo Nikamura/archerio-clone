@@ -1402,6 +1402,11 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 0, 0, 0)
 
     this.time.delayedCall(300, () => {
+      // Restart chapter run to sync ChapterManager room counter with GameScene
+      // This fixes desync caused by resetting GameScene.currentRoom without updating ChapterManager
+      const selectedChapter = chapterManager.getSelectedChapter()
+      chapterManager.startChapter(selectedChapter)
+
       // Reset to room 1
       this.currentRoom = 1
 
