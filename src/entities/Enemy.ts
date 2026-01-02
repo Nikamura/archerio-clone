@@ -44,9 +44,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastPoisonTick: number = 0
   private readonly poisonDuration: number = 4000 // 4 seconds
 
-  // Melee attack cooldown
+  // Melee attack cooldown - per-enemy instance tracking
   private lastMeleeAttackTime: number = 0
-  private readonly meleeAttackCooldown: number = 1000 // 1 second between melee hits
+  private meleeAttackCooldown: number = 1000 // 1 second between melee hits (can be modified by chapter)
 
   // Health bar
   private healthBar?: Phaser.GameObjects.Graphics
@@ -71,6 +71,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.health = this.maxHealth
     this.damageMultiplier = options?.damageMultiplier ?? 1.0
     this.speedMultiplier = options?.speedMultiplier ?? 1.0
+
+    // Apply melee attack cooldown multiplier (lower = faster attacks)
+    this.meleeAttackCooldown = Math.round(1000 * (options?.attackCooldownMultiplier ?? 1.0))
 
     // Set display size
     this.setDisplaySize(30, 30)
