@@ -354,7 +354,8 @@ export default class MainMenuScene extends Phaser.Scene {
     if (totalChests > 0) {
       const chestsButton = this.menuButtons[3] // Chests is at index 3
       const chestBadgeX = chestsButton.x + chestsButton.width / 2 + 5
-      const chestBadgeY = chestsButton.y - chestsButton.height / 2
+      // Use menuY instead of chestsButton.y because staggerIn sets button.y to -100 during animation setup
+      const chestBadgeY = menuY - chestsButton.height / 2
 
       // Red circle badge with count
       const chestBadge = this.add.circle(chestBadgeX, chestBadgeY, 10, 0xff4444)
