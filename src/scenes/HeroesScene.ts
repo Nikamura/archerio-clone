@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { heroManager } from '../systems/HeroManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
-import { HERO_DEFINITIONS, type HeroId } from '../config/heroData'
+import { HERO_DEFINITIONS, HERO_MAX_LEVEL, getHeroXPThreshold, type HeroId } from '../config/heroData'
 import type { HeroState } from '../systems/Hero'
 
 /**
@@ -140,7 +140,7 @@ export default class HeroesScene extends Phaser.Scene {
       .setOrigin(0, 0)
     container.add(nameText)
 
-    // Level indicator (if unlocked)
+    // Level indicator with XP progress (if unlocked)
     if (isUnlocked) {
       const levelText = this.add
         .text(-cardWidth / 2 + textOffsetX, -cardHeight / 2 + 36, `Lv.${heroState.level}`, {
@@ -149,6 +149,53 @@ export default class HeroesScene extends Phaser.Scene {
         })
         .setOrigin(0, 0)
       container.add(levelText)
+
+      // XP progress bar (only if not max level)
+      const isMaxLevel = heroState.level >= HERO_MAX_LEVEL
+      if (!isMaxLevel) {
+        const xpBarWidth = 80
+        const xpBarHeight = 6
+        const xpBarX = -cardWidth / 2 + textOffsetX + 45
+        const xpBarY = -cardHeight / 2 + 42
+
+        // XP bar background
+        const xpBarBg = this.add.rectangle(xpBarX, xpBarY, xpBarWidth, xpBarHeight, 0x333333)
+        xpBarBg.setOrigin(0, 0.5)
+        container.add(xpBarBg)
+
+        // XP bar fill
+        const currentXP = heroState.xp
+        const xpThreshold = getHeroXPThreshold(heroState.level)
+        const xpPercent = Math.min(currentXP / xpThreshold, 1)
+        const xpBarFill = this.add.rectangle(
+          xpBarX,
+          xpBarY,
+          xpBarWidth * xpPercent,
+          xpBarHeight,
+          0x88ccff
+        )
+        xpBarFill.setOrigin(0, 0.5)
+        container.add(xpBarFill)
+
+        // XP text
+        const xpText = this.add
+          .text(xpBarX + xpBarWidth + 5, xpBarY, `${currentXP}/${xpThreshold}`, {
+            fontSize: '9px',
+            color: '#888888',
+          })
+          .setOrigin(0, 0.5)
+        container.add(xpText)
+      } else {
+        // Max level indicator
+        const maxText = this.add
+          .text(-cardWidth / 2 + textOffsetX + 45, -cardHeight / 2 + 42, 'MAX', {
+            fontSize: '10px',
+            color: '#ffdd00',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0, 0.5)
+        container.add(maxText)
+      }
     }
 
     // Passive ability description

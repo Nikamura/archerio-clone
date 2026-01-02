@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { PlayerStats } from '../systems/PlayerStats'
+import { PlayerStats, DamageResult } from '../systems/PlayerStats'
 import { themeManager } from '../systems/ThemeManager'
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
@@ -80,9 +80,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this
   }
 
-  takeDamage(amount: number): boolean {
-    const result = this.stats?.takeDamage(amount)
-    return result?.damaged ?? false
+  takeDamage(amount: number): DamageResult {
+    return this.stats?.takeDamage(amount) ?? { damaged: false, died: false }
   }
 
   isPlayerInvincible(): boolean {
@@ -248,6 +247,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   rollCrit(): boolean {
     return this.stats?.rollCrit() ?? false
+  }
+
+  getDodgeChance(): number {
+    return this.stats?.getDodgeChance() ?? 0
+  }
+
+  setDodgeChance(chance: number): void {
+    this.stats?.setDodgeChance(chance)
   }
 
   getDamageWithCrit(isCrit: boolean): number {

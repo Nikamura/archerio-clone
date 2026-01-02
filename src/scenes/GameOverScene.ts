@@ -5,6 +5,8 @@ import { achievementManager } from '../systems/AchievementManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { chestManager } from '../systems/ChestManager'
 import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
+import { heroManager } from '../systems/HeroManager'
+import type { HeroLevelUpEvent } from '../systems/Hero'
 import { debugToast } from '../systems/DebugToast'
 import { ABILITIES } from './LevelUpScene'
 import { errorReporting } from '../systems/ErrorReportingManager'
@@ -33,6 +35,7 @@ export interface GameOverData {
   completionResult?: ChapterCompletionResult
   runSeed?: string
   acquiredAbilities?: AcquiredAbility[]
+  heroXPEarned?: number
 }
 
 /**
@@ -105,6 +108,8 @@ export default class GameOverScene extends Phaser.Scene {
   private acquiredAbilities: AcquiredAbility[] = []
   private scoreBreakdown: ScoreBreakdown | null = null
   private isNewHighScore: boolean = false
+  private heroXPEarned: number = 0
+  private heroLevelUps: HeroLevelUpEvent[] = []
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -141,6 +146,14 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Record run statistics to save data
     this.recordRunStats()
+
+    // Process hero XP
+    this.heroXPEarned = data?.heroXPEarned ?? 0
+    this.heroLevelUps = []
+    if (this.heroXPEarned > 0) {
+      const selectedHeroId = heroManager.getSelectedHeroId()
+      this.heroLevelUps = heroManager.addXP(selectedHeroId, this.heroXPEarned)
+    }
   }
 
   /**
@@ -285,11 +298,58 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    // Score display
-    this.displayScore(statsStartY + lineHeight * 3)
+    // Hero XP earned
+    let heroXPOffset = 0
+    if (this.heroXPEarned > 0) {
+      this.add
+        .text(width / 2, statsStartY + lineHeight * 2.8, `Hero XP: +${this.heroXPEarned}`, {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#88ccff',
+        })
+        .setOrigin(0.5)
+      heroXPOffset = lineHeight * 0.8
 
-    // Chest rewards section
-    const chestsY = statsStartY + lineHeight * 5.5
+      // Hero level-up notification
+      if (this.heroLevelUps.length > 0) {
+        const lastLevelUp = this.heroLevelUps[this.heroLevelUps.length - 1]
+        const heroState = heroManager.getHeroState(lastLevelUp.heroId)
+
+        this.add
+          .text(
+            width / 2,
+            statsStartY + lineHeight * 3.4,
+            `${heroState.name} reached Level ${lastLevelUp.newLevel}!`,
+            {
+              fontSize: '20px',
+              fontFamily: 'Arial',
+              color: '#00ff88',
+              fontStyle: 'bold',
+            }
+          )
+          .setOrigin(0.5)
+        heroXPOffset += lineHeight * 0.8
+
+        // Show new perks if any
+        if (lastLevelUp.newPerks.length > 0) {
+          const perkNames = lastLevelUp.newPerks.map((p) => p.name).join(', ')
+          this.add
+            .text(width / 2, statsStartY + lineHeight * 4, `New Perk: ${perkNames}`, {
+              fontSize: '14px',
+              fontFamily: 'Arial',
+              color: '#ffdd00',
+            })
+            .setOrigin(0.5)
+          heroXPOffset += lineHeight * 0.6
+        }
+      }
+    }
+
+    // Score display (adjusted for hero XP section)
+    this.displayScore(statsStartY + lineHeight * 3 + heroXPOffset)
+
+    // Chest rewards section (adjusted for hero XP section)
+    const chestsY = statsStartY + lineHeight * 5.5 + heroXPOffset
 
     this.add
       .text(width / 2, chestsY, 'REWARDS', {

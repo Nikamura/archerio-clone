@@ -86,6 +86,7 @@ export default class GameScene extends Phaser.Scene {
   private runStartTime: number = 0
   private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
+  private heroXPEarned: number = 0 // Track hero XP earned this run
   private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
   // Room generation system
@@ -188,6 +189,7 @@ export default class GameScene extends Phaser.Scene {
     this.runStartTime = Date.now()
     this.abilitiesGained = 0
     this.goldEarned = 0
+    this.heroXPEarned = 0
     this.acquiredAbilities = new Map()
 
     // Update error reporting context
@@ -289,6 +291,10 @@ export default class GameScene extends Phaser.Scene {
       critChance: finalCritChance,
       critDamage: finalCritDamage,
     }, selectedHeroId)
+
+    // Set dodge chance from equipment
+    const totalDodgeChance = (equipStats.dodgeChance ?? 0) * equipmentStatMultiplier
+    this.player.setDodgeChance(totalDodgeChance)
 
     // Create bullet pools, bomb pool, gold pool, and health pool
     this.bulletPool = new BulletPool(this)
@@ -870,6 +876,7 @@ export default class GameScene extends Phaser.Scene {
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        heroXPEarned: this.heroXPEarned,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -915,9 +922,17 @@ export default class GameScene extends Phaser.Scene {
     // Check if player is within explosion radius
     const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
     if (distanceToPlayer <= radius) {
-      // Try to damage player (respects invincibility)
-      const damageTaken = this.player.takeDamage(damage)
-      if (!damageTaken) return
+      // Try to damage player (respects invincibility and dodge)
+      const damageResult = this.player.takeDamage(damage)
+
+      // Check if attack was dodged
+      if (damageResult.dodged) {
+        this.damageNumberPool.showDodge(this.player.x, this.player.y)
+        return
+      }
+
+      // Check if damage was taken (invincibility check)
+      if (!damageResult.damaged) return
 
       audioManager.playPlayerHit()
 
@@ -1069,6 +1084,9 @@ export default class GameScene extends Phaser.Scene {
       const xpGain = isBoss ? 10 : 1
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
+
+      // Accumulate hero XP (boss gives 25 hero XP)
+      this.heroXPEarned += isBoss ? 25 : 1
 
       if (leveledUp) {
         this.handleLevelUp()
@@ -1324,9 +1342,17 @@ export default class GameScene extends Phaser.Scene {
       damageReduction
     )
 
-    // Try to damage player (respects invincibility)
-    const damageTaken = playerSprite.takeDamage(bulletDamage)
-    if (!damageTaken) return
+    // Try to damage player (respects invincibility and dodge)
+    const damageResult = playerSprite.takeDamage(bulletDamage)
+
+    // Check if attack was dodged
+    if (damageResult.dodged) {
+      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
+      return
+    }
+
+    // Check if damage was taken (invincibility check)
+    if (!damageResult.damaged) return
 
     // Show damage number
     this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, bulletDamage)
@@ -1371,9 +1397,17 @@ export default class GameScene extends Phaser.Scene {
     const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
     const damage = Math.round(baseDamage * damageReduction)
 
-    // Try to damage player (respects invincibility)
-    const damageTaken = playerSprite.takeDamage(damage)
-    if (!damageTaken) return
+    // Try to damage player (respects invincibility and dodge)
+    const damageResult = playerSprite.takeDamage(damage)
+
+    // Check if attack was dodged
+    if (damageResult.dodged) {
+      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
+      return
+    }
+
+    // Check if damage was taken (invincibility check)
+    if (!damageResult.damaged) return
 
     // Show damage number
     this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, damage)
@@ -1565,6 +1599,7 @@ export default class GameScene extends Phaser.Scene {
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        heroXPEarned: this.heroXPEarned,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1839,6 +1874,9 @@ export default class GameScene extends Phaser.Scene {
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
+      // Accumulate hero XP (boss gives 25 hero XP)
+      this.heroXPEarned += isBoss ? 25 : 1
+
       if (leveledUp) {
         this.handleLevelUp()
       }
@@ -1973,6 +2011,9 @@ export default class GameScene extends Phaser.Scene {
     const xpGain = isBoss ? 10 : 1
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
+
+    // Accumulate hero XP (boss gives 25 hero XP)
+    this.heroXPEarned += isBoss ? 25 : 1
 
     if (leveledUp) {
       this.handleLevelUp()
@@ -2143,6 +2184,9 @@ export default class GameScene extends Phaser.Scene {
     const xpGain = isBoss ? 10 : 1
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
+
+    // Accumulate hero XP (boss gives 25 hero XP)
+    this.heroXPEarned += isBoss ? 25 : 1
 
     if (leveledUp) {
       this.handleLevelUp()

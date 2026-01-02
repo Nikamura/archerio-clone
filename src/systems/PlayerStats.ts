@@ -5,6 +5,7 @@
 export interface DamageResult {
   damaged: boolean
   died: boolean
+  dodged?: boolean
 }
 
 export class PlayerStats {
@@ -37,6 +38,9 @@ export class PlayerStats {
   // Critical hit
   private critChance: number = 0  // 0-1 (e.g., 0.1 = 10%)
   private critDamageMultiplier: number = 1.5  // Base crit multiplier (150%)
+
+  // Dodge
+  private dodgeChance: number = 0  // 0-1 (e.g., 0.1 = 10%), capped at 75%
 
   // New V1 abilities
   private freezeChance: number = 0  // 0-1 (e.g., 0.15 = 15%)
@@ -85,11 +89,17 @@ export class PlayerStats {
   // ============================================
 
   takeDamage(amount: number): DamageResult {
+    // Roll for dodge
+    if (this.dodgeChance > 0 && Math.random() < this.dodgeChance) {
+      return { damaged: false, died: false, dodged: true }
+    }
+
     this.health = Math.max(0, this.health - amount)
 
     return {
       damaged: true,
       died: this.health <= 0,
+      dodged: false,
     }
   }
 
@@ -230,6 +240,14 @@ export class PlayerStats {
 
   getCritDamageMultiplier(): number {
     return this.critDamageMultiplier
+  }
+
+  getDodgeChance(): number {
+    return this.dodgeChance
+  }
+
+  setDodgeChance(chance: number): void {
+    this.dodgeChance = Math.min(0.75, Math.max(0, chance))  // Cap at 75%
   }
 
   // New V1 ability getters
@@ -509,6 +527,7 @@ export class PlayerStats {
     this.fireDamagePercent = 0
     this.critChance = 0
     this.critDamageMultiplier = 1.5
+    this.dodgeChance = 0
     // Reset new V1 abilities
     this.freezeChance = 0
     this.poisonDamagePercent = 0

@@ -26,6 +26,7 @@ import {
   HERO_MAX_LEVEL,
   HERO_LEVEL_STATS,
   getHeroLevelUpCost,
+  getHeroXPThreshold,
   getUnlockedPerks,
   getNextPerk,
   isValidHeroId,
@@ -402,6 +403,66 @@ export class HeroManager extends Phaser.Events.EventEmitter {
     }
 
     return newPerks
+  }
+
+  // ============================================
+  // XP-Based Leveling
+  // ============================================
+
+  /**
+   * Get XP required for next level
+   */
+  getXPThreshold(heroId: HeroId): number {
+    return getHeroXPThreshold(this.getLevel(heroId))
+  }
+
+  /**
+   * Add XP to a hero and process any level-ups
+   * @returns Array of level-up events if any levels were gained
+   */
+  addXP(heroId: HeroId, amount: number): HeroLevelUpEvent[] {
+    if (!isValidHeroId(heroId)) return []
+
+    const progress = this.heroProgress[heroId]
+    if (!progress) return []
+
+    progress.xp += amount
+    const levelUpEvents: HeroLevelUpEvent[] = []
+
+    // Process level-ups while we have enough XP
+    while (progress.level < HERO_MAX_LEVEL) {
+      const threshold = getHeroXPThreshold(progress.level)
+      if (progress.xp >= threshold) {
+        progress.xp -= threshold
+        const previousLevel = progress.level
+        progress.level++
+
+        // Check for new perks
+        const newPerks = this.checkAndUnlockPerks(heroId)
+
+        const event: HeroLevelUpEvent = {
+          heroId,
+          previousLevel,
+          newLevel: progress.level,
+          cost: 0,
+          newPerks,
+        }
+
+        levelUpEvents.push(event)
+        this.emit(HERO_EVENTS.HERO_LEVELED_UP, event)
+      } else {
+        break
+      }
+    }
+
+    if (levelUpEvents.length > 0) {
+      this.emit(HERO_EVENTS.HERO_STATS_CHANGED, { heroId })
+    }
+
+    this.saveToStorage()
+    this.onSave()
+
+    return levelUpEvents
   }
 
   // ============================================

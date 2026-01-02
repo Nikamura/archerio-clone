@@ -268,6 +268,19 @@ export function getTotalCostToLevel(fromLevel: number, toLevel: number): number 
   return total
 }
 
+/**
+ * Calculate XP required to level up a hero
+ * Uses exponential scaling: baseXP * level^1.8
+ * @param currentLevel The hero's current level
+ * @returns XP required for the next level
+ */
+export function getHeroXPThreshold(currentLevel: number): number {
+  if (currentLevel >= HERO_MAX_LEVEL) return Infinity
+  const baseXP = 50
+  const scalingFactor = 1.8
+  return Math.floor(baseXP * Math.pow(currentLevel, scalingFactor))
+}
+
 // ============================================
 // Hero Ability Helpers
 // ============================================

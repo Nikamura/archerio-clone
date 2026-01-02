@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 
-export type DamageNumberType = 'normal' | 'crit' | 'player' | 'heal' | 'dot'
+export type DamageNumberType = 'normal' | 'crit' | 'player' | 'heal' | 'dot' | 'dodge'
 
 interface DamageNumberConfig {
   color: string
@@ -45,6 +45,13 @@ const DAMAGE_CONFIGS: Record<DamageNumberType, DamageNumberConfig> = {
     scale: 0.9,
     duration: 600,
     floatDistance: 20,
+  },
+  dodge: {
+    color: '#00ffff',
+    fontSize: '16px',
+    scale: 1.2,
+    duration: 800,
+    floatDistance: 35,
   },
 }
 
@@ -112,7 +119,7 @@ export default class DamageNumberPool {
     const offsetY = Phaser.Math.Between(-5, 5)
 
     text.setPosition(x + offsetX, y + offsetY)
-    text.setText(type === 'heal' ? `+${damage}` : `${damage}`)
+    text.setText(type === 'dodge' ? 'DODGE' : type === 'heal' ? `+${damage}` : `${damage}`)
     text.setStyle({
       fontSize: config.fontSize,
       fontStyle: 'bold',
@@ -177,6 +184,13 @@ export default class DamageNumberPool {
    */
   showDotDamage(x: number, y: number, damage: number): void {
     this.show(x, y, damage, 'dot')
+  }
+
+  /**
+   * Show dodge text when player dodges an attack
+   */
+  showDodge(x: number, y: number): void {
+    this.show(x, y, 0, 'dodge')
   }
 
   /**
