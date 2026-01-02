@@ -1395,6 +1395,15 @@ export default class GameScene extends Phaser.Scene {
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
 
+    // Check melee attack cooldown - enemies can only hit once per cooldown period
+    const currentTime = this.time.now
+    if (!enemySprite.canMeleeAttack(currentTime)) {
+      return
+    }
+
+    // Record this attack to start cooldown
+    enemySprite.recordMeleeAttack(currentTime)
+
     // Get enemy damage (scaled by difficulty) and apply talent damage reduction
     const baseDamage = enemySprite.getDamage()
     const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
