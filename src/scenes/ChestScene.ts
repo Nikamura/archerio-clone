@@ -34,6 +34,9 @@ export default class ChestScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Reset slots to prevent stale references from previous scene visits
+    this.chestSlots = []
+
     const { width, height } = this.cameras.main
 
     // Background
@@ -144,9 +147,10 @@ export default class ChestScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
     container.add(descText)
 
-    // Count text (right side)
+    // Count text (right side) - initialize with actual count
+    const count = chestManager.getChestCount(chestType)
     const countText = this.add
-      .text(130, 0, 'x0', {
+      .text(130, 0, `x${count}`, {
         fontSize: '24px',
         color: '#ffffff',
         fontStyle: 'bold',
