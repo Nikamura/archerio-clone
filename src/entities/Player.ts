@@ -220,6 +220,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addRage()
   }
 
+  addSpeedBoost() {
+    this.stats?.addSpeedBoost()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0
@@ -304,6 +308,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getRageLevel(): number {
     return this.stats?.getRageLevel() ?? 0
+  }
+
+  getMovementSpeedMultiplier(): number {
+    return this.stats?.getMovementSpeedMultiplier() ?? 1.0
   }
 
   // Reset run-based stats

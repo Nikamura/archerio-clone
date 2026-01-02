@@ -131,6 +131,13 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc0000,
     iconKey: 'abilityRage',
   },
+  {
+    id: 'speed_boost',
+    name: 'Speed Boost',
+    description: '+15% movement speed',
+    color: 0x00ffff,
+    iconKey: 'abilitySpeedBoost',
+  },
 ]
 
 export interface LevelUpData {

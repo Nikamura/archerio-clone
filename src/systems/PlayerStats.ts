@@ -49,6 +49,7 @@ export class PlayerStats {
   private damageAuraLevel: number = 0  // AOE damage aura around player
   private bloodthirstHeal: number = 0  // HP healed per kill
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
+  private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
 
   constructor(options?: {
     maxHealth?: number
@@ -303,6 +304,10 @@ export class PlayerStats {
     return this.rageLevel
   }
 
+  getMovementSpeedMultiplier(): number {
+    return this.movementSpeedMultiplier
+  }
+
   /**
    * Roll for freeze effect
    * @returns true if this hit should freeze the enemy
@@ -471,6 +476,14 @@ export class PlayerStats {
     this.rageLevel++
   }
 
+  /**
+   * Add Speed Boost ability (+15% movement speed)
+   * Stacking: Multiplicative (each level multiplies speed by 1.15)
+   */
+  addSpeedBoost(): void {
+    this.movementSpeedMultiplier *= 1.15
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -501,6 +514,7 @@ export class PlayerStats {
     this.damageAuraLevel = 0
     this.bloodthirstHeal = 0
     this.rageLevel = 0
+    this.movementSpeedMultiplier = 1.0
   }
 
   /**
@@ -529,6 +543,7 @@ export class PlayerStats {
     damageAuraLevel: number
     bloodthirstHeal: number
     rageLevel: number
+    movementSpeedMultiplier: number
   } {
     return {
       health: this.health,
@@ -553,6 +568,7 @@ export class PlayerStats {
       damageAuraLevel: this.damageAuraLevel,
       bloodthirstHeal: this.bloodthirstHeal,
       rageLevel: this.rageLevel,
+      movementSpeedMultiplier: this.movementSpeedMultiplier,
     }
   }
 }
