@@ -46,6 +46,8 @@ export default class GameScene extends Phaser.Scene {
   private joystick!: Joystick
   private joystickAngle: number = 0
   private joystickForce: number = 0
+  private lastJoystickMoveTime: number = 0 // Track when joystick last received input
+  private readonly JOYSTICK_STUCK_TIMEOUT = 100 // ms - if no input for this long, force reset
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -295,10 +297,12 @@ export default class GameScene extends Phaser.Scene {
       this.joystick.setOnMove((angle: number, force: number) => {
         this.joystickAngle = angle
         this.joystickForce = force
+        this.lastJoystickMoveTime = this.time.now // Track when we last received input
       })
 
       this.joystick.setOnEnd(() => {
         this.joystickForce = 0
+        this.lastJoystickMoveTime = 0 // Clear timestamp on end
       })
     }
 
@@ -1824,7 +1828,17 @@ export default class GameScene extends Phaser.Scene {
 
 
     if (this.player) {
-      this.player.update(time, delta)
+      // Safety check: Detect stuck joystick state during intense gameplay
+      // If joystickForce is non-zero but we haven't received input in a while,
+      // the joystick 'end' event was likely missed - force reset
+      if (this.joystickForce > 0 && this.lastJoystickMoveTime > 0) {
+        const timeSinceLastInput = time - this.lastJoystickMoveTime
+        if (timeSinceLastInput > this.JOYSTICK_STUCK_TIMEOUT) {
+          // Joystick appears stuck - reset it
+          this.joystickForce = 0
+          this.lastJoystickMoveTime = 0
+        }
+      }
 
       // Cache player position for this frame - avoids repeated property access
       const playerX = this.player.x
@@ -1833,6 +1847,14 @@ export default class GameScene extends Phaser.Scene {
       const maxVelocity = 200
       let vx = 0
       let vy = 0
+
+      // Check for active movement input BEFORE calculating velocity
+      // This determines intent to move, separate from actual velocity
+      const hasMovementInput = this.joystickForce > 0 ||
+        this.cursors?.left?.isDown || this.cursors?.right?.isDown ||
+        this.cursors?.up?.isDown || this.cursors?.down?.isDown ||
+        this.wasdKeys?.A?.isDown || this.wasdKeys?.D?.isDown ||
+        this.wasdKeys?.W?.isDown || this.wasdKeys?.S?.isDown
 
       // Virtual joystick has priority
       if (this.joystickForce > 0) {
@@ -1852,9 +1874,15 @@ export default class GameScene extends Phaser.Scene {
 
       this.player.setVelocity(vx, vy)
 
+      // Update player AFTER setting velocity so isMoving reflects current state
+      this.player.update(time, delta)
+
       // CORE MECHANIC: Auto-fire when player is stationary
-      // Uses cached nearest enemy for performance (recalculates every 3 frames)
-      if (!this.player.isPlayerMoving()) {
+      // Player shoots when they have no active movement input AND velocity is low
+      // Using both checks ensures shooting works correctly:
+      // - hasMovementInput: Immediate response to input release (no frame delay)
+      // - isPlayerMoving: Accounts for momentum/sliding before shooting
+      if (!hasMovementInput && !this.player.isPlayerMoving()) {
         if (time - this.lastShotTime > this.getEffectiveFireRate()) {
           const nearestEnemy = this.getCachedNearestEnemy()
           if (nearestEnemy) {
@@ -1925,6 +1953,7 @@ export default class GameScene extends Phaser.Scene {
     console.log('GameScene: Resetting joystick state')
     this.joystickForce = 0
     this.joystickAngle = 0
+    this.lastJoystickMoveTime = 0 // Clear the timestamp
 
     // Also reset the joystick UI if it exists
     if (this.joystick) {
