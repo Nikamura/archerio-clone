@@ -1975,7 +1975,7 @@ export default class GameScene extends Phaser.Scene {
       const playerX = this.player.x
       const playerY = this.player.y
 
-      const baseVelocity = 200
+      const baseVelocity = 400
       const maxVelocity = baseVelocity * this.player.getMovementSpeedMultiplier()
       let vx = 0
       let vy = 0
