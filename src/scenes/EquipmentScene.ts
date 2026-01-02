@@ -58,6 +58,14 @@ export default class EquipmentScene extends Phaser.Scene {
   private inventoryContainer: Phaser.GameObjects.Container | null = null
   private scrollOffset = 0
   private maxScroll = 0
+  private inventoryStartY = 0
+  private visibleHeight = 0
+  private scrollIndicator: Phaser.GameObjects.Container | null = null
+
+  // Touch scroll state
+  private isDragging = false
+  private dragStartY = 0
+  private dragStartScroll = 0
 
   constructor() {
     super({ key: 'EquipmentScene' })
@@ -195,6 +203,8 @@ export default class EquipmentScene extends Phaser.Scene {
   private createInventory(): void {
     const { width, height } = this.cameras.main
     const inventoryY = 230
+    this.inventoryStartY = inventoryY
+    this.visibleHeight = height - inventoryY - 120 // Leave room for buttons
 
     // Section label
     this.add
@@ -208,27 +218,27 @@ export default class EquipmentScene extends Phaser.Scene {
     const totalWidth =
       this.INVENTORY_COLS * this.INVENTORY_SLOT_SIZE + (this.INVENTORY_COLS - 1) * 8
     const startX = (width - totalWidth) / 2 + this.INVENTORY_SLOT_SIZE / 2
-    const visibleHeight = height - inventoryY - 120 // Leave room for buttons
 
     // Mask for scrolling
     const maskGraphics = this.make.graphics({})
     maskGraphics.fillStyle(0xffffff)
-    maskGraphics.fillRect(20, inventoryY, width - 40, visibleHeight)
+    maskGraphics.fillRect(20, inventoryY, width - 40, this.visibleHeight)
     const mask = maskGraphics.createGeometryMask()
 
-    this.inventoryContainer = this.add.container(0, 0)
+    // Container positioned at the inventory area start
+    this.inventoryContainer = this.add.container(0, inventoryY)
     this.inventoryContainer.setMask(mask)
 
-    // Create inventory slots
+    // Create inventory slots - positions relative to container (which is at inventoryY)
     const inventory = equipmentManager.getInventory()
-    const totalSlots = Math.max(this.INVENTORY_COLS * this.INVENTORY_ROWS, inventory.length + 4)
+    const totalSlots = Math.max(this.INVENTORY_COLS * this.INVENTORY_ROWS, inventory.length + 8)
     const rows = Math.ceil(totalSlots / this.INVENTORY_COLS)
 
     for (let i = 0; i < totalSlots; i++) {
       const col = i % this.INVENTORY_COLS
       const row = Math.floor(i / this.INVENTORY_COLS)
       const x = startX + col * (this.INVENTORY_SLOT_SIZE + 8)
-      const y = inventoryY + 10 + row * (this.INVENTORY_SLOT_SIZE + 8)
+      const y = 10 + row * (this.INVENTORY_SLOT_SIZE + 8) // Relative to container
 
       const slotData = this.createInventorySlot(x, y, i)
       this.inventorySlots.push(slotData)
@@ -236,14 +246,20 @@ export default class EquipmentScene extends Phaser.Scene {
 
     // Calculate max scroll
     const contentHeight = rows * (this.INVENTORY_SLOT_SIZE + 8) + 20
-    this.maxScroll = Math.max(0, contentHeight - visibleHeight)
+    this.maxScroll = Math.max(0, contentHeight - this.visibleHeight)
 
-    // Setup scroll input
+    // Create scroll indicator
+    this.createScrollIndicator()
+
+    // Setup scroll input - wheel for desktop
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
       if (this.maxScroll <= 0) return
       this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY, 0, this.maxScroll)
       this.updateInventoryScroll()
     })
+
+    // Setup touch/drag scrolling for mobile
+    this.setupTouchScrolling()
   }
 
   private createInventorySlot(x: number, y: number, index: number): InventorySlot {
@@ -297,8 +313,81 @@ export default class EquipmentScene extends Phaser.Scene {
 
   private updateInventoryScroll(): void {
     if (this.inventoryContainer) {
-      this.inventoryContainer.y = -this.scrollOffset
+      this.inventoryContainer.y = this.inventoryStartY - this.scrollOffset
     }
+    this.updateScrollIndicator()
+  }
+
+  private createScrollIndicator(): void {
+    if (this.maxScroll <= 0) return
+
+    const { width } = this.cameras.main
+    const indicatorX = width - 15
+    const indicatorHeight = this.visibleHeight - 20
+    const indicatorY = this.inventoryStartY + 10
+
+    this.scrollIndicator = this.add.container(indicatorX, indicatorY)
+
+    // Track background
+    const track = this.add.rectangle(0, indicatorHeight / 2, 6, indicatorHeight, 0x333355, 0.5)
+    track.setStrokeStyle(1, 0x444466)
+    this.scrollIndicator.add(track)
+
+    // Thumb (scrollbar handle)
+    const thumbHeight = Math.max(30, (this.visibleHeight / (this.visibleHeight + this.maxScroll)) * indicatorHeight)
+    const thumb = this.add.rectangle(0, thumbHeight / 2, 6, thumbHeight, 0x6666aa)
+    thumb.setName('thumb')
+    this.scrollIndicator.add(thumb)
+  }
+
+  private updateScrollIndicator(): void {
+    if (!this.scrollIndicator || this.maxScroll <= 0) return
+
+    const thumb = this.scrollIndicator.getByName('thumb') as Phaser.GameObjects.Rectangle
+    if (!thumb) return
+
+    const indicatorHeight = this.visibleHeight - 20
+    const thumbHeight = thumb.height
+    const scrollRatio = this.scrollOffset / this.maxScroll
+    const thumbY = thumbHeight / 2 + scrollRatio * (indicatorHeight - thumbHeight)
+    thumb.y = thumbY
+  }
+
+  private setupTouchScrolling(): void {
+    const { width } = this.cameras.main
+
+    // Create an interactive zone over the inventory area
+    const scrollZone = this.add.rectangle(
+      width / 2,
+      this.inventoryStartY + this.visibleHeight / 2,
+      width - 40,
+      this.visibleHeight,
+      0x000000,
+      0 // Fully transparent
+    )
+    scrollZone.setInteractive()
+
+    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.isDragging = true
+      this.dragStartY = pointer.y
+      this.dragStartScroll = this.scrollOffset
+    })
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isDragging || this.maxScroll <= 0) return
+
+      const deltaY = this.dragStartY - pointer.y
+      this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
+      this.updateInventoryScroll()
+    })
+
+    this.input.on('pointerup', () => {
+      this.isDragging = false
+    })
+
+    this.input.on('pointerupoutside', () => {
+      this.isDragging = false
+    })
   }
 
   private createGoldDisplay(): void {
