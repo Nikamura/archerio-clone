@@ -18,6 +18,9 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private poisonDamage: number = 0 // Poison DOT damage to apply on hit
   private lightningChainCount: number = 0 // Number of enemies lightning can chain to
 
+  // Track which enemies this bullet has already hit (for piercing)
+  private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'bulletSprite')
     scene.add.existing(this)
@@ -59,6 +62,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     // Reset ability tracking
     this.hitCount = 0
     this.bounceCount = 0
+    this.hitEnemies.clear()
     this.maxPierces = options?.maxPierces ?? 0
     this.maxBounces = options?.maxBounces ?? 0
     this.fireDamage = options?.fireDamage ?? 0
@@ -122,10 +126,24 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Check if this bullet has already hit the given enemy (for piercing)
+   * Prevents multiple collision callbacks from the same overlap
+   */
+  hasHitEnemy(enemy: Phaser.GameObjects.GameObject): boolean {
+    return this.hitEnemies.has(enemy)
+  }
+
+  /**
    * Called when bullet hits an enemy
+   * @param enemy The enemy that was hit (for tracking pierced enemies)
    * @returns true if bullet should be deactivated (no piercing/ricochet)
    */
-  onHit(): boolean {
+  onHit(enemy?: Phaser.GameObjects.GameObject): boolean {
+    // Track this enemy as hit to prevent duplicate collisions
+    if (enemy) {
+      this.hitEnemies.add(enemy)
+    }
+
     this.hitCount++
 
     // Check if bullet can pierce through
