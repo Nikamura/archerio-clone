@@ -34,10 +34,12 @@ import {
   getEquipmentBaseData,
   calculateUpgradeCost,
   calculateEquipmentStats,
+  calculateSellPrice,
   selectRandomPerks,
   getRandomRarity,
   PERKS,
 } from '../config/equipmentData'
+import { currencyManager } from './CurrencyManager'
 
 // ============================================
 // Constants
@@ -58,6 +60,7 @@ export const EQUIPMENT_EVENTS = {
   EQUIPPED_CHANGED: 'equipment:equipped-changed',
   ITEM_UPGRADED: 'equipment:item-upgraded',
   ITEM_FUSED: 'equipment:item-fused',
+  ITEM_SOLD: 'equipment:item-sold',
   STATS_CHANGED: 'equipment:stats-changed',
 } as const
 
@@ -499,6 +502,48 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
     this.saveToStorage()
 
     return { success: true, newLevel: equipment.level }
+  }
+
+  // ============================================
+  // Selling
+  // ============================================
+
+  /**
+   * Get the sell price for an item
+   */
+  getSellPrice(equipment: Equipment): number {
+    return calculateSellPrice(equipment.rarity, equipment.level)
+  }
+
+  /**
+   * Sell an item for gold
+   * Returns the gold earned, or 0 if the item couldn't be sold
+   */
+  sellItem(id: string): number {
+    const item = this.findItem(id)
+    if (!item) {
+      console.warn('Cannot sell item not in inventory:', id)
+      return 0
+    }
+
+    // Cannot sell equipped items
+    if (this.isEquipped(id)) {
+      console.warn('Cannot sell equipped item:', id)
+      return 0
+    }
+
+    const sellPrice = this.getSellPrice(item)
+
+    // Remove from inventory
+    this.removeFromInventory(id)
+
+    // Add gold to player
+    currencyManager.add('gold', sellPrice)
+
+    // Emit sold event
+    this.emit(EQUIPMENT_EVENTS.ITEM_SOLD, { item, goldEarned: sellPrice })
+
+    return sellPrice
   }
 
   // ============================================
