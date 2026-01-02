@@ -565,12 +565,14 @@ export default class GameOverScene extends Phaser.Scene {
     this.tweens.killAll()
 
     console.log('GameOverScene: Returning to main menu...')
-    
+
     // GameScene already stopped itself before launching GameOverScene
     // UIScene was also stopped by GameScene
-    // Return to main menu
-    // start() will shut down the current scene (GameOverScene) correctly
+    // Start MainMenuScene and explicitly stop this scene
+    // NOTE: GameOverScene was launched (not started), so scene.start() alone
+    // doesn't properly stop it - we must stop it explicitly
     this.scene.start('MainMenuScene')
+    this.scene.stop('GameOverScene')
   }
 
   /**
