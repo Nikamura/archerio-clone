@@ -20,11 +20,13 @@ interface ChestSlot {
   container: Phaser.GameObjects.Container
   type: ChestType
   countText: Phaser.GameObjects.Text
+  openAllBtn: Phaser.GameObjects.Text
 }
 
 export default class ChestScene extends Phaser.Scene {
   private chestSlots: ChestSlot[] = []
   private revealContainer: Phaser.GameObjects.Container | null = null
+  private bulkRevealContainer: Phaser.GameObjects.Container | null = null
   private isOpening = false
   private instructionText: Phaser.GameObjects.Text | null = null
   private inventoryChangedHandler: (() => void) | null = null
@@ -150,13 +152,32 @@ export default class ChestScene extends Phaser.Scene {
     // Count text (right side) - initialize with actual count
     const count = chestManager.getChestCount(chestType)
     const countText = this.add
-      .text(130, 0, `x${count}`, {
+      .text(100, -15, `x${count}`, {
         fontSize: '24px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
     container.add(countText)
+
+    // Open All button (below count, visible when count > 1)
+    const openAllBtn = this.add
+      .text(100, 18, 'Open All', {
+        fontSize: '12px',
+        color: '#ffffff',
+        backgroundColor: '#44aa44',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+    openAllBtn.setInteractive({ useHandCursor: true })
+    openAllBtn.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation()
+      this.openAllChests(chestType)
+    })
+    openAllBtn.on('pointerover', () => openAllBtn.setStyle({ backgroundColor: '#55bb55' }))
+    openAllBtn.on('pointerout', () => openAllBtn.setStyle({ backgroundColor: '#44aa44' }))
+    openAllBtn.setVisible(count > 1)
+    container.add(openAllBtn)
 
     // Make interactive
     bg.setInteractive({ useHandCursor: true })
@@ -185,6 +206,7 @@ export default class ChestScene extends Phaser.Scene {
       container,
       type: chestType,
       countText,
+      openAllBtn,
     }
   }
 
@@ -227,6 +249,11 @@ export default class ChestScene extends Phaser.Scene {
 
       const count = chestManager.getChestCount(slot.type)
       slot.countText.setText(`x${count}`)
+
+      // Update Open All button visibility (show when count > 1)
+      if (slot.openAllBtn?.active) {
+        slot.openAllBtn.setVisible(count > 1)
+      }
 
       // Dim if no chests available
       if (count <= 0) {
@@ -566,6 +593,256 @@ export default class ChestScene extends Phaser.Scene {
         onComplete: () => {
           this.revealContainer?.destroy()
           this.revealContainer = null
+        },
+      })
+    }
+
+    // Fade out overlay
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => {
+        overlay.destroy()
+        this.isOpening = false
+      },
+    })
+
+    // Update chest counts
+    this.updateChestCounts()
+  }
+
+  private openAllChests(chestType: ChestType): void {
+    const count = chestManager.getChestCount(chestType)
+    if (count === 0 || this.isOpening) return
+
+    this.isOpening = true
+    audioManager.playLevelUp()
+
+    const items: Equipment[] = []
+    for (let i = 0; i < count; i++) {
+      chestManager.removeChest(chestType)
+      const rarity = rollChestRarity(chestType)
+      const equipment = equipmentManager.generateRandomEquipment(rarity)
+      equipmentManager.addToInventory(equipment)
+      items.push(equipment)
+    }
+
+    this.showBulkReveal(items, chestType)
+  }
+
+  private showBulkReveal(items: Equipment[], chestType: ChestType): void {
+    const { width, height } = this.cameras.main
+    const config = CHEST_CONFIGS[chestType]
+
+    // Create overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
+    overlay.setDepth(100)
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.85,
+      duration: 200,
+    })
+
+    // Main container
+    this.bulkRevealContainer = this.add.container(width / 2, height / 2)
+    this.bulkRevealContainer.setDepth(101)
+    this.bulkRevealContainer.setScale(0.8)
+    this.bulkRevealContainer.setAlpha(0)
+
+    // Background panel
+    const panelWidth = 320
+    const panelHeight = 480
+    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 1)
+    panel.setStrokeStyle(3, Phaser.Display.Color.HexStringToColor(config.color).color)
+    this.bulkRevealContainer.add(panel)
+
+    // Header
+    const headerText = this.add
+      .text(0, -panelHeight / 2 + 35, `Opened ${items.length} ${config.name}s!`, {
+        fontSize: '20px',
+        color: config.color,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    this.bulkRevealContainer.add(headerText)
+
+    // Divider
+    const divider = this.add.rectangle(0, -panelHeight / 2 + 65, panelWidth - 40, 2, 0x444444)
+    this.bulkRevealContainer.add(divider)
+
+    // Scrollable grid area
+    const gridTop = -panelHeight / 2 + 80
+    const gridHeight = 320
+    const gridWidth = panelWidth - 40
+
+    // Create mask for scrolling (GeometryMask requires Graphics, not Rectangle)
+    const maskGraphics = this.add.graphics()
+    maskGraphics.fillStyle(0xffffff)
+    maskGraphics.fillRect(
+      width / 2 - gridWidth / 2,
+      height / 2 + gridTop,
+      gridWidth,
+      gridHeight
+    )
+    maskGraphics.setVisible(false)
+    const mask = new Phaser.Display.Masks.GeometryMask(this, maskGraphics)
+
+    // Grid container (will be scrolled)
+    const gridContainer = this.add.container(0, gridTop + 10)
+    gridContainer.setMask(mask)
+    this.bulkRevealContainer.add(gridContainer)
+
+    // Create item cards in grid (2 columns)
+    const cardWidth = 130
+    const cardHeight = 130
+    const gap = 10
+    const cols = 2
+    const startX = -cardWidth / 2 - gap / 2
+
+    items.forEach((equipment, index) => {
+      const col = index % cols
+      const row = Math.floor(index / cols)
+      const x = startX + col * (cardWidth + gap)
+      const y = row * (cardHeight + gap) + cardHeight / 2
+
+      const card = this.createItemCard(equipment, x, y)
+      gridContainer.add(card)
+    })
+
+    // Calculate total content height
+    const totalRows = Math.ceil(items.length / cols)
+    const contentHeight = totalRows * (cardHeight + gap)
+    const maxScroll = Math.max(0, contentHeight - gridHeight + 20)
+
+    // Scroll handling
+    let scrollY = 0
+    if (maxScroll > 0) {
+      // Enable pointer drag scrolling
+      const dragZone = this.add.rectangle(0, gridTop + gridHeight / 2, gridWidth, gridHeight, 0x000000, 0)
+      dragZone.setInteractive()
+      this.bulkRevealContainer.add(dragZone)
+
+      let isDragging = false
+      let lastPointerY = 0
+
+      dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        isDragging = true
+        lastPointerY = pointer.y
+      })
+
+      this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        if (isDragging) {
+          const deltaY = pointer.y - lastPointerY
+          scrollY = Phaser.Math.Clamp(scrollY - deltaY, 0, maxScroll)
+          gridContainer.y = gridTop + 10 - scrollY
+          lastPointerY = pointer.y
+        }
+      })
+
+      this.input.on('pointerup', () => {
+        isDragging = false
+      })
+
+      // Mouse wheel scrolling
+      this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
+        scrollY = Phaser.Math.Clamp(scrollY + deltaY * 0.5, 0, maxScroll)
+        gridContainer.y = gridTop + 10 - scrollY
+      })
+    }
+
+    // Footer message
+    const footerY = panelHeight / 2 - 70
+    const footerText = this.add
+      .text(0, footerY, 'Added to inventory', {
+        fontSize: '14px',
+        color: '#88ff88',
+      })
+      .setOrigin(0.5)
+    this.bulkRevealContainer.add(footerText)
+
+    // Close button
+    const closeBtn = this.add
+      .text(0, panelHeight / 2 - 30, 'CLOSE', {
+        fontSize: '18px',
+        color: '#ffffff',
+        backgroundColor: '#666677',
+        padding: { x: 40, y: 12 },
+      })
+      .setOrigin(0.5)
+    closeBtn.setInteractive({ useHandCursor: true })
+    closeBtn.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.closeBulkReveal(overlay, maskGraphics)
+    })
+    UIAnimations.applyButtonEffects(this, closeBtn)
+    this.bulkRevealContainer.add(closeBtn)
+
+    // Animate in
+    UIAnimations.showModal(this, this.bulkRevealContainer)
+  }
+
+  private createItemCard(equipment: Equipment, x: number, y: number): Phaser.GameObjects.Container {
+    const card = this.add.container(x, y)
+    const rarityConfig = RARITY_CONFIGS[equipment.rarity]
+    const rarityColor = Phaser.Display.Color.HexStringToColor(rarityConfig.color).color
+
+    // Card background
+    const cardWidth = 120
+    const cardHeight = 120
+    const bg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x2d2d44, 1)
+    bg.setStrokeStyle(2, rarityColor)
+    card.add(bg)
+
+    // Equipment icon
+    const icon = this.add.image(0, -20, `equip_${equipment.type}`)
+    icon.setDisplaySize(48, 48)
+    card.add(icon)
+
+    // Equipment name (truncated if too long)
+    let displayName = equipment.name
+    if (displayName.length > 12) {
+      displayName = displayName.substring(0, 11) + '...'
+    }
+    const nameText = this.add
+      .text(0, 20, displayName, {
+        fontSize: '11px',
+        color: rarityConfig.color,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    card.add(nameText)
+
+    // Rarity label
+    const rarityText = this.add
+      .text(0, 40, rarityConfig.name, {
+        fontSize: '10px',
+        color: rarityConfig.color,
+      })
+      .setOrigin(0.5)
+    card.add(rarityText)
+
+    return card
+  }
+
+  private closeBulkReveal(overlay: Phaser.GameObjects.Rectangle, maskGraphics: Phaser.GameObjects.Graphics): void {
+    // Remove input listeners
+    this.input.off('pointermove')
+    this.input.off('pointerup')
+    this.input.off('wheel')
+
+    // Animate out
+    if (this.bulkRevealContainer) {
+      this.tweens.add({
+        targets: this.bulkRevealContainer,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2',
+        onComplete: () => {
+          this.bulkRevealContainer?.destroy()
+          this.bulkRevealContainer = null
+          maskGraphics.destroy()
         },
       })
     }
