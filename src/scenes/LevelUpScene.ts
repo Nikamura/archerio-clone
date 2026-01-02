@@ -111,11 +111,11 @@ export const ABILITIES: AbilityData[] = [
     iconKey: 'abilityRearArrow',
   },
   {
-    id: 'bouncy_wall',
-    name: 'Bouncy Wall',
-    description: '2 wall bounces',
-    color: 0x99ff99,
-    iconKey: 'abilityBouncyWall',
+    id: 'damage_aura',
+    name: 'Damage Aura',
+    description: '10 DPS in 80px radius',
+    color: 0xff6666,
+    iconKey: 'abilityDamageAura',
   },
   {
     id: 'bloodthirst',

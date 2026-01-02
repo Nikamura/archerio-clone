@@ -17,8 +17,6 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private freezeChance: number = 0 // Chance to freeze enemies
   private poisonDamage: number = 0 // Poison DOT damage to apply on hit
   private lightningChainCount: number = 0 // Number of enemies lightning can chain to
-  private wallBounceCount: number = 0 // Current wall bounces used
-  private maxWallBounces: number = 0 // Maximum wall bounces allowed
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'bulletSprite')
@@ -50,7 +48,6 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     freezeChance?: number
     poisonDamage?: number
     lightningChainCount?: number
-    maxWallBounces?: number
   }) {
     this.setPosition(x, y)
     this.setActive(true)
@@ -71,8 +68,6 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.freezeChance = options?.freezeChance ?? 0
     this.poisonDamage = options?.poisonDamage ?? 0
     this.lightningChainCount = options?.lightningChainCount ?? 0
-    this.wallBounceCount = 0
-    this.maxWallBounces = options?.maxWallBounces ?? 0
 
     // Set velocity based on angle
     const vx = Math.cos(angle) * this.speed
@@ -207,44 +202,5 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   getLightningChainCount(): number {
     return this.lightningChainCount
-  }
-
-  getMaxWallBounces(): number {
-    return this.maxWallBounces
-  }
-
-  getWallBounceCount(): number {
-    return this.wallBounceCount
-  }
-
-  /**
-   * Check if bullet can bounce off walls
-   */
-  canBounceOffWall(): boolean {
-    return this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces
-  }
-
-  /**
-   * Bounce bullet off a wall (reflects velocity)
-   * @param isVertical true if hit vertical wall (left/right), false if horizontal (top/bottom)
-   */
-  bounceOffWall(isVertical: boolean): void {
-    if (!this.canBounceOffWall()) return
-
-    this.wallBounceCount++
-
-    // Get current velocity
-    const body = this.body as Phaser.Physics.Arcade.Body
-    if (!body) return
-
-    // Reflect velocity based on which wall was hit
-    if (isVertical) {
-      body.velocity.x *= -1
-    } else {
-      body.velocity.y *= -1
-    }
-
-    // Update rotation to face new direction
-    this.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
   }
 }
