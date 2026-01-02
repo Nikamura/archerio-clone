@@ -47,7 +47,7 @@ export default class GameScene extends Phaser.Scene {
   private joystickAngle: number = 0
   private joystickForce: number = 0
   private lastJoystickMoveTime: number = 0 // Track when joystick last received input
-  private readonly JOYSTICK_STUCK_TIMEOUT = 100 // ms - if no input for this long, force reset
+  private readonly JOYSTICK_STUCK_TIMEOUT = 500 // ms - if no input for this long, force reset (must be high enough to account for mobile touch event delays)
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -1834,9 +1834,11 @@ export default class GameScene extends Phaser.Scene {
       // Safety check: Detect stuck joystick state during intense gameplay
       // If joystickForce is non-zero but we haven't received input in a while,
       // the joystick 'end' event was likely missed - force reset
+      // BUT only if no pointer is currently pressed (otherwise the user is still holding)
       if (this.joystickForce > 0 && this.lastJoystickMoveTime > 0) {
         const timeSinceLastInput = time - this.lastJoystickMoveTime
-        if (timeSinceLastInput > this.JOYSTICK_STUCK_TIMEOUT) {
+        const anyPointerDown = this.input.pointer1?.isDown || this.input.pointer2?.isDown
+        if (timeSinceLastInput > this.JOYSTICK_STUCK_TIMEOUT && !anyPointerDown) {
           // Joystick appears stuck - reset it
           this.joystickForce = 0
           this.lastJoystickMoveTime = 0
