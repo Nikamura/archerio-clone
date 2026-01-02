@@ -327,7 +327,7 @@ export default class ChargerEnemy extends Enemy {
    * Override getDamage to return higher damage during charge
    */
   getDamage(): number {
-    const baseDamage = 5
+    const baseDamage = 15 // Increased by 200%
     const multiplier = this.isCharging ? ChargerEnemy.CHARGE_DAMAGE_MULTIPLIER : 1.0
     return Math.round(baseDamage * this.damageMultiplier * multiplier)
   }

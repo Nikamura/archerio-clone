@@ -395,7 +395,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Get the damage this enemy deals (with difficulty modifier applied)
    */
   getDamage(): number {
-    const baseDamage = 5 // Base melee damage
+    const baseDamage = 15 // Base melee damage (increased by 200%)
     return Math.round(baseDamage * this.damageMultiplier)
   }
 
