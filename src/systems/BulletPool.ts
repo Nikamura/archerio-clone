@@ -23,6 +23,11 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
     maxBounces?: number
     fireDamage?: number
     isCrit?: boolean
+    freezeChance?: number
+    poisonDamage?: number
+    lightningChainCount?: number
+    projectileSprite?: string
+    projectileSizeMultiplier?: number
   }): Bullet | null {
     let bullet = this.get(x, y) as Bullet | null
 

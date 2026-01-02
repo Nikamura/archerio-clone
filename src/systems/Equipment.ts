@@ -127,6 +127,7 @@ export interface WeaponTypeConfig {
   attackSpeedMultiplier: number
   projectileSpeedMultiplier: number
   projectileSizeMultiplier: number
+  projectileSprite: string // Sprite key for this weapon's projectile
   hasHoming: boolean
   hasKnockback: boolean
 }
@@ -142,6 +143,7 @@ export const WEAPON_TYPE_CONFIGS: Record<WeaponType, WeaponTypeConfig> = {
     attackSpeedMultiplier: 1.0,
     projectileSpeedMultiplier: 1.0,
     projectileSizeMultiplier: 1.0,
+    projectileSprite: 'bulletSprite', // Uses default arrow
     hasHoming: false,
     hasKnockback: false,
   },
@@ -152,6 +154,7 @@ export const WEAPON_TYPE_CONFIGS: Record<WeaponType, WeaponTypeConfig> = {
     attackSpeedMultiplier: 1.4, // +40% attack speed
     projectileSpeedMultiplier: 1.2,
     projectileSizeMultiplier: 0.7, // Smaller projectiles
+    projectileSprite: 'projectile_saw_blade',
     hasHoming: false,
     hasKnockback: false,
   },
@@ -162,6 +165,7 @@ export const WEAPON_TYPE_CONFIGS: Record<WeaponType, WeaponTypeConfig> = {
     attackSpeedMultiplier: 0.7, // Slower fire rate
     projectileSpeedMultiplier: 0.8,
     projectileSizeMultiplier: 1.2,
+    projectileSprite: 'projectile_staff',
     hasHoming: true,
     hasKnockback: false,
   },
@@ -172,6 +176,7 @@ export const WEAPON_TYPE_CONFIGS: Record<WeaponType, WeaponTypeConfig> = {
     attackSpeedMultiplier: 0.6, // Very slow
     projectileSpeedMultiplier: 0.9,
     projectileSizeMultiplier: 1.5, // Larger projectiles
+    projectileSprite: 'projectile_death_scythe',
     hasHoming: false,
     hasKnockback: true,
   },

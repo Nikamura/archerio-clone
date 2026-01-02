@@ -54,6 +54,8 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     freezeChance?: number
     poisonDamage?: number
     lightningChainCount?: number
+    projectileSprite?: string
+    projectileSizeMultiplier?: number
   }) {
     this.setPosition(x, y)
     this.setActive(true)
@@ -76,6 +78,11 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.poisonDamage = options?.poisonDamage ?? 0
     this.lightningChainCount = options?.lightningChainCount ?? 0
 
+    // Change texture based on equipped weapon
+    if (options?.projectileSprite) {
+      this.setTexture(options.projectileSprite)
+    }
+
     // Set velocity based on angle
     const vx = Math.cos(angle) * this.speed
     const vy = Math.sin(angle) * this.speed
@@ -84,22 +91,25 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     // Rotate bullet to face direction
     this.setRotation(angle)
 
+    // Base size multiplier from weapon
+    const sizeMultiplier = options?.projectileSizeMultiplier ?? 1.0
+
     // Visual indicator for critical hit (slightly larger and different color)
     if (this.isCrit) {
       this.setTint(0xffff00) // Yellow tint for crits
-      this.setScale(1.3)
+      this.setScale(1.3 * sizeMultiplier)
     } else if (this.freezeChance > 0) {
       this.setTint(0x66ccff) // Blue tint for ice
-      this.setScale(1)
+      this.setScale(sizeMultiplier)
     } else if (this.poisonDamage > 0) {
       this.setTint(0x66ff66) // Green tint for poison
-      this.setScale(1)
+      this.setScale(sizeMultiplier)
     } else if (this.lightningChainCount > 0) {
       this.setTint(0x9966ff) // Purple tint for lightning
-      this.setScale(1)
+      this.setScale(sizeMultiplier)
     } else {
       this.clearTint()
-      this.setScale(1)
+      this.setScale(sizeMultiplier)
     }
   }
 

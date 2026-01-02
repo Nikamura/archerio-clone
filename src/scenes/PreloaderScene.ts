@@ -89,6 +89,10 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('bulletSprite', 'assets/sprites/projectile/player_arrow.png')
     this.load.image('enemyBulletSprite', 'assets/sprites/projectile/enemy_fireball.png')
     this.load.image('spiritCatSprite', 'assets/sprites/projectile/spirit_cat.png')
+    // Weapon-specific projectiles
+    this.load.image('projectile_saw_blade', 'assets/sprites/projectile/projectile_saw_blade.png')
+    this.load.image('projectile_staff', 'assets/sprites/projectile/projectile_staff.png')
+    this.load.image('projectile_death_scythe', 'assets/sprites/projectile/projectile_death_scythe.png')
 
     // Load background
     this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.jpg')

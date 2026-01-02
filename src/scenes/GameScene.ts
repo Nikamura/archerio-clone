@@ -118,6 +118,9 @@ export default class GameScene extends Phaser.Scene {
   private spiritCatConfig: SpiritCatConfig | null = null
   private lastSpiritCatSpawnTime: number = 0
 
+  // Weapon projectile config (for changing bullet sprites based on equipped weapon)
+  private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
+
   constructor() {
     super({ key: 'GameScene' })
   }
@@ -242,6 +245,17 @@ export default class GameScene extends Phaser.Scene {
       const weaponConfig = WEAPON_TYPE_CONFIGS[equipStats.weaponType]
       weaponDamageMult = weaponConfig.attackDamageMultiplier
       weaponSpeedMult = weaponConfig.attackSpeedMultiplier
+      // Store projectile config for bullet spawning
+      this.weaponProjectileConfig = {
+        sprite: weaponConfig.projectileSprite,
+        sizeMultiplier: weaponConfig.projectileSizeMultiplier,
+      }
+    } else {
+      // Default to standard arrow if no weapon equipped
+      this.weaponProjectileConfig = {
+        sprite: 'bulletSprite',
+        sizeMultiplier: 1.0,
+      }
     }
 
     // Get talent bonuses (cache for use throughout the game)
@@ -1272,6 +1286,9 @@ export default class GameScene extends Phaser.Scene {
     // Notify UIScene about ability update
     this.scene.get('UIScene').events.emit('updateAbilities', this.getAcquiredAbilitiesArray())
 
+    // Update health UI (abilities like max_health change max HP)
+    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+
     console.log(`Applied ability: ${abilityId} (level: ${currentLevel + 1}, total: ${this.abilitiesGained})`)
   }
 
@@ -2011,6 +2028,9 @@ export default class GameScene extends Phaser.Scene {
       freezeChance: this.player.getFreezeChance(),
       poisonDamage: this.player.getPoisonDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
+      // Weapon projectile options
+      projectileSprite: this.weaponProjectileConfig?.sprite,
+      projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,
     }
 
     // Main projectile
