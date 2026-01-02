@@ -6,6 +6,7 @@ import { currencyManager } from '../systems/CurrencyManager'
 import { chestManager } from '../systems/ChestManager'
 import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
 import { debugToast } from '../systems/DebugToast'
+import { ABILITIES } from './LevelUpScene'
 import {
   calculateChestRewards,
   getTotalChests,
@@ -14,6 +15,11 @@ import {
   CHEST_ORDER,
   ChestType,
 } from '../data/chestData'
+
+export interface AcquiredAbility {
+  id: string
+  level: number
+}
 
 export interface GameOverData {
   roomsCleared: number
@@ -25,6 +31,7 @@ export interface GameOverData {
   goldEarned?: number
   completionResult?: ChapterCompletionResult
   runSeed?: string
+  acquiredAbilities?: AcquiredAbility[]
 }
 
 /**
@@ -53,6 +60,7 @@ export default class GameOverScene extends Phaser.Scene {
   private chestRewards: ChestRewards = { wooden: 0, silver: 0, golden: 0 }
   private rewardsCollected: boolean = false
   private runSeed: string = ''
+  private acquiredAbilities: AcquiredAbility[] = []
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -62,6 +70,7 @@ export default class GameOverScene extends Phaser.Scene {
     this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
     this.rewardsCollected = false
     this.runSeed = data?.runSeed ?? ''
+    this.acquiredAbilities = data?.acquiredAbilities ?? []
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
@@ -236,9 +245,13 @@ export default class GameOverScene extends Phaser.Scene {
         .setOrigin(0.5)
     }
 
+    // Skills acquired section
+    const skillsY = chestsY + 110
+    const skillsSectionHeight = this.displayAcquiredSkills(skillsY)
+
     // Seed display section
     if (this.runSeed) {
-      this.createSeedDisplay(chestsY + 110)
+      this.createSeedDisplay(skillsY + skillsSectionHeight + 10)
     }
 
     // Continue button
@@ -327,6 +340,98 @@ export default class GameOverScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     })
+  }
+
+  /**
+   * Display acquired skills with icons and levels
+   * Returns the total height used by this section
+   */
+  private displayAcquiredSkills(startY: number): number {
+    const width = this.cameras.main.width
+
+    // If no skills acquired, show message and return minimal height
+    if (this.acquiredAbilities.length === 0) {
+      this.add
+        .text(width / 2, startY, 'No skills acquired', {
+          fontSize: '14px',
+          fontFamily: 'Arial',
+          color: '#666666',
+        })
+        .setOrigin(0.5)
+      return 30
+    }
+
+    // Section title
+    this.add
+      .text(width / 2, startY, 'SKILLS', {
+        fontSize: '16px',
+        fontFamily: 'Arial',
+        color: '#aaaaaa',
+      })
+      .setOrigin(0.5)
+
+    // Display skills in a grid (up to 6 per row)
+    const iconSize = 36
+    const iconSpacing = 44
+    const maxPerRow = 6
+    const skillCount = this.acquiredAbilities.length
+    const rows = Math.ceil(skillCount / maxPerRow)
+
+    // Calculate grid dimensions
+    const gridStartY = startY + 28
+
+    this.acquiredAbilities.forEach((acquired, index) => {
+      // Find the ability data
+      const abilityData = ABILITIES.find(a => a.id === acquired.id)
+      if (!abilityData) return
+
+      const row = Math.floor(index / maxPerRow)
+      const col = index % maxPerRow
+
+      // Recalculate X for rows with fewer items (center them)
+      const itemsInRow = Math.min(maxPerRow, skillCount - row * maxPerRow)
+      const rowWidth = itemsInRow * iconSpacing
+      const rowStartX = (width - rowWidth) / 2 + iconSpacing / 2
+
+      const x = rowStartX + col * iconSpacing
+      const y = gridStartY + row * (iconSpacing + 8)
+
+      // Skill icon background (colored border)
+      const iconBg = this.add.rectangle(x, y, iconSize + 4, iconSize + 4, 0x222222)
+      iconBg.setStrokeStyle(2, abilityData.color)
+
+      // Skill icon
+      if (this.textures.exists(abilityData.iconKey)) {
+        this.add
+          .image(x, y, abilityData.iconKey)
+          .setDisplaySize(iconSize, iconSize)
+      } else {
+        // Fallback: colored circle
+        this.add.circle(x, y, iconSize / 2 - 2, abilityData.color)
+      }
+
+      // Level badge (bottom-right corner)
+      if (acquired.level > 1) {
+        const badgeX = x + iconSize / 2 - 2
+        const badgeY = y + iconSize / 2 - 2
+
+        // Badge background
+        this.add.circle(badgeX, badgeY, 10, 0x000000, 0.9)
+
+        // Level number
+        this.add
+          .text(badgeX, badgeY, `${acquired.level}`, {
+            fontSize: '12px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5)
+      }
+    })
+
+    // Return total height used (title + rows)
+    return 28 + rows * (iconSpacing + 8)
   }
 
   /**
