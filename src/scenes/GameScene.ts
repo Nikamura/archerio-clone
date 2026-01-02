@@ -409,6 +409,9 @@ export default class GameScene extends Phaser.Scene {
     // Update UIScene with room info
     this.updateRoomUI()
 
+    // Send initial health to UIScene (player may have bonus HP from equipment/talents)
+    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+
     console.log('GameScene: Created')
   }
 
