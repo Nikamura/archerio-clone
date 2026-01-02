@@ -1326,6 +1326,9 @@ export default class GameScene extends Phaser.Scene {
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const playerSprite = player as Player
 
+    // Skip if bullet is already inactive (prevents multiple damage from same bullet)
+    if (!bulletSprite.active) return
+
     // Deactivate bullet regardless of invincibility
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
