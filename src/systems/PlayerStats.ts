@@ -11,7 +11,6 @@ export class PlayerStats {
   // Health system
   private health: number
   private maxHealth: number
-  private isInvincible: boolean = false
 
   // XP and leveling
   private currentXP: number = 0
@@ -85,24 +84,12 @@ export class PlayerStats {
   // ============================================
 
   takeDamage(amount: number): DamageResult {
-    if (this.isInvincible) {
-      return { damaged: false, died: false }
-    }
-
     this.health = Math.max(0, this.health - amount)
-    this.isInvincible = true
 
     return {
       damaged: true,
       died: this.health <= 0,
     }
-  }
-
-  /**
-   * Clear invincibility (call this after invincibility timer expires)
-   */
-  clearInvincibility(): void {
-    this.isInvincible = false
   }
 
   heal(amount: number): void {
@@ -122,7 +109,7 @@ export class PlayerStats {
   }
 
   isPlayerInvincible(): boolean {
-    return this.isInvincible
+    return false
   }
 
   isDead(): boolean {
@@ -504,7 +491,6 @@ export class PlayerStats {
     this.fireDamagePercent = 0
     this.critChance = 0
     this.critDamageMultiplier = 1.5
-    this.isInvincible = false
     // Reset new V1 abilities
     this.freezeChance = 0
     this.poisonDamagePercent = 0

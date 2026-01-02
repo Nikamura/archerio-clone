@@ -5,7 +5,6 @@ import { themeManager } from '../systems/ThemeManager'
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   private stats: PlayerStats
   private isMoving: boolean = false
-  private invincibilityDuration: number = 500 // ms of invincibility after being hit
 
   constructor(
     scene: Phaser.Scene,
@@ -83,14 +82,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number): boolean {
     const result = this.stats?.takeDamage(amount)
-
-    if (result?.damaged) {
-      // Start invincibility timer (Phaser-specific)
-      this.scene.time.delayedCall(this.invincibilityDuration, () => {
-        this.stats?.clearInvincibility()
-      })
-    }
-
     return result?.damaged ?? false
   }
 

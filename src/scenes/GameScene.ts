@@ -913,8 +913,8 @@ export default class GameScene extends Phaser.Scene {
         return
       }
 
-      // Flash player during invincibility
-      this.startInvincibilityFlash(this.player)
+      // Flash player when hit
+      this.showHitFlash(this.player)
 
       // Knockback from explosion center
       const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y)
@@ -1328,8 +1328,8 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Flash player during invincibility
-    this.startInvincibilityFlash(playerSprite)
+    // Flash player when hit
+    this.showHitFlash(playerSprite)
 
     console.log(`Player hit by bullet! Health: ${playerSprite.getHealth()}`)
   }
@@ -1371,8 +1371,8 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Flash player during invincibility
-    this.startInvincibilityFlash(playerSprite)
+    // Flash player when hit
+    this.showHitFlash(playerSprite)
 
     // Push player back slightly
     const angle = Phaser.Math.Angle.Between(
@@ -1491,33 +1491,17 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
-  private startInvincibilityFlash(player: Player) {
-    // Create flashing effect during invincibility
-    let flashCount = 0
-    const maxFlashes = 5
-    const flashInterval = 100
+  private showHitFlash(player: Player) {
+    // Brief red flash when hit
+    player.setTint(0xff0000)
+    player.setAlpha(0.7)
 
-    const flash = () => {
-      if (flashCount >= maxFlashes || !player.active || !player.isPlayerInvincible()) {
-        player.clearTint()
-        player.setAlpha(1)
-        return
-      }
-
-      // Alternate between red tint and transparent
-      if (flashCount % 2 === 0) {
-        player.setTint(0xff0000)
-        player.setAlpha(0.7)
-      } else {
+    this.time.delayedCall(100, () => {
+      if (player.active) {
         player.clearTint()
         player.setAlpha(1)
       }
-
-      flashCount++
-      this.time.delayedCall(flashInterval, flash)
-    }
-
-    flash()
+    })
   }
 
   private triggerGameOver() {

@@ -48,43 +48,31 @@ describe('PlayerStats', () => {
       expect(stats.getHealth()).toBe(0)
     })
 
-    it('sets invincibility after taking damage', () => {
-      expect(stats.isPlayerInvincible()).toBe(false)
-      stats.takeDamage(10)
-      expect(stats.isPlayerInvincible()).toBe(true)
-    })
-
-    it('prevents damage while invincible', () => {
-      stats.takeDamage(10) // First hit, now invincible
+    it('multiple hits all deal damage (no immunity)', () => {
+      // First hit
+      const firstHit = stats.takeDamage(10)
+      expect(firstHit.damaged).toBe(true)
       expect(stats.getHealth()).toBe(90)
 
+      // Second hit immediately after
       const secondHit = stats.takeDamage(10)
-      expect(secondHit.damaged).toBe(false)
-      expect(stats.getHealth()).toBe(90) // Still 90
-    })
-
-    it('can take damage again after invincibility cleared', () => {
-      stats.takeDamage(10)
-      expect(stats.getHealth()).toBe(90)
-
-      stats.clearInvincibility()
-      expect(stats.isPlayerInvincible()).toBe(false)
-
-      stats.takeDamage(10)
+      expect(secondHit.damaged).toBe(true)
       expect(stats.getHealth()).toBe(80)
+
+      // Third hit
+      const thirdHit = stats.takeDamage(10)
+      expect(thirdHit.damaged).toBe(true)
+      expect(stats.getHealth()).toBe(70)
     })
 
-    it('cannot die while invincible', () => {
-      stats.takeDamage(10) // Now invincible with 90 HP
-      const lethalHit = stats.takeDamage(100)
-      expect(lethalHit.damaged).toBe(false)
-      expect(lethalHit.died).toBe(false)
-      expect(stats.getHealth()).toBe(90)
+    it('isPlayerInvincible always returns false', () => {
+      expect(stats.isPlayerInvincible()).toBe(false)
+      stats.takeDamage(10)
+      expect(stats.isPlayerInvincible()).toBe(false)
     })
 
     it('heal increases health up to max', () => {
       stats.takeDamage(50)
-      stats.clearInvincibility()
       expect(stats.getHealth()).toBe(50)
 
       stats.heal(30)
@@ -93,7 +81,6 @@ describe('PlayerStats', () => {
 
     it('heal cannot exceed max health', () => {
       stats.takeDamage(10)
-      stats.clearInvincibility()
       stats.heal(100)
       expect(stats.getHealth()).toBe(100)
     })
