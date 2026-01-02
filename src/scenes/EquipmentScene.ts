@@ -66,6 +66,8 @@ export default class EquipmentScene extends Phaser.Scene {
   private isDragging = false
   private dragStartY = 0
   private dragStartScroll = 0
+  private dragDistance = 0
+  private readonly DRAG_THRESHOLD = 10 // Pixels before considering it a drag
 
   constructor() {
     super({ key: 'EquipmentScene' })
@@ -291,9 +293,14 @@ export default class EquipmentScene extends Phaser.Scene {
     levelText.setName('levelText')
     container.add(levelText)
 
-    // Make interactive
+    // Make interactive - use pointerup to differentiate from scroll gestures
     bg.setInteractive({ useHandCursor: true })
-    bg.on('pointerdown', () => this.onInventorySlotClick(index))
+    bg.on('pointerup', () => {
+      // Only trigger click if we weren't scrolling (drag distance below threshold)
+      if (this.dragDistance < this.DRAG_THRESHOLD) {
+        this.onInventorySlotClick(index)
+      }
+    })
     bg.on('pointerover', () => {
       const slot = this.inventorySlots[index]
       if (slot && slot.item) {
@@ -354,39 +361,44 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private setupTouchScrolling(): void {
-    const { width } = this.cameras.main
+    // Track pointer events at the scene level for scrolling
+    // This allows click events to still pass through to inventory items
 
-    // Create an interactive zone over the inventory area
-    const scrollZone = this.add.rectangle(
-      width / 2,
-      this.inventoryStartY + this.visibleHeight / 2,
-      width - 40,
-      this.visibleHeight,
-      0x000000,
-      0 // Fully transparent
-    )
-    scrollZone.setInteractive()
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Check if pointer is within the inventory area
+      const inInventoryArea =
+        pointer.y >= this.inventoryStartY &&
+        pointer.y <= this.inventoryStartY + this.visibleHeight
 
-    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDragging = true
-      this.dragStartY = pointer.y
-      this.dragStartScroll = this.scrollOffset
+      if (inInventoryArea && this.maxScroll > 0) {
+        this.isDragging = true
+        this.dragStartY = pointer.y
+        this.dragStartScroll = this.scrollOffset
+        this.dragDistance = 0
+      }
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.isDragging || this.maxScroll <= 0) return
 
       const deltaY = this.dragStartY - pointer.y
-      this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
-      this.updateInventoryScroll()
+      this.dragDistance = Math.abs(deltaY)
+
+      // Only scroll after exceeding the drag threshold
+      if (this.dragDistance > this.DRAG_THRESHOLD) {
+        this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
+        this.updateInventoryScroll()
+      }
     })
 
     this.input.on('pointerup', () => {
       this.isDragging = false
+      this.dragDistance = 0
     })
 
     this.input.on('pointerupoutside', () => {
       this.isDragging = false
+      this.dragDistance = 0
     })
   }
 
