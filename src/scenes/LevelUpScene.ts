@@ -139,6 +139,13 @@ export const ABILITIES: AbilityData[] = [
     color: 0x00ffff,
     iconKey: 'abilitySpeedBoost',
   },
+  {
+    id: 'max_health',
+    name: 'Vitality',
+    description: '+10% max HP',
+    color: 0x22cc66,
+    iconKey: 'abilityMaxHealth',
+  },
 ]
 
 export interface LevelUpData {

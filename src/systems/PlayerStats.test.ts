@@ -507,6 +507,48 @@ describe('PlayerStats', () => {
         expect(stats.rollCrit()).toBe(true)
       })
     })
+
+    describe('Max Health Boost', () => {
+      it('increases max health by 10%', () => {
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealth()).toBe(110)
+      })
+
+      it('stacks multiplicatively (100 -> 110 -> 121 -> 133)', () => {
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealth()).toBe(110)
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealth()).toBe(121)
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealth()).toBe(133)
+      })
+
+      it('also heals the player by the gained amount', () => {
+        stats.takeDamage(50)  // Health is now 50
+        expect(stats.getHealth()).toBe(50)
+
+        stats.addMaxHealthBoost()  // Max health goes from 100 to 110, gain is 10
+        expect(stats.getMaxHealth()).toBe(110)
+        expect(stats.getHealth()).toBe(60)  // 50 + 10 = 60
+      })
+
+      it('heals correctly when at full health', () => {
+        expect(stats.getHealth()).toBe(100)
+        expect(stats.getMaxHealth()).toBe(100)
+
+        stats.addMaxHealthBoost()
+        expect(stats.getHealth()).toBe(110)
+        expect(stats.getMaxHealth()).toBe(110)
+      })
+
+      it('tracks maxHealthMultiplier correctly', () => {
+        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.0)
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.1)
+        stats.addMaxHealthBoost()
+        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.21)
+      })
+    })
   })
 
   // ============================================

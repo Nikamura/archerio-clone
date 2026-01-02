@@ -132,6 +132,7 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('abilityLightningChain', 'assets/sprites/abilities/lightning_chain.png')
     this.load.image('abilityBloodthirst', 'assets/sprites/abilities/bloodthirst.png')
     this.load.image('abilityRage', 'assets/sprites/abilities/rage.png')
+    this.load.image('abilityMaxHealth', 'assets/sprites/abilities/max_health.png')
 
     // Load hero icons
     this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')

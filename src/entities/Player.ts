@@ -217,6 +217,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addSpeedBoost()
   }
 
+  addMaxHealthBoost() {
+    this.stats?.addMaxHealthBoost()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0

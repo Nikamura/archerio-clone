@@ -1256,6 +1256,9 @@ export default class GameScene extends Phaser.Scene {
       case 'speed_boost':
         this.player.addSpeedBoost()
         break
+      case 'max_health':
+        this.player.addMaxHealthBoost()
+        break
     }
     this.abilitiesGained++
 

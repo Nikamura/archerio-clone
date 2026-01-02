@@ -49,6 +49,7 @@ export class PlayerStats {
   private bloodthirstHeal: number = 0  // HP healed per kill
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
+  private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability
 
   constructor(options?: {
     maxHealth?: number
@@ -471,6 +472,23 @@ export class PlayerStats {
     this.movementSpeedMultiplier *= 1.15
   }
 
+  /**
+   * Add Max Health Boost ability (+10% max HP)
+   * Stacking: Multiplicative (each level multiplies max HP by 1.10)
+   * Also heals the player by the gained amount
+   */
+  addMaxHealthBoost(): void {
+    const newMaxHealth = Math.floor(this.maxHealth * 1.10)
+    const healthGain = newMaxHealth - this.maxHealth
+    this.maxHealth = newMaxHealth
+    this.health += healthGain  // Heal by the gained amount
+    this.maxHealthMultiplier *= 1.10
+  }
+
+  getMaxHealthMultiplier(): number {
+    return this.maxHealthMultiplier
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -501,6 +519,7 @@ export class PlayerStats {
     this.bloodthirstHeal = 0
     this.rageLevel = 0
     this.movementSpeedMultiplier = 1.0
+    this.maxHealthMultiplier = 1.0
   }
 
   /**
@@ -530,6 +549,7 @@ export class PlayerStats {
     bloodthirstHeal: number
     rageLevel: number
     movementSpeedMultiplier: number
+    maxHealthMultiplier: number
   } {
     return {
       health: this.health,
@@ -555,6 +575,7 @@ export class PlayerStats {
       bloodthirstHeal: this.bloodthirstHeal,
       rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
+      maxHealthMultiplier: this.maxHealthMultiplier,
     }
   }
 }

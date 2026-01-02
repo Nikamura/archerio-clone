@@ -58,7 +58,6 @@ export default class UIScene extends Phaser.Scene {
 
     // Health bar
     this.healthBar = this.add.graphics()
-    this.updateHealthBar(100, 100, 100)
     this.hudContainer.add(this.healthBar)
 
     // Health text (displayed on the health bar)
@@ -70,6 +69,9 @@ export default class UIScene extends Phaser.Scene {
     this.healthText.setOrigin(0.5)
     this.healthText.setStroke('#000000', 2)
     this.hudContainer.add(this.healthText)
+
+    // Initialize health bar display (must be after healthText is created)
+    this.updateHealthBar(100, 100, 100)
 
     // XP bar background (below health bar)
     this.xpBarBg = this.add.graphics()

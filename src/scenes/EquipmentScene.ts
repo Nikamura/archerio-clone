@@ -486,9 +486,6 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private refreshDisplay(): void {
-    // Guard against updates on inactive/destroyed scene
-    if (!this.scene.isActive()) return
-
     this.refreshEquippedSlots()
     this.refreshInventorySlots()
     this.updateFusionButton()
