@@ -27,6 +27,7 @@ export default class ChestScene extends Phaser.Scene {
   private revealContainer: Phaser.GameObjects.Container | null = null
   private isOpening = false
   private instructionText: Phaser.GameObjects.Text | null = null
+  private inventoryChangedHandler: (() => void) | null = null
 
   constructor() {
     super({ key: 'ChestScene' })
@@ -205,13 +206,21 @@ export default class ChestScene extends Phaser.Scene {
   }
 
   private setupEventListeners(): void {
-    chestManager.on('inventoryChanged', () => {
+    // Store reference so we can unsubscribe in shutdown
+    this.inventoryChangedHandler = () => {
       this.updateChestCounts()
-    })
+    }
+    chestManager.on('inventoryChanged', this.inventoryChangedHandler)
   }
 
   private updateChestCounts(): void {
+    // Guard against updates after scene shutdown
+    if (!this.scene.isActive()) return
+
     this.chestSlots.forEach((slot) => {
+      // Guard against destroyed game objects
+      if (!slot.countText?.active || !slot.container?.active) return
+
       const count = chestManager.getChestCount(slot.type)
       slot.countText.setText(`x${count}`)
 
@@ -226,7 +235,7 @@ export default class ChestScene extends Phaser.Scene {
     })
 
     // Update instruction text
-    if (this.instructionText) {
+    if (this.instructionText?.active) {
       const totalChests = chestManager.getTotalChests()
       if (totalChests <= 0) {
         this.instructionText.setText('No chests available. Play runs to earn more!')
@@ -587,7 +596,11 @@ export default class ChestScene extends Phaser.Scene {
   }
 
   shutdown(): void {
-    // Clean up event listeners
-    // Note: chestManager uses custom event system, not Phaser's
+    // Clean up event listeners to prevent updates on destroyed objects
+    if (this.inventoryChangedHandler) {
+      chestManager.off('inventoryChanged', this.inventoryChangedHandler)
+      this.inventoryChangedHandler = null
+    }
+    this.chestSlots = []
   }
 }
