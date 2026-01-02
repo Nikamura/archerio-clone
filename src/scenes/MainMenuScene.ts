@@ -9,6 +9,9 @@ import { dailyRewardManager } from '../systems/DailyRewardManager'
 import { achievementManager } from '../systems/AchievementManager'
 import { chestManager } from '../systems/ChestManager'
 import { themeManager } from '../systems/ThemeManager'
+import { equipmentManager } from '../systems/EquipmentManager'
+import { heroManager } from '../systems/HeroManager'
+import { Rarity, WeaponType, ArmorType, RingType, SpiritType } from '../systems/Equipment'
 import {
   fadeInScene,
   transitionToScene,
@@ -80,9 +83,20 @@ export default class MainMenuScene extends Phaser.Scene {
       btn.onclick = (e) => {
         e.preventDefault()
         e.stopPropagation()
+        // Unlock all chapters
         for (let i = 1; i <= 5; i++) {
           chapterManager.forceUnlockChapter(i as ChapterId)
         }
+        // Unlock vaporwave theme
+        themeManager.unlock('vaporwave')
+        // Unlock all heroes
+        heroManager.forceUnlock('helix')
+        heroManager.forceUnlock('meowgik')
+        // Add legendary equipment (one of each slot at max level 70)
+        equipmentManager.createEquipment(WeaponType.DEATH_SCYTHE, Rarity.LEGENDARY, 70)
+        equipmentManager.createEquipment(ArmorType.GOLDEN_CHESTPLATE, Rarity.LEGENDARY, 70)
+        equipmentManager.createEquipment(RingType.LION_RING, Rarity.LEGENDARY, 70)
+        equipmentManager.createEquipment(SpiritType.LASER_BAT, Rarity.LEGENDARY, 70)
         this.scene.restart()
       }
 

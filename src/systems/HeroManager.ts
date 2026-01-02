@@ -304,6 +304,17 @@ export class HeroManager extends Phaser.Events.EventEmitter {
     return true
   }
 
+  /**
+   * Force unlock a hero without spending currency (for debug/testing)
+   */
+  forceUnlock(heroId: HeroId): void {
+    if (!isValidHeroId(heroId)) return
+    this.unlockedHeroes.add(heroId)
+    this.emit(HERO_EVENTS.HERO_UNLOCKED, { heroId, cost: 0, currency: 'gold' })
+    this.saveToStorage()
+    this.onSave()
+  }
+
   // ============================================
   // Hero Leveling
   // ============================================
