@@ -208,8 +208,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addRearArrow()
   }
 
-  addBouncyWall() {
-    this.stats?.addBouncyWall()
+  addDamageAura() {
+    this.stats?.addDamageAura()
   }
 
   addBloodthirst() {
@@ -286,8 +286,16 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.getRearArrows() ?? 0
   }
 
-  getWallBounces(): number {
-    return this.stats?.getWallBounces() ?? 0
+  getDamageAuraLevel(): number {
+    return this.stats?.getDamageAuraLevel() ?? 0
+  }
+
+  getDamageAuraDPS(): number {
+    return this.stats?.getDamageAuraDPS() ?? 0
+  }
+
+  getDamageAuraRadius(): number {
+    return this.stats?.getDamageAuraRadius() ?? 0
   }
 
   getBloodthirstHeal(): number {

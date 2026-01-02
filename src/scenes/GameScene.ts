@@ -90,6 +90,10 @@ export default class GameScene extends Phaser.Scene {
   private nearestEnemyCacheFrame: number = 0
   private readonly NEAREST_ENEMY_CACHE_FRAMES = 3 // Recalculate every 3 frames
 
+  // Damage aura tracking
+  private lastAuraDamageTime: number = 0
+  private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms (2x per second)
+
   constructor() {
     super({ key: 'GameScene' })
   }
@@ -1115,8 +1119,8 @@ export default class GameScene extends Phaser.Scene {
       case 'rear_arrow':
         this.player.addRearArrow()
         break
-      case 'bouncy_wall':
-        this.player.addBouncyWall()
+      case 'damage_aura':
+        this.player.addDamageAura()
         break
       case 'bloodthirst':
         this.player.addBloodthirst()
@@ -1571,6 +1575,89 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
+  /**
+   * Apply damage aura to nearby enemies
+   * Deals DPS damage every AURA_DAMAGE_INTERVAL ms to enemies within radius
+   */
+  private applyDamageAura(time: number, playerX: number, playerY: number): void {
+    const auraDPS = this.player.getDamageAuraDPS()
+    if (auraDPS <= 0) return
+
+    // Only apply damage at intervals
+    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return
+    this.lastAuraDamageTime = time
+
+    const auraRadius = this.player.getDamageAuraRadius()
+    // Calculate damage per tick (DPS / 2 since we apply 2x per second)
+    const damagePerTick = Math.floor(auraDPS / 2)
+
+    const enemiesToDestroy: Enemy[] = []
+
+    // Find and damage all enemies within aura radius
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy
+      if (!e.active) return
+
+      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y)
+      if (distance <= auraRadius) {
+        const killed = e.takeDamage(damagePerTick)
+
+        // Show damage number
+        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false)
+
+        // Visual feedback - emit particles
+        this.particles.emitHit(e.x, e.y)
+
+        if (killed) {
+          enemiesToDestroy.push(e)
+        }
+      }
+    })
+
+    // Handle deaths from aura damage
+    for (const e of enemiesToDestroy) {
+      this.enemiesKilled++
+
+      // Bloodthirst heal on kill
+      const bloodthirstHeal = this.player.getBloodthirstHeal()
+      if (bloodthirstHeal > 0) {
+        this.player.heal(bloodthirstHeal)
+        this.updatePlayerHealthUI(this.player)
+      }
+
+      // Death particles
+      this.particles.emitDeath(e.x, e.y)
+      this.screenShake.onExplosion()
+      hapticManager.light()
+
+      // Spawn drops
+      this.spawnDrops(e)
+
+      // Add XP
+      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
+      const xpGain = isBoss ? 10 : 1
+      const leveledUp = this.player.addXP(xpGain)
+      this.updateXPUI()
+
+      if (leveledUp) {
+        this.handleLevelUp()
+      }
+
+      if (isBoss) {
+        this.boss = null
+        this.scene.get('UIScene').events.emit('hideBossHealth')
+      }
+
+      e.destroy()
+      this.invalidateNearestEnemyCache()
+    }
+
+    // Check if room cleared after processing deaths
+    if (enemiesToDestroy.length > 0) {
+      this.checkRoomCleared()
+    }
+  }
+
   private shootAtEnemy(enemy: Enemy) {
     // Validate enemy position before shooting
     if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
@@ -1603,7 +1690,6 @@ export default class GameScene extends Phaser.Scene {
       freezeChance: this.player.getFreezeChance(),
       poisonDamage: this.player.getPoisonDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
-      maxWallBounces: this.player.getWallBounces(),
     }
 
     // Main projectile
@@ -1797,6 +1883,9 @@ export default class GameScene extends Phaser.Scene {
       for (const e of enemiesToDestroy) {
         this.handleEnemyDOTDeath(e)
       }
+
+      // Apply damage aura if player has the ability
+      this.applyDamageAura(time, playerX, playerY)
 
       // Update gold pickups - check for collection
       const goldCollected = this.goldPool.updateAll(playerX, playerY)

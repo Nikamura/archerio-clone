@@ -46,7 +46,7 @@ export class PlayerStats {
   private lightningChainCount: number = 0  // Number of enemies lightning chains to
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
-  private wallBounces: number = 0  // Number of times arrows bounce off walls
+  private damageAuraLevel: number = 0  // AOE damage aura around player
   private bloodthirstHeal: number = 0  // HP healed per kill
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
 
@@ -277,8 +277,22 @@ export class PlayerStats {
     return this.rearArrows
   }
 
-  getWallBounces(): number {
-    return this.wallBounces
+  getDamageAuraLevel(): number {
+    return this.damageAuraLevel
+  }
+
+  /**
+   * Get damage aura DPS (10 damage per second per level)
+   */
+  getDamageAuraDPS(): number {
+    return this.damageAuraLevel * 10
+  }
+
+  /**
+   * Get damage aura radius (80px base)
+   */
+  getDamageAuraRadius(): number {
+    return this.damageAuraLevel > 0 ? 80 : 0
   }
 
   getBloodthirstHeal(): number {
@@ -434,11 +448,11 @@ export class PlayerStats {
   }
 
   /**
-   * Add Bouncy Wall ability (arrows bounce off walls 2 times per level)
-   * Stacking: Each level adds +2 wall bounces
+   * Add Damage Aura ability (10 DPS in 80px radius)
+   * Stacking: Each level adds +10 DPS
    */
-  addBouncyWall(): void {
-    this.wallBounces += 2
+  addDamageAura(): void {
+    this.damageAuraLevel++
   }
 
   /**
@@ -484,7 +498,7 @@ export class PlayerStats {
     this.lightningChainCount = 0
     this.diagonalArrows = 0
     this.rearArrows = 0
-    this.wallBounces = 0
+    this.damageAuraLevel = 0
     this.bloodthirstHeal = 0
     this.rageLevel = 0
   }
@@ -512,7 +526,7 @@ export class PlayerStats {
     lightningChainCount: number
     diagonalArrows: number
     rearArrows: number
-    wallBounces: number
+    damageAuraLevel: number
     bloodthirstHeal: number
     rageLevel: number
   } {
@@ -536,7 +550,7 @@ export class PlayerStats {
       lightningChainCount: this.lightningChainCount,
       diagonalArrows: this.diagonalArrows,
       rearArrows: this.rearArrows,
-      wallBounces: this.wallBounces,
+      damageAuraLevel: this.damageAuraLevel,
       bloodthirstHeal: this.bloodthirstHeal,
       rageLevel: this.rageLevel,
     }
