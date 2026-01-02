@@ -7,6 +7,7 @@ import { currencyManager } from '../systems/CurrencyManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { dailyRewardManager } from '../systems/DailyRewardManager'
 import { achievementManager } from '../systems/AchievementManager'
+import { chestManager } from '../systems/ChestManager'
 import {
   fadeInScene,
   transitionToScene,
@@ -345,6 +346,37 @@ export default class MainMenuScene extends Phaser.Scene {
 
     // Stagger animate menu buttons entrance
     staggerIn(this, this.menuButtons, 'up', DURATION.FAST, 50)
+
+    // Notification badge for Chests button (if player has chests)
+    const totalChests = chestManager.getTotalChests()
+    if (totalChests > 0) {
+      const chestsButton = this.menuButtons[3] // Chests is at index 3
+      const chestBadgeX = chestsButton.x + chestsButton.width / 2 + 5
+      const chestBadgeY = chestsButton.y - chestsButton.height / 2
+
+      // Red circle badge with count
+      const chestBadge = this.add.circle(chestBadgeX, chestBadgeY, 10, 0xff4444)
+      chestBadge.setDepth(11)
+
+      // Badge count text
+      const chestBadgeCount = this.add.text(chestBadgeX, chestBadgeY, `${totalChests}`, {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      chestBadgeCount.setOrigin(0.5)
+      chestBadgeCount.setDepth(12)
+
+      // Pulse animation on badge
+      this.tweens.add({
+        targets: chestBadge,
+        scale: { from: 1, to: 1.2 },
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
 
     // ============================================
     // DAILY REWARD BUTTON (Below menu buttons)
