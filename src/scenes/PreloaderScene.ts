@@ -100,6 +100,16 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.jpg')
     this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.jpg')
 
+    // Load vaporwave theme assets
+    this.load.image('vaporwave_playerSprite', 'assets/sprites/player/vaporwave_archer.png')
+    this.load.image('vaporwave_bulletSprite', 'assets/sprites/projectile/vaporwave_arrow.png')
+    this.load.image('vaporwave_menuBg', 'assets/backgrounds/vaporwave_menu.jpg')
+    this.load.image('vaporwave_chapter1Bg', 'assets/backgrounds/vaporwave_chapter1.jpg')
+    this.load.image('vaporwave_chapter2Bg', 'assets/backgrounds/vaporwave_chapter2.jpg')
+    this.load.image('vaporwave_chapter3Bg', 'assets/backgrounds/vaporwave_chapter3.jpg')
+    this.load.image('vaporwave_chapter4Bg', 'assets/backgrounds/vaporwave_chapter4.jpg')
+    this.load.image('vaporwave_chapter5Bg', 'assets/backgrounds/vaporwave_chapter5.jpg')
+
     // Load menu effects
     this.load.image('torch', 'assets/sprites/effect/torch.png')
 

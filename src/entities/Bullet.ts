@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { themeManager } from '../systems/ThemeManager'
 
 export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private speed: number = 400
@@ -22,7 +23,9 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'bulletSprite')
+    // Use themed bullet sprite
+    const themeAssets = themeManager.getAssets()
+    super(scene, x, y, themeAssets.bulletSprite)
     scene.add.existing(this)
     scene.physics.add.existing(this)
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { saveManager } from '../systems/SaveManager'
+import { themeManager } from '../systems/ThemeManager'
 import { ABILITIES, type AbilityData } from './LevelUpScene'
 
 interface AcquiredAbility {
@@ -238,8 +239,9 @@ export default class UIScene extends Phaser.Scene {
 
     const percentage = Math.max(0, health / maxHealth)
 
+    const colors = themeManager.getColors()
     this.bossHealthBar.clear()
-    this.bossHealthBar.fillStyle(0xff2222, 1) // Red for boss
+    this.bossHealthBar.fillStyle(colors.bossHealth, 1)
     this.bossHealthBar.fillRect(22, yPos, barWidth * percentage, barHeight)
   }
 
@@ -252,10 +254,11 @@ export default class UIScene extends Phaser.Scene {
   updateHealthBar(percentage: number) {
     this.healthBar.clear()
 
-    // Health bar color based on percentage
-    let color = 0x00ff00 // Green
-    if (percentage < 50) color = 0xffaa00 // Orange
-    if (percentage < 25) color = 0xff0000 // Red
+    // Health bar color based on percentage - use theme colors
+    const colors = themeManager.getColors()
+    let color = colors.healthFull
+    if (percentage < 50) color = colors.healthMid
+    if (percentage < 25) color = colors.healthLow
 
     this.healthBar.fillStyle(color, 1)
     this.healthBar.fillRect(12, 12, percentage * 2, 20)
@@ -267,7 +270,8 @@ export default class UIScene extends Phaser.Scene {
 
   updateXPBar(percentage: number) {
     this.xpBar.clear()
-    this.xpBar.fillStyle(0x4488ff, 1) // Blue for XP
+    const colors = themeManager.getColors()
+    this.xpBar.fillStyle(colors.xpBar, 1)
     this.xpBar.fillRect(12, 42, percentage * 150, 12)
   }
 

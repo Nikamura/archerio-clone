@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { PlayerStats } from '../systems/PlayerStats'
+import { themeManager } from '../systems/ThemeManager'
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   private stats: PlayerStats
@@ -20,10 +21,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     },
     heroId: string = 'atreus'
   ) {
-    // Determine texture key based on heroId
-    // Atreus uses the high-quality game sprite 'playerSprite' (archer.png)
+    // Determine texture key based on heroId and theme
+    // Atreus uses the themed game sprite (playerSprite or vaporwave_playerSprite)
     // Other heroes use their UI icons as fallback game sprites
-    let textureKey = 'playerSprite'
+    const themeAssets = themeManager.getAssets()
+    let textureKey = themeAssets.playerSprite
     if (heroId === 'helix') textureKey = 'heroHelix'
     else if (heroId === 'meowgik') textureKey = 'heroMeowgik'
 

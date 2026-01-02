@@ -1,0 +1,148 @@
+// Theme system definitions
+
+export type ThemeId = 'medieval' | 'vaporwave'
+
+export interface ThemeColors {
+  // Primary button colors (Play button, primary actions)
+  primaryButton: number
+  primaryButtonHover: number
+
+  // Secondary button colors (Menu buttons)
+  secondaryButton: number
+  secondaryButtonHover: number
+
+  // Health bar gradient
+  healthFull: number
+  healthMid: number
+  healthLow: number
+
+  // XP and boss bars
+  xpBar: number
+  bossHealth: number
+
+  // Text colors (CSS format)
+  titleText: string
+  accentText: string
+  mutedText: string
+
+  // Chapter selection colors
+  chapterColors: Record<number, number>
+}
+
+export interface ThemeAssets {
+  playerSprite: string
+  bulletSprite: string
+  menuBg: string
+  chapter1Bg: string
+  chapter2Bg: string
+  chapter3Bg: string
+  chapter4Bg: string
+  chapter5Bg: string
+  loadingBarColor: number
+  loadingBgColor: number
+}
+
+export interface ThemeDefinition {
+  id: ThemeId
+  name: string
+  description: string
+  unlockCost: number
+  unlockCurrency: 'gold' | 'free'
+  colors: ThemeColors
+  assets: ThemeAssets
+}
+
+export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
+  medieval: {
+    id: 'medieval',
+    name: 'Medieval',
+    description: 'The classic dungeon-crawler aesthetic',
+    unlockCost: 0,
+    unlockCurrency: 'free',
+    colors: {
+      primaryButton: 0x4a9eff,
+      primaryButtonHover: 0x6bb6ff,
+      secondaryButton: 0x6b8e23,
+      secondaryButtonHover: 0x7fa32f,
+      healthFull: 0x00ff00,
+      healthMid: 0xffaa00,
+      healthLow: 0xff0000,
+      xpBar: 0x4488ff,
+      bossHealth: 0xff2222,
+      titleText: '#ffffff',
+      accentText: '#ffdd00',
+      mutedText: '#aaaaaa',
+      chapterColors: {
+        1: 0x4a4a4a,
+        2: 0x2d5a27,
+        3: 0x4a8ab5,
+        4: 0x8b2500,
+        5: 0x3d1a5c,
+      },
+    },
+    assets: {
+      playerSprite: 'playerSprite',
+      bulletSprite: 'bulletSprite',
+      menuBg: 'menuBg',
+      chapter1Bg: 'chapter1Bg',
+      chapter2Bg: 'chapter2Bg',
+      chapter3Bg: 'chapter3Bg',
+      chapter4Bg: 'chapter4Bg',
+      chapter5Bg: 'chapter5Bg',
+      loadingBarColor: 0xffffff,
+      loadingBgColor: 0x222222,
+    },
+  },
+  vaporwave: {
+    id: 'vaporwave',
+    name: 'Vaporwave',
+    description: 'Neon lights and retro vibes',
+    unlockCost: 10000,
+    unlockCurrency: 'gold',
+    colors: {
+      primaryButton: 0xff00ff,
+      primaryButtonHover: 0xff66ff,
+      secondaryButton: 0x00ffff,
+      secondaryButtonHover: 0x66ffff,
+      healthFull: 0x00ffff,
+      healthMid: 0xff00ff,
+      healthLow: 0xff0066,
+      xpBar: 0xff00ff,
+      bossHealth: 0xff0066,
+      titleText: '#00ffff',
+      accentText: '#ff00ff',
+      mutedText: '#9999ff',
+      chapterColors: {
+        1: 0x6600cc,
+        2: 0x00cc99,
+        3: 0x0099ff,
+        4: 0xff0066,
+        5: 0x9900ff,
+      },
+    },
+    assets: {
+      playerSprite: 'vaporwave_playerSprite',
+      bulletSprite: 'vaporwave_bulletSprite',
+      menuBg: 'vaporwave_menuBg',
+      chapter1Bg: 'vaporwave_chapter1Bg',
+      chapter2Bg: 'vaporwave_chapter2Bg',
+      chapter3Bg: 'vaporwave_chapter3Bg',
+      chapter4Bg: 'vaporwave_chapter4Bg',
+      chapter5Bg: 'vaporwave_chapter5Bg',
+      loadingBarColor: 0xff00ff,
+      loadingBgColor: 0x1a0033,
+    },
+  },
+}
+
+export function getAllThemeIds(): ThemeId[] {
+  return Object.keys(THEME_DEFINITIONS) as ThemeId[]
+}
+
+export function isValidThemeId(id: string): id is ThemeId {
+  return id in THEME_DEFINITIONS
+}
+
+export function getThemeDefinition(id: ThemeId): ThemeDefinition {
+  return THEME_DEFINITIONS[id]
+}

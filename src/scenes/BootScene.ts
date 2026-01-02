@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { saveManager } from '../systems/SaveManager'
 import { heroManager } from '../systems/HeroManager'
+import { themeManager } from '../systems/ThemeManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { setDifficulty } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
@@ -47,6 +48,13 @@ export default class BootScene extends Phaser.Scene {
       getGems: () => currencyManager.get('gems'),
       spendGold: (amount) => currencyManager.spend('gold', amount),
       spendGems: (amount) => currencyManager.spend('gems', amount),
+      onSave: () => saveManager.save()
+    })
+
+    // Initialize ThemeManager with currency integration
+    themeManager.setCurrencyCallbacks({
+      getGold: () => currencyManager.get('gold'),
+      spendGold: (amount) => currencyManager.spend('gold', amount),
       onSave: () => saveManager.save()
     })
 

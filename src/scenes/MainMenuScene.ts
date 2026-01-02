@@ -8,6 +8,7 @@ import { chapterManager } from '../systems/ChapterManager'
 import { dailyRewardManager } from '../systems/DailyRewardManager'
 import { achievementManager } from '../systems/AchievementManager'
 import { chestManager } from '../systems/ChestManager'
+import { themeManager } from '../systems/ThemeManager'
 import {
   fadeInScene,
   transitionToScene,
@@ -37,9 +38,10 @@ export default class MainMenuScene extends Phaser.Scene {
     const height = this.cameras.main.height
 
     // ============================================
-    // BACKGROUND (depth 0)
+    // BACKGROUND (depth 0) - use themed background
     // ============================================
-    const bg = this.add.image(width / 2, height / 2, 'menuBg')
+    const themeAssets = themeManager.getAssets()
+    const bg = this.add.image(width / 2, height / 2, themeAssets.menuBg)
     bg.setDisplaySize(width, height)
     bg.setDepth(0)
 
@@ -502,6 +504,38 @@ export default class MainMenuScene extends Phaser.Scene {
         ease: 'Sine.easeInOut',
       })
     }
+
+    // ============================================
+    // SHOP BUTTON (Below achievements)
+    // ============================================
+
+    const shopY = achieveY + 45
+
+    const shopButton = this.add.text(width / 2, shopY, 'Shop', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#9932cc',
+      padding: { x: 20, y: 10 },
+    })
+    shopButton.setOrigin(0.5)
+    shopButton.setInteractive({ useHandCursor: true })
+    shopButton.setDepth(10)
+
+    shopButton.on('pointerover', () => {
+      shopButton.setStyle({ backgroundColor: '#ba55d3' })
+    })
+
+    shopButton.on('pointerout', () => {
+      shopButton.setStyle({ backgroundColor: '#9932cc' })
+    })
+
+    shopButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      transitionToScene(this, 'ShopScene', TransitionType.FADE, DURATION.FAST)
+    })
+
+    // Apply button effects to shop button
+    applyButtonEffects(this, shopButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
 
     // Instructions (bottom)
     const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {

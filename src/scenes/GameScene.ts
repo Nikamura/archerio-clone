@@ -28,6 +28,8 @@ import { ParticleManager, createParticleManager } from '../systems/ParticleManag
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { equipmentManager } from '../systems/EquipmentManager'
+import { themeManager } from '../systems/ThemeManager'
+import type { ThemeAssets } from '../config/themeData'
 import { talentManager } from '../systems/TalentManager'
 import type { TalentBonuses } from '../config/talentData'
 import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
@@ -193,10 +195,13 @@ export default class GameScene extends Phaser.Scene {
     // Set physics world bounds to match camera/game size
     this.physics.world.setBounds(0, 0, width, height)
 
-    // Get selected chapter and its background
+    // Get selected chapter and its themed background
     const selectedChapter = chapterManager.getSelectedChapter()
     const chapterDef = getChapterDefinition(selectedChapter)
-    const backgroundKey = chapterDef.theme.backgroundKey
+    // Use theme-aware background key
+    const themeAssets = themeManager.getAssets()
+    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof ThemeAssets
+    const backgroundKey = themeAssets[backgroundKeyName] as string
 
     // Start the chapter run for tracking
     const started = chapterManager.startChapter(selectedChapter)
