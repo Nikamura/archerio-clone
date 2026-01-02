@@ -27,6 +27,8 @@ import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
+import { equipmentManager } from '../systems/EquipmentManager'
+import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
@@ -195,13 +197,42 @@ export default class GameScene extends Phaser.Scene {
     const heroStats = heroManager.getSelectedHeroStats()
     console.log(`GameScene: Selected hero ${selectedHeroId} with stats:`, heroStats)
 
-    // Create player in center with difficulty-adjusted stats
+    // Get equipment stats
+    const equipStats = equipmentManager.getEquippedStats()
+    console.log('GameScene: Equipment stats:', equipStats)
+
+    // Calculate weapon type multipliers (default to 1.0 if no weapon equipped)
+    let weaponDamageMult = 1.0
+    let weaponSpeedMult = 1.0
+    if (equipStats.weaponType && WEAPON_TYPE_CONFIGS[equipStats.weaponType]) {
+      const weaponConfig = WEAPON_TYPE_CONFIGS[equipStats.weaponType]
+      weaponDamageMult = weaponConfig.attackDamageMultiplier
+      weaponSpeedMult = weaponConfig.attackSpeedMultiplier
+    }
+
+    // Calculate final stats with equipment bonuses
+    // Formula: (baseHeroStat + flatBonus) * (1 + percentBonus) * weaponMult * difficultyMult
+    const baseMaxHealth = heroStats.maxHealth + (equipStats.maxHealth ?? 0)
+    const finalMaxHealth = baseMaxHealth * (1 + (equipStats.maxHealthPercent ?? 0)) * (this.difficultyConfig.playerMaxHealth / 100)
+
+    const baseDamage = heroStats.attack + (equipStats.attackDamage ?? 0)
+    const finalDamage = baseDamage * (1 + (equipStats.attackDamagePercent ?? 0)) * weaponDamageMult * (this.difficultyConfig.playerDamage / 10)
+
+    const baseAttackSpeed = heroStats.attackSpeed + (equipStats.attackSpeed ?? 0)
+    const finalAttackSpeed = baseAttackSpeed * (1 + (equipStats.attackSpeedPercent ?? 0)) * weaponSpeedMult * (this.difficultyConfig.playerAttackSpeed / 1.0)
+
+    const finalCritChance = heroStats.critChance + (equipStats.critChance ?? 0)
+    const finalCritDamage = heroStats.critDamage + (equipStats.critDamage ?? 0)
+
+    console.log('GameScene: Final player stats - damage:', finalDamage, 'attackSpeed:', finalAttackSpeed, 'maxHealth:', finalMaxHealth, 'critChance:', finalCritChance)
+
+    // Create player in center with difficulty-adjusted stats and equipment bonuses
     this.player = new Player(this, width / 2, height / 2, {
-      maxHealth: heroStats.maxHealth * (this.difficultyConfig.playerMaxHealth / 100), // Scale relative to difficulty
-      baseDamage: heroStats.attack * (this.difficultyConfig.playerDamage / 10), // Scale relative to difficulty
-      baseAttackSpeed: heroStats.attackSpeed * (this.difficultyConfig.playerAttackSpeed / 1.0), // Scale relative to difficulty
-      critChance: heroStats.critChance,
-      critDamage: heroStats.critDamage,
+      maxHealth: finalMaxHealth,
+      baseDamage: finalDamage,
+      baseAttackSpeed: finalAttackSpeed,
+      critChance: finalCritChance,
+      critDamage: finalCritDamage,
     }, selectedHeroId)
 
     // Create bullet pools, bomb pool, gold pool, and health pool
