@@ -15,7 +15,8 @@
     "test:all": "vitest run --config vitest.all.config.ts",
     "generate-image": "tsx scripts/generate-image.ts",
     "generate-sprite": "tsx scripts/generate-sprite.ts",
-    "remove-bg": "tsx scripts/remove-background.ts"
+    "remove-bg": "tsx scripts/remove-background.ts",
+    "optimize-assets": "tsx scripts/optimize-assets.ts"
   },
   "dependencies": {
     "nipplejs": "^0.10.2",
