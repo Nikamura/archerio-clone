@@ -57,14 +57,9 @@ class ErrorReportingManager {
         // 1.0 = 100% of errors, 0.1 = 10% of errors
         sampleRate: 1.0,
 
-        // Enable experimental logging
-        _experiments: {
-          enableLogs: true,
-        },
-
-        // Add console logging integration
+        // Capture console.warn and console.error as Sentry events
         integrations: [
-          Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+          Sentry.captureConsoleIntegration({ levels: ['warn', 'error'] }),
         ],
 
         // Filter out noise
