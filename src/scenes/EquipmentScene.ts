@@ -104,6 +104,9 @@ export default class EquipmentScene extends Phaser.Scene {
     // Listen for equipment changes
     this.setupEventListeners()
 
+    // Ensure cleanup when scene shuts down (handles all transition types)
+    this.events.once('shutdown', this.shutdown, this)
+
     // Initial render
     this.refreshDisplay()
   }
@@ -486,6 +489,9 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private refreshDisplay(): void {
+    // Guard: Don't update if scene is no longer active (prevents errors from stale event handlers)
+    if (!this.scene.isActive()) return
+
     this.refreshEquippedSlots()
     this.refreshInventorySlots()
     this.updateFusionButton()

@@ -64,6 +64,9 @@ export default class ChestScene extends Phaser.Scene {
     // Listen for inventory changes
     this.setupEventListeners()
 
+    // Ensure cleanup when scene shuts down (handles all transition types)
+    this.events.once('shutdown', this.shutdown, this)
+
     // Initial update
     this.updateChestCounts()
   }
