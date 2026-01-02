@@ -54,6 +54,13 @@ export default class EquipmentScene extends Phaser.Scene {
   private goldText: Phaser.GameObjects.Text | null = null
   private fusionButton: Phaser.GameObjects.Text | null = null
 
+  // Event handler references for cleanup
+  private inventoryChangedHandler: (() => void) | null = null
+  private equippedChangedHandler: (() => void) | null = null
+  private itemUpgradedHandler: (() => void) | null = null
+  private itemFusedHandler: (() => void) | null = null
+  private itemSoldHandler: (() => void) | null = null
+
   // Scroll state for inventory
   private inventoryContainer: Phaser.GameObjects.Container | null = null
   private scrollOffset = 0
@@ -451,27 +458,37 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private setupEventListeners(): void {
-    equipmentManager.on(EQUIPMENT_EVENTS.INVENTORY_CHANGED, () => {
+    // Store handler references so we can properly unsubscribe in shutdown
+    this.inventoryChangedHandler = () => {
       this.refreshDisplay()
-    })
-    equipmentManager.on(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, () => {
+    }
+    this.equippedChangedHandler = () => {
       this.refreshDisplay()
-    })
-    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_UPGRADED, () => {
+    }
+    this.itemUpgradedHandler = () => {
       this.refreshDisplay()
       this.updateGoldDisplay()
-    })
-    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_FUSED, () => {
+    }
+    this.itemFusedHandler = () => {
       this.refreshDisplay()
       this.hideDetailPanel()
-    })
-    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_SOLD, () => {
+    }
+    this.itemSoldHandler = () => {
       this.refreshDisplay()
       this.updateGoldDisplay()
-    })
+    }
+
+    equipmentManager.on(EQUIPMENT_EVENTS.INVENTORY_CHANGED, this.inventoryChangedHandler)
+    equipmentManager.on(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, this.equippedChangedHandler)
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_UPGRADED, this.itemUpgradedHandler)
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_FUSED, this.itemFusedHandler)
+    equipmentManager.on(EQUIPMENT_EVENTS.ITEM_SOLD, this.itemSoldHandler)
   }
 
   private refreshDisplay(): void {
+    // Guard against updates on inactive/destroyed scene
+    if (!this.scene.isActive()) return
+
     this.refreshEquippedSlots()
     this.refreshInventorySlots()
     this.updateFusionButton()
@@ -886,11 +903,26 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   shutdown(): void {
-    // Clean up event listeners
-    equipmentManager.off(EQUIPMENT_EVENTS.INVENTORY_CHANGED)
-    equipmentManager.off(EQUIPMENT_EVENTS.EQUIPPED_CHANGED)
-    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_UPGRADED)
-    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_FUSED)
-    equipmentManager.off(EQUIPMENT_EVENTS.ITEM_SOLD)
+    // Clean up event listeners to prevent updates on destroyed objects
+    if (this.inventoryChangedHandler) {
+      equipmentManager.off(EQUIPMENT_EVENTS.INVENTORY_CHANGED, this.inventoryChangedHandler)
+      this.inventoryChangedHandler = null
+    }
+    if (this.equippedChangedHandler) {
+      equipmentManager.off(EQUIPMENT_EVENTS.EQUIPPED_CHANGED, this.equippedChangedHandler)
+      this.equippedChangedHandler = null
+    }
+    if (this.itemUpgradedHandler) {
+      equipmentManager.off(EQUIPMENT_EVENTS.ITEM_UPGRADED, this.itemUpgradedHandler)
+      this.itemUpgradedHandler = null
+    }
+    if (this.itemFusedHandler) {
+      equipmentManager.off(EQUIPMENT_EVENTS.ITEM_FUSED, this.itemFusedHandler)
+      this.itemFusedHandler = null
+    }
+    if (this.itemSoldHandler) {
+      equipmentManager.off(EQUIPMENT_EVENTS.ITEM_SOLD, this.itemSoldHandler)
+      this.itemSoldHandler = null
+    }
   }
 }

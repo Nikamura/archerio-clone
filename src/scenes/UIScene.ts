@@ -11,6 +11,7 @@ interface AcquiredAbility {
 export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics
   private healthBarBg!: Phaser.GameObjects.Graphics
+  private healthText!: Phaser.GameObjects.Text
   private xpBar!: Phaser.GameObjects.Graphics
   private xpBarBg!: Phaser.GameObjects.Graphics
   private levelText!: Phaser.GameObjects.Text
@@ -57,8 +58,18 @@ export default class UIScene extends Phaser.Scene {
 
     // Health bar
     this.healthBar = this.add.graphics()
-    this.updateHealthBar(100)
+    this.updateHealthBar(100, 100, 100)
     this.hudContainer.add(this.healthBar)
+
+    // Health text (displayed on the health bar)
+    this.healthText = this.add.text(112, 22, '100/100', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    })
+    this.healthText.setOrigin(0.5)
+    this.healthText.setStroke('#000000', 2)
+    this.hudContainer.add(this.healthText)
 
     // XP bar background (below health bar)
     this.xpBarBg = this.add.graphics()
@@ -80,8 +91,9 @@ export default class UIScene extends Phaser.Scene {
     this.hudContainer.add(this.levelText)
 
     // Listen for health updates from GameScene
-    this.events.on('updateHealth', (healthPercentage: number) => {
-      this.updateHealthBar(healthPercentage)
+    this.events.on('updateHealth', (currentHealth: number, maxHealth: number) => {
+      const percentage = (currentHealth / maxHealth) * 100
+      this.updateHealthBar(percentage, currentHealth, maxHealth)
     })
 
     // Listen for XP updates from GameScene
@@ -251,7 +263,7 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  updateHealthBar(percentage: number) {
+  updateHealthBar(percentage: number, currentHealth: number, maxHealth: number) {
     this.healthBar.clear()
 
     // Health bar color based on percentage - use theme colors
@@ -262,6 +274,9 @@ export default class UIScene extends Phaser.Scene {
 
     this.healthBar.fillStyle(color, 1)
     this.healthBar.fillRect(12, 12, percentage * 2, 20)
+
+    // Update health text
+    this.healthText.setText(`${Math.ceil(currentHealth)}/${Math.ceil(maxHealth)}`)
   }
 
   updateRoomCounter(currentRoom: number, totalRooms: number) {
