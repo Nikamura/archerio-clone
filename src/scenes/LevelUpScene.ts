@@ -230,8 +230,8 @@ export default class LevelUpScene extends Phaser.Scene {
     // Create particles around title
     this.createTitleParticles(width)
 
-    // Global input log for debugging
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    // Global input log for debugging (use once to avoid listener accumulation)
+    this.input.once('pointerdown', (pointer: Phaser.Input.Pointer) => {
       console.log('LevelUpScene: Global pointerdown at', pointer.x, pointer.y)
     })
 
@@ -689,10 +689,28 @@ export default class LevelUpScene extends Phaser.Scene {
    * Clean up scene resources
    */
   shutdown() {
+    // Clean up selection timer
     if (this.selectionTimer) {
       this.selectionTimer.destroy()
       this.selectionTimer = undefined
     }
+
+    // CRITICAL: Remove all input listeners to prevent accumulation
+    this.input.removeAllListeners()
+
+    // Disable all interactive buttons to prevent ghost clicks
+    this.buttons.forEach(btn => {
+      if (btn && btn.input) {
+        btn.removeAllListeners()
+        btn.disableInteractive()
+      }
+    })
+    this.buttons = []
+
+    // Clear ability cards array
+    this.abilityCards = []
+
+    // Kill all tweens
     this.tweens.killAll()
   }
 }
