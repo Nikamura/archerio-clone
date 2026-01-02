@@ -1,6 +1,11 @@
 import Phaser from 'phaser'
 import { saveManager } from '../systems/SaveManager'
-import { type AbilityData } from './LevelUpScene'
+import { ABILITIES, type AbilityData } from './LevelUpScene'
+
+interface AcquiredAbility {
+  id: string
+  level: number
+}
 
 export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics
@@ -27,6 +32,9 @@ export default class UIScene extends Phaser.Scene {
   // Reset level button (always visible)
   private resetLevelButton!: Phaser.GameObjects.Container
   private resetLevelText!: Phaser.GameObjects.Text
+
+  // Skills bar (shows acquired abilities)
+  private skillsContainer!: Phaser.GameObjects.Container
 
   constructor() {
     super({ key: 'UIScene' })
@@ -111,6 +119,11 @@ export default class UIScene extends Phaser.Scene {
       this.showAutoLevelUpNotification(ability)
     })
 
+    // Listen for abilities update
+    this.events.on('updateAbilities', (abilities: AcquiredAbility[]) => {
+      this.updateSkillsBar(abilities)
+    })
+
     // Room counter
     this.roomText = this.add.text(
       this.cameras.main.width / 2,
@@ -175,6 +188,9 @@ export default class UIScene extends Phaser.Scene {
 
     // Create reset level button
     this.createResetLevelButton()
+
+    // Create skills bar container
+    this.createSkillsBar()
 
     console.log('UIScene: Created')
   }
@@ -496,6 +512,80 @@ export default class UIScene extends Phaser.Scene {
     })
   }
 
+  /**
+   * Create the skills bar container
+   */
+  private createSkillsBar(): void {
+    // Position below level text, aligned to left
+    this.skillsContainer = this.add.container(10, 65)
+    this.skillsContainer.setDepth(10)
+    this.hudContainer.add(this.skillsContainer)
+  }
+
+  /**
+   * Update the skills bar when abilities are acquired
+   */
+  private updateSkillsBar(abilities: AcquiredAbility[]): void {
+    // Clear existing skill icons
+    this.skillsContainer.removeAll(true)
+
+    // Display skills in a horizontal row
+    const iconSize = 24
+    const iconSpacing = 28
+    const maxDisplay = 10 // Max skills to display in a row
+
+    abilities.slice(0, maxDisplay).forEach((acquired, index) => {
+      // Find the ability data
+      const abilityData = ABILITIES.find(a => a.id === acquired.id)
+      if (!abilityData) return
+
+      const x = index * iconSpacing
+
+      // Skill icon background (colored border)
+      const iconBg = this.add.rectangle(x, 0, iconSize + 2, iconSize + 2, 0x111111)
+      iconBg.setStrokeStyle(1, abilityData.color)
+      this.skillsContainer.add(iconBg)
+
+      // Skill icon
+      if (this.textures.exists(abilityData.iconKey)) {
+        const icon = this.add.image(x, 0, abilityData.iconKey)
+        icon.setDisplaySize(iconSize, iconSize)
+        this.skillsContainer.add(icon)
+      } else {
+        // Fallback: colored circle
+        const circle = this.add.circle(x, 0, iconSize / 2 - 2, abilityData.color)
+        this.skillsContainer.add(circle)
+      }
+
+      // Level badge (bottom-right corner) if level > 1
+      if (acquired.level > 1) {
+        const badgeX = x + iconSize / 2 - 4
+        const badgeY = iconSize / 2 - 4
+
+        // Badge background
+        const badge = this.add.circle(badgeX, badgeY, 7, 0x000000, 0.9)
+        this.skillsContainer.add(badge)
+
+        // Level number
+        const levelText = this.add.text(badgeX, badgeY, `${acquired.level}`, {
+          fontSize: '9px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+        }).setOrigin(0.5)
+        this.skillsContainer.add(levelText)
+      }
+    })
+
+    // Show overflow indicator if more skills
+    if (abilities.length > maxDisplay) {
+      const moreText = this.add.text(maxDisplay * iconSpacing, 0, `+${abilities.length - maxDisplay}`, {
+        fontSize: '12px',
+        color: '#888888',
+      }).setOrigin(0, 0.5)
+      this.skillsContainer.add(moreText)
+    }
+  }
+
   shutdown() {
     // Remove all event listeners to prevent memory leaks
     this.events.off('updateHealth')
@@ -507,5 +597,6 @@ export default class UIScene extends Phaser.Scene {
     this.events.off('roomCleared')
     this.events.off('roomEntered')
     this.events.off('showAutoLevelUp')
+    this.events.off('updateAbilities')
   }
 }

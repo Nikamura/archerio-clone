@@ -76,6 +76,7 @@ export default class GameScene extends Phaser.Scene {
   private runStartTime: number = 0
   private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
+  private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
   // Room generation system
   private roomGenerator!: RoomGenerator
@@ -163,6 +164,7 @@ export default class GameScene extends Phaser.Scene {
     this.runStartTime = Date.now()
     this.abilitiesGained = 0
     this.goldEarned = 0
+    this.acquiredAbilities = new Map()
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -743,6 +745,7 @@ export default class GameScene extends Phaser.Scene {
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
+        acquiredAbilities: this.getAcquiredAbilitiesArray(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1137,7 +1140,22 @@ export default class GameScene extends Phaser.Scene {
         break
     }
     this.abilitiesGained++
-    console.log(`Applied ability: ${abilityId} (total: ${this.abilitiesGained})`)
+
+    // Track ability with its level
+    const currentLevel = this.acquiredAbilities.get(abilityId) || 0
+    this.acquiredAbilities.set(abilityId, currentLevel + 1)
+
+    // Notify UIScene about ability update
+    this.scene.get('UIScene').events.emit('updateAbilities', this.getAcquiredAbilitiesArray())
+
+    console.log(`Applied ability: ${abilityId} (level: ${currentLevel + 1}, total: ${this.abilitiesGained})`)
+  }
+
+  /**
+   * Convert acquired abilities map to array for passing to other scenes
+   */
+  private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
+    return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
   }
 
   private enemyBulletHitPlayer(
@@ -1408,6 +1426,7 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitiesGained,
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
+        acquiredAbilities: this.getAcquiredAbilitiesArray(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
