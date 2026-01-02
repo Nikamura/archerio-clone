@@ -98,6 +98,9 @@ export default class GameScene extends Phaser.Scene {
   private lastAuraDamageTime: number = 0
   private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms (2x per second)
 
+  // Damage aura visual effect
+  private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
+
   constructor() {
     super({ key: 'GameScene' })
   }
@@ -248,6 +251,10 @@ export default class GameScene extends Phaser.Scene {
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
     this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Create damage aura graphics (rendered below player)
+    this.damageAuraGraphics = this.add.graphics()
+    this.damageAuraGraphics.setDepth(this.player.depth - 1)
 
     // Initialize performance monitoring (debug mode only)
     if (this.game.config.physics?.arcade?.debug) {
@@ -1614,6 +1621,39 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Update the damage aura visual effect around the player
+   * Shows a pulsing circle when damage aura ability is active
+   */
+  private updateDamageAuraVisual(time: number, playerX: number, playerY: number): void {
+    if (!this.damageAuraGraphics) return
+
+    const auraRadius = this.player.getDamageAuraRadius()
+
+    // Clear previous frame
+    this.damageAuraGraphics.clear()
+
+    // Only draw if player has damage aura ability
+    if (auraRadius <= 0) return
+
+    // Create pulsing effect
+    const pulseSpeed = 0.003 // Pulse speed
+    const pulsePhase = (Math.sin(time * pulseSpeed) + 1) / 2 // 0 to 1
+    const pulseAlpha = 0.15 + pulsePhase * 0.2 // 0.15 to 0.35
+
+    // Outer ring - main aura boundary
+    this.damageAuraGraphics.lineStyle(3, 0xff4400, 0.5 + pulsePhase * 0.3)
+    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius)
+
+    // Inner glow - fills the aura area
+    this.damageAuraGraphics.fillStyle(0xff4400, pulseAlpha * 0.4)
+    this.damageAuraGraphics.fillCircle(playerX, playerY, auraRadius)
+
+    // Inner ring for depth effect
+    this.damageAuraGraphics.lineStyle(2, 0xff6600, 0.3 + pulsePhase * 0.2)
+    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius * 0.7)
+  }
+
+  /**
    * Apply damage aura to nearby enemies
    * Deals DPS damage every AURA_DAMAGE_INTERVAL ms to enemies within radius
    */
@@ -1949,7 +1989,8 @@ export default class GameScene extends Phaser.Scene {
         this.handleEnemyDOTDeath(e)
       }
 
-      // Apply damage aura if player has the ability
+      // Update damage aura visual and apply damage if player has the ability
+      this.updateDamageAuraVisual(time, playerX, playerY)
       this.applyDamageAura(time, playerX, playerY)
 
       // Update gold pickups - check for collection
@@ -2017,6 +2058,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.particles) {
       this.particles.destroy()
       this.particles = null!
+    }
+
+    // Clean up damage aura graphics
+    if (this.damageAuraGraphics) {
+      this.damageAuraGraphics.destroy()
+      this.damageAuraGraphics = null
     }
 
     // Clean up pools
