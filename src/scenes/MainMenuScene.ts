@@ -526,12 +526,15 @@ export default class MainMenuScene extends Phaser.Scene {
       const isSelected = chapterId === selectedChapterId
       const xPos = chapterStartX + index * (chapterBtnSize + chapterGap)
 
+      // Pre-compute colors once
+      const themeColor = chapterColors[chapterId]
+      const hoverColor = Phaser.Display.Color.ValueToColor(themeColor).lighten(30).color
+
       // Create container for chapter button
       const container = this.add.container(xPos, chapterY)
       container.setDepth(10)
 
       // Background with chapter theme color
-      const themeColor = chapterColors[chapterId]
       const bgColor = isSelected ? 0x4a9eff : (isUnlocked ? themeColor : 0x222222)
       const bg = this.add.rectangle(0, 0, chapterBtnSize, chapterBtnSize, bgColor, 1)
       bg.setStrokeStyle(3, isSelected ? 0xffffff : (isUnlocked ? 0xaaaaaa : 0x444444))
@@ -578,27 +581,23 @@ export default class MainMenuScene extends Phaser.Scene {
       }
       container.sendToBack(bg)
 
-      // Make interactive if unlocked
+      // Make interactive if unlocked - use the bg rectangle directly for cleaner hit detection
       if (isUnlocked) {
-        container.setSize(chapterBtnSize, chapterBtnSize)
-        container.setInteractive(
-          new Phaser.Geom.Rectangle(-chapterBtnSize / 2, -chapterBtnSize / 2, chapterBtnSize, chapterBtnSize),
-          Phaser.Geom.Rectangle.Contains
-        )
+        bg.setInteractive({ useHandCursor: true })
 
-        container.on('pointerover', () => {
+        bg.on('pointerover', () => {
           if (chapterId !== chapterManager.getSelectedChapter()) {
-            bg.setFillStyle(0x666666)
+            bg.setFillStyle(hoverColor)
           }
         })
 
-        container.on('pointerout', () => {
+        bg.on('pointerout', () => {
           if (chapterId !== chapterManager.getSelectedChapter()) {
-            bg.setFillStyle(0x555555)
+            bg.setFillStyle(themeColor)
           }
         })
 
-        container.on('pointerdown', () => {
+        bg.on('pointerdown', () => {
           audioManager.playMenuSelect()
           chapterManager.selectChapter(chapterId)
           this.updateChapterButtons()
@@ -609,6 +608,7 @@ export default class MainMenuScene extends Phaser.Scene {
       container.setData('chapterId', chapterId)
       container.setData('bg', bg)
       container.setData('themeColor', themeColor)
+      container.setData('hoverColor', hoverColor)
       this.chapterButtons.push(container)
     })
   }
