@@ -48,12 +48,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setDrag(800, 800)
 
     // Set up centered circular hitbox for player
+    // Note: Only use setCircle without setSize - calling setSize first can cause
+    // world bounds collision to use incorrect body dimensions
     if (this.body) {
+      const body = this.body as Phaser.Physics.Arcade.Body
       const displaySize = 64
       const radius = 16 // Player hitbox - not too large to allow dodging
+      // Offset centers the 32px diameter circle within the 64px display
       const offset = (displaySize - radius * 2) / 2
-      this.body.setSize(displaySize, displaySize)
-      this.body.setCircle(radius, offset, offset)
+      body.setCircle(radius, offset, offset)
     }
 
     console.log('Player created at', x, y, 'with stats:', statsOptions)
