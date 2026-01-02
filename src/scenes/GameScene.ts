@@ -730,7 +730,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Brief delay before showing victory screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene first
+      // Stop LevelUpScene if running (player might have leveled up right before victory)
+      this.scene.stop('LevelUpScene')
+
+      // Stop UIScene
       this.scene.stop('UIScene')
 
       // Launch victory scene (reusing GameOverScene for now)
@@ -1393,7 +1396,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Brief delay before showing game over screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene first
+      // Stop LevelUpScene if running (player might have died during level up selection)
+      this.scene.stop('LevelUpScene')
+
+      // Stop UIScene
       this.scene.stop('UIScene')
 
       // Launch game over scene with stats
