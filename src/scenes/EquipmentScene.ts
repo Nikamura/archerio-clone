@@ -509,9 +509,9 @@ export default class EquipmentScene extends Phaser.Scene {
     UIAnimations.applyButtonEffects(this, closeBtn)
     this.detailPanel.add(closeBtn)
 
-    // Item large sprite
+    // Item large sprite - use setDisplaySize to avoid scaling issues with missing textures
     const largeSprite = this.add.image(-panelWidth / 2 + 60, -panelHeight / 2 + 70, `equip_${item.type}`)
-    largeSprite.setScale(80 / largeSprite.width)
+    largeSprite.setDisplaySize(80, 80)
     this.detailPanel.add(largeSprite)
 
     // Item name with rarity
