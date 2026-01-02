@@ -66,6 +66,7 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('enemyBomber', 'assets/sprites/enemy/bomber.png')
     this.load.image('enemyTank', 'assets/sprites/enemy/tank.png')
     this.load.image('enemyCharger', 'assets/sprites/enemy/charger.png')
+    this.load.image('enemyBurrower', 'assets/sprites/enemy/burrower.png')
     this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
     // Chapter 2 - Forest bosses
     this.load.image('boss_tree_guardian', 'assets/sprites/boss/tree_guardian.png')
@@ -89,15 +90,15 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('enemyBulletSprite', 'assets/sprites/projectile/enemy_fireball.png')
 
     // Load background
-    this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.png')
-    this.load.image('menuBg', 'assets/backgrounds/menu_bg.png')
+    this.load.image('dungeonFloor', 'assets/backgrounds/dungeon_floor.jpg')
+    this.load.image('menuBg', 'assets/backgrounds/menu_bg.jpg')
 
     // Load chapter-specific backgrounds
-    this.load.image('chapter1Bg', 'assets/backgrounds/chapter1_dungeon.png')
-    this.load.image('chapter2Bg', 'assets/backgrounds/chapter2_forest.png')
-    this.load.image('chapter3Bg', 'assets/backgrounds/chapter3_ice.png')
-    this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.png')
-    this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.png')
+    this.load.image('chapter1Bg', 'assets/backgrounds/chapter1_dungeon.jpg')
+    this.load.image('chapter2Bg', 'assets/backgrounds/chapter2_forest.jpg')
+    this.load.image('chapter3Bg', 'assets/backgrounds/chapter3_ice.jpg')
+    this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.jpg')
+    this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.jpg')
 
     // Load menu effects
     this.load.image('torch', 'assets/sprites/effect/torch.png')
