@@ -16,8 +16,8 @@ const JOYSTICK_CONFIG = {
   BASE_ALPHA: 0.3,
   THUMB_COLOR: 0x4a9eff,
   THUMB_ALPHA: 0.6,
-  // Touch zone (left portion of screen)
-  TOUCH_ZONE_WIDTH_RATIO: 0.6,
+  // Touch zone - bottom portion of screen (0.5 = bottom 50%)
+  TOUCH_ZONE_TOP_RATIO: 0.5,
 }
 
 export default class Joystick {
@@ -64,9 +64,9 @@ export default class Joystick {
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!this.isVisible) return
 
-      // Only activate if touch is in the left portion of screen
-      const touchZoneWidth = this.scene.scale.width * JOYSTICK_CONFIG.TOUCH_ZONE_WIDTH_RATIO
-      if (pointer.x > touchZoneWidth) return
+      // Only activate if touch is in the bottom portion of screen (below buttons)
+      const touchZoneTop = this.scene.scale.height * JOYSTICK_CONFIG.TOUCH_ZONE_TOP_RATIO
+      if (pointer.y < touchZoneTop) return
 
       // Only activate if no joystick is currently active
       if (this.isActive) return
