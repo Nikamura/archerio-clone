@@ -55,6 +55,47 @@ function calculateGoldEarned(enemiesKilled: number, bossDefeated: boolean): numb
   return baseGold + bossGold
 }
 
+/**
+ * Score breakdown for display
+ */
+interface ScoreBreakdown {
+  killPoints: number
+  roomPoints: number
+  goldPoints: number
+  timeBonus: number
+  victoryBonus: number
+  total: number
+}
+
+/** Maximum time (5 minutes) for time bonus calculation */
+const MAX_TIME_BONUS_MS = 5 * 60 * 1000
+
+/**
+ * Calculate run score from performance metrics
+ */
+function calculateScore(
+  enemiesKilled: number,
+  roomsCleared: number,
+  goldEarned: number,
+  playTimeMs: number,
+  isVictory: boolean
+): ScoreBreakdown {
+  const killPoints = enemiesKilled * 10
+  const roomPoints = roomsCleared * roomsCleared * 25
+  const goldPoints = Math.floor(goldEarned * 0.5)
+  const timeBonus = Math.max(0, Math.floor((MAX_TIME_BONUS_MS - playTimeMs) / 1000) * 2)
+  const victoryBonus = isVictory ? 500 : 0
+
+  return {
+    killPoints,
+    roomPoints,
+    goldPoints,
+    timeBonus,
+    victoryBonus,
+    total: killPoints + roomPoints + goldPoints + timeBonus + victoryBonus,
+  }
+}
+
 export default class GameOverScene extends Phaser.Scene {
   private stats: GameOverData = { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
   private goldEarned: number = 0
@@ -62,6 +103,8 @@ export default class GameOverScene extends Phaser.Scene {
   private rewardsCollected: boolean = false
   private runSeed: string = ''
   private acquiredAbilities: AcquiredAbility[] = []
+  private scoreBreakdown: ScoreBreakdown | null = null
+  private isNewHighScore: boolean = false
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -83,6 +126,19 @@ export default class GameOverScene extends Phaser.Scene {
       this.stats.isVictory ?? false
     )
 
+    // Calculate score
+    this.scoreBreakdown = calculateScore(
+      this.stats.enemiesKilled,
+      this.stats.roomsCleared,
+      this.goldEarned,
+      this.stats.playTimeMs ?? 0,
+      this.stats.isVictory ?? false
+    )
+
+    // Check if new high score
+    const previousHighScore = saveManager.getStatistics().highestScore
+    this.isNewHighScore = this.scoreBreakdown.total > previousHighScore
+
     // Record run statistics to save data
     this.recordRunStats()
   }
@@ -102,6 +158,7 @@ export default class GameOverScene extends Phaser.Scene {
       bossDefeated: isVictory,
       abilitiesGained: this.stats.abilitiesGained ?? 0,
       victory: isVictory,
+      score: this.scoreBreakdown?.total ?? 0,
     })
 
     // Update chapter progress in SaveManager for persistence
@@ -228,8 +285,11 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
+    // Score display
+    this.displayScore(statsStartY + lineHeight * 3)
+
     // Chest rewards section
-    const chestsY = statsStartY + lineHeight * 3.5
+    const chestsY = statsStartY + lineHeight * 5.5
 
     this.add
       .text(width / 2, chestsY, 'REWARDS', {
@@ -293,6 +353,67 @@ export default class GameOverScene extends Phaser.Scene {
       // List all running scenes
       const activeScenes = this.scene.manager.getScenes(true).map(s => s.scene.key)
       debugToast.show(`Active scenes: ${activeScenes.join(', ')}`)
+    }
+  }
+
+  /**
+   * Display score with breakdown
+   */
+  private displayScore(startY: number): void {
+    const width = this.cameras.main.width
+    if (!this.scoreBreakdown) return
+
+    // Main score
+    const scoreText = this.isNewHighScore
+      ? `SCORE: ${this.scoreBreakdown.total.toLocaleString()} - NEW BEST!`
+      : `SCORE: ${this.scoreBreakdown.total.toLocaleString()}`
+
+    const scoreColor = this.isNewHighScore ? '#00ff88' : '#ffffff'
+
+    this.add
+      .text(width / 2, startY, scoreText, {
+        fontSize: this.isNewHighScore ? '26px' : '22px',
+        fontFamily: 'Arial',
+        color: scoreColor,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    // Score breakdown (smaller text)
+    const breakdown = [
+      `Kills: +${this.scoreBreakdown.killPoints}`,
+      `Rooms: +${this.scoreBreakdown.roomPoints}`,
+      `Gold: +${this.scoreBreakdown.goldPoints}`,
+    ]
+    if (this.scoreBreakdown.timeBonus > 0) {
+      breakdown.push(`Speed: +${this.scoreBreakdown.timeBonus}`)
+    }
+    if (this.scoreBreakdown.victoryBonus > 0) {
+      breakdown.push(`Victory: +${this.scoreBreakdown.victoryBonus}`)
+    }
+
+    this.add
+      .text(width / 2, startY + 24, breakdown.join(' | '), {
+        fontSize: '11px',
+        fontFamily: 'Arial',
+        color: '#888888',
+      })
+      .setOrigin(0.5)
+
+    // Personal best (if not new high score)
+    if (!this.isNewHighScore && saveManager.getStatistics().highestScore > 0) {
+      this.add
+        .text(
+          width / 2,
+          startY + 42,
+          `Best: ${saveManager.getStatistics().highestScore.toLocaleString()}`,
+          {
+            fontSize: '13px',
+            fontFamily: 'Arial',
+            color: '#666666',
+          }
+        )
+        .setOrigin(0.5)
     }
   }
 

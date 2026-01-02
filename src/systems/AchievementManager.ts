@@ -12,8 +12,10 @@ import {
   ACHIEVEMENTS,
   getAchievementById,
 } from '../config/achievementData'
-import { saveManager, EquipmentSlot } from './SaveManager'
+import { saveManager } from './SaveManager'
 import { currencyManager } from './CurrencyManager'
+import { equipmentManager } from './EquipmentManager'
+import { talentManager } from './TalentManager'
 
 // ============================================
 // Types and Interfaces
@@ -157,8 +159,6 @@ export class AchievementManager {
   private getStatValue(statKey: string): number {
     const stats = saveManager.getStatistics()
     const heroes = saveManager.getAllHeroes()
-    const equipped = saveManager.getData().equipped
-    const talents = saveManager.getData().talents
 
     switch (statKey) {
       case 'totalKills':
@@ -173,12 +173,14 @@ export class AchievementManager {
       case 'unlockedHeroes':
         // Count unlocked heroes
         return Object.values(heroes).filter((h) => h.unlocked).length
-      case 'equippedSlots':
-        // Count equipped slots
-        return Object.values(EquipmentSlot).filter((slot) => equipped[slot] !== null).length
+      case 'equippedSlots': {
+        // Count equipped slots from EquipmentManager (not SaveManager)
+        const allEquipped = equipmentManager.getAllEquipped()
+        return Object.values(allEquipped).filter((item) => item !== null).length
+      }
       case 'unlockedTalents':
-        // Count unique talents unlocked
-        return talents.filter((t) => t.level > 0).length
+        // Count unique talents from TalentManager (not SaveManager)
+        return talentManager.getAllUnlockedTalents().length
       default:
         console.warn(`AchievementManager: Unknown stat key "${statKey}"`)
         return 0

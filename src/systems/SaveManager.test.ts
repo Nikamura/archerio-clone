@@ -388,6 +388,7 @@ describe('SaveManager', () => {
         bossDefeated: false,
         abilitiesGained: 3,
         victory: false,
+        score: 1000,
       })
 
       const stats = saveManager.getStatistics()
@@ -408,6 +409,7 @@ describe('SaveManager', () => {
         bossDefeated: true,
         abilitiesGained: 5,
         victory: true,
+        score: 5000,
       })
 
       const stats = saveManager.getStatistics()
@@ -425,6 +427,7 @@ describe('SaveManager', () => {
         bossDefeated: false,
         abilitiesGained: 2,
         victory: false,
+        score: 800,
       })
 
       saveManager.recordRun({
@@ -434,6 +437,7 @@ describe('SaveManager', () => {
         bossDefeated: true,
         abilitiesGained: 4,
         victory: true,
+        score: 4000,
       })
 
       const stats = saveManager.getStatistics()
@@ -453,6 +457,7 @@ describe('SaveManager', () => {
         bossDefeated: true,
         abilitiesGained: 5,
         victory: true,
+        score: 5000,
       })
 
       saveManager.recordRun({
@@ -462,6 +467,7 @@ describe('SaveManager', () => {
         bossDefeated: false,
         abilitiesGained: 1,
         victory: false,
+        score: 500,
       })
 
       const stats = saveManager.getStatistics()

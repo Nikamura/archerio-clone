@@ -95,6 +95,7 @@ export interface PlayerStatistics {
   abilitiesAcquired: number
   longestRun: number // in rooms
   fastestBossKill: number // in milliseconds, 0 if never killed
+  highestScore: number // personal best score
 }
 
 /**
@@ -200,6 +201,7 @@ function getDefaultStatistics(): PlayerStatistics {
     abilitiesAcquired: 0,
     longestRun: 0,
     fastestBossKill: 0,
+    highestScore: 0,
   }
 }
 
@@ -737,6 +739,7 @@ export class SaveManager {
     bossDefeated: boolean
     abilitiesGained: number
     victory: boolean
+    score: number
   }): void {
     const stats = this.data.statistics
 
@@ -759,6 +762,10 @@ export class SaveManager {
 
     if (options.roomsCleared > stats.longestRun) {
       stats.longestRun = options.roomsCleared
+    }
+
+    if (options.score > stats.highestScore) {
+      stats.highestScore = options.score
     }
 
     this.markDirty()
