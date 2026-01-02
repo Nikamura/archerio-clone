@@ -89,9 +89,12 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // Flash effect
     this.setTint(0xffffff)
-    this.scene.time.delayedCall(100, () => {
-      this.updateEffectTint()
-    })
+    // Guard against destroyed enemy or missing scene (can happen with lightning chain on pooled enemies)
+    if (this.scene?.time) {
+      this.scene.time.delayedCall(100, () => {
+        this.updateEffectTint()
+      })
+    }
 
     // Update health bar
     this.updateHealthBar()

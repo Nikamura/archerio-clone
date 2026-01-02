@@ -1656,6 +1656,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Apply damage to each target
     targets.forEach((target) => {
+      // Guard against destroyed enemies (can happen if enemy was killed by another source)
+      if (!target.active || !target.scene) return
+
       const killed = target.takeDamage(Math.floor(damage))
 
       if (killed) {
