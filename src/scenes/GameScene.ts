@@ -1821,6 +1821,13 @@ export default class GameScene extends Phaser.Scene {
 
     const bulletSpeed = 400
 
+    // Offset spawn position to hit enemies directly under player
+    const SPAWN_OFFSET = 20 // Pixels ahead in firing direction (past player radius of 16)
+    const getSpawnPos = (bulletAngle: number) => ({
+      x: this.player.x + Math.cos(bulletAngle) * SPAWN_OFFSET,
+      y: this.player.y + Math.sin(bulletAngle) * SPAWN_OFFSET,
+    })
+
     // Gather ability options for bullets (including new V1 abilities)
     const bulletOptions = {
       maxPierces: this.player.getPiercingLevel(),
@@ -1834,7 +1841,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Main projectile
-    this.bulletPool.spawn(this.player.x, this.player.y, angle, bulletSpeed, bulletOptions)
+    const mainSpawn = getSpawnPos(angle)
+    this.bulletPool.spawn(mainSpawn.x, mainSpawn.y, angle, bulletSpeed, bulletOptions)
 
     // Front Arrow: Extra forward projectiles with slight spread
     const extraProjectiles = this.player.getExtraProjectiles()
@@ -1843,9 +1851,11 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < extraProjectiles; i++) {
         // Alternate left and right
         const offset = ((i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2)) * spreadAngle
+        const extraAngle = angle + offset
+        const extraSpawn = getSpawnPos(extraAngle)
         // Each extra projectile rolls its own crit
         const extraOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(this.player.x, this.player.y, angle + offset, bulletSpeed, extraOptions)
+        this.bulletPool.spawn(extraSpawn.x, extraSpawn.y, extraAngle, bulletSpeed, extraOptions)
       }
     }
 
@@ -1856,11 +1866,15 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < multishotCount; i++) {
         // Add projectiles at increasing angles
         const angleOffset = sideAngle * (i + 1)
+        const multiAngle1 = angle + angleOffset
+        const multiAngle2 = angle - angleOffset
+        const multiSpawn1 = getSpawnPos(multiAngle1)
+        const multiSpawn2 = getSpawnPos(multiAngle2)
         // Each multishot projectile rolls its own crit
         const multishotOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
         const multishotOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(this.player.x, this.player.y, angle + angleOffset, bulletSpeed, multishotOptions1)
-        this.bulletPool.spawn(this.player.x, this.player.y, angle - angleOffset, bulletSpeed, multishotOptions2)
+        this.bulletPool.spawn(multiSpawn1.x, multiSpawn1.y, multiAngle1, bulletSpeed, multishotOptions1)
+        this.bulletPool.spawn(multiSpawn2.x, multiSpawn2.y, multiAngle2, bulletSpeed, multishotOptions2)
       }
     }
 
@@ -1871,11 +1885,15 @@ export default class GameScene extends Phaser.Scene {
       // diagonalArrows is in pairs (2 per level)
       const pairs = Math.floor(diagonalArrows / 2)
       for (let i = 0; i < pairs; i++) {
+        const diagAngle1 = angle + diagonalAngle * (i + 1)
+        const diagAngle2 = angle - diagonalAngle * (i + 1)
+        const diagSpawn1 = getSpawnPos(diagAngle1)
+        const diagSpawn2 = getSpawnPos(diagAngle2)
         // Each diagonal projectile rolls its own crit
         const diagOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
         const diagOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(this.player.x, this.player.y, angle + diagonalAngle * (i + 1), bulletSpeed, diagOptions1)
-        this.bulletPool.spawn(this.player.x, this.player.y, angle - diagonalAngle * (i + 1), bulletSpeed, diagOptions2)
+        this.bulletPool.spawn(diagSpawn1.x, diagSpawn1.y, diagAngle1, bulletSpeed, diagOptions1)
+        this.bulletPool.spawn(diagSpawn2.x, diagSpawn2.y, diagAngle2, bulletSpeed, diagOptions2)
       }
     }
 
@@ -1886,8 +1904,10 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < rearArrows; i++) {
         // Slight spread for multiple rear arrows
         const spreadOffset = i > 0 ? ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2)) * 0.1 : 0
+        const rearBulletAngle = rearAngle + spreadOffset
+        const rearSpawn = getSpawnPos(rearBulletAngle)
         const rearOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(this.player.x, this.player.y, rearAngle + spreadOffset, bulletSpeed, rearOptions)
+        this.bulletPool.spawn(rearSpawn.x, rearSpawn.y, rearBulletAngle, bulletSpeed, rearOptions)
       }
     }
 
