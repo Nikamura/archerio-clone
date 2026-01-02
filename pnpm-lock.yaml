@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      nipplejs:
-        specifier: ^0.10.2
-        version: 0.10.2
       phaser:
         specifier: ^3.80.1
         version: 3.90.0
@@ -1419,9 +1416,6 @@ packages:
   netmask@2.0.2:
     resolution: {integrity: sha512-dBpDMdxv9Irdq66304OLfEmQ9tbNRFnFTuZiLo+bD+r332bBmMJ8GBLXklIXXgxd3+v9+KUnZaUR5PJMa75Gsg==}
     engines: {node: '>= 0.4.0'}
-
-  nipplejs@0.10.2:
-    resolution: {integrity: sha512-XGxFY8C2DOtobf1fK+MXINTzkkXJLjZDDpfQhOUZf4TSytbc9s4bmA0lB9eKKM8iDivdr9NQkO7DpIQfsST+9g==}
 
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
@@ -3098,8 +3092,6 @@ snapshots:
   natural-compare@1.4.0: {}
 
   netmask@2.0.2: {}
-
-  nipplejs@0.10.2: {}
 
   obug@2.1.1: {}
 

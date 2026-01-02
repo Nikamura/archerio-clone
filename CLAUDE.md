@@ -87,7 +87,7 @@ this.scene.stop('CurrentScene') // Last!
 ### Tech Stack
 - **Engine**: Phaser 3.6+ with Arcade Physics (fast 2D physics for bullet-hell gameplay)
 - **Build Tool**: Vite
-- **Touch Controls**: nipplejs for virtual joystick
+- **Touch Controls**: Native Phaser Graphics for virtual joystick
 - **Language**: TypeScript (strict mode)
 - **Portrait Mode**: 375x667 (iPhone SE size)
 
@@ -261,7 +261,7 @@ hapticManager.pattern('levelUp')  // Special patterns
 
 **Touch Targets**: Minimum 44px for all interactive elements
 
-**Virtual Joystick**: nipplejs spawns at touch point on left half of screen
+**Virtual Joystick**: Native Phaser joystick spawns at touch point on left 60% of screen
 
 ## Asset Generation
 
@@ -283,7 +283,7 @@ pnpm run remove-bg assets/sprites/enemy/slime.png
 
 ## Common Bugs & Solutions
 
-1. **Joystick Y-axis inverted**: nipplejs uses mathematical angles (counter-clockwise), negate sin component
+1. **Joystick Y-axis inverted**: Joystick uses mathematical angles (counter-clockwise), negate sin component
 2. **Enemies leaving bounds**: Always set `physics.world.setBounds()` and clamp in update()
 3. **Sprites too large**: AI generates 1024px+ images; always specify exact dimensions
 4. **Bullets passing through**: Center hitboxes with offset when using `setCircle()`
