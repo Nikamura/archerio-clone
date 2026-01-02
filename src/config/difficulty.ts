@@ -114,15 +114,15 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     playerDamage: 9,
     playerAttackSpeed: 0.9,
 
-    // Enemy buffs (same multipliers as hard, but +10 extra enemies)
+    // Enemy buffs (harder than hard mode, plus +10 extra enemies)
     enemyHealthMultiplier: 1.4,
-    enemyDamageMultiplier: 1.3,
+    enemyDamageMultiplier: 1.5, // +50% damage (vs hard's +30%)
     enemySpawnMultiplier: 1.3,
     extraEnemyCount: 10, // +10 monsters compared to hard
 
-    // Boss buffs (same as hard)
+    // Boss buffs (harder than hard mode)
     bossHealthMultiplier: 1.5,
-    bossDamageMultiplier: 1.3,
+    bossDamageMultiplier: 1.5, // +50% damage (vs hard's +30%)
 
     // Reward - highest gold for insanity mode
     goldMultiplier: 2.0, // +100% gold
