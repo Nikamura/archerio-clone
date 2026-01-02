@@ -1391,10 +1391,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updatePlayerHealthUI(player: Player) {
-    const healthPercentage = (player.getHealth() / player.getMaxHealth()) * 100
-
-    // Emit event to UIScene
-    this.scene.get('UIScene').events.emit('updateHealth', healthPercentage)
+    // Emit event to UIScene with current and max health
+    this.scene.get('UIScene').events.emit('updateHealth', player.getHealth(), player.getMaxHealth())
   }
 
   /**
@@ -1481,7 +1479,7 @@ export default class GameScene extends Phaser.Scene {
 
       // Update UI
       this.updateRoomUI()
-      this.scene.get('UIScene').events.emit('updateHealth', 100) // Full health bar
+      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
       this.scene.get('UIScene').events.emit('roomEntered')
 
       // Fade back in
