@@ -142,8 +142,8 @@ export default class GameOverScene extends Phaser.Scene {
     this.input.enabled = true
     this.scene.bringToTop()
 
-    // Debug: Log any pointer events to diagnose input issues
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    // Debug: Log any pointer events to diagnose input issues (use once to avoid listener accumulation)
+    this.input.once('pointerdown', (pointer: Phaser.Input.Pointer) => {
       console.log('GameOverScene: Global pointerdown at', pointer.x, pointer.y)
 
       // Debug toast for mobile debugging
@@ -577,6 +577,10 @@ export default class GameOverScene extends Phaser.Scene {
    * Clean up scene resources
    */
   shutdown() {
+    // CRITICAL: Remove all input listeners to prevent accumulation
+    this.input.removeAllListeners()
+
+    // Kill all tweens
     this.tweens.killAll()
   }
 }
