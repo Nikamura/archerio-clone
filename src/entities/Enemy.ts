@@ -44,6 +44,10 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastPoisonTick: number = 0
   private readonly poisonDuration: number = 4000 // 4 seconds
 
+  // Melee attack cooldown
+  private lastMeleeAttackTime: number = 0
+  private readonly meleeAttackCooldown: number = 1000 // 1 second between melee hits
+
   // Health bar
   private healthBar?: Phaser.GameObjects.Graphics
   private healthBarWidth: number = 30
@@ -283,6 +287,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.poisonDamage = 0
     this.poisonStacks = 0
     this.poisonTicks = 0
+    // Reset melee attack cooldown
+    this.lastMeleeAttackTime = 0
     this.clearTint()
     // Hide health bar when reset
     if (this.healthBar) {
@@ -391,6 +397,22 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   getDamage(): number {
     const baseDamage = 5 // Base melee damage
     return Math.round(baseDamage * this.damageMultiplier)
+  }
+
+  /**
+   * Check if the enemy can perform a melee attack (cooldown has passed)
+   * @param time Current game time in ms
+   */
+  canMeleeAttack(time: number): boolean {
+    return time - this.lastMeleeAttackTime >= this.meleeAttackCooldown
+  }
+
+  /**
+   * Record that a melee attack was performed (starts cooldown)
+   * @param time Current game time in ms
+   */
+  recordMeleeAttack(time: number): void {
+    this.lastMeleeAttackTime = time
   }
 
   update(time: number, _delta: number, playerX: number, playerY: number): boolean {
