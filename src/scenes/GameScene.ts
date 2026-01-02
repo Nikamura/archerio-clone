@@ -28,6 +28,8 @@ import { ParticleManager, createParticleManager } from '../systems/ParticleManag
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { equipmentManager } from '../systems/EquipmentManager'
+import { talentManager } from '../systems/TalentManager'
+import type { TalentBonuses } from '../config/talentData'
 import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
@@ -97,6 +99,9 @@ export default class GameScene extends Phaser.Scene {
   // Damage aura tracking
   private lastAuraDamageTime: number = 0
   private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms (2x per second)
+
+  // Talent bonuses (cached for use throughout the game)
+  private talentBonuses!: TalentBonuses
 
   constructor() {
     super({ key: 'GameScene' })
@@ -210,19 +215,26 @@ export default class GameScene extends Phaser.Scene {
       weaponSpeedMult = weaponConfig.attackSpeedMultiplier
     }
 
-    // Calculate final stats with equipment bonuses
-    // Formula: (baseHeroStat + flatBonus) * (1 + percentBonus) * weaponMult * difficultyMult
-    const baseMaxHealth = heroStats.maxHealth + (equipStats.maxHealth ?? 0)
+    // Get talent bonuses (cache for use throughout the game)
+    this.talentBonuses = talentManager.calculateTotalBonuses()
+    console.log('GameScene: Talent bonuses:', this.talentBonuses)
+
+    // Calculate equipment stat multiplier from talents (Equipment Bonus talent)
+    const equipmentStatMultiplier = 1 + (this.talentBonuses.percentEquipmentStats / 100)
+
+    // Calculate final stats with equipment bonuses and talent bonuses
+    // Formula: (baseHeroStat + flatBonus + talentFlat) * (1 + percentBonus) * weaponMult * difficultyMult
+    const baseMaxHealth = heroStats.maxHealth + (equipStats.maxHealth ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatHp
     const finalMaxHealth = baseMaxHealth * (1 + (equipStats.maxHealthPercent ?? 0)) * (this.difficultyConfig.playerMaxHealth / 100)
 
-    const baseDamage = heroStats.attack + (equipStats.attackDamage ?? 0)
+    const baseDamage = heroStats.attack + (equipStats.attackDamage ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatAttack
     const finalDamage = baseDamage * (1 + (equipStats.attackDamagePercent ?? 0)) * weaponDamageMult * (this.difficultyConfig.playerDamage / 10)
 
-    const baseAttackSpeed = heroStats.attackSpeed + (equipStats.attackSpeed ?? 0)
-    const finalAttackSpeed = baseAttackSpeed * (1 + (equipStats.attackSpeedPercent ?? 0)) * weaponSpeedMult * (this.difficultyConfig.playerAttackSpeed / 1.0)
+    const baseAttackSpeed = heroStats.attackSpeed + (equipStats.attackSpeed ?? 0) * equipmentStatMultiplier
+    const finalAttackSpeed = baseAttackSpeed * (1 + (equipStats.attackSpeedPercent ?? 0) + this.talentBonuses.percentAttackSpeed / 100) * weaponSpeedMult * (this.difficultyConfig.playerAttackSpeed / 1.0)
 
-    const finalCritChance = heroStats.critChance + (equipStats.critChance ?? 0)
-    const finalCritDamage = heroStats.critDamage + (equipStats.critDamage ?? 0)
+    const finalCritChance = heroStats.critChance + (equipStats.critChance ?? 0) * equipmentStatMultiplier + this.talentBonuses.percentCritChance / 100
+    const finalCritDamage = heroStats.critDamage + (equipStats.critDamage ?? 0) * equipmentStatMultiplier
 
     console.log('GameScene: Final player stats - damage:', finalDamage, 'attackSpeed:', finalAttackSpeed, 'maxHealth:', finalMaxHealth, 'critChance:', finalCritChance)
 
@@ -1039,6 +1051,12 @@ export default class GameScene extends Phaser.Scene {
     // Level up celebration particles
     this.particles.emitLevelUp(this.player.x, this.player.y)
 
+    // Apply heal on level up talent bonus
+    if (this.talentBonuses.flatHealOnLevel > 0) {
+      this.player.heal(this.talentBonuses.flatHealOnLevel)
+      console.log('GameScene: Healed', this.talentBonuses.flatHealOnLevel, 'HP from talent')
+    }
+
     // Check if auto level up is enabled
     if (saveManager.getAutoLevelUp()) {
       this.handleAutoLevelUp()
@@ -1184,9 +1202,10 @@ export default class GameScene extends Phaser.Scene {
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
 
-    // Calculate bullet damage with difficulty modifier
+    // Calculate bullet damage with difficulty modifier and talent damage reduction
     const baseBulletDamage = 10
-    const bulletDamage = Math.round(baseBulletDamage * this.difficultyConfig.enemyDamageMultiplier)
+    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
+    const bulletDamage = Math.round(baseBulletDamage * this.difficultyConfig.enemyDamageMultiplier * damageReduction)
 
     // Try to damage player (respects invincibility)
     const damageTaken = playerSprite.takeDamage(bulletDamage)
@@ -1230,8 +1249,10 @@ export default class GameScene extends Phaser.Scene {
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
 
-    // Get enemy damage (scaled by difficulty)
-    const damage = enemySprite.getDamage()
+    // Get enemy damage (scaled by difficulty) and apply talent damage reduction
+    const baseDamage = enemySprite.getDamage()
+    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
+    const damage = Math.round(baseDamage * damageReduction)
 
     // Try to damage player (respects invincibility)
     const damageTaken = playerSprite.takeDamage(damage)
