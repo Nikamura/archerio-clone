@@ -158,6 +158,21 @@ export default class MainMenuScene extends Phaser.Scene {
     title.setDepth(10)
 
     // ============================================
+    // HIGHSCORE DISPLAY
+    // ============================================
+    const highScore = saveManager.getStatistics().highestScore
+    if (highScore > 0) {
+      const highScoreText = this.add.text(width / 2, 78, `Best: ${highScore.toLocaleString()}`, {
+        fontSize: '14px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 2,
+      })
+      highScoreText.setOrigin(0.5)
+      highScoreText.setDepth(10)
+    }
+
+    // ============================================
     // CHAPTER SELECTION
     // ============================================
 
