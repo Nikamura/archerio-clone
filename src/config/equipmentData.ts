@@ -593,12 +593,29 @@ export function calculateEquipmentStats(
 
   // Then apply level scaling
   const result: EquipmentStats = {}
+  const levelMultiplier = 1 + (level - 1) * 0.02 // 2% per level
+
+  // Percentage stat keys that should NOT be floored (they're meant to be decimals like 0.15 = 15%)
+  const percentageStats = new Set([
+    'attackSpeedPercent',
+    'attackDamagePercent',
+    'maxHealthPercent',
+    'damageReductionPercent',
+    'critChance',
+    'critDamage',
+    'dodgeChance',
+    'bonusXPPercent',
+    'goldBonusPercent',
+    'abilityCooldownReduction',
+    'projectileSpeedPercent',
+  ])
 
   for (const [key, value] of Object.entries(rarityScaled)) {
     if (value !== undefined) {
       const statKey = key as keyof EquipmentStats
-      // Apply level scaling to all stats
-      result[statKey] = calculateStatAtLevel(value, level)
+      const scaledValue = value * levelMultiplier
+      // Only floor flat stats, keep percentage stats as decimals
+      result[statKey] = percentageStats.has(key) ? scaledValue : Math.floor(scaledValue)
     }
   }
 
