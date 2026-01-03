@@ -1113,6 +1113,19 @@ Visual test screenshots are saved to `test/screenshots/`
       - Position-only updates when enemy moves (skips if position unchanged)
       - Tracks `lastHealthBarValue`, `lastHealthBarX`, `lastHealthBarY` to avoid redundant redraws
     - Fixed browser global linting issues in Joystick.ts
+[x] Theme system (2026-01-03)
+    - Purchasable visual themes that change game appearance
+    - Two themes implemented:
+      - **Medieval** (free, default): Classic dungeon-crawler aesthetic with stone walls, traditional colors
+      - **Vaporwave** (10000 gold): Neon synthwave aesthetic with magenta/cyan colors
+    - Theme system components:
+      - `src/config/themeData.ts`: Theme definitions with ThemeColors and ThemeAssets interfaces
+      - `src/systems/ThemeManager.ts`: Singleton manager for unlock/select with localStorage persistence
+    - ThemeColors: UI colors (buttons, health bars, XP bar, text, chapter colors)
+    - ThemeAssets: Asset keys for player sprite, bullet, backgrounds (menu + 5 chapters)
+    - Per-chapter themed wall textures (wall_dungeon.png, wall_vaporwave_dungeon.png, etc.)
+    - Shop integration for purchasing themes with gold
+    - Selected theme persists across sessions via localStorage
 ```
 
 **V1 COMPLETE!** All features implemented. Ready for V2 monetization and content expansion.
