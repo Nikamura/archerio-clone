@@ -69,10 +69,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.isMoving = Math.abs(velocity.x) > 10 || Math.abs(velocity.y) > 10
     }
 
-    // Rotate player to face movement direction
-    if (this.isMoving && velocity) {
-      this.rotation = Math.atan2(velocity.y, velocity.x)
-    }
+    // Player sprite should remain upright - no rotation based on movement direction
 
     // Manually clamp position to world bounds based on hitbox radius
     // This is more reliable than setCollideWorldBounds with setCircle + offset
