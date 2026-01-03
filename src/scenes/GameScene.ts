@@ -1,21 +1,9 @@
 import Phaser from 'phaser'
 import Player from '../entities/Player'
-import Enemy, { EnemyOptions } from '../entities/Enemy'
-import RangedShooterEnemy from '../entities/RangedShooterEnemy'
-import SpreaderEnemy from '../entities/SpreaderEnemy'
-import BomberEnemy from '../entities/BomberEnemy'
-import TankEnemy from '../entities/TankEnemy'
-import ChargerEnemy from '../entities/ChargerEnemy'
-import HealerEnemy from '../entities/HealerEnemy'
-import SpawnerEnemy from '../entities/SpawnerEnemy'
+import Enemy from '../entities/Enemy'
 import Boss from '../entities/Boss'
-import Bullet from '../entities/Bullet'
-import Joystick from '../ui/Joystick'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
-import SpiritCatPool from '../systems/SpiritCatPool'
-import SpiritCat from '../entities/SpiritCat'
-import { getSpiritCatConfig, type SpiritCatConfig } from '../config/heroData'
 import BombPool from '../systems/BombPool'
 import GoldPool from '../systems/GoldPool'
 import HealthPool from '../systems/HealthPool'
@@ -23,42 +11,42 @@ import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
-import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
+import { getChapterDefinition } from '../config/chapterData'
+import { currencyManager } from '../systems/CurrencyManager'
 import { saveManager } from '../systems/SaveManager'
-import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
-import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
+import { createScreenShake } from '../systems/ScreenShake'
+import { createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { equipmentManager } from '../systems/EquipmentManager'
 import { themeManager } from '../systems/ThemeManager'
 import type { ThemeAssets } from '../config/themeData'
 import { talentManager } from '../systems/TalentManager'
-import type { TalentBonuses } from '../config/talentData'
-import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
-import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
-import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
+import { getRoomGenerator } from '../systems/RoomGenerator'
 import { SeededRandom } from '../systems/SeededRandom'
-import { ABILITIES } from './LevelUpScene'
 import { errorReporting } from '../systems/ErrorReportingManager'
 
-export default class GameScene extends Phaser.Scene {
-  private difficultyConfig!: DifficultyConfig
-  private player!: Player
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasdKeys!: {
-    W: Phaser.Input.Keyboard.Key
-    A: Phaser.Input.Keyboard.Key
-    S: Phaser.Input.Keyboard.Key
-    D: Phaser.Input.Keyboard.Key
-  }
-  private joystick!: Joystick
-  private joystickAngle: number = 0
-  private joystickForce: number = 0
-  private lastJoystickMoveTime: number = 0 // Track when joystick last received input
-  private readonly JOYSTICK_STUCK_TIMEOUT = 500 // ms - if no input for this long, force reset (must be high enough to account for mobile touch event delays)
+// Extracted systems
+import { CombatSystem } from '../systems/CombatSystem'
+import { InputController } from '../systems/InputController'
+import { ShootingSystem } from '../systems/ShootingSystem'
+import { AbilitySystem } from '../systems/AbilitySystem'
+import { AuraSystem } from '../systems/AuraSystem'
+import { PickupManager } from '../systems/PickupManager'
+import { EnemySpawner } from '../systems/EnemySpawner'
+import { SpiritCatSystem } from '../systems/SpiritCatSystem'
+import { RoomManager } from '../systems/RoomManager'
+import { calculatePlayerStats } from '../systems/PlayerStatsCalculator'
 
+export default class GameScene extends Phaser.Scene {
+  // Core config
+  private difficultyConfig!: DifficultyConfig
+
+  // Player
+  private player!: Player
+
+  // Object pools
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
   private bombPool!: BombPool
@@ -66,136 +54,74 @@ export default class GameScene extends Phaser.Scene {
   private healthPool!: HealthPool
   private damageNumberPool!: DamageNumberPool
   private enemies!: Phaser.Physics.Arcade.Group
-  private lastShotTime: number = 0
-  private fireRate: number = 500 // ms between shots
 
-  // Visual effects systems
-  private screenShake!: ScreenShake
-  private particles!: ParticleManager
+  // Extracted systems
+  private combatSystem!: CombatSystem
+  private inputController!: InputController
+  private shootingSystem!: ShootingSystem
+  private abilitySystem!: AbilitySystem
+  private auraSystem!: AuraSystem
+  private pickupManager!: PickupManager
+  private enemySpawner!: EnemySpawner
+  private spiritCatSystem: SpiritCatSystem | null = null
+  private roomManager!: RoomManager
 
-  // Game state tracking
+  // Game state
   private isGameOver: boolean = false
-  private enemiesKilled: number = 0
-  private currentRoom: number = 1
-  private totalRooms: number = 20
-  private isRoomCleared: boolean = false
-  private doorSprite: Phaser.GameObjects.Sprite | null = null
-  private doorText: Phaser.GameObjects.Text | null = null
-  private isTransitioning: boolean = false
   private boss: Boss | null = null
   private runStartTime: number = 0
-  private abilitiesGained: number = 0
-  private goldEarned: number = 0 // Track gold earned this run
-  private heroXPEarned: number = 0 // Track hero XP earned this run
-  private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
+  private goldEarned: number = 0
+  private heroXPEarned: number = 0
+  private enemiesKilled: number = 0
 
-  // Room generation system
-  private roomGenerator!: RoomGenerator
-  private currentGeneratedRoom: GeneratedRoom | null = null
-  private pendingEnemySpawns: number = 0
-  private activeWaveTimers: Phaser.Time.TimerEvent[] = []
-
-  // Seeded random for deterministic runs
+  // Seeded random
   private runRng!: SeededRandom
   private runSeedString: string = ''
 
-  // Performance optimization: cache nearest enemy
+  // Performance: nearest enemy cache
   private cachedNearestEnemy: Enemy | null = null
   private nearestEnemyCacheFrame: number = 0
-  private readonly NEAREST_ENEMY_CACHE_FRAMES = 3 // Recalculate every 3 frames
-
-  // Damage aura tracking
-  private lastAuraDamageTime: number = 0
-  private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms (2x per second)
-
-  // Talent bonuses (cached for use throughout the game)
-  private talentBonuses!: TalentBonuses
-
-  // Damage aura visual effect
-  private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
-
-  // Spirit cat system (Meowgik hero ability)
-  private spiritCatPool: SpiritCatPool | null = null
-  private spiritCatConfig: SpiritCatConfig | null = null
-  private lastSpiritCatSpawnTime: number = 0
-
-  // Weapon projectile config (for changing bullet sprites based on equipped weapon)
-  private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
+  private readonly NEAREST_ENEMY_CACHE_FRAMES = 3
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
-    // Load difficulty configuration
     this.difficultyConfig = getDifficultyConfig(this.game)
     console.log('Starting game with difficulty:', this.difficultyConfig.label)
 
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
-    // Listen for debug skip level event
+    // Debug skip level event
     if (this.game.registry.get('debug')) {
       this.game.events.on('debugSkipLevel', this.debugSkipLevel, this)
-
-      // Cleanup listener on shutdown
       this.events.once('shutdown', () => {
         this.game.events.off('debugSkipLevel', this.debugSkipLevel, this)
       })
     }
 
-    // Listen for reset level event (allows infinite stacking by restarting with upgrades)
+    // Reset level event
     this.game.events.on('resetLevel', this.resetLevel, this)
     this.events.once('shutdown', () => {
       this.game.events.off('resetLevel', this.resetLevel, this)
     })
 
-    // Handle browser visibility changes and focus loss
-    // This prevents stuck input states when user switches apps or screen turns off
-    const handleVisibilityChange = () => {
-      // Only handle if scene is active and created
-      if (document.hidden && this.scene.isActive() && this.player) {
-        console.log('GameScene: Page hidden, resetting joystick state')
-        this.resetJoystickState()
-      }
-    }
-
-    const handleBlur = () => {
-      // Only handle if scene is active and created
-      if (this.scene.isActive() && this.player) {
-        console.log('GameScene: Window blur, resetting joystick state')
-        this.resetJoystickState()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('blur', handleBlur)
-
-    // Cleanup listeners on shutdown
-    this.events.once('shutdown', () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('blur', handleBlur)
-    })
+    // Handle visibility changes
+    this.setupVisibilityHandlers()
 
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
-    this.currentRoom = 1
-    this.totalRooms = chapterManager.getTotalRooms()
-    this.isRoomCleared = false
-    this.doorSprite = null
-    this.doorText = null
-    this.isTransitioning = false
     this.runStartTime = Date.now()
-    this.abilitiesGained = 0
     this.goldEarned = 0
     this.heroXPEarned = 0
-    this.acquiredAbilities = new Map()
 
-    // Update error reporting context
+    // Error reporting
     const selectedHero = heroManager.getSelectedHeroId()
     errorReporting.setScene('GameScene')
-    errorReporting.setProgress(chapterManager.getSelectedChapter(), this.currentRoom)
+    errorReporting.setProgress(chapterManager.getSelectedChapter(), 1)
     errorReporting.setPlayerStats(1, 100, selectedHero || undefined)
     errorReporting.addBreadcrumb('game', 'Game started', {
       chapter: chapterManager.getSelectedChapter(),
@@ -204,159 +130,309 @@ export default class GameScene extends Phaser.Scene {
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
-
-    // Set physics world bounds to match camera/game size
     this.physics.world.setBounds(0, 0, width, height)
 
-    // Get selected chapter and its themed background
+    // Set up background
+    this.setupBackground()
+
+    // Start chapter run
     const selectedChapter = chapterManager.getSelectedChapter()
-    const chapterDef = getChapterDefinition(selectedChapter)
-    // Use theme-aware background key
-    const themeAssets = themeManager.getAssets()
-    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof ThemeAssets
-    const backgroundKey = themeAssets[backgroundKeyName] as string
+    chapterManager.startChapter(selectedChapter)
 
-    // Start the chapter run for tracking
-    const started = chapterManager.startChapter(selectedChapter)
-    if (!started) {
-      console.error(`GameScene: Failed to start chapter ${selectedChapter}`)
-    } else {
-      console.log(`GameScene: Started chapter ${selectedChapter} run`)
-    }
+    // Create player with calculated stats
+    this.createPlayer()
 
-    // Add chapter-specific background image (fallback to dungeonFloor if not loaded)
-    const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : 'dungeonFloor'
-    const bg = this.add.image(0, 0, bgKey).setOrigin(0)
-    bg.setDisplaySize(width, height)
+    // Create object pools
+    this.createPools()
 
-    console.log(`GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`)
+    // Create visual effects
+    const screenShake = createScreenShake(this)
+    const particles = createParticleManager(this)
+    particles.prewarm(10)
 
-    // Get selected hero and stats
-    const selectedHeroId = heroManager.getSelectedHeroId()
-    const heroStats = heroManager.getSelectedHeroStats()
-    console.log(`GameScene: Selected hero ${selectedHeroId} with stats:`, heroStats)
+    // Initialize seeded random
+    this.initializeRng()
 
-    // Get equipment stats
-    const equipStats = equipmentManager.getEquippedStats()
-    console.log('GameScene: Equipment stats:', equipStats)
+    // Get talent bonuses
+    const talentBonuses = talentManager.calculateTotalBonuses()
 
-    // Calculate weapon type multipliers (default to 1.0 if no weapon equipped)
-    let weaponDamageMult = 1.0
-    let weaponSpeedMult = 1.0
-    if (equipStats.weaponType && WEAPON_TYPE_CONFIGS[equipStats.weaponType]) {
-      const weaponConfig = WEAPON_TYPE_CONFIGS[equipStats.weaponType]
-      weaponDamageMult = weaponConfig.attackDamageMultiplier
-      weaponSpeedMult = weaponConfig.attackSpeedMultiplier
-      // Store projectile config for bullet spawning
-      this.weaponProjectileConfig = {
-        sprite: weaponConfig.projectileSprite,
-        sizeMultiplier: weaponConfig.projectileSizeMultiplier,
-      }
-    } else {
-      // Default to standard arrow if no weapon equipped
-      this.weaponProjectileConfig = {
-        sprite: 'bulletSprite',
-        sizeMultiplier: 1.0,
-      }
-    }
+    // Create enemy group
+    this.enemies = this.physics.add.group()
 
-    // Get talent bonuses (cache for use throughout the game)
-    this.talentBonuses = talentManager.calculateTotalBonuses()
-    console.log('GameScene: Talent bonuses:', this.talentBonuses)
+    // Create extracted systems
+    this.createSystems(screenShake, particles, talentBonuses)
 
-    // Calculate equipment stat multiplier from talents (Equipment Bonus talent)
-    const equipmentStatMultiplier = 1 + (this.talentBonuses.percentEquipmentStats / 100)
+    // Set up collisions
+    this.setupCollisions()
 
-    // Calculate final stats with equipment bonuses and talent bonuses
-    // Formula: (baseHeroStat + flatBonus + talentFlat) * (1 + percentBonus) * weaponMult * difficultyMult
-    const baseMaxHealth = heroStats.maxHealth + (equipStats.maxHealth ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatHp
-    const finalMaxHealth = baseMaxHealth * (1 + (equipStats.maxHealthPercent ?? 0)) * (this.difficultyConfig.playerMaxHealth / 100)
+    // Spawn initial enemies
+    this.roomManager.spawnEnemiesForRoom()
 
-    const baseDamage = heroStats.attack + (equipStats.attackDamage ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatAttack
-    const finalDamage = baseDamage * (1 + (equipStats.attackDamagePercent ?? 0)) * weaponDamageMult * (this.difficultyConfig.playerDamage / 10)
+    // Update UI
+    this.updateRoomUI()
+    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
 
-    const baseAttackSpeed = heroStats.attackSpeed + (equipStats.attackSpeed ?? 0) * equipmentStatMultiplier
-    const finalAttackSpeed = baseAttackSpeed * (1 + (equipStats.attackSpeedPercent ?? 0) + this.talentBonuses.percentAttackSpeed / 100) * weaponSpeedMult * (this.difficultyConfig.playerAttackSpeed / 1.0)
-
-    const finalCritChance = heroStats.critChance + (equipStats.critChance ?? 0) * equipmentStatMultiplier + this.talentBonuses.percentCritChance / 100
-    const finalCritDamage = heroStats.critDamage + (equipStats.critDamage ?? 0) * equipmentStatMultiplier
-
-    console.log('GameScene: Final player stats - damage:', finalDamage, 'attackSpeed:', finalAttackSpeed, 'maxHealth:', finalMaxHealth, 'critChance:', finalCritChance)
-
-    // Create player in center with difficulty-adjusted stats and equipment bonuses
-    this.player = new Player(this, width / 2, height / 2, {
-      maxHealth: finalMaxHealth,
-      baseDamage: finalDamage,
-      baseAttackSpeed: finalAttackSpeed,
-      critChance: finalCritChance,
-      critDamage: finalCritDamage,
-    }, selectedHeroId)
-
-    // Set dodge chance from equipment
-    const totalDodgeChance = (equipStats.dodgeChance ?? 0) * equipmentStatMultiplier
-    this.player.setDodgeChance(totalDodgeChance)
-
-    // Create bullet pools, bomb pool, gold pool, and health pool
-    this.bulletPool = new BulletPool(this)
-    this.enemyBulletPool = new EnemyBulletPool(this)
-    this.bombPool = new BombPool(this)
-    this.goldPool = new GoldPool(this)
-    this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier) // Apply difficulty gold scaling
-    this.healthPool = new HealthPool(this)
-    this.damageNumberPool = new DamageNumberPool(this)
-
-    // Initialize spirit cat system if playing as Meowgik
-    if (selectedHeroId === 'meowgik') {
-      this.spiritCatPool = new SpiritCatPool(this)
-
-      // Get spirit cat config based on hero level and perks
-      const heroLevel = heroManager.getLevel('meowgik')
-      const unlockedPerks = new Set(heroManager.getUnlockedPerkLevels('meowgik'))
-      const baseAttack = heroStats.attack
-
-      this.spiritCatConfig = getSpiritCatConfig(heroLevel, unlockedPerks, baseAttack)
-      console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
-    }
-
-    // Create visual effects systems
-    this.screenShake = createScreenShake(this)
-    this.particles = createParticleManager(this)
-    this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
-
-    // Create damage aura graphics (rendered below player)
-    this.damageAuraGraphics = this.add.graphics()
-    this.damageAuraGraphics.setDepth(this.player.depth - 1)
-
-    // Initialize performance monitoring (debug mode only)
+    // Initialize performance monitoring
     if (this.game.config.physics?.arcade?.debug) {
       performanceMonitor.createOverlay(this)
     }
 
-    // Initialize seeded random for deterministic run
-    // Check if a seed was passed from MainMenuScene
+    console.log('GameScene: Created')
+  }
+
+  private setupVisibilityHandlers(): void {
+    const handleVisibilityChange = () => {
+      if (document.hidden && this.scene.isActive() && this.player) {
+        console.log('GameScene: Page hidden, resetting input')
+        this.inputController?.reset()
+      }
+    }
+
+    const handleBlur = () => {
+      if (this.scene.isActive() && this.player) {
+        console.log('GameScene: Window blur, resetting input')
+        this.inputController?.reset()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleBlur)
+
+    this.events.once('shutdown', () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleBlur)
+    })
+  }
+
+  private setupBackground(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    const selectedChapter = chapterManager.getSelectedChapter()
+    const themeAssets = themeManager.getAssets()
+    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof ThemeAssets
+    const backgroundKey = themeAssets[backgroundKeyName] as string
+    const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : 'dungeonFloor'
+    const bg = this.add.image(0, 0, bgKey).setOrigin(0)
+    bg.setDisplaySize(width, height)
+    const chapterDef = getChapterDefinition(selectedChapter)
+    console.log(`GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`)
+  }
+
+  private createPlayer(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    const selectedHeroId = heroManager.getSelectedHeroId()
+    const heroStats = heroManager.getSelectedHeroStats()
+    const equipStats = equipmentManager.getEquippedStats()
+    const talentBonuses = talentManager.calculateTotalBonuses()
+
+    console.log(`GameScene: Selected hero ${selectedHeroId} with stats:`, heroStats)
+    console.log('GameScene: Equipment stats:', equipStats)
+
+    const { stats, weaponProjectileConfig } = calculatePlayerStats(
+      heroStats,
+      equipStats,
+      talentBonuses,
+      this.difficultyConfig
+    )
+
+    console.log('GameScene: Final player stats:', stats)
+
+    this.player = new Player(this, width / 2, height / 2, {
+      maxHealth: stats.maxHealth,
+      baseDamage: stats.baseDamage,
+      baseAttackSpeed: stats.baseAttackSpeed,
+      critChance: stats.critChance,
+      critDamage: stats.critDamage,
+    }, selectedHeroId)
+
+    this.player.setDodgeChance(stats.dodgeChance)
+
+    // Store weapon config for shooting system
+    this.game.registry.set('weaponProjectileConfig', weaponProjectileConfig)
+  }
+
+  private createPools(): void {
+    this.bulletPool = new BulletPool(this)
+    this.enemyBulletPool = new EnemyBulletPool(this)
+    this.bombPool = new BombPool(this)
+    this.goldPool = new GoldPool(this)
+    this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier)
+    this.healthPool = new HealthPool(this)
+    this.damageNumberPool = new DamageNumberPool(this)
+  }
+
+  private initializeRng(): void {
     const passedSeed = this.game.registry.get('runSeed')
     if (passedSeed) {
       this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
-      this.game.registry.remove('runSeed') // Clear it for next run
+      this.game.registry.remove('runSeed')
     } else {
       this.runRng = new SeededRandom()
     }
     this.runSeedString = this.runRng.getSeedString()
     console.log(`GameScene: Run seed: ${this.runSeedString}`)
+  }
 
-    // Initialize room generator with seeded RNG
-    this.roomGenerator = getRoomGenerator(width, height)
-    this.roomGenerator.setRng(this.runRng)
+  private createSystems(
+    screenShake: ReturnType<typeof createScreenShake>,
+    particles: ReturnType<typeof createParticleManager>,
+    talentBonuses: ReturnType<typeof talentManager.calculateTotalBonuses>
+  ): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    const roomGenerator = getRoomGenerator(width, height)
+    roomGenerator.setRng(this.runRng)
 
-    // Create enemy physics group
-    this.enemies = this.physics.add.group()
-    this.spawnEnemies()
+    // Input controller
+    this.inputController = new InputController(this, this.player)
 
-    // Set up collisions
+    // Shooting system
+    this.shootingSystem = new ShootingSystem(this, this.player, this.bulletPool)
+    const weaponConfig = this.game.registry.get('weaponProjectileConfig')
+    this.shootingSystem.setWeaponProjectileConfig(weaponConfig)
+
+    // Combat system
+    this.combatSystem = new CombatSystem({
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      bulletPool: this.bulletPool,
+      enemyBulletPool: this.enemyBulletPool,
+      damageNumberPool: this.damageNumberPool,
+      screenShake,
+      particles,
+      difficultyConfig: this.difficultyConfig,
+      talentBonuses,
+    })
+    this.combatSystem.setCallbacks({
+      onEnemyKilled: (enemy, isBoss, xpGain) => this.handleEnemyKilled(enemy, isBoss, xpGain),
+      onPlayerDamaged: () => this.updatePlayerHealthUI(),
+      onPlayerDeath: () => this.triggerGameOver(),
+      onBossHealthUpdate: (current, max) => this.scene.get('UIScene').events.emit('updateBossHealth', current, max),
+      onBossKilled: () => { this.boss = null; this.scene.get('UIScene').events.emit('hideBossHealth') },
+      getBoss: () => this.boss,
+      spawnDrops: (enemy) => this.pickupManager.spawnDrops(enemy),
+      applyLightningChain: (source, damage, count) => this.auraSystem.applyLightningChain(source, damage, count),
+      findNearestEnemyExcluding: (x, y, exclude) => this.findNearestEnemyExcluding(x, y, exclude),
+      invalidateNearestEnemyCache: () => this.invalidateNearestEnemyCache(),
+    })
+
+    // Ability system
+    this.abilitySystem = new AbilitySystem(this, this.player, particles, talentBonuses)
+    this.abilitySystem.setCallbacks({
+      onAbilitiesUpdated: (abilities) => this.scene.get('UIScene').events.emit('updateAbilities', abilities),
+      onHealthUpdated: () => this.updatePlayerHealthUI(),
+      pausePhysics: () => this.physics.pause(),
+      resumePhysics: () => this.physics.resume(),
+      hideJoystick: () => this.inputController.hide(),
+      showJoystick: () => this.inputController.show(),
+      resetJoystickState: () => this.inputController.reset(),
+      showAutoLevelUp: (ability) => this.scene.get('UIScene').events.emit('showAutoLevelUp', ability),
+    })
+
+    // Pickup manager
+    this.pickupManager = new PickupManager(this.goldPool, this.healthPool, particles)
+    this.pickupManager.setCallbacks({
+      onGoldCollected: (amount) => {
+        this.goldEarned += amount
+        currencyManager.add('gold', amount)
+        saveManager.addGold(amount)
+      },
+      onHealthCollected: (amount) => {
+        this.player.heal(amount)
+        this.updatePlayerHealthUI()
+      },
+    })
+
+    // Aura system
+    this.auraSystem = new AuraSystem(this, this.player, this.damageNumberPool, screenShake, particles)
+    this.auraSystem.setCallbacks({
+      getEnemies: () => this.enemies,
+      onEnemyKilled: (enemy, isBoss, xpGain) => this.handleEnemyKilled(enemy, isBoss, xpGain),
+      getBoss: () => this.boss as Enemy | null,
+      onBossKilled: () => { this.boss = null; this.scene.get('UIScene').events.emit('hideBossHealth') },
+      spawnDrops: (enemy) => this.pickupManager.spawnDrops(enemy),
+      invalidateNearestEnemyCache: () => this.invalidateNearestEnemyCache(),
+      checkRoomCleared: () => this.roomManager.checkRoomCleared(),
+    })
+
+    // Enemy spawner
+    this.enemySpawner = new EnemySpawner(
+      this,
+      this.enemies,
+      this.enemyBulletPool,
+      this.bombPool,
+      this.difficultyConfig,
+      roomGenerator,
+      this.runRng
+    )
+    this.enemySpawner.setCallbacks({
+      handleBombExplosion: (x, y, radius, damage) =>
+        this.combatSystem.handleBombExplosion(x, y, radius, damage, this.isGameOver),
+    })
+
+    // Spirit cat system (Meowgik only)
+    const selectedHeroId = heroManager.getSelectedHeroId()
+    if (selectedHeroId === 'meowgik') {
+      const heroStats = heroManager.getSelectedHeroStats()
+      this.spiritCatSystem = new SpiritCatSystem(
+        this,
+        this.player,
+        this.damageNumberPool,
+        screenShake,
+        particles,
+        heroStats
+      )
+      this.spiritCatSystem.setCallbacks({
+        getCachedNearestEnemy: () => this.getCachedNearestEnemy(),
+        onEnemyKilled: (enemy, isBoss, xpGain) => this.handleEnemyKilled(enemy, isBoss, xpGain),
+        getBoss: () => this.boss as Enemy | null,
+        onBossKilled: () => { this.boss = null; this.scene.get('UIScene').events.emit('hideBossHealth') },
+        onBossHealthUpdate: (current, max) => this.scene.get('UIScene').events.emit('updateBossHealth', current, max),
+        spawnDrops: (enemy) => this.pickupManager.spawnDrops(enemy),
+        invalidateNearestEnemyCache: () => this.invalidateNearestEnemyCache(),
+        checkRoomCleared: () => this.roomManager.checkRoomCleared(),
+        updatePlayerHealthUI: () => this.updatePlayerHealthUI(),
+      })
+    }
+
+    // Room manager
+    this.roomManager = new RoomManager(
+      this,
+      this.enemySpawner,
+      this.pickupManager,
+      this.bulletPool,
+      this.enemyBulletPool,
+      this.spiritCatSystem
+    )
+    this.roomManager.setCallbacks({
+      onRoomCleared: () => this.scene.get('UIScene').events.emit('roomCleared'),
+      onVictory: (completionResult) => this.handleVictory(completionResult),
+      onRoomTransition: () => this.scene.get('UIScene').events.emit('roomEntered'),
+      updateRoomUI: () => this.updateRoomUI(),
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemies,
+      getBoss: () => this.boss,
+      setBoss: (boss) => { this.boss = boss },
+      hideBossHealth: () => this.scene.get('UIScene').events.emit('hideBossHealth'),
+      showBossHealth: (current, max) => this.scene.get('UIScene').events.emit('showBossHealth', current, max),
+      collectPickups: () => this.goldEarned,
+      healPlayer: (amount) => {
+        this.player.heal(amount)
+        this.updatePlayerHealthUI()
+      },
+    })
+  }
+
+  private setupCollisions(): void {
+    // Player bullets hit enemies
     this.physics.add.overlap(
       this.bulletPool,
       this.enemies,
-      this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      ((bullet: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.bulletHitEnemy(bullet, enemy, this.isGameOver, this.roomManager.getIsTransitioning())
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
@@ -365,1336 +441,169 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.enemyBulletPool,
-      this.enemyBulletHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      ((_player: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.enemyBulletHitPlayer(this.player, bullet, this.isGameOver)
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
 
-    // Enemies hit player (melee damage)
+    // Enemies hit player (melee)
     this.physics.add.overlap(
       this.player,
       this.enemies,
-      this.enemyHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      ((_player: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.enemyHitPlayer(this.player, enemy, this.isGameOver, this.time.now)
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
       undefined,
       this
     )
 
-    // Spirit cats hit enemies (Meowgik ability)
-    if (this.spiritCatPool) {
-      this.physics.add.overlap(
-        this.spiritCatPool,
-        this.enemies,
-        this.spiritCatHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-        undefined,
-        this
-      )
-    }
-
-    // Keyboard controls for desktop testing (arrow keys + WASD)
-    this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasdKeys = {
-      W: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      A: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    }
-
-    // Debug keyboard controls
-    if (this.game.registry.get('debug')) {
-      const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
-      nKey.on('down', () => {
-        this.debugSkipLevel()
-      })
-    }
-
-    // Create virtual joystick
-    this.joystick = new Joystick(this)
-    const gameContainer = this.game.canvas.parentElement
-    if (gameContainer) {
-      this.joystick.create(gameContainer)
-
-      // Set joystick callbacks
-      this.joystick.setOnMove((angle: number, force: number) => {
-        this.joystickAngle = angle
-        this.joystickForce = force
-        this.lastJoystickMoveTime = this.time.now // Track when we last received input
-      })
-
-      this.joystick.setOnEnd(() => {
-        this.joystickForce = 0
-        this.lastJoystickMoveTime = 0 // Clear timestamp on end
-      })
-    }
-
-    // Update UIScene with room info
-    this.updateRoomUI()
-
-    // Send initial health to UIScene (player may have bonus HP from equipment/talents)
-    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-
-    console.log('GameScene: Created')
-  }
-
-  private updateRoomUI() {
-    this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
-  }
-
-  private spawnDoor() {
-    if (this.doorSprite) return
-
-    const width = this.cameras.main.width
-
-    // Create door at top center of the room
-    const doorX = width / 2
-    const doorY = 70
-
-    // Create the door sprite directly (not in a container - containers break physics)
-    // Portal image is 1408x768, scale to ~60px wide
-    this.doorSprite = this.add.sprite(doorX, doorY, 'portal')
-    const targetSize = 60
-    const scale = targetSize / this.doorSprite.width
-    this.doorSprite.setScale(scale)
-
-    // Add physics body for collision detection
-    this.physics.add.existing(this.doorSprite, true) // static body
-    const doorBody = this.doorSprite.body as Phaser.Physics.Arcade.StaticBody
-    // Set hitbox to match scaled size - offset to center the circle
-    const hitboxRadius = 25
-    const offsetX = (this.doorSprite.width * scale) / 2 - hitboxRadius
-    const offsetY = (this.doorSprite.height * scale) / 2 - hitboxRadius
-    doorBody.setCircle(hitboxRadius, offsetX, offsetY)
-
-    // Add overlap with player - this is the key collision
-    this.physics.add.overlap(
-      this.player,
-      this.doorSprite,
-      this.enterDoor as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
-
-    // Add "ENTER" text below door
-    this.doorText = this.add.text(doorX, doorY + 45, 'ENTER', {
-      fontSize: '12px',
-      color: '#00ff88',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-
-    // Glow animation - pulse scale and alpha
-    this.tweens.add({
-      targets: this.doorSprite,
-      scale: { from: scale * 0.9, to: scale * 1.1 },
-      alpha: { from: 0.8, to: 1 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
-
-    // Text pulse animation
-    this.tweens.add({
-      targets: this.doorText,
-      alpha: { from: 0.6, to: 1 },
-      duration: 400,
-      yoyo: true,
-      repeat: -1,
-    })
-
-    console.log('Door spawned at', doorX, doorY)
-  }
-
-  private enterDoor() {
-    if (this.isTransitioning || this.isGameOver) return
-
-    this.isTransitioning = true
-    console.log('Entering door to room', this.currentRoom + 1)
-
-    // Fade out
-    this.cameras.main.fadeOut(300, 0, 0, 0)
-
-    this.time.delayedCall(300, () => {
-      this.transitionToNextRoom()
-    })
-  }
-
-  private transitionToNextRoom() {
-    this.currentRoom++
-
-    // Check for victory
-    if (this.currentRoom > this.totalRooms) {
-      this.triggerVictory()
-      return
-    }
-
-    // Notify chapter manager of room advancement
-    const advanced = chapterManager.advanceRoom()
-    if (!advanced) {
-      console.warn('GameScene: Failed to advance room in chapter manager')
-    }
-
-    // Clean up current room
-    this.cleanupRoom()
-
-    // Spawn new enemies
-    this.spawnEnemiesForRoom()
-
-    // Reset room state
-    this.isRoomCleared = false
-    this.isTransitioning = false
-
-    // Update UI
-    this.updateRoomUI()
-
-    // Notify UIScene to fade in HUD when entering new room
-    this.scene.get('UIScene').events.emit('roomEntered')
-
-    // Fade back in
-    this.cameras.main.fadeIn(300, 0, 0, 0)
-
-    // Update error reporting context for new room
-    errorReporting.setProgress(chapterManager.getSelectedChapter(), this.currentRoom)
-    errorReporting.addBreadcrumb('game', `Entered room ${this.currentRoom}`)
-
-    console.log('Entered room', this.currentRoom)
-  }
-
-  private cleanupRoom() {
-    // Destroy door
-    if (this.doorSprite) {
-      this.doorSprite.destroy()
-      this.doorSprite = null
-    }
-    if (this.doorText) {
-      this.doorText.destroy()
-      this.doorText = null
-    }
-
-    this.cancelWaveTimers()
-    this.pendingEnemySpawns = 0
-
-    // Reset boss state
-    this.boss = null
-    this.scene.get('UIScene').events.emit('hideBossHealth')
-
-    // Destroy all enemies
-    this.enemies.clear(true, true)
-
-    // Clear all bullets
-    this.bulletPool.clear(true, true)
-    this.enemyBulletPool.clear(true, true)
-
-    // Clear spirit cats
-    if (this.spiritCatPool) {
-      this.spiritCatPool.clear(true, true)
-    }
-
-    // Clear any remaining gold pickups (they stay collected in goldEarned)
-    this.goldPool.cleanup()
-
-    // Reset player position
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
-    this.player.setPosition(width / 2, height - 100)
-    this.player.setVelocity(0, 0)
-  }
-
-  private spawnEnemiesForRoom() {
-    // Room 10 is the boss room
-    if (this.currentRoom === this.totalRooms) {
-      this.spawnBoss()
-      return
-    }
-
-    this.cancelWaveTimers()
-    this.pendingEnemySpawns = 0
-
-    // Get current chapter and its configuration
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-
-    // Calculate base enemy count (scales with room number and difficulty)
-    const baseEnemies = 4
-    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) + this.difficultyConfig.extraEnemyCount
-
-    // Use the RoomGenerator to create a procedurally generated room
-    this.currentGeneratedRoom = this.roomGenerator.generateRoom(
-      selectedChapter,
-      this.currentRoom,
-      this.player.x,
-      this.player.y,
-      scaledBase,
-      chapterDef.scaling.extraEnemiesPerRoom
-    )
-
-    // Log room generation details for debugging
-    const layoutName = this.currentGeneratedRoom.layout.name
-    const comboName = this.currentGeneratedRoom.combination?.name || 'Random Mix'
-    console.log(`Room ${this.currentRoom}: Layout "${layoutName}", Combo "${comboName}", Enemies: ${this.currentGeneratedRoom.enemySpawns.length}`)
-
-    // Spawn enemies using the generated positions
-    this.spawnEnemiesFromGeneration(this.currentGeneratedRoom)
-  }
-
-  private cancelWaveTimers(): void {
-    this.activeWaveTimers.forEach((timer) => timer.remove(false))
-    this.activeWaveTimers = []
-  }
-
-  private spawnEnemyFromPosition(
-    spawn: SpawnPosition,
-    enemyOptions: EnemyOptions
-  ): void {
-    const { x, y, enemyType } = spawn
-    let enemy: Enemy
-
-    switch (enemyType) {
-      case 'ranged':
-        enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-        break
-      case 'spreader':
-        enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-        break
-      case 'bomber':
-        enemy = new BomberEnemy(
-          this, x, y, this.bombPool, enemyOptions,
-          (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
+    // Spirit cats hit enemies
+    if (this.spiritCatSystem) {
+      const pool = this.spiritCatSystem.getPool()
+      if (pool) {
+        this.physics.add.overlap(
+          pool,
+          this.enemies,
+          ((cat: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) => {
+            this.spiritCatSystem!.handleHit(cat, enemy, this.isGameOver, this.roomManager.getIsTransitioning())
+          }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+          undefined,
+          this
         )
-        break
-      case 'tank':
-        enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
-        break
-      case 'charger':
-        enemy = new ChargerEnemy(this, x, y, enemyOptions)
-        break
-      case 'healer':
-        enemy = new HealerEnemy(this, x, y, enemyOptions)
-        break
-      case 'spawner':
-        enemy = new SpawnerEnemy(this, x, y, enemyOptions)
-        break
-      default:
-        enemy = new Enemy(this, x, y, enemyOptions)
-    }
-
-    this.add.existing(enemy)
-    this.physics.add.existing(enemy)
-
-    // Set enemy group reference for healer and spawner enemies
-    if (enemy instanceof HealerEnemy) {
-      enemy.setEnemyGroup(this.enemies)
-    }
-    if (enemy instanceof SpawnerEnemy) {
-      enemy.setEnemyGroup(this.enemies)
-    }
-
-    // Set up physics body with centered circular hitbox
-    const body = enemy.body as Phaser.Physics.Arcade.Body
-    if (body) {
-      const displaySize = enemy.displayWidth
-      const radius = Math.floor(displaySize * 0.4)
-      const offset = (displaySize - radius * 2) / 2
-      body.setSize(displaySize, displaySize)
-      body.setCircle(radius, offset, offset)
-      body.setCollideWorldBounds(true)
-    }
-
-    this.enemies.add(enemy)
-  }
-
-  /**
-   * Spawn enemies using positions from the room generator
-   */
-  private spawnEnemiesFromGeneration(generatedRoom: GeneratedRoom): void {
-    // Create enemy textures first (if needed)
-    if (!this.textures.exists('enemy')) {
-      const graphics = this.make.graphics({ x: 0, y: 0 }, false)
-      graphics.fillStyle(0xff4444, 1)
-      graphics.fillCircle(0, 0, 15)
-      graphics.generateTexture('enemy', 30, 30)
-      graphics.destroy()
-    }
-
-    // Get chapter for enemy modifiers
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-
-    this.pendingEnemySpawns = generatedRoom.enemySpawns.length
-    if (this.pendingEnemySpawns === 0) {
-      console.log(`Room ${this.currentRoom}: No enemies to spawn`)
-      return
-    }
-
-    const totalSpawns = generatedRoom.enemySpawns.length
-    const waveCount = totalSpawns <= 6 ? 2 : 3
-    const chunkSize = Math.ceil(totalSpawns / waveCount)
-    const waveDelay = 1500 // ms between waves
-
-    for (let i = 0; i < waveCount; i++) {
-      const waveSpawns = generatedRoom.enemySpawns.slice(i * chunkSize, (i + 1) * chunkSize)
-      if (waveSpawns.length === 0) continue
-
-      const delay = i === 0 ? 0 : waveDelay * i
-      const timer = this.time.delayedCall(delay, () => {
-        waveSpawns.forEach((spawn) => {
-          // Get chapter-specific modifiers for this enemy type
-          const chapterModifiers = getEnemyModifiers(selectedChapter, spawn.enemyType as ChapterEnemyType)
-
-          // Combine difficulty config with chapter modifiers and chapter scaling
-          const enemyOptions = {
-            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier,
-            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier,
-            speedMultiplier: chapterModifiers.speedMultiplier,
-            attackCooldownMultiplier: chapterModifiers.attackCooldownMultiplier,
-            projectileSpeedMultiplier: chapterModifiers.projectileSpeedMultiplier,
-            abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
-          }
-
-          this.spawnEnemyFromPosition(spawn, enemyOptions)
-          this.pendingEnemySpawns = Math.max(0, this.pendingEnemySpawns - 1)
-        })
-        this.checkRoomCleared()
-      })
-
-      this.activeWaveTimers.push(timer)
-    }
-
-    console.log(`Room ${this.currentRoom}: Scheduled ${totalSpawns} enemies across ${waveCount} waves`)
-  }
-
-  private spawnBoss() {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
-
-    // Spawn boss at center-top of screen
-    const bossX = width / 2
-    const bossY = height / 3
-
-    // Get current chapter and select a boss from its pool (using seeded RNG)
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const bossType: BossType = getRandomBossForChapter(selectedChapter, this.runRng)
-
-    // Difficulty modifiers for boss (combine difficulty config with chapter scaling)
-    const chapterDef = getChapterDefinition(selectedChapter)
-    const bossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier,
-    }
-
-    // Create the appropriate boss using the factory
-    const newBoss = createBoss(this, bossX, bossY, bossType, this.enemyBulletPool, bossOptions)
-    this.boss = newBoss as Boss // Type assertion for compatibility
-    this.add.existing(this.boss)
-    this.physics.add.existing(this.boss)
-
-    // Set up physics body for boss with centered circular hitbox
-    const body = this.boss.body as Phaser.Physics.Arcade.Body
-    if (body) {
-      const displaySize = getBossDisplaySize(bossType)
-      const radius = getBossHitboxRadius(bossType)
-      const offset = (displaySize - radius * 2) / 2
-      body.setSize(displaySize, displaySize)
-      body.setCircle(radius, offset, offset)
-      body.setCollideWorldBounds(true)
-    }
-
-    this.enemies.add(this.boss)
-
-    // Show boss health bar in UI
-    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
-
-    console.log(`Boss spawned: ${bossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
-  }
-
-  private checkRoomCleared() {
-    if (this.isRoomCleared) return
-
-    const enemyCount = this.enemies.getChildren().filter(e => e.active).length
-    if (enemyCount === 0 && this.pendingEnemySpawns === 0) {
-      this.isRoomCleared = true
-      audioManager.playRoomClear()
-      console.log('Room', this.currentRoom, 'cleared!')
-
-      // Notify chapter manager that room was cleared
-      chapterManager.clearRoom()
-
-      // Notify UIScene to fade out HUD for cleaner presentation
-      this.scene.get('UIScene').events.emit('roomCleared')
-
-      // Magnetically collect all remaining gold and health pickups
-      const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
-      if (collectedGold > 0) {
-        this.goldEarned += collectedGold
-        currencyManager.add('gold', collectedGold)
-        saveManager.addGold(collectedGold)
       }
-      this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
-        this.player.heal(healAmount)
-        this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-      })
-
-      // Show door after brief delay
-      this.time.delayedCall(500, () => {
-        if (!this.isGameOver) {
-          this.spawnDoor()
-        }
-      })
     }
   }
 
-  private triggerVictory() {
+  private handleEnemyKilled(_enemy: Enemy, isBoss: boolean, xpGain: number): void {
+    this.enemiesKilled++
+    this.heroXPEarned += isBoss ? 25 : 1
+
+    const leveledUp = this.player.addXP(xpGain)
+    this.updateXPUI()
+
+    if (leveledUp) {
+      this.abilitySystem.handleLevelUp()
+    }
+
+    this.roomManager.checkRoomCleared()
+  }
+
+  private handleVictory(completionResult: unknown): void {
     this.isGameOver = true
     audioManager.playVictory()
     console.log('Victory! All rooms cleared!')
 
-    // Complete chapter in manager to unlock next chapter and calculate rewards
-    const completionResult = chapterManager.completeChapter(
-      this.player.getHealth(),
-      this.player.getMaxHealth()
-    )
+    this.inputController.destroy()
 
-    // Clean up joystick
-    if (this.joystick) {
-      this.joystick.destroy()
-    }
-
-    // Calculate play time
     const playTimeMs = Date.now() - this.runStartTime
 
-    // Brief delay before showing victory screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene first
       this.scene.stop('UIScene')
-
-      // Launch victory scene (reusing GameOverScene for now)
       this.scene.launch('GameOverScene', {
-        roomsCleared: this.totalRooms,
+        roomsCleared: this.roomManager.getTotalRooms(),
         enemiesKilled: this.enemiesKilled,
         isVictory: true,
         playTimeMs,
-        abilitiesGained: this.abilitiesGained,
+        abilitiesGained: this.abilitySystem.getAbilitiesGained(),
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
-        acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        acquiredAbilities: this.abilitySystem.getAcquiredAbilities(),
         heroXPEarned: this.heroXPEarned,
       })
-
-      // Stop GameScene last - this prevents texture issues when restarting
       this.scene.stop('GameScene')
     })
   }
 
-  private spawnEnemies() {
-    // Initial spawn for room 1 - use the room generator
-    // Get current chapter and its configuration
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-
-    // Calculate base enemy count for room 1
-    const baseEnemies = 4
-    const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) + this.difficultyConfig.extraEnemyCount
-
-    // Use the RoomGenerator for room 1
-    this.currentGeneratedRoom = this.roomGenerator.generateRoom(
-      selectedChapter,
-      this.currentRoom,
-      this.player.x,
-      this.player.y,
-      scaledBase,
-      chapterDef.scaling.extraEnemiesPerRoom
-    )
-
-    // Log room generation details
-    const layoutName = this.currentGeneratedRoom.layout.name
-    const comboName = this.currentGeneratedRoom.combination?.name || 'Random Mix'
-    console.log(`Room ${this.currentRoom}: Layout "${layoutName}", Combo "${comboName}", Enemies: ${this.currentGeneratedRoom.enemySpawns.length}`)
-
-    // Spawn enemies using the generated positions
-    this.spawnEnemiesFromGeneration(this.currentGeneratedRoom)
-  }
-
-  /**
-   * Handle bomb explosion damage to player
-   */
-  private handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
+  private triggerGameOver(): void {
     if (this.isGameOver) return
 
-    // Check if player is within explosion radius
-    const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
-    if (distanceToPlayer <= radius) {
-      // Try to damage player (respects invincibility and dodge)
-      const damageResult = this.player.takeDamage(damage)
+    this.isGameOver = true
+    audioManager.playDeath()
+    hapticManager.death()
+    console.log('Game Over! Enemies killed:', this.enemiesKilled)
 
-      // Check if attack was dodged
-      if (damageResult.dodged) {
-        this.damageNumberPool.showDodge(this.player.x, this.player.y)
-        return
-      }
+    chapterManager.endRun(true)
+    this.player.setVelocity(0, 0)
+    this.player.setTint(0xff0000)
+    this.inputController.destroy()
 
-      // Check if damage was taken (invincibility check)
-      if (!damageResult.damaged) return
+    const playTimeMs = Date.now() - this.runStartTime
 
-      audioManager.playPlayerHit()
-
-      // Update UI
-      this.updatePlayerHealthUI(this.player)
-
-      // Check for death
-      if (this.player.getHealth() <= 0) {
-        this.triggerGameOver()
-        return
-      }
-
-      // Flash player when hit
-      this.showHitFlash(this.player)
-
-      // Knockback from explosion center
-      const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y)
-      const knockbackForce = 200
-      this.player.setVelocity(
-        Math.cos(angle) * knockbackForce,
-        Math.sin(angle) * knockbackForce
-      )
-
-      console.log(`Player hit by bomb explosion! Health: ${this.player.getHealth()}`)
-    }
+    this.time.delayedCall(500, () => {
+      this.scene.stop('UIScene')
+      this.scene.launch('GameOverScene', {
+        roomsCleared: this.roomManager.getCurrentRoom() - 1,
+        enemiesKilled: this.enemiesKilled,
+        isVictory: false,
+        playTimeMs,
+        abilitiesGained: this.abilitySystem.getAbilitiesGained(),
+        goldEarned: this.goldEarned,
+        runSeed: this.runSeedString,
+        acquiredAbilities: this.abilitySystem.getAcquiredAbilities(),
+        heroXPEarned: this.heroXPEarned,
+      })
+      this.scene.stop('GameScene')
+    })
   }
 
-  private bulletHitEnemy(
-    bullet: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
-  ) {
-    if (this.isGameOver || this.isTransitioning) return
-
-    const bulletSprite = bullet as Bullet
-    const enemySprite = enemy as Enemy
-
-    // Skip if bullet has already hit this enemy (prevents duplicate collisions during piercing)
-    if (bulletSprite.hasHitEnemy(enemy)) {
-      return
-    }
-
-    // Calculate damage based on bullet properties
-    let damage = this.player.getDamage()
-
-    // Check for critical hit
-    if (bulletSprite.isCriticalHit()) {
-      damage = this.player.getDamageWithCrit(true)
-      // TODO: Show crit damage number (yellow/bigger)
-    }
-
-    // Apply piercing damage reduction if bullet has hit enemies before
-    const hitCount = bulletSprite.getHitCount()
-    if (hitCount > 0 && bulletSprite.getMaxPierces() > 0) {
-      damage = this.player.getPiercingDamage(hitCount)
-    }
-
-    // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
-
-    // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, bulletSprite.isCriticalHit())
-
-    // Visual effects for hit
-    if (bulletSprite.isCriticalHit()) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
-    } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
-      this.screenShake.onEnemyHit()
-    }
-
-    // Apply fire DOT if bullet has fire damage
-    const fireDamage = bulletSprite.getFireDamage()
-    if (fireDamage > 0 && !killed) {
-      enemySprite.applyFireDamage(fireDamage, 2000) // 2 second burn
-      this.particles.emitFire(enemySprite.x, enemySprite.y)
-    }
-
-    // Apply freeze if bullet has freeze chance and rolls successfully
-    if (!killed && bulletSprite.rollFreeze()) {
-      enemySprite.applyFreeze()
-    }
-
-    // Apply poison DOT if bullet has poison damage
-    const poisonDamage = bulletSprite.getPoisonDamage()
-    if (poisonDamage > 0 && !killed) {
-      enemySprite.applyPoisonDamage(poisonDamage)
-    }
-
-    // Handle lightning chain if bullet has lightning ability
-    const lightningChainCount = bulletSprite.getLightningChainCount()
-    if (lightningChainCount > 0 && !killed) {
-      this.applyLightningChain(enemySprite, damage * 0.5, lightningChainCount)
-    }
-
-    // Check if bullet should be deactivated or continue (piercing/ricochet)
-    const shouldDeactivate = bulletSprite.onHit(enemy)
-
-    // Handle ricochet - find nearest enemy and redirect
-    if (!shouldDeactivate && bulletSprite.getBounceCount() < bulletSprite.getMaxBounces()) {
-      const nearestEnemy = this.findNearestEnemyExcluding(bulletSprite.x, bulletSprite.y, enemySprite)
-      if (nearestEnemy) {
-        bulletSprite.redirectTo(nearestEnemy.x, nearestEnemy.y)
-      } else {
-        // No target for ricochet, deactivate
-        bulletSprite.setActive(false)
-        bulletSprite.setVisible(false)
-      }
-    } else if (shouldDeactivate) {
-      // Deactivate bullet
-      bulletSprite.setActive(false)
-      bulletSprite.setVisible(false)
-    }
-    // else: bullet continues (piercing)
-
-    // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
-    if (isBoss && !killed) {
-      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit() // Haptic feedback for hitting boss
-    }
-
-    if (killed) {
-      // Track kill
-      this.enemiesKilled++
-
-      // Bloodthirst: Heal on kill
-      const bloodthirstHeal = this.player.getBloodthirstHeal()
-      if (bloodthirstHeal > 0) {
-        this.player.heal(bloodthirstHeal)
-        this.updatePlayerHealthUI(this.player)
-      }
-
-      // Death particles and screen shake
-      if (isBoss) {
-        this.particles.emitBossDeath(enemySprite.x, enemySprite.y)
-        this.screenShake.onBossDeath()
-      } else {
-        this.particles.emitDeath(enemySprite.x, enemySprite.y)
-        this.screenShake.onExplosion()
-        hapticManager.light() // Haptic feedback for enemy death
-      }
-
-      // Spawn gold drop at enemy position
-      this.spawnDrops(enemySprite)
-
-      // Add XP to player (boss gives 10 XP)
-      const xpGain = isBoss ? 10 : 1
-      const leveledUp = this.player.addXP(xpGain)
-      this.updateXPUI()
-
-      // Accumulate hero XP (boss gives 25 hero XP)
-      this.heroXPEarned += isBoss ? 25 : 1
-
-      if (leveledUp) {
-        this.handleLevelUp()
-      }
-
-      // Clear boss reference if boss was killed
-      if (isBoss) {
-        this.boss = null
-        this.scene.get('UIScene').events.emit('hideBossHealth')
-      }
-
-      // Remove enemy from group and destroy
-      enemySprite.destroy()
-
-      // Invalidate nearest enemy cache since enemies changed
-      this.invalidateNearestEnemyCache()
-
-      // Check if room is cleared
-      this.checkRoomCleared()
-    }
+  private updateRoomUI(): void {
+    this.scene.get('UIScene').events.emit('updateRoom', this.roomManager.getCurrentRoom(), this.roomManager.getTotalRooms())
   }
 
-  private updateXPUI() {
+  private updatePlayerHealthUI(): void {
+    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+  }
+
+  private updateXPUI(): void {
     const xpPercentage = this.player.getXPPercentage()
     const level = this.player.getLevel()
     this.scene.get('UIScene').events.emit('updateXP', xpPercentage, level)
   }
 
-  /**
-   * Determine enemy type for gold drops based on class hierarchy
-   */
-  private getEnemyType(enemy: Enemy): EnemyType {
-    if (enemy instanceof Boss) {
-      return 'boss'
-    }
-    if (enemy instanceof SpreaderEnemy) {
-      return 'spreader'
-    }
-    if (enemy instanceof RangedShooterEnemy) {
-      return 'ranged'
-    }
-    return 'melee'
+  private debugSkipLevel(): void {
+    if (this.isGameOver || this.roomManager.getIsTransitioning()) return
+    this.roomManager.debugSkipLevel()
   }
 
-  /**
-   * Spawn drops at enemy death position (50% gold, 5% health potion)
-   */
-  private spawnDrops(enemy: Enemy): void {
-    const enemyType = this.getEnemyType(enemy)
-
-    // 50% chance to drop gold
-    if (Math.random() < 0.5) {
-      const goldValue = this.goldPool.spawnForEnemy(enemy.x, enemy.y, enemyType)
-      console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
-    }
-
-    // 5% chance to drop health potion (heals 20 HP)
-    if (Math.random() < 0.05) {
-      this.healthPool.spawn(enemy.x, enemy.y, 20)
-      console.log('Health potion spawned!')
-    }
-  }
-
-  private handleLevelUp() {
-    console.log('GameScene: handleLevelUp called')
-    audioManager.playLevelUp()
-    hapticManager.levelUp() // Haptic feedback for level up
-
-    // Level up celebration particles
-    this.particles.emitLevelUp(this.player.x, this.player.y)
-
-    // Apply heal on level up talent bonus
-    if (this.talentBonuses.flatHealOnLevel > 0) {
-      this.player.heal(this.talentBonuses.flatHealOnLevel)
-      console.log('GameScene: Healed', this.talentBonuses.flatHealOnLevel, 'HP from talent')
-    }
-
-    // Check if auto level up is enabled
-    if (saveManager.getAutoLevelUp()) {
-      this.handleAutoLevelUp()
-      return
-    }
-
-    // Reset joystick state before pausing to prevent stuck input
-    this.resetJoystickState()
-
-    // Pause game physics
-    this.physics.pause()
-
-    // Hide joystick so it doesn't block the UI (hide() now calls resetJoystickState internally)
-    if (this.joystick) {
-      console.log('GameScene: hiding joystick')
-      this.joystick.hide()
-    }
-
-    // Clean up any existing listeners to prevent multiple applications
-    this.game.events.off('abilitySelected')
-
-    // Listen for ability selection using global game events (more reliable than scene events)
-    this.game.events.once('abilitySelected', (abilityId: string) => {
-      console.log('GameScene: received abilitySelected', abilityId)
-      try {
-        this.applyAbility(abilityId)
-        console.log('GameScene: resuming physics and showing joystick')
-        // Ensure joystick state is reset before resuming
-        this.resetJoystickState()
-        this.physics.resume()
-        if (this.joystick) {
-          this.joystick.show()
-        }
-      } catch (error) {
-        console.error('GameScene: Error applying ability:', error)
-        this.resetJoystickState() // Reset even on error
-        this.physics.resume() // Resume anyway to prevent soft-lock
-        if (this.joystick) {
-          this.joystick.show()
-        }
-      }
-    })
-
-    // Launch level up scene with ability choices
-    // Use launch instead of start to run in parallel
-    if (this.scene.isActive('LevelUpScene')) {
-      console.log('GameScene: LevelUpScene already active, restarting it')
-      this.scene.stop('LevelUpScene')
-    }
-    
-    this.scene.launch('LevelUpScene', {
-      playerLevel: this.player.getLevel(),
-    })
-  }
-
-  /**
-   * Handle auto level up - randomly select an ability without showing the selection UI
-   */
-  private handleAutoLevelUp() {
-    // Select a random ability from all available
-    const randomIndex = Math.floor(Math.random() * ABILITIES.length)
-    const selectedAbility = ABILITIES[randomIndex]
-
-    console.log('GameScene: Auto level up selected:', selectedAbility.id)
-
-    // Apply the ability
-    this.applyAbility(selectedAbility.id)
-
-    // Notify UIScene to show the auto level up notification
-    this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility)
-  }
-
-  private applyAbility(abilityId: string) {
-    switch (abilityId) {
-      // Original 8 abilities
-      case 'front_arrow':
-        this.player.addFrontArrow()
-        break
-      case 'multishot':
-        this.player.addMultishot()
-        break
-      case 'attack_speed':
-        this.player.addAttackSpeedBoost(0.25) // +25%
-        break
-      case 'attack_boost':
-        this.player.addDamageBoost(0.30) // +30%
-        break
-      case 'piercing':
-        this.player.addPiercing()
-        break
-      case 'ricochet':
-        this.player.addRicochet()
-        break
-      case 'fire_damage':
-        this.player.addFireDamage()
-        break
-      case 'crit_boost':
-        this.player.addCritBoost()
-        break
-      // New V1 abilities
-      case 'ice_shot':
-        this.player.addIceShot()
-        break
-      case 'poison_shot':
-        this.player.addPoisonShot()
-        break
-      case 'lightning_chain':
-        this.player.addLightningChain()
-        break
-      case 'diagonal_arrows':
-        this.player.addDiagonalArrows()
-        break
-      case 'rear_arrow':
-        this.player.addRearArrow()
-        break
-      case 'damage_aura':
-        this.player.addDamageAura()
-        break
-      case 'bloodthirst':
-        this.player.addBloodthirst()
-        break
-      case 'rage':
-        this.player.addRage()
-        break
-      case 'speed_boost':
-        this.player.addSpeedBoost()
-        break
-      case 'max_health':
-        this.player.addMaxHealthBoost()
-        break
-    }
-    this.abilitiesGained++
-
-    // Track ability with its level
-    const currentLevel = this.acquiredAbilities.get(abilityId) || 0
-    this.acquiredAbilities.set(abilityId, currentLevel + 1)
-
-    // Notify UIScene about ability update
-    this.scene.get('UIScene').events.emit('updateAbilities', this.getAcquiredAbilitiesArray())
-
-    // Update health UI (abilities like max_health change max HP)
-    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-
-    console.log(`Applied ability: ${abilityId} (level: ${currentLevel + 1}, total: ${this.abilitiesGained})`)
-  }
-
-  /**
-   * Convert acquired abilities map to array for passing to other scenes
-   */
-  private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
-    return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
-  }
-
-  private enemyBulletHitPlayer(
-    player: Phaser.GameObjects.GameObject,
-    bullet: Phaser.GameObjects.GameObject
-  ) {
-    if (this.isGameOver) return
-
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
-    const playerSprite = player as Player
-
-    // Skip if bullet is already inactive (prevents multiple damage from same bullet)
-    if (!bulletSprite.active) return
-
-    // Deactivate bullet regardless of invincibility
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
-
-    // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
-    const baseBulletDamage = 30 // Increased by 200%
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
-    const bulletDamage = Math.round(
-      baseBulletDamage *
-      this.difficultyConfig.enemyDamageMultiplier *
-      chapterDef.scaling.enemyDamageMultiplier *
-      damageReduction
-    )
-
-    // Try to damage player (respects invincibility and dodge)
-    const damageResult = playerSprite.takeDamage(bulletDamage)
-
-    // Check if attack was dodged
-    if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
-    }
-
-    // Check if damage was taken (invincibility check)
-    if (!damageResult.damaged) return
-
-    // Show damage number
-    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, bulletDamage)
-
-    audioManager.playPlayerHit()
-    hapticManager.heavy() // Haptic feedback for taking damage
-
-    // Screen shake on player damage
-    if (bulletDamage >= 15) {
-      this.screenShake.onPlayerHeavyDamage()
-    } else {
-      this.screenShake.onPlayerDamage()
-    }
-
-    // Update UI
-    this.updatePlayerHealthUI(playerSprite)
-
-    // Check for death
-    if (playerSprite.getHealth() <= 0) {
-      this.screenShake.onPlayerDeath()
-      this.triggerGameOver()
-      return
-    }
-
-    // Flash player when hit
-    this.showHitFlash(playerSprite)
-
-    console.log(`Player hit by bullet! Health: ${playerSprite.getHealth()}`)
-  }
-
-  private enemyHitPlayer(
-    player: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
-  ) {
-    if (this.isGameOver) return
-
-    const playerSprite = player as Player
-    const enemySprite = enemy as Enemy
-
-    // Check melee attack cooldown - enemies can only hit once per cooldown period
-    const currentTime = this.time.now
-    if (!enemySprite.canMeleeAttack(currentTime)) {
-      return
-    }
-
-    // Record this attack to start cooldown
-    enemySprite.recordMeleeAttack(currentTime)
-
-    // Get enemy damage (scaled by difficulty) and apply talent damage reduction
-    const baseDamage = enemySprite.getDamage()
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
-    const damage = Math.round(baseDamage * damageReduction)
-
-    // Try to damage player (respects invincibility and dodge)
-    const damageResult = playerSprite.takeDamage(damage)
-
-    // Check if attack was dodged
-    if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
-    }
-
-    // Check if damage was taken (invincibility check)
-    if (!damageResult.damaged) return
-
-    // Show damage number
-    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, damage)
-
-    audioManager.playPlayerHit()
-    hapticManager.heavy() // Haptic feedback for taking damage
-
-    // Screen shake on player damage
-    this.screenShake.onPlayerDamage()
-
-    // Update UI
-    this.updatePlayerHealthUI(playerSprite)
-
-    // Check for death
-    if (playerSprite.getHealth() <= 0) {
-      this.screenShake.onPlayerDeath()
-      this.triggerGameOver()
-      return
-    }
-
-    // Flash player when hit
-    this.showHitFlash(playerSprite)
-
-    // Push player back slightly
-    const angle = Phaser.Math.Angle.Between(
-      enemySprite.x,
-      enemySprite.y,
-      playerSprite.x,
-      playerSprite.y
-    )
-    const knockbackForce = 150
-    playerSprite.setVelocity(
-      Math.cos(angle) * knockbackForce,
-      Math.sin(angle) * knockbackForce
-    )
-
-    console.log(`Player hit by enemy! Health: ${playerSprite.getHealth()}`)
-  }
-
-  private updatePlayerHealthUI(player: Player) {
-    // Emit event to UIScene with current and max health
-    this.scene.get('UIScene').events.emit('updateHealth', player.getHealth(), player.getMaxHealth())
-  }
-
-  /**
-   * Debug functionality to skip the current level
-   */
-  private debugSkipLevel() {
-    if (this.isGameOver || this.isTransitioning) {
-      console.log('Debug: Skip ignored (GameOver:', this.isGameOver, 'Transitioning:', this.isTransitioning, ')')
-      return
-    }
-
-    this.isTransitioning = true
-    console.log('Debug: Skipping level', this.currentRoom)
-
-    // Magnetically collect all remaining gold and health pickups before skipping
-    this.goldPool.collectAll(this.player.x, this.player.y)
-    this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
-      this.player.heal(healAmount)
-      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-    })
-
-    // Reset transition flag just before calling the transition method
-    // (transitionToNextRoom will set it to false when finished)
-    this.isTransitioning = false
-    this.transitionToNextRoom()
-  }
-
-  /**
-   * Reset the level back to room 1 while keeping all acquired upgrades
-   * This allows infinite ability stacking for fun overpowered runs
-   */
-  private resetLevel() {
-    if (this.isGameOver || this.isTransitioning) {
-      console.log('Reset: Ignored (GameOver:', this.isGameOver, 'Transitioning:', this.isTransitioning, ')')
-      return
-    }
-
-    console.log('Resetting level - keeping all upgrades! Current level:', this.player.getLevel())
-
-    this.isTransitioning = true
-
-    // Collect any remaining pickups before reset
-    const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
-    if (collectedGold > 0) {
-      this.goldEarned += collectedGold
-      currencyManager.add('gold', collectedGold)
-      saveManager.addGold(collectedGold)
-    }
-    this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
-      this.player.heal(healAmount)
-    })
-
-    // Fade out
-    this.cameras.main.fadeOut(300, 0, 0, 0)
-
-    this.time.delayedCall(300, () => {
-      // Restart chapter run to sync ChapterManager room counter with GameScene
-      // This fixes desync caused by resetting GameScene.currentRoom without updating ChapterManager
-      const selectedChapter = chapterManager.getSelectedChapter()
-      chapterManager.startChapter(selectedChapter)
-
-      // Reset to room 1
-      this.currentRoom = 1
-
-      // Reset RNG to initial state so enemies spawn in same locations
-      this.runRng.reset()
-
-      // Clean up current room (but NOT the player - keep abilities!)
-      this.cleanupRoom()
-
-      // Reset player position and heal to full
-      const width = this.cameras.main.width
-      const height = this.cameras.main.height
-      this.player.setPosition(width / 2, height - 100)
-      this.player.setVelocity(0, 0)
-      this.player.heal(this.player.getMaxHealth()) // Full heal on reset
-
-      // Spawn enemies for room 1 (will use reset RNG)
-      this.spawnEnemies()
-
-      // Reset room state
-      this.isRoomCleared = false
-      this.isTransitioning = false
-
-      // Update UI
-      this.updateRoomUI()
-      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-      this.scene.get('UIScene').events.emit('roomEntered')
-
-      // Fade back in
-      this.cameras.main.fadeIn(300, 0, 0, 0)
-
-      console.log('Level reset complete! Starting room 1 with', this.abilitiesGained, 'abilities')
-    })
-  }
-
-  private showHitFlash(player: Player) {
-    // Brief red flash when hit
-    player.setTint(0xff0000)
-    player.setAlpha(0.7)
-
-    this.time.delayedCall(100, () => {
-      if (player.active) {
-        player.clearTint()
-        player.setAlpha(1)
-      }
-    })
-  }
-
-  private triggerGameOver() {
-    if (this.isGameOver) return
-
-    this.isGameOver = true
-    audioManager.playDeath()
-    hapticManager.death() // Haptic feedback for player death
-    console.log('Game Over! Enemies killed:', this.enemiesKilled)
-
-    // End the chapter run (failed)
-    chapterManager.endRun(true)
-
-    // Stop player movement
-    this.player.setVelocity(0, 0)
-
-    // Flash player red and fade out
-    this.player.setTint(0xff0000)
-
-    // Clean up joystick
-    if (this.joystick) {
-      this.joystick.destroy()
-    }
-
-    // Calculate play time
-    const playTimeMs = Date.now() - this.runStartTime
-
-    // Brief delay before showing game over screen
-    this.time.delayedCall(500, () => {
-      // Stop UIScene first
-      this.scene.stop('UIScene')
-
-      // Launch game over scene with stats
-      this.scene.launch('GameOverScene', {
-        roomsCleared: this.currentRoom - 1,
-        enemiesKilled: this.enemiesKilled,
-        isVictory: false,
-        playTimeMs,
-        abilitiesGained: this.abilitiesGained,
-        goldEarned: this.goldEarned,
-        runSeed: this.runSeedString,
-        acquiredAbilities: this.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.heroXPEarned,
-      })
-
-      // Stop GameScene last - this prevents texture issues when restarting
-      this.scene.stop('GameScene')
-    })
+  private resetLevel(): void {
+    if (this.isGameOver || this.roomManager.getIsTransitioning()) return
+    this.roomManager.resetLevel(this.runRng)
   }
 
   private findNearestEnemy(): Enemy | null {
     let nearestEnemy: Enemy | null = null
     let nearestDistance = Infinity
 
-    const children = this.enemies.getChildren()
-
-    // Safety check for player position
     if (!this.player || !isFinite(this.player.x) || !isFinite(this.player.y)) {
-      console.warn('findNearestEnemy: Invalid player position', this.player?.x, this.player?.y)
       return null
     }
 
-    // Debug: Log when there are enemies in group but none are targetable
-    let activeCount = 0
-    let inactiveCount = 0
-    let bodylessCount = 0
-
-    children.forEach((enemy) => {
+    this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy
+      if (!e.active || !e.body) return
 
-      // Debug: Track why enemies might be skipped
-      if (!e.active) {
-        inactiveCount++
-        return
-      }
-
-      if (!e.body) {
-        bodylessCount++
-        return
-      }
-
-      activeCount++
-
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        e.x,
-        e.y
-      )
-
+      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y)
       if (distance < nearestDistance) {
         nearestDistance = distance
         nearestEnemy = e
       }
     })
 
-    // Debug: Warn if enemies exist but none are targetable
-    if (children.length > 0 && !nearestEnemy) {
-      console.warn(`findNearestEnemy: No target found! Total: ${children.length}, Active: ${activeCount}, Inactive: ${inactiveCount}, No body: ${bodylessCount}`)
-      // Log details about each enemy in the group
-      children.forEach((enemy, i) => {
-        const e = enemy as Enemy
-        console.warn(`  Enemy[${i}]: active=${e.active}, body=${!!e.body}, x=${e.x?.toFixed(0)}, y=${e.y?.toFixed(0)}, constructor=${e.constructor.name}`)
-      })
-    }
-
     return nearestEnemy
   }
 
-  /**
-   * Get the nearest enemy with caching for performance
-   * Only recalculates every NEAREST_ENEMY_CACHE_FRAMES frames
-   */
   private getCachedNearestEnemy(): Enemy | null {
     const currentFrame = this.game.getFrame()
 
-    // Check if cache is stale
     if (currentFrame - this.nearestEnemyCacheFrame >= this.NEAREST_ENEMY_CACHE_FRAMES) {
       this.cachedNearestEnemy = this.findNearestEnemy()
       this.nearestEnemyCacheFrame = currentFrame
     }
 
-    // Validate cached enemy is still valid (active, has body, not destroyed)
-    if (this.cachedNearestEnemy &&
-        (!this.cachedNearestEnemy.active || !this.cachedNearestEnemy.body)) {
-      // Cache is invalid, force refresh
+    if (this.cachedNearestEnemy && (!this.cachedNearestEnemy.active || !this.cachedNearestEnemy.body)) {
       this.cachedNearestEnemy = this.findNearestEnemy()
       this.nearestEnemyCacheFrame = currentFrame
     }
@@ -1702,30 +611,20 @@ export default class GameScene extends Phaser.Scene {
     return this.cachedNearestEnemy
   }
 
-  /**
-   * Invalidate the nearest enemy cache (call when enemies die or spawn)
-   */
   private invalidateNearestEnemyCache(): void {
     this.nearestEnemyCacheFrame = 0
     this.cachedNearestEnemy = null
   }
 
-  /**
-   * Find nearest enemy to a position, excluding a specific enemy
-   * Used for ricochet targeting
-   */
   private findNearestEnemyExcluding(x: number, y: number, exclude: Enemy): Enemy | null {
     let nearestEnemy: Enemy | null = null
     let nearestDistance = Infinity
 
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy
-
-      // Skip the excluded enemy or inactive enemies
       if (e === exclude || !e.active) return
 
       const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
-
       if (distance < nearestDistance) {
         nearestDistance = distance
         nearestEnemy = e
@@ -1735,303 +634,89 @@ export default class GameScene extends Phaser.Scene {
     return nearestEnemy
   }
 
-  /**
-   * Apply lightning chain damage to nearby enemies
-   * @param source The enemy that was hit
-   * @param damage Damage per chain hit (50% of original)
-   * @param chainCount Number of enemies to chain to
-   */
-  private applyLightningChain(source: Enemy, damage: number, chainCount: number): void {
-    const maxChainDistance = 150 // Max distance for lightning to jump
+  update(time: number, delta: number): void {
+    if (this.isGameOver) return
 
-    // Find nearby enemies excluding the source
-    const nearbyEnemies: Enemy[] = []
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (e === source || !e.active) return
+    performanceMonitor.update(delta)
 
-      const distance = Phaser.Math.Distance.Between(source.x, source.y, e.x, e.y)
-      if (distance <= maxChainDistance) {
-        nearbyEnemies.push(e)
-      }
-    })
+    if (this.player) {
+      // Check for stuck joystick
+      this.inputController.checkStuckState(time)
 
-    // Sort by distance and take only chainCount enemies
-    nearbyEnemies.sort((a, b) => {
-      const distA = Phaser.Math.Distance.Between(source.x, source.y, a.x, a.y)
-      const distB = Phaser.Math.Distance.Between(source.x, source.y, b.x, b.y)
-      return distA - distB
-    })
+      // Get movement velocity
+      const baseVelocity = 400
+      const { vx, vy } = this.inputController.getVelocity(baseVelocity)
+      this.player.setVelocity(vx, vy)
+      this.player.update(time, delta)
 
-    const targets = nearbyEnemies.slice(0, chainCount)
-
-    // Apply damage to each target
-    targets.forEach((target) => {
-      // Guard against destroyed enemies (can happen if enemy was killed by another source)
-      if (!target.active || !target.scene) return
-
-      const killed = target.takeDamage(Math.floor(damage))
-
-      if (killed) {
-        this.enemiesKilled++
-        this.spawnDrops(target)
-
-        // Bloodthirst heal on kill
-        const bloodthirstHeal = this.player.getBloodthirstHeal()
-        if (bloodthirstHeal > 0) {
-          this.player.heal(bloodthirstHeal)
-          this.updatePlayerHealthUI(this.player)
-        }
-
-        target.destroy()
-        this.checkRoomCleared()
-      }
-    })
-  }
-
-  /**
-   * Update the damage aura visual effect around the player
-   * Shows a pulsing circle when damage aura ability is active
-   */
-  private updateDamageAuraVisual(time: number, playerX: number, playerY: number): void {
-    if (!this.damageAuraGraphics) return
-
-    const auraRadius = this.player.getDamageAuraRadius()
-
-    // Clear previous frame
-    this.damageAuraGraphics.clear()
-
-    // Only draw if player has damage aura ability
-    if (auraRadius <= 0) return
-
-    // Create pulsing effect
-    const pulseSpeed = 0.003 // Pulse speed
-    const pulsePhase = (Math.sin(time * pulseSpeed) + 1) / 2 // 0 to 1
-    const pulseAlpha = 0.15 + pulsePhase * 0.2 // 0.15 to 0.35
-
-    // Outer ring - main aura boundary
-    this.damageAuraGraphics.lineStyle(3, 0xff4400, 0.5 + pulsePhase * 0.3)
-    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius)
-
-    // Inner glow - fills the aura area
-    this.damageAuraGraphics.fillStyle(0xff4400, pulseAlpha * 0.4)
-    this.damageAuraGraphics.fillCircle(playerX, playerY, auraRadius)
-
-    // Inner ring for depth effect
-    this.damageAuraGraphics.lineStyle(2, 0xff6600, 0.3 + pulsePhase * 0.2)
-    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius * 0.7)
-  }
-
-  /**
-   * Apply damage aura to nearby enemies
-   * Deals DPS damage every AURA_DAMAGE_INTERVAL ms to enemies within radius
-   */
-  private applyDamageAura(time: number, playerX: number, playerY: number): void {
-    const auraDPS = this.player.getDamageAuraDPS()
-    if (auraDPS <= 0) return
-
-    // Only apply damage at intervals
-    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return
-    this.lastAuraDamageTime = time
-
-    const auraRadius = this.player.getDamageAuraRadius()
-    // Calculate damage per tick (DPS / 2 since we apply 2x per second)
-    const damagePerTick = Math.floor(auraDPS / 2)
-
-    const enemiesToDestroy: Enemy[] = []
-
-    // Find and damage all enemies within aura radius
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (!e.active) return
-
-      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y)
-      if (distance <= auraRadius) {
-        const killed = e.takeDamage(damagePerTick)
-
-        // Show damage number
-        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false)
-
-        // Visual feedback - emit particles
-        this.particles.emitHit(e.x, e.y)
-
-        if (killed) {
-          enemiesToDestroy.push(e)
+      // Auto-fire when stationary
+      const hasMovementInput = this.inputController.hasMovementInput()
+      if (!hasMovementInput && !this.player.isPlayerMoving()) {
+        if (this.shootingSystem.canShoot(time)) {
+          const nearestEnemy = this.getCachedNearestEnemy()
+          if (nearestEnemy) {
+            this.shootingSystem.shootAt(nearestEnemy, time)
+          }
         }
       }
-    })
 
-    // Handle deaths from aura damage
-    for (const e of enemiesToDestroy) {
-      this.enemiesKilled++
+      // Update enemies and handle DOT deaths
+      const enemyChildren = this.enemies.getChildren()
+      const enemiesToDestroy: Enemy[] = []
 
-      // Bloodthirst heal on kill
-      const bloodthirstHeal = this.player.getBloodthirstHeal()
-      if (bloodthirstHeal > 0) {
-        this.player.heal(bloodthirstHeal)
-        this.updatePlayerHealthUI(this.player)
+      for (let i = 0; i < enemyChildren.length; i++) {
+        const e = enemyChildren[i] as Enemy
+        if (e && e.active) {
+          const diedFromDOT = e.update(time, delta, this.player.x, this.player.y)
+          if (diedFromDOT) {
+            enemiesToDestroy.push(e)
+          }
+        }
       }
 
-      // Death particles
-      this.particles.emitDeath(e.x, e.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-
-      // Spawn drops
-      this.spawnDrops(e)
-
-      // Add XP
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      const xpGain = isBoss ? 10 : 1
-      const leveledUp = this.player.addXP(xpGain)
-      this.updateXPUI()
-
-      // Accumulate hero XP (boss gives 25 hero XP)
-      this.heroXPEarned += isBoss ? 25 : 1
-
-      if (leveledUp) {
-        this.handleLevelUp()
+      for (const e of enemiesToDestroy) {
+        this.handleEnemyDOTDeath(e)
       }
 
-      if (isBoss) {
-        this.boss = null
-        this.scene.get('UIScene').events.emit('hideBossHealth')
+      // Update systems
+      this.auraSystem.update(time, this.player.x, this.player.y)
+
+      if (this.spiritCatSystem) {
+        this.spiritCatSystem.update(time, this.player.x, this.player.y)
       }
 
-      e.destroy()
-      this.invalidateNearestEnemyCache()
-    }
+      this.pickupManager.update(this.player.x, this.player.y)
 
-    // Check if room cleared after processing deaths
-    if (enemiesToDestroy.length > 0) {
-      this.checkRoomCleared()
-    }
-  }
-
-  /**
-   * Update spirit cat spawning for Meowgik hero
-   */
-  private updateSpiritCats(time: number, playerX: number, playerY: number): void {
-    if (!this.spiritCatPool || !this.spiritCatConfig) return
-
-    // Calculate spawn interval from attack speed (attacks per second)
-    const spawnInterval = 1000 / this.spiritCatConfig.attackSpeed
-
-    // Check spawn interval
-    if (time - this.lastSpiritCatSpawnTime < spawnInterval) return
-
-    // Find nearest enemy to target
-    const target = this.getCachedNearestEnemy()
-    if (!target) return
-
-    // Spawn cats around the player
-    const catCount = this.spiritCatConfig.count
-    for (let i = 0; i < catCount; i++) {
-      // Spawn in circular pattern around player
-      const spawnAngle = (Math.PI * 2 * i) / catCount + (time * 0.001) // Rotating pattern
-      const spawnDistance = 40
-      const spawnX = playerX + Math.cos(spawnAngle) * spawnDistance
-      const spawnY = playerY + Math.sin(spawnAngle) * spawnDistance
-
-      this.spiritCatPool.spawn(
-        spawnX,
-        spawnY,
-        target,
-        this.spiritCatConfig.damage,
-        this.spiritCatConfig.canCrit
+      // Update performance monitor
+      performanceMonitor.updateEntityCounts(
+        enemyChildren.length,
+        this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
+        0
       )
     }
-
-    this.lastSpiritCatSpawnTime = time
   }
 
-  /**
-   * Handle spirit cat hitting an enemy
-   */
-  private spiritCatHitEnemy(
-    cat: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
-  ): void {
-    if (this.isGameOver || this.isTransitioning) return
-
-    const spiritCat = cat as SpiritCat
-    const enemySprite = enemy as Enemy
-
-    if (!spiritCat.active || !enemySprite.active) return
-
-    // Get damage and check crit
-    const damage = spiritCat.getDamage()
-    const isCrit = spiritCat.isCriticalHit()
-
-    // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
-
-    // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, isCrit)
-
-    // Visual effects
-    if (isCrit) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
-    } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
-    }
-
-    // Deactivate cat on hit
-    spiritCat.deactivate()
-
-    // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
-    if (isBoss && !killed) {
-      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit()
-    }
-
-    if (killed) {
-      this.handleEnemyKilledBySpiritCat(enemySprite, isBoss ?? false)
-    }
-  }
-
-  /**
-   * Handle enemy death from spirit cat
-   */
-  private handleEnemyKilledBySpiritCat(enemy: Enemy, isBoss: boolean): void {
+  private handleEnemyDOTDeath(enemy: Enemy): void {
     this.enemiesKilled++
 
-    // Bloodthirst: Heal on kill (if player has ability)
     const bloodthirstHeal = this.player.getBloodthirstHeal()
     if (bloodthirstHeal > 0) {
       this.player.heal(bloodthirstHeal)
-      this.updatePlayerHealthUI(this.player)
+      this.updatePlayerHealthUI()
     }
 
-    // Death particles
-    if (isBoss) {
-      this.particles.emitBossDeath(enemy.x, enemy.y)
-      this.screenShake.onBossDeath()
-    } else {
-      this.particles.emitDeath(enemy.x, enemy.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-    }
+    this.pickupManager.spawnDrops(enemy)
 
-    // Spawn drops
-    this.spawnDrops(enemy)
-
-    // Add XP
+    const isBoss = this.boss && enemy === (this.boss as unknown as Enemy)
     const xpGain = isBoss ? 10 : 1
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
-
-    // Accumulate hero XP (boss gives 25 hero XP)
     this.heroXPEarned += isBoss ? 25 : 1
 
     if (leveledUp) {
-      this.handleLevelUp()
+      this.abilitySystem.handleLevelUp()
     }
 
-    // Clear boss reference
     if (isBoss) {
       this.boss = null
       this.scene.get('UIScene').events.emit('hideBossHealth')
@@ -2039,366 +724,16 @@ export default class GameScene extends Phaser.Scene {
 
     enemy.destroy()
     this.invalidateNearestEnemyCache()
-    this.checkRoomCleared()
+    this.roomManager.checkRoomCleared()
   }
 
-  private shootAtEnemy(enemy: Enemy) {
-    // Validate enemy position before shooting
-    if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
-      console.warn('shootAtEnemy: Invalid enemy position', enemy.x, enemy.y, enemy.constructor.name)
-      return
-    }
-
-    const angle = Phaser.Math.Angle.Between(
-      this.player.x,
-      this.player.y,
-      enemy.x,
-      enemy.y
-    )
-
-    // Validate calculated angle
-    if (!isFinite(angle)) {
-      console.warn('shootAtEnemy: Invalid angle calculated', angle, 'player:', this.player.x, this.player.y, 'enemy:', enemy.x, enemy.y)
-      return
-    }
-
-    const bulletSpeed = 400
-
-    // Offset spawn position to hit enemies directly under player
-    const SPAWN_OFFSET = 20 // Pixels ahead in firing direction (past player radius of 16)
-    const getSpawnPos = (bulletAngle: number) => ({
-      x: this.player.x + Math.cos(bulletAngle) * SPAWN_OFFSET,
-      y: this.player.y + Math.sin(bulletAngle) * SPAWN_OFFSET,
-    })
-
-    // Gather ability options for bullets (including new V1 abilities)
-    const bulletOptions = {
-      maxPierces: this.player.getPiercingLevel(),
-      maxBounces: this.player.getRicochetBounces(),
-      fireDamage: this.player.getFireDamage(),
-      isCrit: this.player.rollCrit(), // Roll crit for main projectile
-      // New V1 ability options
-      freezeChance: this.player.getFreezeChance(),
-      poisonDamage: this.player.getPoisonDamage(),
-      lightningChainCount: this.player.getLightningChainCount(),
-      // Weapon projectile options
-      projectileSprite: this.weaponProjectileConfig?.sprite,
-      projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,
-    }
-
-    // Main projectile
-    const mainSpawn = getSpawnPos(angle)
-    this.bulletPool.spawn(mainSpawn.x, mainSpawn.y, angle, bulletSpeed, bulletOptions)
-
-    // Front Arrow: Extra forward projectiles with slight spread
-    const extraProjectiles = this.player.getExtraProjectiles()
-    if (extraProjectiles > 0) {
-      const spreadAngle = 0.1 // ~6 degrees spread between extra arrows
-      for (let i = 0; i < extraProjectiles; i++) {
-        // Alternate left and right
-        const offset = ((i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2)) * spreadAngle
-        const extraAngle = angle + offset
-        const extraSpawn = getSpawnPos(extraAngle)
-        // Each extra projectile rolls its own crit
-        const extraOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(extraSpawn.x, extraSpawn.y, extraAngle, bulletSpeed, extraOptions)
-      }
-    }
-
-    // Multishot: Side projectiles at 45 degrees
-    const multishotCount = this.player.getMultishotCount()
-    if (multishotCount > 0) {
-      const sideAngle = Math.PI / 4 // 45 degrees
-      for (let i = 0; i < multishotCount; i++) {
-        // Add projectiles at increasing angles
-        const angleOffset = sideAngle * (i + 1)
-        const multiAngle1 = angle + angleOffset
-        const multiAngle2 = angle - angleOffset
-        const multiSpawn1 = getSpawnPos(multiAngle1)
-        const multiSpawn2 = getSpawnPos(multiAngle2)
-        // Each multishot projectile rolls its own crit
-        const multishotOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        const multishotOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(multiSpawn1.x, multiSpawn1.y, multiAngle1, bulletSpeed, multishotOptions1)
-        this.bulletPool.spawn(multiSpawn2.x, multiSpawn2.y, multiAngle2, bulletSpeed, multishotOptions2)
-      }
-    }
-
-    // Diagonal Arrows: Arrows at 30 degree angles (80% damage)
-    const diagonalArrows = this.player.getDiagonalArrows()
-    if (diagonalArrows > 0) {
-      const diagonalAngle = Math.PI / 6 // 30 degrees
-      // diagonalArrows is in pairs (2 per level)
-      const pairs = Math.floor(diagonalArrows / 2)
-      for (let i = 0; i < pairs; i++) {
-        const diagAngle1 = angle + diagonalAngle * (i + 1)
-        const diagAngle2 = angle - diagonalAngle * (i + 1)
-        const diagSpawn1 = getSpawnPos(diagAngle1)
-        const diagSpawn2 = getSpawnPos(diagAngle2)
-        // Each diagonal projectile rolls its own crit
-        const diagOptions1 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        const diagOptions2 = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(diagSpawn1.x, diagSpawn1.y, diagAngle1, bulletSpeed, diagOptions1)
-        this.bulletPool.spawn(diagSpawn2.x, diagSpawn2.y, diagAngle2, bulletSpeed, diagOptions2)
-      }
-    }
-
-    // Rear Arrow: Arrows shooting backwards (70% damage)
-    const rearArrows = this.player.getRearArrows()
-    if (rearArrows > 0) {
-      const rearAngle = angle + Math.PI // 180 degrees from forward
-      for (let i = 0; i < rearArrows; i++) {
-        // Slight spread for multiple rear arrows
-        const spreadOffset = i > 0 ? ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2)) * 0.1 : 0
-        const rearBulletAngle = rearAngle + spreadOffset
-        const rearSpawn = getSpawnPos(rearBulletAngle)
-        const rearOptions = { ...bulletOptions, isCrit: this.player.rollCrit() }
-        this.bulletPool.spawn(rearSpawn.x, rearSpawn.y, rearBulletAngle, bulletSpeed, rearOptions)
-      }
-    }
-
-    // Play shoot sound (once per attack, not per projectile)
-    audioManager.playShoot()
-    hapticManager.medium() // Haptic feedback for shooting
-    this.lastShotTime = this.time.now
-  }
-
-  private getEffectiveFireRate(): number {
-    // Base fire rate modified by player's attack speed
-    if (!this.player) return this.fireRate
-    return this.fireRate / this.player.getAttackSpeed()
-  }
-
-  /**
-   * Handle enemy death from DOT (fire/poison damage)
-   * Extracted for batch processing in update loop
-   */
-  private handleEnemyDOTDeath(e: Enemy): void {
-    this.enemiesKilled++
-
-    // Bloodthirst: Heal on kill
-    const bloodthirstHeal = this.player.getBloodthirstHeal()
-    if (bloodthirstHeal > 0) {
-      this.player.heal(bloodthirstHeal)
-      this.updatePlayerHealthUI(this.player)
-    }
-
-    // Death particles with fire effect
-    this.particles.emitDeath(e.x, e.y)
-    this.particles.emitFire(e.x, e.y)
-    this.screenShake.onExplosion()
-
-    // Spawn gold drop at enemy position
-    this.spawnDrops(e)
-
-    // Add XP to player (check if boss)
-    const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-    const xpGain = isBoss ? 10 : 1
-    const leveledUp = this.player.addXP(xpGain)
-    this.updateXPUI()
-
-    // Accumulate hero XP (boss gives 25 hero XP)
-    this.heroXPEarned += isBoss ? 25 : 1
-
-    if (leveledUp) {
-      this.handleLevelUp()
-    }
-
-    // Clear boss reference if boss died
-    if (isBoss) {
-      this.boss = null
-      this.scene.get('UIScene').events.emit('hideBossHealth')
-    }
-
-    // Remove enemy
-    e.destroy()
-
-    // Invalidate nearest enemy cache since enemies changed
-    this.invalidateNearestEnemyCache()
-
-    // Check if room cleared
-    this.checkRoomCleared()
-  }
-
-  update(time: number, delta: number) {
-    // Skip update if game is over
-    if (this.isGameOver) return
-
-    // Update performance monitor
-    performanceMonitor.update(delta)
-
-
-    if (this.player) {
-      // Safety check: Detect stuck joystick state during intense gameplay
-      // If joystickForce is non-zero but we haven't received input in a while,
-      // the joystick 'end' event was likely missed - force reset
-      // BUT only if no pointer is currently pressed (otherwise the user is still holding)
-      if (this.joystickForce > 0 && this.lastJoystickMoveTime > 0) {
-        const timeSinceLastInput = time - this.lastJoystickMoveTime
-        const anyPointerDown = this.input.pointer1?.isDown || this.input.pointer2?.isDown
-        if (timeSinceLastInput > this.JOYSTICK_STUCK_TIMEOUT && !anyPointerDown) {
-          // Joystick appears stuck - reset it
-          this.joystickForce = 0
-          this.lastJoystickMoveTime = 0
-        }
-      }
-
-      // Cache player position for this frame - avoids repeated property access
-      const playerX = this.player.x
-      const playerY = this.player.y
-
-      const baseVelocity = 400
-      const maxVelocity = baseVelocity * this.player.getMovementSpeedMultiplier()
-      let vx = 0
-      let vy = 0
-
-      // Check for active movement input BEFORE calculating velocity
-      // This determines intent to move, separate from actual velocity
-      const hasMovementInput = this.joystickForce > 0 ||
-        this.cursors?.left?.isDown || this.cursors?.right?.isDown ||
-        this.cursors?.up?.isDown || this.cursors?.down?.isDown ||
-        this.wasdKeys?.A?.isDown || this.wasdKeys?.D?.isDown ||
-        this.wasdKeys?.W?.isDown || this.wasdKeys?.S?.isDown
-
-      // Virtual joystick has priority
-      if (this.joystickForce > 0) {
-        // Convert angle and force to velocity
-        // nipplejs uses mathematical angles (counter-clockwise from right)
-        // Screen Y-axis is inverted (positive = down), so negate sin
-        vx = Math.cos(this.joystickAngle) * this.joystickForce * maxVelocity
-        vy = -Math.sin(this.joystickAngle) * this.joystickForce * maxVelocity
-      }
-      // Fallback to keyboard controls for desktop testing (arrows + WASD)
-      else if (this.cursors || this.wasdKeys) {
-        if (this.cursors?.left?.isDown || this.wasdKeys?.A?.isDown) vx = -maxVelocity
-        if (this.cursors?.right?.isDown || this.wasdKeys?.D?.isDown) vx = maxVelocity
-        if (this.cursors?.up?.isDown || this.wasdKeys?.W?.isDown) vy = -maxVelocity
-        if (this.cursors?.down?.isDown || this.wasdKeys?.S?.isDown) vy = maxVelocity
-      }
-
-      this.player.setVelocity(vx, vy)
-
-      // Update player AFTER setting velocity so isMoving reflects current state
-      this.player.update(time, delta)
-
-      // CORE MECHANIC: Auto-fire when player is stationary
-      // Player shoots when they have no active movement input AND velocity is low
-      // Using both checks ensures shooting works correctly:
-      // - hasMovementInput: Immediate response to input release (no frame delay)
-      // - isPlayerMoving: Accounts for momentum/sliding before shooting
-      if (!hasMovementInput && !this.player.isPlayerMoving()) {
-        if (time - this.lastShotTime > this.getEffectiveFireRate()) {
-          const nearestEnemy = this.getCachedNearestEnemy()
-          if (nearestEnemy) {
-            this.shootAtEnemy(nearestEnemy)
-          }
-        }
-      }
-
-      // Update enemies and handle fire DOT deaths
-      // Use for loop (faster than forEach) with cached length
-      const enemyChildren = this.enemies.getChildren()
-      const enemyCount = enemyChildren.length
-      const enemiesToDestroy: Enemy[] = []
-
-      for (let i = 0; i < enemyCount; i++) {
-        const e = enemyChildren[i] as Enemy
-        if (e && e.active) {
-          const diedFromFire = e.update(time, delta, playerX, playerY)
-          if (diedFromFire) {
-            enemiesToDestroy.push(e)
-          }
-        }
-      }
-
-      // Process dead enemies outside the main loop (batch processing)
-      for (const e of enemiesToDestroy) {
-        this.handleEnemyDOTDeath(e)
-      }
-
-      // Update damage aura visual and apply damage if player has the ability
-      this.updateDamageAuraVisual(time, playerX, playerY)
-      this.applyDamageAura(time, playerX, playerY)
-
-      // Spawn spirit cats if playing as Meowgik
-      if (this.spiritCatPool && this.spiritCatConfig) {
-        this.updateSpiritCats(time, playerX, playerY)
-      }
-
-      // Update gold pickups - check for collection
-      const goldCollected = this.goldPool.updateAll(playerX, playerY)
-      if (goldCollected > 0) {
-        this.goldEarned += goldCollected
-        currencyManager.add('gold', goldCollected)
-        saveManager.addGold(goldCollected)
-        // Gold collect particles at player position
-        this.particles.emitGoldCollect(playerX, playerY)
-        hapticManager.light() // Haptic feedback for collecting gold
-      }
-
-      // Update health pickups - check for collection
-      this.healthPool.updateAll(playerX, playerY, (healAmount) => {
-        this.player.heal(healAmount)
-        // Update health UI
-        this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-        // Heal particles at player position
-        this.particles.emitHeal(playerX, playerY)
-        hapticManager.light() // Haptic feedback for collecting health
-      })
-
-      // Update performance monitor with entity counts
-      performanceMonitor.updateEntityCounts(
-        enemyCount,
-        this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
-        this.particles.getActiveEmitterCount()
-      )
-    }
-  }
-
-  /**
-   * Reset joystick state to prevent stuck input
-   * Called when pausing, resuming, or when browser loses focus
-   */
-  private resetJoystickState() {
-    console.log('GameScene: Resetting joystick state')
-    this.joystickForce = 0
-    this.joystickAngle = 0
-    this.lastJoystickMoveTime = 0 // Clear the timestamp
-
-    // Also reset the joystick UI if it exists
-    if (this.joystick) {
-      this.joystick.reset()
-    }
-
-    // Stop player movement immediately
-    if (this.player && this.player.body) {
-      this.player.setVelocity(0, 0)
-    }
-  }
-
-  shutdown() {
-    // Stop all delayed calls to prevent callbacks on destroyed objects
+  shutdown(): void {
     this.time.removeAllEvents()
 
-    // Clean up joystick when scene shuts down
-    if (this.joystick) {
-      this.joystick.destroy()
-      this.joystick = null!
-    }
+    this.inputController?.destroy()
+    this.auraSystem?.destroy()
+    this.spiritCatSystem?.destroy()
 
-    // Clean up particles
-    if (this.particles) {
-      this.particles.destroy()
-      this.particles = null!
-    }
-
-    // Clean up damage aura graphics
-    if (this.damageAuraGraphics) {
-      this.damageAuraGraphics.destroy()
-      this.damageAuraGraphics = null
-    }
-
-    // Clean up pools
     if (this.bulletPool) {
       this.bulletPool.destroy(true)
       this.bulletPool = null!
@@ -2423,38 +758,17 @@ export default class GameScene extends Phaser.Scene {
       this.damageNumberPool.destroy()
       this.damageNumberPool = null!
     }
-    if (this.spiritCatPool) {
-      this.spiritCatPool.destroy(true)
-      this.spiritCatPool = null
-    }
-    this.spiritCatConfig = null
-
-    // Clean up enemies group
     if (this.enemies) {
       this.enemies.destroy(true)
       this.enemies = null!
     }
-
-    // Clean up boss
     if (this.boss) {
       this.boss.destroy()
       this.boss = null
     }
-
-    // Clean up player
     if (this.player) {
       this.player.destroy()
       this.player = null!
-    }
-
-    // Clean up door sprite
-    if (this.doorSprite) {
-      this.doorSprite.destroy()
-      this.doorSprite = null
-    }
-    if (this.doorText) {
-      this.doorText.destroy()
-      this.doorText = null
     }
   }
 }
