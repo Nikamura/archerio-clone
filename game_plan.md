@@ -562,7 +562,15 @@ Visual test screenshots are saved to `test/screenshots/`
      - Door portal: 64x64
      - 8 Ability icons: 48x48 each
      - Dungeon background: 375x667
-7. Polish ability UI with animations and feedback
+7. ✅ **Polish ability UI with animations and feedback** - DONE (2026-01-03):
+   - LevelUpScene has comprehensive animations:
+     - Staggered card entrance animations with bounce effect
+     - Particle effects around title using emitters
+     - Pulsing glow animations on ability cards
+     - Progress bar timer with color transitions (yellow → orange → red)
+     - Selection animation: unselected cards slide out, selected scales up and fades
+     - Hover effects: scale, color change, icon enlargement
+   - Missing speed_boost ability icon generated and added to preloader
 8. ✅ **Gold drop system** - DONE (2026-01-01):
    - `src/entities/GoldPickup.ts`: Gold coin entity with spawn/collection animation
    - `src/systems/GoldPool.ts`: Object pool for 50 gold pickups with floating text
