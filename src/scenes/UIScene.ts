@@ -42,6 +42,9 @@ export default class UIScene extends Phaser.Scene {
   // Skills bar (shows acquired abilities)
   private skillsContainer!: Phaser.GameObjects.Container
 
+  // FPS counter
+  private fpsText!: Phaser.GameObjects.Text
+
   constructor() {
     super({ key: 'UIScene' })
   }
@@ -219,7 +222,31 @@ export default class UIScene extends Phaser.Scene {
     // Create skills bar container
     this.createSkillsBar()
 
+    // Create FPS counter in top-right corner
+    this.fpsText = this.add.text(this.cameras.main.width - 10, 10, 'FPS: 60', {
+      fontSize: '12px',
+      color: '#00ff00',
+      fontStyle: 'bold',
+    })
+    this.fpsText.setOrigin(1, 0)
+    this.fpsText.setDepth(100)
+
     console.log('UIScene: Created')
+  }
+
+  update() {
+    // Update FPS counter
+    const fps = Math.round(this.game.loop.actualFps)
+    this.fpsText.setText(`FPS: ${fps}`)
+
+    // Color code based on performance
+    if (fps >= 55) {
+      this.fpsText.setColor('#00ff00') // Green - good
+    } else if (fps >= 30) {
+      this.fpsText.setColor('#ffff00') // Yellow - acceptable
+    } else {
+      this.fpsText.setColor('#ff0000') // Red - poor
+    }
   }
 
   private createBossHealthBar() {
