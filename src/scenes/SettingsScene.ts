@@ -15,6 +15,10 @@ import { hapticManager } from '../systems/HapticManager'
  */
 export default class SettingsScene extends Phaser.Scene {
   private settings!: GameSettings
+  private dangerZoneExpanded = false
+  private dangerZoneContainer!: Phaser.GameObjects.Container
+  private dangerZoneContent!: Phaser.GameObjects.Container
+  private expandArrow!: Phaser.GameObjects.Text
 
   constructor() {
     super({ key: 'SettingsScene' })
@@ -52,7 +56,7 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5)
   }
 
-  private createSettingsList(width: number, height: number) {
+  private createSettingsList(width: number, _height: number) {
     const startY = 100
     const rowHeight = 60
     let currentY = startY
@@ -152,10 +156,10 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Colorblind Mode
     this.createColorblindModeSetting(width, currentY)
-    currentY += rowHeight + 20
+    currentY += rowHeight + 40 // Extra spacing before danger zone
 
-    // Reset Progress button (dangerous)
-    this.createResetButton(width, currentY, height)
+    // Danger Zone (collapsible reset section)
+    this.createDangerZone(width, currentY)
   }
 
   private createGraphicsQualitySetting(width: number, y: number) {
@@ -377,9 +381,57 @@ export default class SettingsScene extends Phaser.Scene {
     })
   }
 
-  private createResetButton(width: number, y: number, _height: number) {
+  private createDangerZone(width: number, y: number) {
+    const zoneWidth = width - 40
+    const headerHeight = 44
+    const contentHeight = 100
+    const centerX = width / 2
+
+    // Reset expanded state
+    this.dangerZoneExpanded = false
+
+    // Main container
+    this.dangerZoneContainer = this.add.container(centerX, y)
+
+    // === HEADER (always visible) ===
+    const headerBg = this.add.rectangle(0, 0, zoneWidth, headerHeight, 0x1a0808)
+    headerBg.setStrokeStyle(2, 0xff4444)
+    headerBg.setInteractive({ useHandCursor: true })
+
+    const headerLabel = this.add
+      .text(-zoneWidth / 2 + 15, 0, '⚠️ DANGER ZONE', {
+        fontSize: '14px',
+        color: '#ff4444',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5)
+
+    this.expandArrow = this.add
+      .text(zoneWidth / 2 - 15, 0, '▼', {
+        fontSize: '14px',
+        color: '#ff4444',
+      })
+      .setOrigin(1, 0.5)
+
+    this.dangerZoneContainer.add([headerBg, headerLabel, this.expandArrow])
+
+    // === CONTENT (hidden by default) ===
+    this.dangerZoneContent = this.add.container(0, headerHeight / 2 + contentHeight / 2)
+    this.dangerZoneContent.setVisible(false)
+
+    const contentBg = this.add.rectangle(0, 0, zoneWidth, contentHeight, 0x220808)
+    contentBg.setStrokeStyle(2, 0xff4444)
+
+    const warningText = this.add
+      .text(0, -25, 'This will permanently delete ALL\nyour progress and currencies.', {
+        fontSize: '12px',
+        color: '#cccccc',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+
     const resetButton = this.add
-      .text(width / 2, y, 'Reset All Progress', {
+      .text(0, 25, 'Reset All Progress', {
         fontSize: '14px',
         color: '#ff4444',
         backgroundColor: '#331111',
@@ -399,6 +451,25 @@ export default class SettingsScene extends Phaser.Scene {
     resetButton.on('pointerdown', () => {
       audioManager.playMenuSelect()
       this.showResetConfirmation(width)
+    })
+
+    this.dangerZoneContent.add([contentBg, warningText, resetButton])
+    this.dangerZoneContainer.add(this.dangerZoneContent)
+
+    // === TOGGLE LOGIC ===
+    headerBg.on('pointerover', () => {
+      headerBg.setFillStyle(0x2a1010)
+    })
+
+    headerBg.on('pointerout', () => {
+      headerBg.setFillStyle(0x1a0808)
+    })
+
+    headerBg.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.dangerZoneExpanded = !this.dangerZoneExpanded
+      this.dangerZoneContent.setVisible(this.dangerZoneExpanded)
+      this.expandArrow.setText(this.dangerZoneExpanded ? '▲' : '▼')
     })
   }
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from './Enemy'
+import WallGroup from '../systems/WallGroup'
 
 /**
  * Small minion enemy spawned by SpawnerEnemy
@@ -91,6 +92,9 @@ export default class SpawnerEnemy extends Enemy {
   // Reference to enemy group for adding spawned minions
   private enemyGroup: Phaser.Physics.Arcade.Group | null = null
 
+  // Reference to wall group for spawn position validation
+  private wallGroup: WallGroup | null = null
+
   // Options to pass to spawned minions
   private spawnOptions: EnemyOptions
 
@@ -135,6 +139,26 @@ export default class SpawnerEnemy extends Enemy {
    */
   setEnemyGroup(group: Phaser.Physics.Arcade.Group): void {
     this.enemyGroup = group
+  }
+
+  /**
+   * Set the wall group for spawn position validation
+   */
+  setWallGroup(wallGroup: WallGroup): void {
+    this.wallGroup = wallGroup
+  }
+
+  /**
+   * Check if a position is inside any wall
+   */
+  private isPositionInWall(x: number, y: number): boolean {
+    if (!this.wallGroup) return false
+    for (const wall of this.wallGroup.getWalls()) {
+      if (wall.containsPoint(x, y)) {
+        return true
+      }
+    }
+    return false
   }
 
   private createSpawnAura(): void {
@@ -259,11 +283,31 @@ export default class SpawnerEnemy extends Enemy {
       return
     }
 
-    // Spawn at random position around the spawner
-    const spawnAngle = Math.random() * Math.PI * 2
+    // Find valid spawn position avoiding walls
     const spawnDistance = 30 + Math.random() * 20
-    const spawnX = this.x + Math.cos(spawnAngle) * spawnDistance
-    const spawnY = this.y + Math.sin(spawnAngle) * spawnDistance
+    let spawnX = this.x
+    let spawnY = this.y
+    let foundValidPosition = false
+
+    // Try up to 8 angles to find a valid spawn position
+    const startAngle = Math.random() * Math.PI * 2
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const angle = startAngle + (Math.PI * 2 * attempt) / 8
+      const testX = this.x + Math.cos(angle) * spawnDistance
+      const testY = this.y + Math.sin(angle) * spawnDistance
+
+      if (!this.isPositionInWall(testX, testY)) {
+        spawnX = testX
+        spawnY = testY
+        foundValidPosition = true
+        break
+      }
+    }
+
+    // If all positions are blocked, spawn at spawner location as fallback
+    if (!foundValidPosition) {
+      console.log('SpawnerEnemy: All spawn positions blocked by walls, spawning at spawner location')
+    }
 
     // Create minion
     const minion = new MinionEnemy(this.scene, spawnX, spawnY, this.spawnOptions)

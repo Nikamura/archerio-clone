@@ -635,6 +635,35 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
     return { success: true, resultingItem: resultItem }
   }
 
+  /**
+   * Fuse all available items with chain fusion.
+   * Keeps fusing until no more groups of 3 exist at any rarity.
+   */
+  fuseAll(): { success: boolean; results: Equipment[]; consumed: number } {
+    const results: Equipment[] = []
+    let totalConsumed = 0
+
+    // Keep fusing while candidates exist (chain fusion)
+    let candidates = this.findFusionCandidates()
+    while (candidates.size > 0) {
+      for (const [_key, items] of candidates) {
+        // Fuse in batches of 3
+        while (items.length >= 3) {
+          const toFuse = items.splice(0, 3)
+          const result = this.fuse(toFuse)
+          if (result.success && result.resultingItem) {
+            results.push(result.resultingItem)
+            totalConsumed += 3
+          }
+        }
+      }
+      // Re-check for new candidates (chain fusion from newly created items)
+      candidates = this.findFusionCandidates()
+    }
+
+    return { success: results.length > 0, results, consumed: totalConsumed }
+  }
+
   // ============================================
   // Save/Load Integration
   // ============================================

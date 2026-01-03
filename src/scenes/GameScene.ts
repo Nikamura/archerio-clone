@@ -860,6 +860,7 @@ export default class GameScene extends Phaser.Scene {
     }
     if (enemy instanceof SpawnerEnemy) {
       enemy.setEnemyGroup(this.enemies)
+      enemy.setWallGroup(this.wallGroup)
     }
 
     // Set up physics body with centered circular hitbox

@@ -53,6 +53,7 @@ export default class EquipmentScene extends Phaser.Scene {
   private detailPanel: Phaser.GameObjects.Container | null = null
   private goldText: Phaser.GameObjects.Text | null = null
   private fusionButton: Phaser.GameObjects.Text | null = null
+  private fuseAllButton: Phaser.GameObjects.Text | null = null
 
   // Event handler references for cleanup
   private inventoryChangedHandler: (() => void) | null = null
@@ -486,6 +487,20 @@ export default class EquipmentScene extends Phaser.Scene {
     this.fusionButton.setInteractive({ useHandCursor: true })
     this.fusionButton.on('pointerdown', () => this.onFusionClick())
     UIAnimations.applyButtonEffects(this, this.fusionButton)
+
+    // Fuse All button (to the left of FUSE)
+    this.fuseAllButton = this.add
+      .text(width - 90, height - 100, 'FUSE ALL', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#6b4aa3',
+        padding: { x: 10, y: 8 },
+      })
+      .setOrigin(1, 0.5)
+
+    this.fuseAllButton.setInteractive({ useHandCursor: true })
+    this.fuseAllButton.on('pointerdown', () => this.onFuseAllClick())
+    UIAnimations.applyButtonEffects(this, this.fuseAllButton)
 
     this.updateFusionButton()
   }
@@ -932,24 +947,35 @@ export default class EquipmentScene extends Phaser.Scene {
     }
   }
 
-  private updateFusionButton(): void {
-    if (!this.fusionButton) return
+  private onFuseAllClick(): void {
+    const result = equipmentManager.fuseAll()
 
+    if (result.success) {
+      audioManager.playLevelUp()
+      // Show the highest rarity result item
+      const bestResult = result.results.reduce((best, item) =>
+        item.rarity > best.rarity ? item : best
+      )
+      this.showDetailPanel(bestResult, false)
+    }
+  }
+
+  private updateFusionButton(): void {
     const fusionCandidates = equipmentManager.findFusionCandidates()
     const hasFusionAvailable = fusionCandidates.size > 0
 
-    if (hasFusionAvailable) {
-      this.fusionButton.setStyle({
-        backgroundColor: '#6b4aa3',
-        color: '#ffffff',
-      })
-      this.fusionButton.setInteractive({ useHandCursor: true })
-    } else {
-      this.fusionButton.setStyle({
-        backgroundColor: '#3a3a55',
-        color: '#666666',
-      })
-      this.fusionButton.disableInteractive()
+    const buttons = [this.fusionButton, this.fuseAllButton].filter(
+      (btn): btn is Phaser.GameObjects.Text => btn !== null
+    )
+
+    for (const button of buttons) {
+      if (hasFusionAvailable) {
+        button.setStyle({ backgroundColor: '#6b4aa3', color: '#ffffff' })
+        button.setInteractive({ useHandCursor: true })
+      } else {
+        button.setStyle({ backgroundColor: '#3a3a55', color: '#666666' })
+        button.disableInteractive()
+      }
     }
   }
 
