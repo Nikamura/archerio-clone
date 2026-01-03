@@ -448,9 +448,9 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
       - Chapter 3 (Frozen Caves): `wall_ice.png` - Ice crystals and frozen rock
       - Chapter 4 (Volcanic Depths): `wall_lava.png` - Lava rock with glowing cracks
       - Chapter 5 (Shadow Realm): `wall_shadow.png` - Dark energy pillars with purple glow
-      - Shop theme: `wall_vaporwave.png` - Pink/purple neon grid
+      - Vaporwave theme (per-chapter): `wall_vaporwave_*.png` - Neon synthwave variants
       - Wall entity uses TileSprite for repeating textures
-      - WallGroup.setTexture(chapterId) maps chapter to texture key
+      - WallGroup.setTexture(chapterId) + setTheme(themeName) for purchasable themes
   - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
   - MainMenuScene:
     - "Enter Seed" button below PLAY opens modal dialog
@@ -582,7 +582,7 @@ Visual test screenshots are saved to `test/screenshots/`
 28. ✅ **Fast shooting causes shorter bullet range** - FIXED (2026-01-03): Increased bullet pool from 1000 to 2000, added 500ms minimum lifetime before recycling to prevent visible bullet pop-in
 29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
 30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
-31. 🐛 **Vaporwave theme needs per-chapter wall textures** - Currently only has one generic vaporwave wall texture, should have themed variants for each chapter (vaporwave_dungeon, vaporwave_forest, etc.)
+31. ✅ **Vaporwave theme needs per-chapter wall textures** - FIXED (2026-01-03): Generated 5 vaporwave wall variants (dungeon, forest, ice, lava, shadow), WallGroup now supports setTheme() for purchasable themes with per-chapter textures
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE

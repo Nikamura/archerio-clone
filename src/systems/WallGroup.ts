@@ -12,18 +12,34 @@ export interface WallConfig {
 }
 
 /**
- * Wall texture mapping for chapters and themes
+ * Wall texture mapping for chapters (default theme)
  */
-const WALL_TEXTURES: Record<number | string, string> = {
-  // Chapter themes (ChapterId 1-5)
+const CHAPTER_WALL_TEXTURES: Record<number, string> = {
   1: 'wall_dungeon',
   2: 'wall_forest',
   3: 'wall_ice',
   4: 'wall_lava',
   5: 'wall_shadow',
-  // Purchasable themes
-  'vaporwave': 'wall_vaporwave',
-  'dungeon': 'wall_dungeon',
+}
+
+/**
+ * Wall texture mapping for purchasable themes (per-chapter variants)
+ */
+const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
+  vaporwave: {
+    1: 'wall_vaporwave_dungeon',
+    2: 'wall_vaporwave_forest',
+    3: 'wall_vaporwave_ice',
+    4: 'wall_vaporwave_lava',
+    5: 'wall_vaporwave_shadow',
+  },
+  dungeon: {
+    1: 'wall_dungeon',
+    2: 'wall_dungeon',
+    3: 'wall_dungeon',
+    4: 'wall_dungeon',
+    5: 'wall_dungeon',
+  },
 }
 
 /**
@@ -40,6 +56,8 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private screenHeight: number
   private wallColor: number = 0x444444
   private textureKey: string | undefined
+  private chapterId: number = 1
+  private themeName: string | undefined
 
   constructor(scene: Phaser.Scene, screenWidth: number, screenHeight: number) {
     super(scene.physics.world, scene)
@@ -55,11 +73,36 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   }
 
   /**
-   * Set wall texture based on chapter or theme
-   * @param chapterOrTheme Chapter ID (1-5) or theme name (e.g., 'vaporwave')
+   * Set wall texture based on chapter ID
+   * @param chapterId Chapter ID (1-5)
    */
-  setTexture(chapterOrTheme: number | string): void {
-    this.textureKey = WALL_TEXTURES[chapterOrTheme]
+  setTexture(chapterId: number | string): void {
+    if (typeof chapterId === 'number') {
+      this.chapterId = chapterId
+      this.updateTextureKey()
+    }
+  }
+
+  /**
+   * Set purchasable theme (e.g., 'vaporwave')
+   * Theme walls override chapter-based walls
+   */
+  setTheme(themeName: string | undefined): void {
+    this.themeName = themeName
+    this.updateTextureKey()
+  }
+
+  /**
+   * Update texture key based on current chapter and theme
+   */
+  private updateTextureKey(): void {
+    if (this.themeName && THEME_WALL_TEXTURES[this.themeName]) {
+      // Use theme-specific texture for current chapter
+      this.textureKey = THEME_WALL_TEXTURES[this.themeName][this.chapterId]
+    } else {
+      // Use default chapter texture
+      this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId]
+    }
   }
 
   /**

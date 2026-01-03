@@ -162,7 +162,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('wall_ice', 'assets/sprites/walls/wall_ice.png')
     this.load.image('wall_lava', 'assets/sprites/walls/wall_lava.png')
     this.load.image('wall_shadow', 'assets/sprites/walls/wall_shadow.png')
-    this.load.image('wall_vaporwave', 'assets/sprites/walls/wall_vaporwave.png')
+    // Vaporwave theme (per-chapter variants)
+    this.load.image('wall_vaporwave_dungeon', 'assets/sprites/walls/wall_vaporwave_dungeon.png')
+    this.load.image('wall_vaporwave_forest', 'assets/sprites/walls/wall_vaporwave_forest.png')
+    this.load.image('wall_vaporwave_ice', 'assets/sprites/walls/wall_vaporwave_ice.png')
+    this.load.image('wall_vaporwave_lava', 'assets/sprites/walls/wall_vaporwave_lava.png')
+    this.load.image('wall_vaporwave_shadow', 'assets/sprites/walls/wall_vaporwave_shadow.png')
 
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
