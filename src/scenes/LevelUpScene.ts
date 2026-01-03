@@ -146,6 +146,13 @@ export const ABILITIES: AbilityData[] = [
     color: 0x22cc66,
     iconKey: 'abilityMaxHealth',
   },
+  {
+    id: 'bouncy_wall',
+    name: 'Bouncy Wall',
+    description: '+2 wall bounces',
+    color: 0x88ccff,
+    iconKey: 'abilityBouncyWall',
+  },
 ]
 
 export interface LevelUpData {

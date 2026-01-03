@@ -1324,6 +1324,9 @@ export default class GameScene extends Phaser.Scene {
       case 'max_health':
         this.player.addMaxHealthBoost()
         break
+      case 'bouncy_wall':
+        this.player.addWallBounce()
+        break
     }
     this.abilitiesGained++
 
@@ -2111,6 +2114,7 @@ export default class GameScene extends Phaser.Scene {
       freezeChance: this.player.getFreezeChance(),
       poisonDamage: this.player.getPoisonDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
+      maxWallBounces: this.player.getWallBounces(),
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
       projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,

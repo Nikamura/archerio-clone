@@ -244,6 +244,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addMaxHealthBoost()
   }
 
+  addWallBounce() {
+    this.stats?.addWallBounce()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0
@@ -340,6 +344,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getMovementSpeedMultiplier(): number {
     return this.stats?.getMovementSpeedMultiplier() ?? 1.0
+  }
+
+  getWallBounces(): number {
+    return this.stats?.getWallBounces() ?? 0
   }
 
   // Reset run-based stats

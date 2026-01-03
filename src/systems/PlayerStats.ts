@@ -54,6 +54,7 @@ export class PlayerStats {
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability
+  private wallBounceLevel: number = 0  // Number of wall bounces per level
 
   constructor(options?: {
     maxHealth?: number
@@ -314,6 +315,17 @@ export class PlayerStats {
     return this.movementSpeedMultiplier
   }
 
+  getWallBounceLevel(): number {
+    return this.wallBounceLevel
+  }
+
+  /**
+   * Get total wall bounces (2 per level)
+   */
+  getWallBounces(): number {
+    return this.wallBounceLevel * 2
+  }
+
   /**
    * Roll for freeze effect
    * @returns true if this hit should freeze the enemy
@@ -507,6 +519,14 @@ export class PlayerStats {
     return this.maxHealthMultiplier
   }
 
+  /**
+   * Add Bouncy Wall ability (+2 wall bounces per level)
+   * Stacking: Each level adds +2 wall bounces
+   */
+  addWallBounce(): void {
+    this.wallBounceLevel++
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -539,6 +559,7 @@ export class PlayerStats {
     this.rageLevel = 0
     this.movementSpeedMultiplier = 1.0
     this.maxHealthMultiplier = 1.0
+    this.wallBounceLevel = 0
   }
 
   /**
@@ -569,6 +590,7 @@ export class PlayerStats {
     rageLevel: number
     movementSpeedMultiplier: number
     maxHealthMultiplier: number
+    wallBounceLevel: number
   } {
     return {
       health: this.health,
@@ -595,6 +617,7 @@ export class PlayerStats {
       rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
       maxHealthMultiplier: this.maxHealthMultiplier,
+      wallBounceLevel: this.wallBounceLevel,
     }
   }
 }
