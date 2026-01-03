@@ -766,6 +766,9 @@ export default class GameScene extends Phaser.Scene {
     // Clear any remaining gold pickups (they stay collected in goldEarned)
     this.goldPool.cleanup()
 
+    // Clear walls from previous room
+    this.wallGroup.clearWalls()
+
     // Reset player position
     const width = this.cameras.main.width
     const height = this.cameras.main.height
