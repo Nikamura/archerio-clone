@@ -289,7 +289,7 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
           'lion_ring',
         ] as EquipmentType[]
       case 'spirit':
-        return ['bat', 'laser_bat', 'elf', 'living_bomb', 'scythe_mage'] as EquipmentType[]
+        return ['bat', 'laser_bat', 'elf', 'living_bomb'] as EquipmentType[]
       default:
         return []
     }
@@ -681,13 +681,22 @@ export class EquipmentManager extends Phaser.Events.EventEmitter {
         continue
       }
 
+      // Filter out any removed perks that no longer exist in PERKS
+      const validPerks = (saveItem.perks as PerkId[]).filter((perkId) => {
+        if (PERKS[perkId]) {
+          return true
+        }
+        console.warn('Unknown perk in save data, skipping:', perkId)
+        return false
+      })
+
       const equipment: Equipment = {
         id: saveItem.id,
         type: saveItem.type as EquipmentType,
         slot: saveItem.slot as EquipmentSlotType,
         rarity: saveItem.rarity as Rarity,
         level: saveItem.level,
-        perks: saveItem.perks as PerkId[],
+        perks: validPerks,
         name: baseData.name,
         description: baseData.description,
         baseStats: calculateEquipmentStats(
