@@ -662,8 +662,8 @@ export default class GameScene extends Phaser.Scene {
     this.endlessWave++
     this.currentRoom = 1
 
-    // Increase difficulty by 15% each wave
-    this.endlessDifficultyMultiplier = 1 + (this.endlessWave - 1) * 0.15
+    // Exponential scaling: difficulty doubles each wave
+    this.endlessDifficultyMultiplier = Math.pow(2, this.endlessWave - 1)
 
     // Clean up current room
     this.cleanupRoom()
@@ -788,7 +788,9 @@ export default class GameScene extends Phaser.Scene {
     const chapterDef = getChapterDefinition(selectedChapter)
 
     // Calculate base enemy count (scales with room number and difficulty)
-    const baseEnemies = 4
+    // In endless mode, increase enemy count by 50% per wave
+    const waveEnemyMultiplier = this.isEndlessMode ? 1 + (this.endlessWave - 1) * 0.5 : 1
+    const baseEnemies = Math.round(4 * waveEnemyMultiplier)
     const scaledBase = Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) + this.difficultyConfig.extraEnemyCount
 
     // Use the RoomGenerator to create a procedurally generated room
