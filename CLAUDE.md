@@ -150,6 +150,7 @@ export const someManager = SomeManager.instance
 - `DailyRewardManager` - 7-day login rewards
 - `AchievementManager` - Achievement tracking
 - `HapticManager` - Mobile vibration feedback
+- `ThemeManager` - Visual theme unlock/selection
 
 ### Boss System Architecture
 
@@ -246,6 +247,7 @@ addItem(item: Item): void {
 - `arrow_game_chest_data` - ChestManager
 - `arrow_game_daily_rewards` - DailyRewardManager
 - `arrow_game_achievements` - AchievementManager
+- `arrow_game_theme_data` - ThemeManager
 
 ## Mobile Conventions
 
@@ -332,3 +334,37 @@ Unit-testable logic is in `src/systems/PlayerStats.ts` (86+ tests)
 7. **Update encyclopedia**: When adding new enemies, bosses, abilities, or game mechanics, update `src/config/encyclopediaData.ts` to document them
 8. **Resize AI-generated images**: AI generates 1024px+ images - always resize to target size (player: 64px, enemy: 64px, boss: 128px, projectile: 32px, item: 32px, ui: 48px) to prevent sprites from covering the entire screen
 9. **Add localStorage persistence**: Any new data/manager that tracks player progress must save to localStorage - follow the Manager Pattern with `saveToStorage()` on mutation and `loadFromStorage()` on construction
+10. **Support both themes**: When adding new themable features (UI colors, backgrounds, sprites, wall textures), add variants for BOTH medieval and vaporwave themes in `src/config/themeData.ts`. See Theme System section below.
+
+## Theme System
+
+The game supports purchasable visual themes that change colors, sprites, and backgrounds. Currently implemented: **Medieval** (free, default) and **Vaporwave** (10000 gold).
+
+### Theme Architecture
+
+```
+src/config/themeData.ts      # Theme definitions (ThemeColors, ThemeAssets)
+src/systems/ThemeManager.ts  # Singleton for unlock/select with localStorage
+```
+
+### Adding Themed Features
+
+When adding new visual elements that should change with themes:
+
+1. **Colors** (buttons, bars, text): Add to `ThemeColors` interface and both theme definitions
+2. **Assets** (sprites, backgrounds): Add asset key to `ThemeAssets` and load variants in PreloaderScene
+3. **Wall textures**: Add per-chapter variants (e.g., `wall_forest.png`, `wall_vaporwave_forest.png`)
+
+**Example - Adding a new themed UI color:**
+```typescript
+// In themeData.ts ThemeColors interface:
+newButtonColor: number
+
+// In medieval theme:
+newButtonColor: 0x4a9eff
+
+// In vaporwave theme:
+newButtonColor: 0xff00ff
+```
+
+**IMPORTANT**: Always add variants for ALL themes (currently medieval + vaporwave) to prevent runtime errors
