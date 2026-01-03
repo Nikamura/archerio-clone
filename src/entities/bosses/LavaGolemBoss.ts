@@ -39,7 +39,7 @@ export default class LavaGolemBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'lavaGolemBoss', options)
+    super(scene, x, y, bulletPool, 'boss_lava_golem', options)
 
     this.baseHealth = 250
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))

@@ -44,7 +44,7 @@ export default class NightmareBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'nightmareBoss', options)
+    super(scene, x, y, bulletPool, 'boss_nightmare', options)
 
     this.baseHealth = 380
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))

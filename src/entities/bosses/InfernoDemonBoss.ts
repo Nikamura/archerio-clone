@@ -49,7 +49,7 @@ export default class InfernoDemonBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'infernoDemonBoss', options)
+    super(scene, x, y, bulletPool, 'boss_inferno_demon', options)
 
     this.baseHealth = 350
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))

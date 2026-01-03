@@ -36,7 +36,7 @@ export default class TreeGuardianBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'treeGuardianBoss', options)
+    super(scene, x, y, bulletPool, 'boss_tree_guardian', options)
 
     this.baseHealth = 250
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))
