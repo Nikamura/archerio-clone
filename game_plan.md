@@ -583,7 +583,7 @@ Visual test screenshots are saved to `test/screenshots/`
 29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
 30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
 31. ✅ **Vaporwave theme needs per-chapter wall textures** - FIXED (2026-01-03): Generated 5 vaporwave wall variants (dungeon, forest, ice, lava, shadow), WallGroup now supports setTheme() for purchasable themes with per-chapter textures
-32. **Number rounding for items** - Item stat displays sometimes show very long decimal numbers (e.g. 10.333333333 instead of 10.3)
+32. ✅ **Number rounding for items** - FIXED (2026-01-03): Added formatStatValue() helper to round numbers to 1 decimal place in EquipmentScene, ChestScene, and TalentsScene
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
