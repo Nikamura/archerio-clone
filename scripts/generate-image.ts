@@ -196,7 +196,7 @@ async function generateImage(options: GenerateImageOptions): Promise<string> {
   const { prompt, width, height, outputPath } = options;
 
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not set. Set it as an environment variable or add it to a .env file.');
+    throw new Error('GEMINI_API_KEY environment variable is not set. Add it to your .env file.');
   }
 
   console.log(`Generating image...`);

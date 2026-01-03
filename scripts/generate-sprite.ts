@@ -417,7 +417,7 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
   const size = options.size || config.defaultSize;
 
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not set. Set it as an environment variable or add it to a .env file.');
+    throw new Error('GEMINI_API_KEY environment variable is not set. Add it to your .env file.');
   }
 
   const timestamp = Date.now();
