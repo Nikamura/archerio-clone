@@ -582,6 +582,7 @@ Visual test screenshots are saved to `test/screenshots/`
 28. ✅ **Fast shooting causes shorter bullet range** - FIXED (2026-01-03): Increased bullet pool from 1000 to 2000, added 500ms minimum lifetime before recycling to prevent visible bullet pop-in
 29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
 30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
+31. 🐛 **Vaporwave theme needs per-chapter wall textures** - Currently only has one generic vaporwave wall texture, should have themed variants for each chapter (vaporwave_dungeon, vaporwave_forest, etc.)
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
