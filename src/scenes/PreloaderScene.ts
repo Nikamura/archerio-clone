@@ -1,54 +1,152 @@
 import Phaser from 'phaser'
 
 export default class PreloaderScene extends Phaser.Scene {
+  private loadingDots: Phaser.GameObjects.Arc[] = []
+  private tipText?: Phaser.GameObjects.Text
+  private particles: { x: number; y: number; vx: number; vy: number; alpha: number; size: number }[] = []
+  private particleGraphics?: Phaser.GameObjects.Graphics
+
   constructor() {
     super({ key: 'PreloaderScene' })
   }
 
   preload() {
-    // Create loading bar
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    const progressBar = this.add.graphics()
+    // Create gradient background
+    this.createGradientBackground(width, height)
+
+    // Create floating particles
+    this.createFloatingParticles(width, height)
+
+    // Game title with glow effect
+    const titleShadow = this.add.text(width / 2 + 2, height / 3 + 2, 'ARROW GAME', {
+      fontSize: '36px',
+      fontFamily: 'Arial Black, Arial, sans-serif',
+      color: '#000000',
+    })
+    titleShadow.setOrigin(0.5)
+    titleShadow.setAlpha(0.5)
+
+    const title = this.add.text(width / 2, height / 3, 'ARROW GAME', {
+      fontSize: '36px',
+      fontFamily: 'Arial Black, Arial, sans-serif',
+      color: '#ffffff',
+      stroke: '#4a9eff',
+      strokeThickness: 2,
+    })
+    title.setOrigin(0.5)
+
+    // Subtle title pulse animation
+    this.tweens.add({
+      targets: title,
+      alpha: { from: 1, to: 0.8 },
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Progress bar container with rounded corners
+    const barWidth = 280
+    const barHeight = 16
+    const barY = height / 2 + 40
+
+    // Progress bar background (dark with subtle border)
     const progressBox = this.add.graphics()
-    progressBox.fillStyle(0x222222, 0.8)
-    progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50)
+    progressBox.fillStyle(0x1a1a2e, 1)
+    progressBox.fillRoundedRect(width / 2 - barWidth / 2 - 4, barY - 4, barWidth + 8, barHeight + 8, 12)
+    progressBox.lineStyle(2, 0x4a9eff, 0.5)
+    progressBox.strokeRoundedRect(width / 2 - barWidth / 2 - 4, barY - 4, barWidth + 8, barHeight + 8, 12)
 
-    const loadingText = this.make.text({
-      x: width / 2,
-      y: height / 2 - 50,
-      text: 'Loading...',
-      style: {
-        font: '20px monospace',
-        color: '#ffffff',
-      },
+    // Progress bar fill
+    const progressBar = this.add.graphics()
+
+    // Percentage text (inside or below bar)
+    const percentText = this.add.text(width / 2, barY + barHeight / 2, '0%', {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold',
     })
-    loadingText.setOrigin(0.5, 0.5)
+    percentText.setOrigin(0.5)
 
-    const percentText = this.make.text({
-      x: width / 2,
-      y: height / 2,
-      text: '0%',
-      style: {
-        font: '18px monospace',
-        color: '#ffffff',
-      },
+    // Animated loading dots
+    this.createLoadingDots(width, barY - 35)
+
+    // Loading tips at bottom
+    const tips = [
+      'Stop moving to shoot automatically',
+      'Move to dodge enemy attacks',
+      'Collect XP to level up',
+      'Choose abilities wisely',
+      'Defeat bosses to progress',
+    ]
+    const randomTip = tips[Math.floor(Math.random() * tips.length)]
+
+    this.tipText = this.add.text(width / 2, height - 80, `💡 ${randomTip}`, {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#8888aa',
+      wordWrap: { width: width - 40 },
+      align: 'center',
     })
-    percentText.setOrigin(0.5, 0.5)
+    this.tipText.setOrigin(0.5)
 
+    // Tip fade animation
+    this.tweens.add({
+      targets: this.tipText,
+      alpha: { from: 0.6, to: 1 },
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Update progress bar on load progress
     this.load.on('progress', (value: number) => {
       progressBar.clear()
-      progressBar.fillStyle(0xffffff, 1)
-      progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30)
-      percentText.setText(Math.floor(value * 100) + '%')
+
+      // Create gradient-like effect for progress bar
+      const fillWidth = barWidth * value
+      if (fillWidth > 0) {
+        // Draw the main bar with a slight gradient simulation
+        const gradientSteps = 3
+        const stepHeight = barHeight / gradientSteps
+
+        for (let i = 0; i < gradientSteps; i++) {
+          const brightness = i === 1 ? 0x6bb6ff : 0x4a9eff
+          progressBar.fillStyle(brightness, 1)
+          progressBar.fillRoundedRect(
+            width / 2 - barWidth / 2,
+            barY + i * stepHeight,
+            fillWidth,
+            stepHeight + 1,
+            i === 0 || i === gradientSteps - 1 ? { tl: i === 0 ? 8 : 0, tr: i === 0 ? 8 : 0, bl: i === gradientSteps - 1 ? 8 : 0, br: i === gradientSteps - 1 ? 8 : 0 } : 0
+          )
+        }
+
+        // Add glow effect at the end of progress bar
+        if (fillWidth > 4) {
+          progressBar.fillStyle(0xffffff, 0.3)
+          progressBar.fillCircle(width / 2 - barWidth / 2 + fillWidth - 2, barY + barHeight / 2, 6)
+        }
+      }
+
+      percentText.setText(`${Math.floor(value * 100)}%`)
     })
 
     this.load.on('complete', () => {
+      // Cleanup
       progressBar.destroy()
       progressBox.destroy()
-      loadingText.destroy()
       percentText.destroy()
+      title.destroy()
+      titleShadow.destroy()
+      this.loadingDots.forEach(dot => dot.destroy())
+      if (this.tipText) this.tipText.destroy()
+      if (this.particleGraphics) this.particleGraphics.destroy()
     })
 
     // Load game assets
@@ -212,5 +310,111 @@ export default class PreloaderScene extends Phaser.Scene {
   create() {
     console.log('PreloaderScene: Assets loaded')
     this.scene.start('MainMenuScene')
+  }
+
+  update() {
+    // Update floating particles
+    this.updateFloatingParticles()
+  }
+
+  private createGradientBackground(width: number, height: number): void {
+    const graphics = this.add.graphics()
+
+    // Create vertical gradient from dark blue to darker purple
+    const steps = 20
+    const stepHeight = height / steps
+
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps
+      // Interpolate between colors: dark navy (top) to dark purple (bottom)
+      const r = Math.floor(15 + t * 10)   // 15 -> 25
+      const g = Math.floor(15 + t * 5)    // 15 -> 20
+      const b = Math.floor(35 + t * 15)   // 35 -> 50
+      const color = (r << 16) | (g << 8) | b
+
+      graphics.fillStyle(color, 1)
+      graphics.fillRect(0, i * stepHeight, width, stepHeight + 1)
+    }
+  }
+
+  private createFloatingParticles(width: number, height: number): void {
+    // Initialize particle array
+    this.particles = []
+    for (let i = 0; i < 30; i++) {
+      this.particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -Math.random() * 0.5 - 0.2,
+        alpha: Math.random() * 0.4 + 0.1,
+        size: Math.random() * 2 + 1,
+      })
+    }
+
+    // Create graphics object for particles
+    this.particleGraphics = this.add.graphics()
+    this.particleGraphics.setDepth(1)
+  }
+
+  private updateFloatingParticles(): void {
+    if (!this.particleGraphics) return
+
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    this.particleGraphics.clear()
+
+    for (const p of this.particles) {
+      // Update position
+      p.x += p.vx
+      p.y += p.vy
+
+      // Wrap around screen
+      if (p.y < -10) {
+        p.y = height + 10
+        p.x = Math.random() * width
+      }
+      if (p.x < -10) p.x = width + 10
+      if (p.x > width + 10) p.x = -10
+
+      // Draw particle with glow effect
+      this.particleGraphics.fillStyle(0x4a9eff, p.alpha * 0.3)
+      this.particleGraphics.fillCircle(p.x, p.y, p.size + 2)
+      this.particleGraphics.fillStyle(0x6bb6ff, p.alpha)
+      this.particleGraphics.fillCircle(p.x, p.y, p.size)
+    }
+  }
+
+  private createLoadingDots(width: number, y: number): void {
+    const dotCount = 3
+    const dotSpacing = 12
+    const startX = width / 2 - ((dotCount - 1) * dotSpacing) / 2
+
+    for (let i = 0; i < dotCount; i++) {
+      const dot = this.add.circle(startX + i * dotSpacing, y, 4, 0x4a9eff, 1)
+      this.loadingDots.push(dot)
+
+      // Staggered bounce animation for each dot
+      this.tweens.add({
+        targets: dot,
+        y: y - 8,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: i * 150,
+      })
+
+      // Subtle alpha pulse
+      this.tweens.add({
+        targets: dot,
+        alpha: 0.4,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: i * 150,
+      })
+    }
   }
 }
