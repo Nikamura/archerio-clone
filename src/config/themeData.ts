@@ -30,7 +30,10 @@ export interface ThemeColors {
 }
 
 export interface ThemeAssets {
-  playerSprite: string
+  // Per-hero sprites
+  atreusSprite: string
+  helixSprite: string
+  meowgikSprite: string
   bulletSprite: string
   menuBg: string
   chapter1Bg: string
@@ -81,7 +84,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       },
     },
     assets: {
-      playerSprite: 'playerSprite',
+      atreusSprite: 'atreusSprite',
+      helixSprite: 'helixSprite',
+      meowgikSprite: 'meowgikSprite',
       bulletSprite: 'bulletSprite',
       menuBg: 'menuBg',
       chapter1Bg: 'chapter1Bg',
@@ -121,7 +126,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       },
     },
     assets: {
-      playerSprite: 'vaporwave_playerSprite',
+      atreusSprite: 'vaporwave_atreusSprite',
+      helixSprite: 'vaporwave_helixSprite',
+      meowgikSprite: 'vaporwave_meowgikSprite',
       bulletSprite: 'vaporwave_bulletSprite',
       menuBg: 'vaporwave_menuBg',
       chapter1Bg: 'vaporwave_chapter1Bg',
@@ -166,7 +173,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       },
     },
     assets: {
-      playerSprite: 'lotr_playerSprite',
+      atreusSprite: 'lotr_atreusSprite',
+      helixSprite: 'lotr_helixSprite',
+      meowgikSprite: 'lotr_meowgikSprite',
       bulletSprite: 'lotr_bulletSprite',
       menuBg: 'lotr_menuBg',
       chapter1Bg: 'lotr_chapter1Bg',
@@ -211,7 +220,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       },
     },
     assets: {
-      playerSprite: 'st_playerSprite',
+      atreusSprite: 'st_atreusSprite',
+      helixSprite: 'st_helixSprite',
+      meowgikSprite: 'st_meowgikSprite',
       bulletSprite: 'st_bulletSprite',
       menuBg: 'st_menuBg',
       chapter1Bg: 'st_chapter1Bg',
@@ -235,4 +246,23 @@ export function isValidThemeId(id: string): id is ThemeId {
 
 export function getThemeDefinition(id: ThemeId): ThemeDefinition {
   return THEME_DEFINITIONS[id]
+}
+
+export type HeroId = 'atreus' | 'helix' | 'meowgik'
+
+// Map heroId to the corresponding sprite key in ThemeAssets
+export function getHeroSpriteKey(
+  heroId: HeroId,
+  assets: ThemeAssets
+): string {
+  switch (heroId) {
+    case 'atreus':
+      return assets.atreusSprite
+    case 'helix':
+      return assets.helixSprite
+    case 'meowgik':
+      return assets.meowgikSprite
+    default:
+      return assets.atreusSprite
+  }
 }

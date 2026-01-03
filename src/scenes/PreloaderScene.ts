@@ -152,8 +152,10 @@ export default class PreloaderScene extends Phaser.Scene {
     // Load game assets
     this.load.image('portal', 'assets/sprites/door/portal.png')
 
-    // Load sprites
-    this.load.image('playerSprite', 'assets/sprites/player/archer.png')
+    // Load hero sprites (medieval/default theme)
+    this.load.image('atreusSprite', 'assets/sprites/player/archer.png')
+    this.load.image('helixSprite', 'assets/sprites/player/helix.png')
+    this.load.image('meowgikSprite', 'assets/sprites/player/meowgik.png')
     this.load.image('enemyMelee', 'assets/sprites/enemy/melee_slime.png')
     this.load.image('enemyRanged', 'assets/sprites/enemy/ranged_skeleton.png')
     this.load.image('enemySpreader', 'assets/sprites/enemy/spreader_eye.png')
@@ -203,8 +205,10 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.jpg')
     this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.jpg')
 
-    // Load vaporwave theme assets
-    this.load.image('vaporwave_playerSprite', 'assets/sprites/player/vaporwave_archer.png')
+    // Load vaporwave theme assets (per-hero sprites)
+    this.load.image('vaporwave_atreusSprite', 'assets/sprites/player/vaporwave_archer.png')
+    this.load.image('vaporwave_helixSprite', 'assets/sprites/player/vaporwave_helix.png')
+    this.load.image('vaporwave_meowgikSprite', 'assets/sprites/player/vaporwave_meowgik.png')
     this.load.image('vaporwave_bulletSprite', 'assets/sprites/projectile/vaporwave_arrow.png')
     this.load.image('vaporwave_menuBg', 'assets/backgrounds/vaporwave_menu.jpg')
     this.load.image('vaporwave_chapter1Bg', 'assets/backgrounds/vaporwave_chapter1.jpg')
@@ -213,8 +217,10 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('vaporwave_chapter4Bg', 'assets/backgrounds/vaporwave_chapter4.jpg')
     this.load.image('vaporwave_chapter5Bg', 'assets/backgrounds/vaporwave_chapter5.jpg')
 
-    // Load LOTR (Middle-Earth) theme assets
-    this.load.image('lotr_playerSprite', 'assets/sprites/player/lotr_archer.png')
+    // Load LOTR (Middle-Earth) theme assets (per-hero sprites)
+    this.load.image('lotr_atreusSprite', 'assets/sprites/player/lotr_archer.png')
+    this.load.image('lotr_helixSprite', 'assets/sprites/player/lotr_helix.png')
+    this.load.image('lotr_meowgikSprite', 'assets/sprites/player/lotr_meowgik.png')
     this.load.image('lotr_bulletSprite', 'assets/sprites/projectile/lotr_arrow.png')
     this.load.image('lotr_menuBg', 'assets/backgrounds/lotr_menu.jpg')
     this.load.image('lotr_chapter1Bg', 'assets/backgrounds/lotr_chapter1.jpg')
@@ -223,8 +229,10 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('lotr_chapter4Bg', 'assets/backgrounds/lotr_chapter4.jpg')
     this.load.image('lotr_chapter5Bg', 'assets/backgrounds/lotr_chapter5.jpg')
 
-    // Load Stranger Things (Upside Down) theme assets
-    this.load.image('st_playerSprite', 'assets/sprites/player/st_player.png')
+    // Load Stranger Things (Upside Down) theme assets (per-hero sprites)
+    this.load.image('st_atreusSprite', 'assets/sprites/player/st_atreus.png')
+    this.load.image('st_helixSprite', 'assets/sprites/player/st_helix.png')
+    this.load.image('st_meowgikSprite', 'assets/sprites/player/st_meowgik.png')
     this.load.image('st_bulletSprite', 'assets/sprites/projectile/st_bullet.png')
     this.load.image('st_menuBg', 'assets/backgrounds/st_menu.jpg')
     this.load.image('st_chapter1Bg', 'assets/backgrounds/st_chapter1.jpg')

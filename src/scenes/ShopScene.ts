@@ -21,12 +21,12 @@ export default class ShopScene extends Phaser.Scene {
     super({ key: 'ShopScene' })
   }
 
-  create() {
+  create(data?: { scrollY?: number }) {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Reset scroll state
-    this.scrollY = 0
+    // Restore scroll state if provided, otherwise reset
+    this.scrollY = data?.scrollY ?? 0
     this.themeCards = []
 
     // Dark semi-transparent background
@@ -43,6 +43,9 @@ export default class ShopScene extends Phaser.Scene {
 
     // Setup scroll input
     this.setupScrollInput(width, height)
+
+    // Apply restored scroll position
+    this.updateScrollPosition()
   }
 
   private createHeader(width: number): void {
@@ -340,8 +343,8 @@ export default class ShopScene extends Phaser.Scene {
     const success = themeManager.select(themeId)
     if (success) {
       audioManager.playAbilitySelect()
-      // Refresh the scene to show updated selection
-      this.scene.restart()
+      // Refresh the scene to show updated selection, preserving scroll position
+      this.scene.restart({ scrollY: this.scrollY })
     }
   }
 
@@ -362,8 +365,8 @@ export default class ShopScene extends Phaser.Scene {
     const success = themeManager.unlock(themeId)
     if (success) {
       audioManager.playLevelUp() // Use level up sound for unlock
-      // Refresh the scene
-      this.scene.restart()
+      // Refresh the scene, preserving scroll position
+      this.scene.restart({ scrollY: this.scrollY })
     }
   }
 
