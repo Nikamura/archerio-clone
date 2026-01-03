@@ -720,7 +720,10 @@ export default class TalentsScene extends Phaser.Scene {
 
     this.bonusTexts.forEach((text, index) => {
       const value = bonusValues[index]
-      text.setText(`${labels[index]}: +${value}${suffixes[index]}`)
+      // Round to 1 decimal place, show as integer if whole number
+      const rounded = Math.round(value * 10) / 10
+      const displayValue = Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
+      text.setText(`${labels[index]}: +${displayValue}${suffixes[index]}`)
       text.setColor(value > 0 ? '#44ff44' : '#555555')
     })
 

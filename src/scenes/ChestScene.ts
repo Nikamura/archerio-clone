@@ -496,7 +496,7 @@ export default class ChestScene extends Phaser.Scene {
       if (value !== undefined && value !== 0) {
         const statName = this.formatStatName(stat)
         const statText = this.add
-          .text(0, statsStartY + statsOffset, `${statName}: +${value}`, {
+          .text(0, statsStartY + statsOffset, `${statName}: +${this.formatStatValue(value)}`, {
             fontSize: '15px',
             color: '#88ff88',
           })
@@ -870,6 +870,12 @@ export default class ChestScene extends Phaser.Scene {
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (str) => str.toUpperCase())
       .replace('Percent', '%')
+  }
+
+  private formatStatValue(value: number): string {
+    // Round to 1 decimal place, but show as integer if whole number
+    const rounded = Math.round(value * 10) / 10
+    return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
   }
 
   private formatPerkName(perk: string): string {
