@@ -215,7 +215,6 @@ export enum SpiritType {
   LASER_BAT = 'laser_bat', // Attacks enemies
   ELF = 'elf', // Gold bonus
   LIVING_BOMB = 'living_bomb', // AOE damage
-  SCYTHE_MAGE = 'scythe_mage', // Cooldown reduction
 }
 
 /**
@@ -253,7 +252,6 @@ export interface EquipmentStats {
   // Spirit stats
   bonusXPPercent?: number
   goldBonusPercent?: number
-  abilityCooldownReduction?: number // Percentage
 }
 
 /**
@@ -298,7 +296,6 @@ export enum PerkId {
   // Utility perks
   XP_BOOST_SMALL = 'xp_boost_small',
   GOLD_BOOST_SMALL = 'gold_boost_small',
-  COOLDOWN_REDUCTION_SMALL = 'cooldown_reduction_small',
 }
 
 /**
