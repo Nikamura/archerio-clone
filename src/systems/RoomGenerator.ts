@@ -494,6 +494,140 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
 ]
 
 /**
+ * Chokepoint layouts - wall-heavy designs with narrow passages
+ * These create tactical gameplay with predictable wall positions
+ * All walls are positioned with y < 0.70 to keep bottom area clear for player spawn
+ */
+export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
+  // The Funnel - walls on sides force movement through center
+  {
+    type: 'narrow_corridor',
+    name: 'The Funnel',
+    description: 'Side walls create a narrow central passage',
+    spawnZones: [
+      { x: 0.5, y: 0.20, radius: 0.20, weight: 1.5 },
+      { x: 0.5, y: 0.40, radius: 0.18, weight: 1 },
+      { x: 0.35, y: 0.55, radius: 0.10, weight: 0.8 },
+      { x: 0.65, y: 0.55, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.15, y: 0.40, width: 0.15, height: 0.50 }, // Left wall
+      { x: 0.85, y: 0.40, width: 0.15, height: 0.50 }, // Right wall
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Corridor Split - center divider forces left/right choice
+  {
+    type: 'split_arena',
+    name: 'Corridor Split',
+    description: 'Center wall splits arena into two paths',
+    spawnZones: [
+      { x: 0.25, y: 0.25, radius: 0.15, weight: 1.2 },
+      { x: 0.75, y: 0.25, radius: 0.15, weight: 1.2 },
+      { x: 0.25, y: 0.50, radius: 0.12, weight: 1 },
+      { x: 0.75, y: 0.50, radius: 0.12, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.12, y: 0.35, width: 0.10, height: 0.40 }, // Far left wall
+      { x: 0.50, y: 0.35, width: 0.10, height: 0.45 }, // Center divider
+      { x: 0.88, y: 0.35, width: 0.10, height: 0.40 }, // Far right wall
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Barricades - staggered horizontal bars create weaving path
+  {
+    type: 'maze_lite',
+    name: 'Barricades',
+    description: 'Staggered horizontal barriers create a weaving path',
+    spawnZones: [
+      { x: 0.25, y: 0.15, radius: 0.12, weight: 1 },
+      { x: 0.75, y: 0.15, radius: 0.12, weight: 1 },
+      { x: 0.50, y: 0.28, radius: 0.15, weight: 1.2 },
+      { x: 0.25, y: 0.40, radius: 0.10, weight: 0.8 },
+      { x: 0.75, y: 0.40, radius: 0.10, weight: 0.8 },
+      { x: 0.50, y: 0.55, radius: 0.12, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.30, y: 0.20, width: 0.28, height: 0.05 }, // Top left bar
+      { x: 0.70, y: 0.32, width: 0.28, height: 0.05 }, // Mid right bar
+      { x: 0.30, y: 0.44, width: 0.28, height: 0.05 }, // Mid left bar
+      { x: 0.70, y: 0.56, width: 0.28, height: 0.05 }, // Lower right bar
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Fortress - large central obstacle with side pillars
+  {
+    type: 'corner_rooms',
+    name: 'Fortress',
+    description: 'Large central obstacle forces flanking movement',
+    spawnZones: [
+      { x: 0.20, y: 0.20, radius: 0.12, weight: 1.2 },
+      { x: 0.80, y: 0.20, radius: 0.12, weight: 1.2 },
+      { x: 0.50, y: 0.15, radius: 0.15, weight: 1 },
+      { x: 0.20, y: 0.50, radius: 0.10, weight: 0.8 },
+      { x: 0.80, y: 0.50, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.50, y: 0.38, width: 0.28, height: 0.22 }, // Central fortress
+      { x: 0.14, y: 0.35, width: 0.08, height: 0.30 }, // Left pillar
+      { x: 0.86, y: 0.35, width: 0.08, height: 0.30 }, // Right pillar
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Pinch Points - alternating walls create zigzag path
+  {
+    type: 'gauntlet',
+    name: 'Pinch Points',
+    description: 'Alternating obstacles create multiple chokepoints',
+    spawnZones: [
+      { x: 0.50, y: 0.15, radius: 0.18, weight: 1.5 },
+      { x: 0.25, y: 0.30, radius: 0.10, weight: 1 },
+      { x: 0.75, y: 0.30, radius: 0.10, weight: 1 },
+      { x: 0.50, y: 0.45, radius: 0.12, weight: 1 },
+      { x: 0.25, y: 0.58, radius: 0.08, weight: 0.7 },
+      { x: 0.75, y: 0.58, radius: 0.08, weight: 0.7 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.25, y: 0.22, width: 0.16, height: 0.10 }, // Top left
+      { x: 0.75, y: 0.22, width: 0.16, height: 0.10 }, // Top right
+      { x: 0.50, y: 0.38, width: 0.20, height: 0.08 }, // Center
+      { x: 0.25, y: 0.52, width: 0.16, height: 0.10 }, // Bottom left
+      { x: 0.75, y: 0.52, width: 0.16, height: 0.10 }, // Bottom right
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // The Gauntlet - long corridor with extended side walls
+  {
+    type: 'gauntlet',
+    name: 'The Gauntlet',
+    description: 'Extended side walls create a long corridor',
+    spawnZones: [
+      { x: 0.50, y: 0.15, radius: 0.15, weight: 1.5 },
+      { x: 0.50, y: 0.30, radius: 0.15, weight: 1.2 },
+      { x: 0.50, y: 0.45, radius: 0.15, weight: 1 },
+      { x: 0.40, y: 0.58, radius: 0.10, weight: 0.8 },
+      { x: 0.60, y: 0.58, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.20, y: 0.38, width: 0.12, height: 0.55 }, // Long left wall
+      { x: 0.80, y: 0.38, width: 0.12, height: 0.55 }, // Long right wall
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+]
+
+/**
  * Boss room layouts
  */
 export const BOSS_LAYOUTS: RoomLayout[] = [
@@ -797,6 +931,7 @@ export class RoomGenerator {
 
   /**
    * Select appropriate layout for room type
+   * Combat rooms have 70% chance to use chokepoint layouts with walls
    */
   private selectLayout(roomType: RoomType): RoomLayout {
     switch (roomType) {
@@ -809,9 +944,15 @@ export class RoomGenerator {
         return ROOM_LAYOUTS[0]
       case 'combat':
       default: {
-        // Random selection from combat layouts (seeded)
-        const index = Math.floor(this.rng.random() * ROOM_LAYOUTS.length)
-        return ROOM_LAYOUTS[index]
+        // 70% chance to use chokepoint layouts (wall-heavy)
+        // 30% chance to use standard layouts (mixed open/wall)
+        if (this.rng.random() < 0.7) {
+          const index = Math.floor(this.rng.random() * CHOKEPOINT_LAYOUTS.length)
+          return CHOKEPOINT_LAYOUTS[index]
+        } else {
+          const index = Math.floor(this.rng.random() * ROOM_LAYOUTS.length)
+          return ROOM_LAYOUTS[index]
+        }
       }
     }
   }

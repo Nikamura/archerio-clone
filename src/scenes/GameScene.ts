@@ -317,8 +317,8 @@ export default class GameScene extends Phaser.Scene {
 
     console.log('GameScene: Final player stats - damage:', finalDamage, 'attackSpeed:', finalAttackSpeed, 'maxHealth:', finalMaxHealth, 'critChance:', finalCritChance)
 
-    // Create player in center with difficulty-adjusted stats and equipment bonuses
-    this.player = new Player(this, width / 2, height / 2, {
+    // Create player at bottom center with difficulty-adjusted stats and equipment bonuses
+    this.player = new Player(this, width / 2, height - 100, {
       maxHealth: finalMaxHealth,
       baseDamage: finalDamage,
       baseAttackSpeed: finalAttackSpeed,
@@ -1863,10 +1863,10 @@ export default class GameScene extends Phaser.Scene {
       // Clean up current room (but NOT the player - keep abilities!)
       this.cleanupRoom()
 
-      // Reset player position and heal to full (same position as initial spawn)
+      // Reset player position and heal to full (bottom center spawn)
       const width = this.cameras.main.width
       const height = this.cameras.main.height
-      this.player.setPosition(width / 2, height / 2)
+      this.player.setPosition(width / 2, height - 100)
       this.player.setVelocity(0, 0)
       this.player.heal(this.player.getMaxHealth()) // Full heal on reset
 
