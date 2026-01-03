@@ -321,7 +321,7 @@ export class PlayerStats {
   }
 
   getMovementSpeedMultiplier(): number {
-    return this.movementSpeedMultiplier
+    return Math.min(4.0, this.movementSpeedMultiplier)  // Cap at 400%
   }
 
   getWallBounceLevel(): number {
