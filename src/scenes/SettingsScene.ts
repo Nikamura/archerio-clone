@@ -20,6 +20,20 @@ export default class SettingsScene extends Phaser.Scene {
   private dangerZoneContent!: Phaser.GameObjects.Container
   private expandArrow!: Phaser.GameObjects.Text
 
+  // Scroll state
+  private scrollContainer!: Phaser.GameObjects.Container
+  private scrollOffset = 0
+  private maxScroll = 0
+  private contentStartY = 0
+  private visibleHeight = 0
+
+  // Touch scroll state
+  private isDragging = false
+  private dragStartY = 0
+  private dragStartScroll = 0
+  private dragDistance = 0
+  private readonly DRAG_THRESHOLD = 10
+
   constructor() {
     super({ key: 'SettingsScene' })
   }
@@ -27,6 +41,11 @@ export default class SettingsScene extends Phaser.Scene {
   create() {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
+
+    // Reset scroll state
+    this.scrollOffset = 0
+    this.isDragging = false
+    this.dragDistance = 0
 
     // Load current settings
     this.settings = { ...saveManager.getSettings() }
@@ -37,11 +56,14 @@ export default class SettingsScene extends Phaser.Scene {
     // Header
     this.createHeader(width)
 
-    // Settings list
+    // Settings list (scrollable)
     this.createSettingsList(width, height)
 
-    // Back button
+    // Back button (fixed at bottom)
     this.createBackButton(width, height)
+
+    // Setup scroll input
+    this.setupScrollInput()
   }
 
   private createHeader(width: number) {
@@ -56,10 +78,24 @@ export default class SettingsScene extends Phaser.Scene {
       .setOrigin(0.5)
   }
 
-  private createSettingsList(width: number, _height: number) {
-    const startY = 100
+  private createSettingsList(width: number, height: number) {
+    const headerHeight = 70
+    const footerHeight = 80
+    this.contentStartY = headerHeight
+    this.visibleHeight = height - headerHeight - footerHeight
+
+    // Create mask for scrollable area
+    const maskGraphics = this.make.graphics({})
+    maskGraphics.fillStyle(0xffffff)
+    maskGraphics.fillRect(0, this.contentStartY, width, this.visibleHeight)
+    const mask = maskGraphics.createGeometryMask()
+
+    // Create scrollable container
+    this.scrollContainer = this.add.container(0, this.contentStartY)
+    this.scrollContainer.setMask(mask)
+
     const rowHeight = 60
-    let currentY = startY
+    let currentY = 10 // Relative to container
 
     // Graphics Quality
     this.createGraphicsQualitySetting(width, currentY)
@@ -160,6 +196,11 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Danger Zone (collapsible reset section)
     this.createDangerZone(width, currentY)
+    currentY += 160 // Account for danger zone height (expanded)
+
+    // Calculate max scroll
+    const contentHeight = currentY + 20
+    this.maxScroll = Math.max(0, contentHeight - this.visibleHeight)
   }
 
   private createGraphicsQualitySetting(width: number, y: number) {
@@ -167,20 +208,22 @@ export default class SettingsScene extends Phaser.Scene {
     const rightX = width - 20
 
     // Label
-    this.add
+    const label = this.add
       .text(leftX, y, 'Graphics Quality', {
         fontSize: '16px',
         color: '#ffffff',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(label)
 
     // Description
-    this.add
+    const desc = this.add
       .text(leftX, y + 18, 'Affects particles and effects', {
         fontSize: '11px',
         color: '#888888',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(desc)
 
     // Quality buttons
     const qualities: GraphicsQuality[] = [GraphicsQuality.LOW, GraphicsQuality.MEDIUM, GraphicsQuality.HIGH]
@@ -205,6 +248,7 @@ export default class SettingsScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
+      this.scrollContainer.add(button)
 
       button.on('pointerover', () => {
         if (this.settings.graphicsQuality !== quality) {
@@ -219,16 +263,18 @@ export default class SettingsScene extends Phaser.Scene {
       })
 
       button.on('pointerdown', () => {
-        audioManager.playMenuSelect()
-        this.settings.graphicsQuality = quality
-        this.saveSettings()
+        if (this.dragDistance < this.DRAG_THRESHOLD) {
+          audioManager.playMenuSelect()
+          this.settings.graphicsQuality = quality
+          this.saveSettings()
 
-        // Update all button styles
-        buttons.forEach((btn, i) => {
-          btn.setStyle({
-            backgroundColor: qualities[i] === quality ? '#4a9eff' : '#444444',
+          // Update all button styles
+          buttons.forEach((btn, i) => {
+            btn.setStyle({
+              backgroundColor: qualities[i] === quality ? '#4a9eff' : '#444444',
+            })
           })
-        })
+        }
       })
 
       buttons.push(button)
@@ -240,20 +286,22 @@ export default class SettingsScene extends Phaser.Scene {
     const rightX = width - 20
 
     // Label
-    this.add
+    const label = this.add
       .text(leftX, y, 'Colorblind Mode', {
         fontSize: '16px',
         color: '#ffffff',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(label)
 
     // Description
-    this.add
+    const desc = this.add
       .text(leftX, y + 18, 'Adjust colors for accessibility', {
         fontSize: '11px',
         color: '#888888',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(desc)
 
     // Mode buttons
     const modes: ColorblindMode[] = [
@@ -283,6 +331,7 @@ export default class SettingsScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
+      this.scrollContainer.add(button)
 
       button.on('pointerover', () => {
         if (this.settings.colorblindMode !== mode) {
@@ -297,16 +346,18 @@ export default class SettingsScene extends Phaser.Scene {
       })
 
       button.on('pointerdown', () => {
-        audioManager.playMenuSelect()
-        this.settings.colorblindMode = mode
-        this.saveSettings()
+        if (this.dragDistance < this.DRAG_THRESHOLD) {
+          audioManager.playMenuSelect()
+          this.settings.colorblindMode = mode
+          this.saveSettings()
 
-        // Update all button styles
-        buttons.forEach((btn, i) => {
-          btn.setStyle({
-            backgroundColor: modes[i] === mode ? '#4a9eff' : '#444444',
+          // Update all button styles
+          buttons.forEach((btn, i) => {
+            btn.setStyle({
+              backgroundColor: modes[i] === mode ? '#4a9eff' : '#444444',
+            })
           })
-        })
+        }
       })
 
       buttons.push(button)
@@ -325,20 +376,22 @@ export default class SettingsScene extends Phaser.Scene {
     const rightX = width - 20
 
     // Label
-    this.add
+    const labelText = this.add
       .text(leftX, y, label, {
         fontSize: '16px',
         color: '#ffffff',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(labelText)
 
     // Description
-    this.add
+    const descText = this.add
       .text(leftX, y + 18, description, {
         fontSize: '11px',
         color: '#888888',
       })
       .setOrigin(0, 0.5)
+    this.scrollContainer.add(descText)
 
     // Toggle switch
     const toggleWidth = 50
@@ -347,6 +400,7 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Container for toggle
     const toggle = this.add.container(toggleX, y)
+    this.scrollContainer.add(toggle)
 
     // Background track
     const trackColor = initialValue ? 0x4a9eff : 0x444444
@@ -365,19 +419,21 @@ export default class SettingsScene extends Phaser.Scene {
     let currentValue = initialValue
 
     track.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      currentValue = !currentValue
-      onChange(currentValue)
+      if (this.dragDistance < this.DRAG_THRESHOLD) {
+        audioManager.playMenuSelect()
+        currentValue = !currentValue
+        onChange(currentValue)
 
-      // Animate toggle
-      this.tweens.add({
-        targets: knob,
-        x: currentValue ? toggleWidth / 2 - 13 : -toggleWidth / 2 + 13,
-        duration: 150,
-        ease: 'Power2',
-      })
+        // Animate toggle
+        this.tweens.add({
+          targets: knob,
+          x: currentValue ? toggleWidth / 2 - 13 : -toggleWidth / 2 + 13,
+          duration: 150,
+          ease: 'Power2',
+        })
 
-      track.setFillStyle(currentValue ? 0x4a9eff : 0x444444)
+        track.setFillStyle(currentValue ? 0x4a9eff : 0x444444)
+      }
     })
   }
 
@@ -392,6 +448,7 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Main container
     this.dangerZoneContainer = this.add.container(centerX, y)
+    this.scrollContainer.add(this.dangerZoneContainer)
 
     // === HEADER (always visible) ===
     const headerBg = this.add.rectangle(0, 0, zoneWidth, headerHeight, 0x1a0808)
@@ -449,8 +506,10 @@ export default class SettingsScene extends Phaser.Scene {
     })
 
     resetButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.showResetConfirmation(width)
+      if (this.dragDistance < this.DRAG_THRESHOLD) {
+        audioManager.playMenuSelect()
+        this.showResetConfirmation(width)
+      }
     })
 
     this.dangerZoneContent.add([contentBg, warningText, resetButton])
@@ -466,10 +525,12 @@ export default class SettingsScene extends Phaser.Scene {
     })
 
     headerBg.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.dangerZoneExpanded = !this.dangerZoneExpanded
-      this.dangerZoneContent.setVisible(this.dangerZoneExpanded)
-      this.expandArrow.setText(this.dangerZoneExpanded ? '▲' : '▼')
+      if (this.dragDistance < this.DRAG_THRESHOLD) {
+        audioManager.playMenuSelect()
+        this.dangerZoneExpanded = !this.dangerZoneExpanded
+        this.dangerZoneContent.setVisible(this.dangerZoneExpanded)
+        this.expandArrow.setText(this.dangerZoneExpanded ? '▲' : '▼')
+      }
     })
   }
 
@@ -583,6 +644,60 @@ export default class SettingsScene extends Phaser.Scene {
       audioManager.playMenuSelect()
       this.scene.start('MainMenuScene')
     })
+  }
+
+  private setupScrollInput(): void {
+    // Wheel scrolling for desktop
+    this.input.on(
+      'wheel',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _gameObjects: Phaser.GameObjects.GameObject[],
+        _deltaX: number,
+        deltaY: number
+      ) => {
+        if (this.maxScroll <= 0) return
+        this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY * 0.5, 0, this.maxScroll)
+        this.updateScroll()
+      }
+    )
+
+    // Touch/drag scrolling for mobile
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Only start drag if in scrollable area
+      const inScrollArea =
+        pointer.y >= this.contentStartY && pointer.y <= this.contentStartY + this.visibleHeight
+
+      if (inScrollArea && this.maxScroll > 0) {
+        this.isDragging = true
+        this.dragStartY = pointer.y
+        this.dragStartScroll = this.scrollOffset
+        this.dragDistance = 0
+      }
+    })
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isDragging || this.maxScroll <= 0) return
+
+      const deltaY = this.dragStartY - pointer.y
+      this.dragDistance = Math.abs(deltaY)
+
+      // Only scroll after exceeding the drag threshold
+      if (this.dragDistance > this.DRAG_THRESHOLD) {
+        this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
+        this.updateScroll()
+      }
+    })
+
+    this.input.on('pointerup', () => {
+      this.isDragging = false
+    })
+  }
+
+  private updateScroll(): void {
+    if (this.scrollContainer) {
+      this.scrollContainer.y = this.contentStartY - this.scrollOffset
+    }
   }
 
   private saveSettings() {
