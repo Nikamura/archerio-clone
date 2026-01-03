@@ -135,12 +135,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 200,
-      baseDamage: 15,
-      baseSpeed: 40,
-      attackCooldown: 2000,
-      xpReward: 10,
-      goldReward: [100, 200],
+      baseHealth: 300, // +50%
+      baseDamage: 19, // +25%
+      baseSpeed: 45,
+      attackCooldown: 1800,
+      xpReward: 12,
+      goldReward: [120, 240],
     },
     visuals: {
       textureKey: 'bossSprite',
@@ -162,12 +162,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 250,
-      baseDamage: 12,
-      baseSpeed: 30,
-      attackCooldown: 2200,
-      xpReward: 12,
-      goldReward: [120, 220],
+      baseHealth: 375, // +50%
+      baseDamage: 15, // +25%
+      baseSpeed: 35,
+      attackCooldown: 2000,
+      xpReward: 15,
+      goldReward: [150, 275],
     },
     visuals: {
       textureKey: 'boss_tree_guardian',
@@ -186,12 +186,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 220,
-      baseDamage: 18,
-      baseSpeed: 60,
-      attackCooldown: 1800,
-      xpReward: 11,
-      goldReward: [110, 200],
+      baseHealth: 330, // +50%
+      baseDamage: 23, // +25%
+      baseSpeed: 70,
+      attackCooldown: 1600,
+      xpReward: 14,
+      goldReward: [135, 250],
     },
     visuals: {
       textureKey: 'boss_wild_boar',
@@ -210,12 +210,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 180,
-      baseDamage: 14,
+      baseHealth: 270, // +50%
+      baseDamage: 18, // +25%
       baseSpeed: 0, // Teleports instead of moving
-      attackCooldown: 2000,
-      xpReward: 12,
-      goldReward: [130, 230],
+      attackCooldown: 1800,
+      xpReward: 15,
+      goldReward: [160, 290],
     },
     visuals: {
       textureKey: 'boss_forest_spirit',
@@ -237,12 +237,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 350,
-      baseDamage: 20,
-      baseSpeed: 25,
-      attackCooldown: 2500,
-      xpReward: 15,
-      goldReward: [150, 280],
+      baseHealth: 525, // +50%
+      baseDamage: 25, // +25%
+      baseSpeed: 30,
+      attackCooldown: 2200,
+      xpReward: 18,
+      goldReward: [190, 350],
     },
     visuals: {
       textureKey: 'boss_ice_golem',
@@ -261,12 +261,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 280,
-      baseDamage: 22,
-      baseSpeed: 80,
-      attackCooldown: 2200,
-      xpReward: 14,
-      goldReward: [140, 260],
+      baseHealth: 420, // +50%
+      baseDamage: 28, // +25%
+      baseSpeed: 90,
+      attackCooldown: 2000,
+      xpReward: 17,
+      goldReward: [175, 325],
     },
     visuals: {
       textureKey: 'boss_frost_wyrm',
@@ -285,12 +285,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 300,
-      baseDamage: 16,
-      baseSpeed: 35,
-      attackCooldown: 2400,
-      xpReward: 15,
-      goldReward: [160, 300],
+      baseHealth: 450, // +50%
+      baseDamage: 20, // +25%
+      baseSpeed: 40,
+      attackCooldown: 2200,
+      xpReward: 18,
+      goldReward: [200, 375],
     },
     visuals: {
       textureKey: 'boss_crystal_guardian',
@@ -312,12 +312,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 400,
-      baseDamage: 25,
-      baseSpeed: 50,
-      attackCooldown: 2000,
-      xpReward: 18,
-      goldReward: [200, 350],
+      baseHealth: 600, // +50%
+      baseDamage: 31, // +25%
+      baseSpeed: 55,
+      attackCooldown: 1800,
+      xpReward: 22,
+      goldReward: [250, 440],
     },
     visuals: {
       textureKey: 'boss_magma_wyrm',
@@ -336,12 +336,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 350,
-      baseDamage: 28,
-      baseSpeed: 45,
-      attackCooldown: 1800,
-      xpReward: 17,
-      goldReward: [180, 320],
+      baseHealth: 525, // +50%
+      baseDamage: 35, // +25%
+      baseSpeed: 50,
+      attackCooldown: 1600,
+      xpReward: 21,
+      goldReward: [225, 400],
     },
     visuals: {
       textureKey: 'boss_inferno_demon',
@@ -360,12 +360,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 450,
-      baseDamage: 22,
-      baseSpeed: 25,
-      attackCooldown: 2600,
-      xpReward: 18,
-      goldReward: [200, 380],
+      baseHealth: 675, // +50%
+      baseDamage: 28, // +25%
+      baseSpeed: 30,
+      attackCooldown: 2400,
+      xpReward: 22,
+      goldReward: [250, 475],
     },
     visuals: {
       textureKey: 'boss_lava_golem',
@@ -387,12 +387,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 500,
-      baseDamage: 30,
-      baseSpeed: 40,
-      attackCooldown: 1800,
-      xpReward: 25,
-      goldReward: [300, 500],
+      baseHealth: 750, // +50%
+      baseDamage: 38, // +25%
+      baseSpeed: 45,
+      attackCooldown: 1600,
+      xpReward: 30,
+      goldReward: [375, 625],
     },
     visuals: {
       textureKey: 'boss_void_lord',
@@ -411,12 +411,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 600,
-      baseDamage: 35,
-      baseSpeed: 50,
-      attackCooldown: 1500,
-      xpReward: 30,
-      goldReward: [400, 600],
+      baseHealth: 900, // +50%
+      baseDamage: 44, // +25%
+      baseSpeed: 55,
+      attackCooldown: 1300,
+      xpReward: 38,
+      goldReward: [500, 750],
     },
     visuals: {
       textureKey: 'boss_final_boss',
@@ -435,12 +435,12 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 380,
-      baseDamage: 32,
-      baseSpeed: 55,
-      attackCooldown: 2000,
-      xpReward: 24,
-      goldReward: [280, 480],
+      baseHealth: 570, // +50%
+      baseDamage: 40, // +25%
+      baseSpeed: 60,
+      attackCooldown: 1800,
+      xpReward: 30,
+      goldReward: [350, 600],
     },
     visuals: {
       textureKey: 'boss_nightmare',
