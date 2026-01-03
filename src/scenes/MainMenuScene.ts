@@ -414,7 +414,7 @@ export default class MainMenuScene extends Phaser.Scene {
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },
       { label: 'Talents', scene: 'TalentsScene' },
-      { label: 'Chests', scene: 'ChestScene' },
+      { label: 'Guide', scene: 'EncyclopediaScene' },
     ]
     const menuBtnWidth = 80
     const menuGap = 8
@@ -462,13 +462,44 @@ export default class MainMenuScene extends Phaser.Scene {
     // Stagger animate menu buttons entrance
     staggerIn(this, this.menuButtons, 'up', DURATION.FAST, 50)
 
+    // ============================================
+    // DAILY REWARD & CHESTS BUTTONS (Below menu buttons)
+    // ============================================
+
+    const dailyY = menuY + 55
+    const buttonGapX = 10
+
+    // Chests button (left side)
+    const chestsButton = this.add.text(width / 2 - 75 - buttonGapX / 2, dailyY, 'Chests', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#6b4423',
+      padding: { x: 25, y: 10 },
+    })
+    chestsButton.setOrigin(0.5)
+    chestsButton.setInteractive({ useHandCursor: true })
+    chestsButton.setDepth(10)
+
+    chestsButton.on('pointerover', () => {
+      chestsButton.setStyle({ backgroundColor: '#7d5530' })
+    })
+
+    chestsButton.on('pointerout', () => {
+      chestsButton.setStyle({ backgroundColor: '#6b4423' })
+    })
+
+    chestsButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      transitionToScene(this, 'ChestScene', TransitionType.FADE, DURATION.FAST)
+    })
+
+    applyButtonEffects(this, chestsButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
+
     // Notification badge for Chests button (if player has chests)
     const totalChests = chestManager.getTotalChests()
     if (totalChests > 0) {
-      const chestsButton = this.menuButtons[3] // Chests is at index 3
       const chestBadgeX = chestsButton.x + chestsButton.width / 2 + 5
-      // Use menuY instead of chestsButton.y because staggerIn sets button.y to -100 during animation setup
-      const chestBadgeY = menuY - chestsButton.height / 2
+      const chestBadgeY = dailyY - chestsButton.height / 2
 
       // Red circle badge with count
       const chestBadge = this.add.circle(chestBadgeX, chestBadgeY, 10, 0xff4444)
@@ -493,16 +524,10 @@ export default class MainMenuScene extends Phaser.Scene {
         ease: 'Sine.easeInOut',
       })
     }
-
-    // ============================================
-    // DAILY REWARD BUTTON (Below menu buttons)
-    // ============================================
-
-    const dailyY = menuY + 55
     const canClaimDaily = dailyRewardManager.canClaimToday()
 
-    // Daily button container
-    const dailyButton = this.add.text(width / 2, dailyY, 'Daily Rewards', {
+    // Daily Rewards button (right side)
+    const dailyButton = this.add.text(width / 2 + 75 + buttonGapX / 2, dailyY, 'Daily', {
       fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#8b4513',
