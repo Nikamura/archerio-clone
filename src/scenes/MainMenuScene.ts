@@ -258,14 +258,17 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     // ============================================
-    // PLAY BUTTON (Center)
+    // PLAY BUTTONS (Center - two buttons side by side)
     // ============================================
 
-    const playButton = this.add.text(width / 2, 270, 'PLAY', {
-      fontSize: '28px',
+    const buttonY = 265
+
+    // PLAY button (left)
+    const playButton = this.add.text(width / 2 - 60, buttonY, 'PLAY', {
+      fontSize: '22px',
       color: '#ffffff',
       backgroundColor: '#4a9eff',
-      padding: { x: 50, y: 15 },
+      padding: { x: 28, y: 12 },
     })
     playButton.setOrigin(0.5)
     playButton.setInteractive({ useHandCursor: true })
@@ -292,13 +295,94 @@ export default class MainMenuScene extends Phaser.Scene {
       if (this.customSeed) {
         this.game.registry.set('runSeed', this.customSeed)
       }
+      // Disable special modes for normal play
+      this.game.registry.set('isEndlessMode', false)
+      this.game.registry.set('isDailyChallengeMode', false)
       // Use fade transition when starting game
       transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
       this.scene.launch('UIScene')
     })
 
-    // Seed input button (below play button)
-    const seedButton = this.add.text(width / 2, 310, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
+    // ENDLESS button (right)
+    const endlessButton = this.add.text(width / 2 + 60, buttonY, 'ENDLESS', {
+      fontSize: '22px',
+      color: '#ffffff',
+      backgroundColor: '#ff6b35',
+      padding: { x: 16, y: 12 },
+    })
+    endlessButton.setOrigin(0.5)
+    endlessButton.setInteractive({ useHandCursor: true })
+    endlessButton.setDepth(10)
+
+    // Apply enhanced button effects
+    applyButtonEffects(this, endlessButton, {
+      scaleOnHover: 1.08,
+      scaleOnPress: 0.95,
+    })
+
+    endlessButton.on('pointerover', () => {
+      endlessButton.setStyle({ backgroundColor: '#ff8855' })
+    })
+
+    endlessButton.on('pointerout', () => {
+      endlessButton.setStyle({ backgroundColor: '#ff6b35' })
+    })
+
+    endlessButton.on('pointerdown', () => {
+      audioManager.resume()
+      audioManager.playGameStart()
+      // Enable endless mode, disable daily challenge mode
+      this.game.registry.set('isEndlessMode', true)
+      this.game.registry.set('isDailyChallengeMode', false)
+      // Use fade transition when starting game
+      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+      this.scene.launch('UIScene')
+    })
+
+    // DAILY CHALLENGE button (below play buttons)
+    const dailyCompleted = saveManager.isDailyChallengeCompleted()
+    const dailyStats = saveManager.getDailyChallengeStats()
+    const dailyChallengeColor = dailyCompleted ? '#4a6a4a' : '#00ddff'
+    const dailyChallengeHoverColor = dailyCompleted ? '#5a7a5a' : '#44eeff'
+    const dailyLabel = dailyCompleted ? `DAILY ✓ (Wave ${dailyStats.bestWave})` : 'DAILY CHALLENGE'
+
+    const dailyChallengeButton = this.add.text(width / 2, 305, dailyLabel, {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: dailyChallengeColor,
+      padding: { x: 20, y: 8 },
+    })
+    dailyChallengeButton.setOrigin(0.5)
+    dailyChallengeButton.setInteractive({ useHandCursor: true })
+    dailyChallengeButton.setDepth(10)
+
+    // Apply enhanced button effects
+    applyButtonEffects(this, dailyChallengeButton, {
+      scaleOnHover: 1.05,
+      scaleOnPress: 0.95,
+    })
+
+    dailyChallengeButton.on('pointerover', () => {
+      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeHoverColor })
+    })
+
+    dailyChallengeButton.on('pointerout', () => {
+      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeColor })
+    })
+
+    dailyChallengeButton.on('pointerdown', () => {
+      audioManager.resume()
+      audioManager.playGameStart()
+      // Enable daily challenge mode (uses endless mechanics with fixed daily seed)
+      this.game.registry.set('isDailyChallengeMode', true)
+      this.game.registry.set('isEndlessMode', false) // Will be set to true in GameScene
+      // Use fade transition when starting game
+      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+      this.scene.launch('UIScene')
+    })
+
+    // Seed input button (below daily button)
+    const seedButton = this.add.text(width / 2, 340, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
       fontSize: '12px',
       color: this.customSeed ? '#00ddff' : '#888888',
       backgroundColor: '#333333',
@@ -325,7 +409,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // MENU BUTTONS (Two rows for better layout)
     // ============================================
 
-    const menuY = 340
+    const menuY = 375
     const menuButtonConfigs = [
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },
@@ -566,6 +650,38 @@ export default class MainMenuScene extends Phaser.Scene {
 
     // Apply button effects to shop button
     applyButtonEffects(this, shopButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
+
+    // ============================================
+    // SETTINGS BUTTON (Below shop)
+    // ============================================
+
+    const settingsY = shopY + 45
+
+    const settingsButton = this.add.text(width / 2, settingsY, 'Settings', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#555555',
+      padding: { x: 20, y: 10 },
+    })
+    settingsButton.setOrigin(0.5)
+    settingsButton.setInteractive({ useHandCursor: true })
+    settingsButton.setDepth(10)
+
+    settingsButton.on('pointerover', () => {
+      settingsButton.setStyle({ backgroundColor: '#777777' })
+    })
+
+    settingsButton.on('pointerout', () => {
+      settingsButton.setStyle({ backgroundColor: '#555555' })
+    })
+
+    settingsButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      transitionToScene(this, 'SettingsScene', TransitionType.FADE, DURATION.FAST)
+    })
+
+    // Apply button effects to settings button
+    applyButtonEffects(this, settingsButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
 
     // Instructions (bottom)
     const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {

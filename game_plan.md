@@ -178,11 +178,12 @@ assets/
 ### Best Practices
 
 1. **Always use `--clean`**: AI generates fake checkerboard backgrounds, use `--clean` or `-c` for true transparency
-2. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
-3. **Naming**: Use descriptive prompts that include key visual features
-4. **Review**: AI generation can vary - regenerate if needed
-5. **Animation**: For smooth animations, generate more frames and remove duplicates
-6. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
+2. **Auto-resize**: The script automatically resizes sprites to target size (AI generates 1024x1024, script resizes to type default: player=64px, ui=48px, etc.)
+3. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
+4. **Naming**: Use descriptive prompts that include key visual features
+5. **Review**: AI generation can vary - regenerate if needed
+6. **Animation**: For smooth animations, generate more frames and remove duplicates
+7. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
 
 ---
 
@@ -301,7 +302,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Room progression with scaling difficulty
 - ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
 - ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards (using Container for proper click handling)
-- ✅ **16 abilities implemented** - All MVP abilities + 8 new V1 abilities complete:
+- ✅ **22 abilities implemented** - All MVP abilities + V1 abilities + devil abilities complete:
   - Front Arrow (+1 projectile, -25% damage per level)
   - Multishot (side arrows at 45°, -15% attack speed per level)
   - Attack Speed (+25% multiplicative)
@@ -316,9 +317,18 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Lightning Chain (chains to 2 nearby enemies per level, 50% damage, 150px range)
   - Diagonal Arrows (+2 arrows at 30° angles per level, 80% damage)
   - Rear Arrow (+1 backwards arrow per level, 70% damage)
-  - Bouncy Wall (2 wall bounces per level, full damage on bounces)
+  - Damage Aura (10 DPS in 80px radius around player, visual aura ring)
   - Bloodthirst (+2 HP heal per kill per level, red flash visual)
   - Rage (+5% damage per 10% missing HP per level, scales dynamically)
+  - Speed Boost (+15% movement speed per level, multiplicative)
+  - Vitality (+10% max HP per level, heals gained amount)
+  - **New Abilities (2026-01-03):**
+  - Bouncy Wall (+2 wall bounces per level, arrows reflect off screen edges)
+  - Dodge Master (+15% dodge chance per level, capped at 75%)
+  - **Devil Abilities (2026-01-03):** High-risk/high-reward abilities
+  - Extra Life (revive once at 30% HP per level, golden flash on revive)
+  - Through Wall (arrows wrap around screen edges instead of disappearing)
+  - Giant (+40% damage per level, +10-15% hitbox size per level)
 - ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
 - ✅ **Boss fight** - Room 10 boss with 3 attack patterns:
   - Spread Shot: 8 projectiles in circular pattern (2 waves)
@@ -415,6 +425,32 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - RoomGenerator integration:
     - All randomness uses seeded RNG (layout selection, enemy combos, spawn positions)
     - `setRng(SeededRandom)` to inject seed at run start
+    - Room layouts can include `walls` array for physical obstacles
+  - **Wall System (2026-01-03):**
+    - `Wall` entity: Static physics body (Rectangle) that blocks player, enemies, and bullets
+    - `WallGroup`: Manages wall creation/destruction per room, themed by chapter color
+    - Room layouts define walls via normalized coordinates (0-1): `{ x, y, width, height }`
+    - Player/enemy collision: Physics collider pushes entities away from walls
+    - Bullet/wall collision:
+      - Normal bullets: Destroyed on wall contact
+      - Bouncy Wall ability: Bullets reflect off walls (velocity reversed)
+      - Through Wall ability: Bullets pass through walls unaffected
+    - **Layouts with walls (12 total):**
+      - `maze_lite`: Cover Points, Scattered Pockets (cover walls, barriers)
+      - `gauntlet`: Side Runners, Forward March (corridor walls, barriers)
+      - `split_arena`: Left-Right Split, Top-Bottom Split (dividing walls)
+      - `corner_rooms`: Four Corners, Corners Plus Center (pillars, obstacles)
+      - `ambush`: Pincer Attack (corridor trap walls)
+      - `open_arena`: Circular Siege (center pillar)
+    - ✅ **Themed wall textures** (2026-01-03):
+      - Chapter 1 (Dark Dungeon): `wall_dungeon.png` - Stone brick walls with moss
+      - Chapter 2 (Forest Ruins): `wall_forest.png` - Wooden logs and overgrown stones
+      - Chapter 3 (Frozen Caves): `wall_ice.png` - Ice crystals and frozen rock
+      - Chapter 4 (Volcanic Depths): `wall_lava.png` - Lava rock with glowing cracks
+      - Chapter 5 (Shadow Realm): `wall_shadow.png` - Dark energy pillars with purple glow
+      - Vaporwave theme (per-chapter): `wall_vaporwave_*.png` - Neon synthwave variants
+      - Wall entity uses TileSprite for repeating textures
+      - WallGroup.setTexture(chapterId) + setTheme(themeName) for purchasable themes
   - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
   - MainMenuScene:
     - "Enter Seed" button below PLAY opens modal dialog
@@ -536,6 +572,18 @@ Visual test screenshots are saved to `test/screenshots/`
 18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
 19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
 20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
+21. ✅ **Damage numbers setting doesn't work** - FIXED (2026-01-03): Added settings check in DamageNumberPool.show() to respect showDamageNumbers setting
+22. ✅ **Graphics quality settings don't work** - NOT A BUG: Settings work correctly, applied on next game start (affects particle pool initialization)
+23. ✅ **Speed boost icon becomes very large on hover** - FIXED (2026-01-03): Changed hover tween to use relative scale (iconBaseScaleX * 1.1) instead of absolute scale, preserving setDisplaySize proportions
+24. ✅ **Player spawn position inconsistent** - FIXED (2026-01-03): Changed resetLevel() to spawn player at center (height/2) matching initial spawn position
+25. ✅ **Dead enemy bullets can still kill after level complete** - FIXED (2026-01-03): Clear enemy bullet pool in checkRoomCleared() when all enemies are dead
+26. ✅ **No immunity period after level up** - FIXED (2026-01-03): Added isLevelingUp flag that blocks damage during selection, clears enemy bullets on level up, and provides 1 second immunity after selection
+27. ✅ **Meowgik cat damage doesn't scale** - FIXED (2026-01-03): Changed cat damage to use player.getDamage() * 0.3 instead of static heroStats.attack, now scales with equipment, talents, abilities
+28. ✅ **Fast shooting causes shorter bullet range** - FIXED (2026-01-03): Increased bullet pool from 1000 to 2000, added 500ms minimum lifetime before recycling to prevent visible bullet pop-in
+29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
+30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
+31. ✅ **Vaporwave theme needs per-chapter wall textures** - FIXED (2026-01-03): Generated 5 vaporwave wall variants (dungeon, forest, ice, lava, shadow), WallGroup now supports setTheme() for purchasable themes with per-chapter textures
+32. **Number rounding for items** - Item stat displays sometimes show very long decimal numbers (e.g. 10.333333333 instead of 10.3)
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -562,7 +610,15 @@ Visual test screenshots are saved to `test/screenshots/`
      - Door portal: 64x64
      - 8 Ability icons: 48x48 each
      - Dungeon background: 375x667
-7. Polish ability UI with animations and feedback
+7. ✅ **Polish ability UI with animations and feedback** - DONE (2026-01-03):
+   - LevelUpScene has comprehensive animations:
+     - Staggered card entrance animations with bounce effect
+     - Particle effects around title using emitters
+     - Pulsing glow animations on ability cards
+     - Progress bar timer with color transitions (yellow → orange → red)
+     - Selection animation: unselected cards slide out, selected scales up and fades
+     - Hover effects: scale, color change, icon enlargement
+   - Missing speed_boost ability icon generated and added to preloader
 8. ✅ **Gold drop system** - DONE (2026-01-01):
    - `src/entities/GoldPickup.ts`: Gold coin entity with spawn/collection animation
    - `src/systems/GoldPool.ts`: Object pool for 50 gold pickups with floating text
@@ -1098,7 +1154,15 @@ Battle Pass implementation:
 **Expanded content:**
 - 10 total chapters (50 rooms each for later chapters)
 - 8 heroes with unique skill trees
-- Endless mode: Survive as long as possible, leaderboard rankings
+- ✅ Endless mode: Survive as long as possible (2026-01-03)
+  - ENDLESS button on main menu (orange, next to PLAY)
+  - 10 rooms per wave with boss at end
+  - Difficulty increases 15% each wave (HP, damage, speed, attack cooldown)
+  - Wave notification with difficulty multiplier display
+  - UIScene shows "Wave X - Room/10" format
+  - GameOverScene displays wave reached with NEW BEST badge
+  - SaveManager tracks endlessHighWave statistic
+  - (Leaderboard rankings require backend - not implemented)
 - Challenge modes: Daily dungeon with special rules, fixed rewards
 - Special events: Limited-time themed content with exclusive rewards
 
@@ -1122,16 +1186,31 @@ Battle Pass implementation:
 - Remote config for balance tuning without update
 - Push notification system (energy refilled, daily rewards, events)
 
-**Quality of life:**
-- Settings: Low/Medium/High graphics presets
-- Effect reduction for performance
-- Colorblind modes
-- Tutorial system for new players
-- Replay last run (same seed)
+**Quality of life (implemented 2026-01-03):**
+- [x] Settings: Low/Medium/High graphics presets
+- [x] Effect reduction for performance (integrated with graphics quality)
+- [x] Colorblind modes (Protanopia, Deuteranopia, Tritanopia)
+- [x] Tutorial system for new players
+- [x] Replay last run (same seed)
 
 ### V2 technical additions
 
 ```
+[x] Endless Mode (2026-01-03)
+    - Added ENDLESS button to MainMenuScene
+    - GameScene.isEndlessMode flag with wave system (10 rooms per wave)
+    - Difficulty scaling: 15% per wave (HP, damage, speed, attack cooldown)
+    - Wave notification UI with difficulty multiplier
+    - UIScene shows "Wave X - Room/10" format
+    - GameOverScene handles endless mode with NEW BEST badge
+    - SaveManager.endlessHighWave statistic tracking
+[x] Daily Challenge (2026-01-03)
+    - Added DAILY CHALLENGE button to MainMenuScene
+    - Uses endless mode mechanics with fixed date-based seed
+    - All players get the same challenge each day (same seed = same enemies, layouts, bosses)
+    - SaveManager tracks: lastCompletedDate, bestWave, completionsCount
+    - Button shows completion status with checkmark and best wave
+    - GameOverScene displays "DAILY CHALLENGE" title with wave info
 [ ] Ad SDK integration (Google AdMob or similar web equivalent)
 [ ] IAP integration (Stripe for web, or wrapper for app stores)
 [ ] Battle Pass system with tier tracking

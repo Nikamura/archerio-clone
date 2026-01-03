@@ -18,6 +18,9 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private freezeChance: number = 0 // Chance to freeze enemies
   private poisonDamage: number = 0 // Poison DOT damage to apply on hit
   private lightningChainCount: number = 0 // Number of enemies lightning can chain to
+  private maxWallBounces: number = 0 // Maximum number of wall bounces
+  private wallBounceCount: number = 0 // Current wall bounce count
+  private throughWallEnabled: boolean = false // Arrows pass through walls
 
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
@@ -54,6 +57,8 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     freezeChance?: number
     poisonDamage?: number
     lightningChainCount?: number
+    maxWallBounces?: number
+    throughWall?: boolean
     projectileSprite?: string
     projectileSizeMultiplier?: number
   }) {
@@ -77,6 +82,9 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.freezeChance = options?.freezeChance ?? 0
     this.poisonDamage = options?.poisonDamage ?? 0
     this.lightningChainCount = options?.lightningChainCount ?? 0
+    this.maxWallBounces = options?.maxWallBounces ?? 0
+    this.wallBounceCount = 0
+    this.throughWallEnabled = options?.throughWall ?? false
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -122,13 +130,51 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       return
     }
 
-    // Deactivate bullet if it goes off screen (with margin)
-    const margin = 50
     const gameWidth = this.scene.scale.width
     const gameHeight = this.scene.scale.height
-    if (this.x < -margin || this.x > gameWidth + margin ||
-        this.y < -margin || this.y > gameHeight + margin) {
-      this.deactivate()
+
+    // Through Wall: Arrows wrap around screen edges
+    if (this.throughWallEnabled) {
+      if (this.x < 0) this.x = gameWidth
+      else if (this.x > gameWidth) this.x = 0
+      if (this.y < 0) this.y = gameHeight
+      else if (this.y > gameHeight) this.y = 0
+      return // Skip wall bouncing and normal deactivation
+    }
+
+    // Handle wall bouncing
+    if (this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces) {
+      let bounced = false
+      const body = this.body as Phaser.Physics.Arcade.Body
+
+      // Check left/right walls
+      if (this.x <= 0 || this.x >= gameWidth) {
+        body.velocity.x *= -1
+        // Clamp position inside bounds
+        this.x = Phaser.Math.Clamp(this.x, 1, gameWidth - 1)
+        bounced = true
+      }
+
+      // Check top/bottom walls
+      if (this.y <= 0 || this.y >= gameHeight) {
+        body.velocity.y *= -1
+        // Clamp position inside bounds
+        this.y = Phaser.Math.Clamp(this.y, 1, gameHeight - 1)
+        bounced = true
+      }
+
+      if (bounced) {
+        this.wallBounceCount++
+        // Update rotation to match new direction
+        this.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
+      }
+    } else {
+      // Deactivate bullet if it goes off screen (with margin) - only if no wall bounces or all used
+      const margin = 50
+      if (this.x < -margin || this.x > gameWidth + margin ||
+          this.y < -margin || this.y > gameHeight + margin) {
+        this.deactivate()
+      }
     }
   }
 
@@ -233,6 +279,18 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   getLightningChainCount(): number {
     return this.lightningChainCount
+  }
+
+  getMaxWallBounces(): number {
+    return this.maxWallBounces
+  }
+
+  getWallBounceCount(): number {
+    return this.wallBounceCount
+  }
+
+  isThroughWallEnabled(): boolean {
+    return this.throughWallEnabled
   }
 
   getSpawnTime(): number {

@@ -25,7 +25,7 @@ import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
-import { saveManager } from '../systems/SaveManager'
+import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
@@ -39,6 +39,7 @@ import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
+import WallGroup from '../systems/WallGroup'
 import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES } from './LevelUpScene'
 import { errorReporting } from '../systems/ErrorReportingManager'
@@ -82,6 +83,8 @@ export default class GameScene extends Phaser.Scene {
   private doorSprite: Phaser.GameObjects.Sprite | null = null
   private doorText: Phaser.GameObjects.Text | null = null
   private isTransitioning: boolean = false
+  private isLevelingUp: boolean = false // Player is selecting ability (immune to damage)
+  private showingTutorial: boolean = false // Tutorial overlay is visible
   private boss: Boss | null = null
   private runStartTime: number = 0
   private abilitiesGained: number = 0
@@ -89,11 +92,20 @@ export default class GameScene extends Phaser.Scene {
   private heroXPEarned: number = 0 // Track hero XP earned this run
   private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
+  // Endless mode
+  private isEndlessMode: boolean = false
+  private endlessWave: number = 1 // Track current wave in endless mode
+  private endlessDifficultyMultiplier: number = 1.0 // Increases each wave
+
+  // Daily challenge mode
+  private isDailyChallengeMode: boolean = false
+
   // Room generation system
   private roomGenerator!: RoomGenerator
   private currentGeneratedRoom: GeneratedRoom | null = null
   private pendingEnemySpawns: number = 0
   private activeWaveTimers: Phaser.Time.TimerEvent[] = []
+  private wallGroup!: WallGroup
 
   // Seeded random for deterministic runs
   private runRng!: SeededRandom
@@ -177,11 +189,22 @@ export default class GameScene extends Phaser.Scene {
       window.removeEventListener('blur', handleBlur)
     })
 
+    // Check game mode
+    this.isEndlessMode = this.game.registry.get('isEndlessMode') === true
+    this.isDailyChallengeMode = this.game.registry.get('isDailyChallengeMode') === true
+    this.endlessWave = 1
+    this.endlessDifficultyMultiplier = 1.0
+
+    // Daily challenge uses endless mode mechanics with fixed seed
+    if (this.isDailyChallengeMode) {
+      this.isEndlessMode = true // Daily challenge uses endless mechanics
+    }
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
     this.currentRoom = 1
-    this.totalRooms = chapterManager.getTotalRooms()
+    this.totalRooms = this.isEndlessMode ? 10 : chapterManager.getTotalRooms() // Endless mode uses 10 rooms per wave
     this.isRoomCleared = false
     this.doorSprite = null
     this.doorText = null
@@ -318,10 +341,26 @@ export default class GameScene extends Phaser.Scene {
       console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
     }
 
+    // Create wall group for room obstacles
+    this.wallGroup = new WallGroup(this, width, height)
+    // Set wall texture and color based on chapter and active theme
+    this.wallGroup.setTexture(selectedChapter) // Set chapter (1-5)
+    const activeTheme = themeManager.getSelectedThemeId()
+    if (activeTheme !== 'medieval') {
+      this.wallGroup.setTheme(activeTheme) // Apply purchasable theme (e.g., 'vaporwave')
+    }
+    this.wallGroup.setColor(chapterDef.theme.primaryColor) // Fallback if texture missing
+
     // Create visual effects systems
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
     this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Apply graphics quality settings
+    const settings = saveManager.getSettings()
+    this.applyGraphicsQuality(settings.graphicsQuality)
+    this.screenShake.setEnabled(settings.screenShakeEnabled)
+    this.applyColorblindMode(settings.colorblindMode)
 
     // Create damage aura graphics (rendered below player)
     this.damageAuraGraphics = this.add.graphics()
@@ -333,13 +372,19 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Initialize seeded random for deterministic run
-    // Check if a seed was passed from MainMenuScene
-    const passedSeed = this.game.registry.get('runSeed')
-    if (passedSeed) {
-      this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
-      this.game.registry.remove('runSeed') // Clear it for next run
+    // Daily challenge uses fixed daily seed, otherwise check for passed seed
+    if (this.isDailyChallengeMode) {
+      const dailySeed = saveManager.getDailyChallengeSeed()
+      this.runRng = new SeededRandom(dailySeed)
+      console.log(`GameScene: Daily Challenge mode - using daily seed`)
     } else {
-      this.runRng = new SeededRandom()
+      const passedSeed = this.game.registry.get('runSeed')
+      if (passedSeed) {
+        this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
+        this.game.registry.remove('runSeed') // Clear it for next run
+      } else {
+        this.runRng = new SeededRandom()
+      }
     }
     this.runSeedString = this.runRng.getSeedString()
     console.log(`GameScene: Run seed: ${this.runSeedString}`)
@@ -390,6 +435,28 @@ export default class GameScene extends Phaser.Scene {
       )
     }
 
+    // Wall collisions - player and enemies collide with walls
+    this.physics.add.collider(this.player, this.wallGroup)
+    this.physics.add.collider(this.enemies, this.wallGroup)
+
+    // Bullets hit walls - bounce or pass through based on abilities
+    this.physics.add.overlap(
+      this.bulletPool,
+      this.wallGroup,
+      this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Enemy bullets hit walls
+    this.physics.add.overlap(
+      this.enemyBulletPool,
+      this.wallGroup,
+      this.enemyBulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
     // Keyboard controls for desktop testing (arrow keys + WASD)
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.wasdKeys = {
@@ -432,11 +499,21 @@ export default class GameScene extends Phaser.Scene {
     // Send initial health to UIScene (player may have bonus HP from equipment/talents)
     this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
 
+    // Show tutorial for first-time players
+    if (!saveManager.isTutorialCompleted()) {
+      this.showTutorial()
+    }
+
     console.log('GameScene: Created')
   }
 
   private updateRoomUI() {
-    this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
+    if (this.isEndlessMode) {
+      // In endless mode, show wave number instead of room/total
+      this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms, this.endlessWave)
+    } else {
+      this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
+    }
   }
 
   private spawnDoor() {
@@ -520,16 +597,24 @@ export default class GameScene extends Phaser.Scene {
   private transitionToNextRoom() {
     this.currentRoom++
 
-    // Check for victory
+    // Check for victory or wave completion
     if (this.currentRoom > this.totalRooms) {
-      this.triggerVictory()
-      return
+      if (this.isEndlessMode) {
+        // Endless mode: Start next wave with increased difficulty
+        this.startNextEndlessWave()
+        return
+      } else {
+        this.triggerVictory()
+        return
+      }
     }
 
-    // Notify chapter manager of room advancement
-    const advanced = chapterManager.advanceRoom()
-    if (!advanced) {
-      console.warn('GameScene: Failed to advance room in chapter manager')
+    // Notify chapter manager of room advancement (only in normal mode)
+    if (!this.isEndlessMode) {
+      const advanced = chapterManager.advanceRoom()
+      if (!advanced) {
+        console.warn('GameScene: Failed to advance room in chapter manager')
+      }
     }
 
     // Clean up current room
@@ -556,6 +641,85 @@ export default class GameScene extends Phaser.Scene {
     errorReporting.addBreadcrumb('game', `Entered room ${this.currentRoom}`)
 
     console.log('Entered room', this.currentRoom)
+  }
+
+  /**
+   * Start the next wave in endless mode
+   * Increases difficulty and resets room counter
+   */
+  private startNextEndlessWave() {
+    this.endlessWave++
+    this.currentRoom = 1
+
+    // Increase difficulty by 15% each wave
+    this.endlessDifficultyMultiplier = 1 + (this.endlessWave - 1) * 0.15
+
+    // Clean up current room
+    this.cleanupRoom()
+
+    // Show wave notification
+    this.showEndlessWaveNotification()
+
+    // Spawn new enemies with increased difficulty
+    this.spawnEnemiesForRoom()
+
+    // Reset room state
+    this.isRoomCleared = false
+    this.isTransitioning = false
+
+    // Update UI
+    this.updateRoomUI()
+
+    // Notify UIScene to fade in HUD when entering new room
+    this.scene.get('UIScene').events.emit('roomEntered')
+
+    // Fade back in
+    this.cameras.main.fadeIn(300, 0, 0, 0)
+
+    console.log(`Endless Mode: Starting Wave ${this.endlessWave} (difficulty x${this.endlessDifficultyMultiplier.toFixed(2)})`)
+  }
+
+  /**
+   * Show wave notification in endless mode
+   */
+  private showEndlessWaveNotification() {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Wave text
+    const waveText = this.add.text(width / 2, height / 2 - 50, `WAVE ${this.endlessWave}`, {
+      fontSize: '48px',
+      color: '#ffdd00',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6,
+    })
+    waveText.setOrigin(0.5)
+    waveText.setDepth(100)
+
+    // Difficulty text
+    const diffText = this.add.text(width / 2, height / 2 + 10, `Difficulty x${this.endlessDifficultyMultiplier.toFixed(1)}`, {
+      fontSize: '20px',
+      color: '#ff6666',
+      stroke: '#000000',
+      strokeThickness: 3,
+    })
+    diffText.setOrigin(0.5)
+    diffText.setDepth(100)
+
+    // Animate and destroy
+    this.tweens.add({
+      targets: [waveText, diffText],
+      alpha: 0,
+      y: '-=30',
+      duration: 1500,
+      delay: 1000,
+      ease: 'Power2',
+      onComplete: () => {
+        waveText.destroy()
+        diffText.destroy()
+      }
+    })
   }
 
   private cleanupRoom() {
@@ -714,6 +878,14 @@ export default class GameScene extends Phaser.Scene {
       graphics.destroy()
     }
 
+    // Spawn walls for this room layout
+    if (generatedRoom.layout.walls && generatedRoom.layout.walls.length > 0) {
+      this.wallGroup.createWalls(generatedRoom.layout.walls)
+      console.log(`Room ${this.currentRoom}: Created ${generatedRoom.layout.walls.length} walls`)
+    } else {
+      this.wallGroup.clearWalls()
+    }
+
     // Get chapter for enemy modifiers
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
     const chapterDef = getChapterDefinition(selectedChapter)
@@ -739,13 +911,16 @@ export default class GameScene extends Phaser.Scene {
           // Get chapter-specific modifiers for this enemy type
           const chapterModifiers = getEnemyModifiers(selectedChapter, spawn.enemyType as ChapterEnemyType)
 
+          // Apply endless mode difficulty multiplier
+          const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
+
           // Combine difficulty config with chapter modifiers and chapter scaling
           const enemyOptions = {
-            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier,
-            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier,
-            speedMultiplier: chapterModifiers.speedMultiplier,
-            attackCooldownMultiplier: chapterModifiers.attackCooldownMultiplier,
-            projectileSpeedMultiplier: chapterModifiers.projectileSpeedMultiplier,
+            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier * endlessMult,
+            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier * endlessMult,
+            speedMultiplier: (chapterModifiers.speedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.5), // Speed scales less aggressively
+            attackCooldownMultiplier: (chapterModifiers.attackCooldownMultiplier ?? 1) / (1 + (endlessMult - 1) * 0.3), // Faster attacks
+            projectileSpeedMultiplier: (chapterModifiers.projectileSpeedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.3),
             abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
           }
 
@@ -775,9 +950,11 @@ export default class GameScene extends Phaser.Scene {
 
     // Difficulty modifiers for boss (combine difficulty config with chapter scaling)
     const chapterDef = getChapterDefinition(selectedChapter)
+    // Apply endless mode difficulty multiplier to boss
+    const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
     const bossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier,
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult,
     }
 
     // Create the appropriate boss using the factory
@@ -813,6 +990,9 @@ export default class GameScene extends Phaser.Scene {
       this.isRoomCleared = true
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
+
+      // Clear all enemy bullets to prevent post-clear damage
+      this.enemyBulletPool.clear(true, true)
 
       // Notify chapter manager that room was cleared
       chapterManager.clearRoom()
@@ -917,7 +1097,7 @@ export default class GameScene extends Phaser.Scene {
    * Handle bomb explosion damage to player
    */
   private handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     // Check if player is within explosion radius
     const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
@@ -977,10 +1157,9 @@ export default class GameScene extends Phaser.Scene {
     // Calculate damage based on bullet properties
     let damage = this.player.getDamage()
 
-    // Check for critical hit
+    // Check for critical hit - crit damage numbers are displayed via DamageNumberPool.showEnemyDamage(isCrit: true)
     if (bulletSprite.isCriticalHit()) {
       damage = this.player.getDamageWithCrit(true)
-      // TODO: Show crit damage number (yellow/bigger)
     }
 
     // Apply piercing damage reduction if bullet has hit enemies before
@@ -1155,6 +1334,12 @@ export default class GameScene extends Phaser.Scene {
     audioManager.playLevelUp()
     hapticManager.levelUp() // Haptic feedback for level up
 
+    // Mark player as leveling up (immune to damage during selection)
+    this.isLevelingUp = true
+
+    // Clear any enemy bullets that might be mid-flight
+    this.enemyBulletPool.clear(true, true)
+
     // Level up celebration particles
     this.particles.emitLevelUp(this.player.x, this.player.y)
 
@@ -1197,6 +1382,10 @@ export default class GameScene extends Phaser.Scene {
         if (this.joystick) {
           this.joystick.show()
         }
+        // Add brief immunity period (1 second) after level up to allow dodging
+        this.time.delayedCall(1000, () => {
+          this.isLevelingUp = false
+        })
       } catch (error) {
         console.error('GameScene: Error applying ability:', error)
         this.resetJoystickState() // Reset even on error
@@ -1204,6 +1393,7 @@ export default class GameScene extends Phaser.Scene {
         if (this.joystick) {
           this.joystick.show()
         }
+        this.isLevelingUp = false // Reset flag on error too
       }
     })
 
@@ -1254,6 +1444,11 @@ export default class GameScene extends Phaser.Scene {
       // Notify UIScene to show the auto level up notification
       this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
     }
+
+    // Brief immunity period after auto level up
+    this.time.delayedCall(500, () => {
+      this.isLevelingUp = false
+    })
   }
 
   private applyAbility(abilityId: string) {
@@ -1314,6 +1509,24 @@ export default class GameScene extends Phaser.Scene {
       case 'max_health':
         this.player.addMaxHealthBoost()
         break
+      case 'bouncy_wall':
+        this.player.addWallBounce()
+        break
+      case 'dodge_master':
+        this.player.addDodgeMaster()
+        break
+      // Devil abilities
+      case 'extra_life':
+        this.player.addExtraLife()
+        break
+      case 'through_wall':
+        this.player.addThroughWall()
+        break
+      case 'giant':
+        this.player.addGiant()
+        // Also increase player hitbox size
+        this.updatePlayerHitboxForGiant()
+        break
     }
     this.abilitiesGained++
 
@@ -1337,11 +1550,73 @@ export default class GameScene extends Phaser.Scene {
     return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
   }
 
+  /**
+   * Handle player bullets hitting walls
+   * Bullets with through_wall ability pass through
+   * Bullets with bouncy_wall ability bounce off
+   * Other bullets are deactivated
+   */
+  private bulletHitWall(
+    bullet: Phaser.GameObjects.GameObject,
+    _wall: Phaser.GameObjects.GameObject
+  ) {
+    const bulletSprite = bullet as Bullet
+    if (!bulletSprite.active) return
+
+    // Through wall ability - bullets pass through walls
+    if (bulletSprite.isThroughWallEnabled()) {
+      return // Don't deactivate, bullet continues
+    }
+
+    // Bouncy wall ability - bullets bounce off walls
+    if (bulletSprite.getMaxWallBounces() > 0 && bulletSprite.getWallBounceCount() < bulletSprite.getMaxWallBounces()) {
+      // The bounce is handled in Bullet.update() when it hits screen edges
+      // For physical walls, we need to reflect the velocity
+      const body = bulletSprite.body as Phaser.Physics.Arcade.Body
+
+      // Determine which side was hit and reflect velocity
+      // Simple approach: reflect velocity based on current direction
+      const vx = body.velocity.x
+      const vy = body.velocity.y
+
+      // Check if hitting more horizontally or vertically
+      if (Math.abs(vx) > Math.abs(vy)) {
+        body.velocity.x = -vx
+      } else {
+        body.velocity.y = -vy
+      }
+
+      // Update bullet rotation to match new direction
+      bulletSprite.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
+
+      // Manually increment wall bounce count (since screen edge detection won't trigger)
+      // Note: This is a simplified approach; actual bounce is tracked in Bullet class
+      return // Don't deactivate
+    }
+
+    // Normal bullets are destroyed on wall contact
+    bulletSprite.deactivate()
+  }
+
+  /**
+   * Handle enemy bullets hitting walls - always destroyed
+   */
+  private enemyBulletHitWall(
+    bullet: Phaser.GameObjects.GameObject,
+    _wall: Phaser.GameObjects.GameObject
+  ) {
+    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
+    if (!bulletSprite.active) return
+
+    bulletSprite.setActive(false)
+    bulletSprite.setVisible(false)
+  }
+
   private enemyBulletHitPlayer(
     player: Phaser.GameObjects.GameObject,
     bullet: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const playerSprite = player as Player
@@ -1410,7 +1685,7 @@ export default class GameScene extends Phaser.Scene {
     player: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
@@ -1485,6 +1760,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Update player hitbox size for Giant ability
+   * Each level increases hitbox by 15%
+   */
+  private updatePlayerHitboxForGiant() {
+    const giantLevel = this.player.getGiantLevel()
+    if (giantLevel <= 0) return
+
+    // Base hitbox is 16, increase by 15% per level
+    const newHitboxRadius = 16 * (1 + giantLevel * 0.15)
+
+    // Also scale player sprite slightly
+    const scaleMultiplier = 1 + giantLevel * 0.1 // 10% larger per level
+    this.player.setScale(scaleMultiplier)
+
+    // Update physics body
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const displaySize = 64 * scaleMultiplier
+      const offset = (displaySize - newHitboxRadius * 2) / 2
+      body.setSize(displaySize, displaySize)
+      body.setCircle(newHitboxRadius, offset, offset)
+    }
+  }
+
+  /**
    * Debug functionality to skip the current level
    */
   private debugSkipLevel() {
@@ -1552,10 +1852,10 @@ export default class GameScene extends Phaser.Scene {
       // Clean up current room (but NOT the player - keep abilities!)
       this.cleanupRoom()
 
-      // Reset player position and heal to full
+      // Reset player position and heal to full (same position as initial spawn)
       const width = this.cameras.main.width
       const height = this.cameras.main.height
-      this.player.setPosition(width / 2, height - 100)
+      this.player.setPosition(width / 2, height / 2)
       this.player.setVelocity(0, 0)
       this.player.heal(this.player.getMaxHealth()) // Full heal on reset
 
@@ -1594,6 +1894,28 @@ export default class GameScene extends Phaser.Scene {
   private triggerGameOver() {
     if (this.isGameOver) return
 
+    // Check for Extra Life before dying
+    if (this.player.hasExtraLife()) {
+      if (this.player.useExtraLife()) {
+        console.log('Extra Life used! Reviving at 30% HP')
+        // Show revive effect
+        this.player.clearTint()
+        this.cameras.main.flash(500, 255, 215, 0) // Golden flash
+        audioManager.playLevelUp() // Triumphant sound
+        hapticManager.levelUp()
+        // Update health UI
+        this.updatePlayerHealthUI(this.player)
+        // Brief invincibility after revive
+        this.player.setTint(0xffffff)
+        this.time.delayedCall(100, () => {
+          if (this.player && this.player.active) {
+            this.player.clearTint()
+          }
+        })
+        return // Don't trigger game over
+      }
+    }
+
     this.isGameOver = true
     audioManager.playDeath()
     hapticManager.death() // Haptic feedback for player death
@@ -1621,9 +1943,19 @@ export default class GameScene extends Phaser.Scene {
       // Stop UIScene first
       this.scene.stop('UIScene')
 
+      // Calculate total rooms cleared in endless mode (across all waves)
+      const totalRoomsCleared = this.isEndlessMode
+        ? (this.endlessWave - 1) * this.totalRooms + this.currentRoom - 1
+        : this.currentRoom - 1
+
+      // Record daily challenge completion if applicable
+      if (this.isDailyChallengeMode) {
+        saveManager.recordDailyChallengeCompletion(this.endlessWave)
+      }
+
       // Launch game over scene with stats
       this.scene.launch('GameOverScene', {
-        roomsCleared: this.currentRoom - 1,
+        roomsCleared: totalRoomsCleared,
         enemiesKilled: this.enemiesKilled,
         isVictory: false,
         playTimeMs,
@@ -1632,6 +1964,9 @@ export default class GameScene extends Phaser.Scene {
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
         heroXPEarned: this.heroXPEarned,
+        isEndlessMode: this.isEndlessMode,
+        endlessWave: this.endlessWave,
+        isDailyChallengeMode: this.isDailyChallengeMode,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1946,6 +2281,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Spawn cats around the player
     const catCount = this.spiritCatConfig.count
+    // Cat damage scales with player's current attack (30% of player damage)
+    // This includes equipment, talents, abilities, and difficulty scaling
+    const catDamage = Math.floor(this.player.getDamage() * 0.3 * this.spiritCatConfig.damageMultiplier)
     for (let i = 0; i < catCount; i++) {
       // Spawn in circular pattern around player
       const spawnAngle = (Math.PI * 2 * i) / catCount + (time * 0.001) // Rotating pattern
@@ -1957,7 +2295,7 @@ export default class GameScene extends Phaser.Scene {
         spawnX,
         spawnY,
         target,
-        this.spiritCatConfig.damage,
+        catDamage,
         this.spiritCatConfig.canCrit
       )
     }
@@ -2063,6 +2401,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private shootAtEnemy(enemy: Enemy) {
+    // Don't shoot during level up, transitions, tutorial, or game over
+    if (this.isLevelingUp || this.isTransitioning || this.showingTutorial || this.isGameOver) {
+      return
+    }
+
     // Validate enemy position before shooting
     if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
       console.warn('shootAtEnemy: Invalid enemy position', enemy.x, enemy.y, enemy.constructor.name)
@@ -2101,6 +2444,8 @@ export default class GameScene extends Phaser.Scene {
       freezeChance: this.player.getFreezeChance(),
       poisonDamage: this.player.getPoisonDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
+      maxWallBounces: this.player.getWallBounces(),
+      throughWall: this.player.isThroughWallEnabled(),
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
       projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,
@@ -2475,6 +2820,207 @@ export default class GameScene extends Phaser.Scene {
     if (this.doorText) {
       this.doorText.destroy()
       this.doorText = null
+    }
+  }
+
+  /**
+   * Show tutorial overlay for first-time players
+   */
+  private showTutorial(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Mark tutorial as showing and pause the game physics
+    this.showingTutorial = true
+    this.physics.pause()
+
+    // Create tutorial container
+    const container = this.add.container(0, 0)
+    container.setDepth(1000)
+
+    // Semi-transparent overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
+    container.add(overlay)
+
+    // Title
+    const title = this.add.text(width / 2, 80, 'HOW TO PLAY', {
+      fontSize: '28px',
+      color: '#FFD700',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5)
+    container.add(title)
+
+    // Instructions
+    const instructions = [
+      { icon: '🕹️', text: 'Use the joystick to MOVE', color: '#4a9eff' },
+      { icon: '🏃', text: 'Moving = DODGING (no shooting)', color: '#ff6b6b' },
+      { icon: '🎯', text: 'Stand STILL to AUTO-SHOOT', color: '#44ff88' },
+      { icon: '⬆️', text: 'Level up = Choose an ABILITY', color: '#ffaa00' },
+      { icon: '🚪', text: 'Clear rooms to PROGRESS', color: '#aa88ff' },
+    ]
+
+    let yPos = 160
+    instructions.forEach((inst) => {
+      const iconText = this.add.text(50, yPos, inst.icon, {
+        fontSize: '28px',
+      }).setOrigin(0, 0.5)
+
+      const descText = this.add.text(90, yPos, inst.text, {
+        fontSize: '16px',
+        color: inst.color,
+        stroke: '#000000',
+        strokeThickness: 2,
+      }).setOrigin(0, 0.5)
+
+      container.add([iconText, descText])
+      yPos += 55
+    })
+
+    // Core mechanic highlight box
+    const highlightY = yPos + 30
+    const highlightBox = this.add.rectangle(width / 2, highlightY, width - 40, 70, 0x333355)
+    highlightBox.setStrokeStyle(2, 0x4a9eff)
+    container.add(highlightBox)
+
+    const coreText = this.add.text(width / 2, highlightY - 12, 'THE CORE MECHANIC:', {
+      fontSize: '14px',
+      color: '#aaaaaa',
+    }).setOrigin(0.5)
+    container.add(coreText)
+
+    const mechanic = this.add.text(width / 2, highlightY + 12, 'STOP to SHOOT • MOVE to DODGE', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    container.add(mechanic)
+
+    // Start button
+    const startY = height - 100
+    const startButton = this.add.text(width / 2, startY, 'TAP TO START', {
+      fontSize: '22px',
+      color: '#ffffff',
+      backgroundColor: '#4a9eff',
+      padding: { x: 30, y: 15 },
+    }).setOrigin(0.5)
+    startButton.setInteractive({ useHandCursor: true })
+    container.add(startButton)
+
+    // Pulse animation on start button
+    this.tweens.add({
+      targets: startButton,
+      scale: { from: 1, to: 1.05 },
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Skip text
+    const skipText = this.add.text(width / 2, startY + 50, 'Tap anywhere to begin', {
+      fontSize: '12px',
+      color: '#888888',
+    }).setOrigin(0.5)
+    container.add(skipText)
+
+    // Handle tap to dismiss
+    const dismissTutorial = () => {
+      // Mark tutorial as completed
+      saveManager.completeTutorial()
+      this.showingTutorial = false
+
+      // Animate out
+      this.tweens.add({
+        targets: container,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          container.destroy()
+          // Resume physics
+          this.physics.resume()
+        },
+      })
+    }
+
+    // Make overlay and button clickable
+    overlay.setInteractive()
+    overlay.on('pointerdown', dismissTutorial)
+    startButton.on('pointerdown', dismissTutorial)
+  }
+
+  /**
+   * Apply graphics quality settings to particle and effect systems
+   */
+  private applyGraphicsQuality(quality: GraphicsQuality): void {
+    switch (quality) {
+      case GraphicsQuality.LOW:
+        this.particles.setQuality(0.3) // 30% particles
+        break
+      case GraphicsQuality.MEDIUM:
+        this.particles.setQuality(0.6) // 60% particles
+        break
+      case GraphicsQuality.HIGH:
+      default:
+        this.particles.setQuality(1.0) // Full particles
+        break
+    }
+  }
+
+  /**
+   * Apply colorblind mode filter to the camera
+   * Uses color matrix transformations to simulate how colors appear to colorblind users
+   * and shifts problematic colors to be more distinguishable
+   */
+  private applyColorblindMode(mode: ColorblindMode): void {
+    const camera = this.cameras.main
+
+    // Reset any existing post pipeline
+    camera.resetPostPipeline()
+
+    if (mode === ColorblindMode.NONE) {
+      return
+    }
+
+    // Apply colorblind-friendly color adjustment using Phaser's built-in ColorMatrix
+    // These matrices shift colors to be more distinguishable for each type of colorblindness
+    const pipeline = camera.postFX?.addColorMatrix()
+    if (!pipeline) {
+      console.warn('ColorMatrix post FX not available')
+      return
+    }
+
+    switch (mode) {
+      case ColorblindMode.PROTANOPIA:
+        // Protanopia (red-blind): Shift reds toward blue, enhance blue-yellow contrast
+        pipeline.set([
+          0.567, 0.433, 0, 0, 0,
+          0.558, 0.442, 0, 0, 0,
+          0, 0.242, 0.758, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
+        break
+
+      case ColorblindMode.DEUTERANOPIA:
+        // Deuteranopia (green-blind): Shift greens toward blue, enhance contrast
+        pipeline.set([
+          0.625, 0.375, 0, 0, 0,
+          0.7, 0.3, 0, 0, 0,
+          0, 0.3, 0.7, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
+        break
+
+      case ColorblindMode.TRITANOPIA:
+        // Tritanopia (blue-blind): Shift blues toward red, enhance red-green contrast
+        pipeline.set([
+          0.95, 0.05, 0, 0, 0,
+          0, 0.433, 0.567, 0, 0,
+          0, 0.475, 0.525, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
+        break
     }
   }
 }

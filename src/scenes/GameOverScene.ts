@@ -36,6 +36,9 @@ export interface GameOverData {
   runSeed?: string
   acquiredAbilities?: AcquiredAbility[]
   heroXPEarned?: number
+  isEndlessMode?: boolean
+  endlessWave?: number
+  isDailyChallengeMode?: boolean
 }
 
 /**
@@ -110,6 +113,10 @@ export default class GameOverScene extends Phaser.Scene {
   private isNewHighScore: boolean = false
   private heroXPEarned: number = 0
   private heroLevelUps: HeroLevelUpEvent[] = []
+  private isEndlessMode: boolean = false
+  private endlessWave: number = 1
+  private isNewEndlessHighScore: boolean = false
+  private isDailyChallengeMode: boolean = false
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -120,6 +127,9 @@ export default class GameOverScene extends Phaser.Scene {
     this.rewardsCollected = false
     this.runSeed = data?.runSeed ?? ''
     this.acquiredAbilities = data?.acquiredAbilities ?? []
+    this.isEndlessMode = data?.isEndlessMode ?? false
+    this.endlessWave = data?.endlessWave ?? 1
+    this.isDailyChallengeMode = data?.isDailyChallengeMode ?? false
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
@@ -140,9 +150,16 @@ export default class GameOverScene extends Phaser.Scene {
       this.stats.isVictory ?? false
     )
 
-    // Check if new high score
-    const previousHighScore = saveManager.getStatistics().highestScore
-    this.isNewHighScore = this.scoreBreakdown.total > previousHighScore
+    // Check if new high score (regular or endless)
+    if (this.isEndlessMode) {
+      const previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0
+      this.isNewEndlessHighScore = this.endlessWave > previousEndlessHighWave
+      this.isNewHighScore = false // Don't track regular high score in endless mode
+    } else {
+      const previousHighScore = saveManager.getStatistics().highestScore
+      this.isNewHighScore = this.scoreBreakdown.total > previousHighScore
+      this.isNewEndlessHighScore = false
+    }
 
     // Record run statistics to save data
     this.recordRunStats()
@@ -172,21 +189,31 @@ export default class GameOverScene extends Phaser.Scene {
       abilitiesGained: this.stats.abilitiesGained ?? 0,
       victory: isVictory,
       score: this.scoreBreakdown?.total ?? 0,
+      isEndlessMode: this.isEndlessMode,
+      endlessWave: this.endlessWave,
     })
 
-    // Update chapter progress in SaveManager for persistence
-    saveManager.updateChapterProgress(
-      selectedChapter,
-      this.stats.roomsCleared,
-      isVictory,
-      stars
-    )
+    // Update chapter progress in SaveManager for persistence (only for normal mode)
+    if (!this.isEndlessMode) {
+      saveManager.updateChapterProgress(
+        selectedChapter,
+        this.stats.roomsCleared,
+        isVictory,
+        stars
+      )
+    }
 
     // Log updated statistics
     const totalStats = saveManager.getStatistics()
-    console.log(
-      `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`
-    )
+    if (this.isEndlessMode) {
+      console.log(
+        `GameOverScene: Endless run recorded - Wave ${this.endlessWave}, High Wave: ${totalStats.endlessHighWave ?? 0}`
+      )
+    } else {
+      console.log(
+        `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`
+      )
+    }
 
     // Check achievements after recording stats
     achievementManager.checkAchievements()
@@ -252,9 +279,19 @@ export default class GameOverScene extends Phaser.Scene {
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
 
-    // Title text
-    const titleText = isVictory ? 'RUN COMPLETE!' : 'GAME OVER'
-    const titleColor = isVictory ? '#00ff88' : '#ff4444'
+    // Title text - different for each game mode
+    let titleText: string
+    let titleColor: string
+    if (this.isDailyChallengeMode) {
+      titleText = `DAILY CHALLENGE`
+      titleColor = '#00ddff'
+    } else if (this.isEndlessMode) {
+      titleText = `WAVE ${this.endlessWave}`
+      titleColor = this.isNewEndlessHighScore ? '#ffdd00' : '#ff6b35'
+    } else {
+      titleText = isVictory ? 'RUN COMPLETE!' : 'GAME OVER'
+      titleColor = isVictory ? '#00ff88' : '#ff4444'
+    }
 
     this.add
       .text(width / 2, 60, titleText, {
@@ -265,19 +302,53 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
+    // Show wave info for daily challenge or new best for endless
+    let subtitleOffset = 0
+    if (this.isDailyChallengeMode) {
+      this.add
+        .text(width / 2, 95, `Wave ${this.endlessWave} Reached`, {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+      subtitleOffset = 20
+    } else if (this.isEndlessMode && this.isNewEndlessHighScore) {
+      this.add
+        .text(width / 2, 95, 'NEW BEST!', {
+          fontSize: '16px',
+          fontFamily: 'Arial',
+          color: '#ffdd00',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5)
+      subtitleOffset = 10
+    }
+
     // Stats section
-    const statsStartY = 120
+    const statsStartY = 120 + subtitleOffset
     const lineHeight = 32
 
     // Rooms cleared
     const totalRooms = chapterManager.getTotalRooms()
-    this.add
-      .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/${totalRooms}`, {
-        fontSize: '20px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5)
+    if (this.isEndlessMode) {
+      // Show total rooms cleared across all waves
+      this.add
+        .text(width / 2, statsStartY, `Rooms Cleared: ${this.stats.roomsCleared}`, {
+          fontSize: '20px',
+          fontFamily: 'Arial',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+    } else {
+      this.add
+        .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/${totalRooms}`, {
+          fontSize: '20px',
+          fontFamily: 'Arial',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+    }
 
     // Enemies killed
     this.add
@@ -713,8 +784,9 @@ export default class GameOverScene extends Phaser.Scene {
         () => {
           console.log('Seed copied to clipboard:', this.runSeed)
         },
-        (err) => {
-          console.warn('Failed to copy seed:', err)
+        (_err) => {
+          // Clipboard API can fail on iOS Safari due to permission restrictions
+          // This is expected behavior - silently fall back to execCommand
           this.fallbackCopyToClipboard()
         }
       )
@@ -736,8 +808,9 @@ export default class GameOverScene extends Phaser.Scene {
     try {
       document.execCommand('copy')
       console.log('Seed copied to clipboard (fallback):', this.runSeed)
-    } catch (err) {
-      console.warn('Fallback copy failed:', err)
+    } catch {
+      // Copy failed - user will need to manually copy the seed
+      // This is not critical functionality, so we don't log an error
     }
     document.body.removeChild(textArea)
   }

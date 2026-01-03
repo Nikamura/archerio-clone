@@ -208,6 +208,23 @@ function isBackgroundColor(r: number, g: number, b: number, tolerance: number): 
   return isGray && r > 120 && r < 220;
 }
 
+async function resizeToTargetSize(inputPath: string, targetSize: number): Promise<void> {
+  const image = sharp(inputPath);
+  const metadata = await image.metadata();
+
+  // Only resize if current size is different from target
+  if (metadata.width !== targetSize || metadata.height !== targetSize) {
+    await sharp(inputPath)
+      .resize(targetSize, targetSize, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png()
+      .toFile(inputPath + '.tmp');
+    fs.renameSync(inputPath + '.tmp', inputPath);
+  }
+}
+
 async function removeBackground(inputPath: string, tolerance = 30): Promise<void> {
   const image = sharp(inputPath);
   const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -456,6 +473,10 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
         console.log(`    Cleaned: background removed`);
       }
 
+      // Resize to target size (AI generates 1024x1024 regardless of prompt)
+      await resizeToTargetSize(framePath, size);
+      console.log(`    Resized to: ${size}x${size}px`);
+
       // Small delay to avoid rate limiting
       if (i < frameCount - 1) {
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -491,6 +512,10 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
       await removeBackground(finalOutputPath);
       console.log(`Background removed: true transparency applied`);
     }
+
+    // Resize to target size (AI generates 1024x1024 regardless of prompt)
+    await resizeToTargetSize(finalOutputPath, size);
+    console.log(`Resized to: ${size}x${size}px`);
   }
 
   return savedPaths;

@@ -54,6 +54,12 @@ export class PlayerStats {
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability
+  private wallBounceLevel: number = 0  // Number of wall bounces per level
+
+  // Devil abilities
+  private extraLives: number = 0  // Number of revives available
+  private throughWallEnabled: boolean = false  // Arrows pass through walls
+  private giantLevel: number = 0  // +40% damage per level, larger player hitbox
 
   constructor(options?: {
     maxHealth?: number
@@ -180,6 +186,7 @@ export class PlayerStats {
    * Calculate current damage with ability modifiers
    * Front Arrow reduces damage by 25% per extra projectile
    * Rage adds +5% damage per 10% missing HP per level
+   * Giant adds +40% damage per level
    */
   getDamage(): number {
     const frontArrowPenalty = Math.pow(0.75, this.extraProjectiles)
@@ -194,7 +201,10 @@ export class PlayerStats {
       rageBonus = 1 + bonusPercent
     }
 
-    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus)
+    // Giant damage bonus
+    const giantBonus = this.getGiantDamageMultiplier()
+
+    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus * giantBonus)
   }
 
   /**
@@ -312,6 +322,52 @@ export class PlayerStats {
 
   getMovementSpeedMultiplier(): number {
     return this.movementSpeedMultiplier
+  }
+
+  getWallBounceLevel(): number {
+    return this.wallBounceLevel
+  }
+
+  /**
+   * Get total wall bounces (2 per level)
+   */
+  getWallBounces(): number {
+    return this.wallBounceLevel * 2
+  }
+
+  // Devil ability getters
+  getExtraLives(): number {
+    return this.extraLives
+  }
+
+  hasExtraLife(): boolean {
+    return this.extraLives > 0
+  }
+
+  /**
+   * Use an extra life and revive at 30% HP
+   * @returns true if revived successfully
+   */
+  useExtraLife(): boolean {
+    if (this.extraLives <= 0) return false
+    this.extraLives--
+    this.health = Math.floor(this.maxHealth * 0.3)
+    return true
+  }
+
+  isThroughWallEnabled(): boolean {
+    return this.throughWallEnabled
+  }
+
+  getGiantLevel(): number {
+    return this.giantLevel
+  }
+
+  /**
+   * Get giant damage multiplier (+40% per level)
+   */
+  getGiantDamageMultiplier(): number {
+    return 1 + (this.giantLevel * 0.4)
   }
 
   /**
@@ -507,6 +563,46 @@ export class PlayerStats {
     return this.maxHealthMultiplier
   }
 
+  /**
+   * Add Bouncy Wall ability (+2 wall bounces per level)
+   * Stacking: Each level adds +2 wall bounces
+   */
+  addWallBounce(): void {
+    this.wallBounceLevel++
+  }
+
+  /**
+   * Add Dodge Master ability (+15% dodge chance per level)
+   * Stacking: Additive (capped at 75%)
+   */
+  addDodgeMaster(): void {
+    this.dodgeChance = Math.min(0.75, this.dodgeChance + 0.15)
+  }
+
+  /**
+   * Add Extra Life ability (+1 revive per level)
+   * Stacking: Each level adds +1 extra life
+   */
+  addExtraLife(): void {
+    this.extraLives++
+  }
+
+  /**
+   * Add Through Wall ability (arrows pass through walls)
+   * Non-stacking: Only need one level
+   */
+  addThroughWall(): void {
+    this.throughWallEnabled = true
+  }
+
+  /**
+   * Add Giant ability (+40% damage, larger hitbox per level)
+   * Stacking: Each level adds +40% damage
+   */
+  addGiant(): void {
+    this.giantLevel++
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================
@@ -539,6 +635,11 @@ export class PlayerStats {
     this.rageLevel = 0
     this.movementSpeedMultiplier = 1.0
     this.maxHealthMultiplier = 1.0
+    this.wallBounceLevel = 0
+    // Reset devil abilities
+    this.extraLives = 0
+    this.throughWallEnabled = false
+    this.giantLevel = 0
   }
 
   /**
@@ -569,6 +670,10 @@ export class PlayerStats {
     rageLevel: number
     movementSpeedMultiplier: number
     maxHealthMultiplier: number
+    wallBounceLevel: number
+    extraLives: number
+    throughWallEnabled: boolean
+    giantLevel: number
   } {
     return {
       health: this.health,
@@ -595,6 +700,10 @@ export class PlayerStats {
       rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
       maxHealthMultiplier: this.maxHealthMultiplier,
+      wallBounceLevel: this.wallBounceLevel,
+      extraLives: this.extraLives,
+      throughWallEnabled: this.throughWallEnabled,
+      giantLevel: this.giantLevel,
     }
   }
 }

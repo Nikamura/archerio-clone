@@ -50,6 +50,16 @@ export interface SafeZone {
 }
 
 /**
+ * Wall configuration (normalized coordinates 0-1)
+ */
+export interface WallConfig {
+  x: number      // Center X (0-1)
+  y: number      // Center Y (0-1)
+  width: number  // Width (0-1)
+  height: number // Height (0-1)
+}
+
+/**
  * Room layout definition
  */
 export interface RoomLayout {
@@ -58,6 +68,7 @@ export interface RoomLayout {
   description: string
   spawnZones: SpawnZone[]
   safeZones: SafeZone[]
+  walls?: WallConfig[] // Optional walls for obstacles
   playerSpawnSafeRadius: number // Minimum distance from player spawn
 }
 
@@ -190,11 +201,11 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     playerSpawnSafeRadius: 0.25,
   },
 
-  // Split Arenas (2 variants)
+  // Split Arenas (2 variants) - with dividing walls
   {
     type: 'split_arena',
     name: 'Left-Right Split',
-    description: 'Two groups on opposite sides',
+    description: 'Two groups on opposite sides with center wall',
     spawnZones: [
       { x: 0.2, y: 0.35, radius: 0.18, weight: 1.5 },
       { x: 0.25, y: 0.55, radius: 0.12, weight: 1 },
@@ -205,12 +216,15 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.45, radius: 0.12 },
       { x: 0.5, y: 0.85, radius: 0.1 },
     ],
+    walls: [
+      { x: 0.5, y: 0.35, width: 0.04, height: 0.25 }, // Center vertical divider
+    ],
     playerSpawnSafeRadius: 0.22,
   },
   {
     type: 'split_arena',
     name: 'Top-Bottom Split',
-    description: 'Enemies in upper section with player at bottom',
+    description: 'Enemies in upper section with horizontal barrier',
     spawnZones: [
       { x: 0.3, y: 0.2, radius: 0.18, weight: 1.2 },
       { x: 0.7, y: 0.2, radius: 0.18, weight: 1.2 },
@@ -218,14 +232,17 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.55, radius: 0.15, weight: 0.8 },
     ],
     safeZones: [{ x: 0.5, y: 0.9, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.48, width: 0.25, height: 0.04 }, // Horizontal barrier
+    ],
     playerSpawnSafeRadius: 0.3,
   },
 
-  // Corner Rooms (2 variants)
+  // Corner Rooms (2 variants) - with corner cover
   {
     type: 'corner_rooms',
     name: 'Four Corners',
-    description: 'Enemies in all four corners',
+    description: 'Enemies in corners with center pillars',
     spawnZones: [
       { x: 0.15, y: 0.2, radius: 0.12, weight: 1 },
       { x: 0.85, y: 0.2, radius: 0.12, weight: 1 },
@@ -233,12 +250,16 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.85, y: 0.65, radius: 0.12, weight: 1 },
     ],
     safeZones: [{ x: 0.5, y: 0.5, radius: 0.2 }],
+    walls: [
+      { x: 0.35, y: 0.4, width: 0.06, height: 0.06 }, // Left pillar
+      { x: 0.65, y: 0.4, width: 0.06, height: 0.06 }, // Right pillar
+    ],
     playerSpawnSafeRadius: 0.2,
   },
   {
     type: 'corner_rooms',
     name: 'Corners Plus Center',
-    description: 'Enemies in corners with a strong center presence',
+    description: 'Enemies in corners with center obstacles',
     spawnZones: [
       { x: 0.2, y: 0.22, radius: 0.1, weight: 0.8 },
       { x: 0.8, y: 0.22, radius: 0.1, weight: 0.8 },
@@ -247,14 +268,19 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.38, radius: 0.18, weight: 1.5 },
     ],
     safeZones: [{ x: 0.5, y: 0.85, radius: 0.12 }],
+    walls: [
+      { x: 0.5, y: 0.5, width: 0.08, height: 0.08 }, // Center obstacle
+      { x: 0.3, y: 0.35, width: 0.05, height: 0.1 }, // Left barrier
+      { x: 0.7, y: 0.35, width: 0.05, height: 0.1 }, // Right barrier
+    ],
     playerSpawnSafeRadius: 0.25,
   },
 
-  // Maze Lite (2 variants)
+  // Maze Lite (2 variants) - with walls for cover
   {
     type: 'maze_lite',
     name: 'Cover Points',
-    description: 'Multiple clusters with gaps for kiting',
+    description: 'Multiple clusters with gaps for kiting, walls provide cover',
     spawnZones: [
       { x: 0.25, y: 0.25, radius: 0.12, weight: 1 },
       { x: 0.5, y: 0.3, radius: 0.12, weight: 1 },
@@ -266,12 +292,17 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.85, radius: 0.1 },
       { x: 0.5, y: 0.65, radius: 0.08 },
     ],
+    walls: [
+      { x: 0.3, y: 0.4, width: 0.08, height: 0.15 }, // Left cover
+      { x: 0.7, y: 0.4, width: 0.08, height: 0.15 }, // Right cover
+      { x: 0.5, y: 0.55, width: 0.12, height: 0.04 }, // Center horizontal
+    ],
     playerSpawnSafeRadius: 0.2,
   },
   {
     type: 'maze_lite',
     name: 'Scattered Pockets',
-    description: 'Small groups spread throughout the room',
+    description: 'Small groups spread throughout the room with wall barriers',
     spawnZones: [
       { x: 0.2, y: 0.3, radius: 0.1, weight: 1 },
       { x: 0.4, y: 0.2, radius: 0.1, weight: 1 },
@@ -281,14 +312,19 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.7, y: 0.5, radius: 0.1, weight: 0.8 },
     ],
     safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
+    walls: [
+      { x: 0.5, y: 0.4, width: 0.04, height: 0.2 }, // Center vertical barrier
+      { x: 0.25, y: 0.45, width: 0.06, height: 0.1 }, // Left pocket
+      { x: 0.75, y: 0.35, width: 0.06, height: 0.1 }, // Right pocket
+    ],
     playerSpawnSafeRadius: 0.22,
   },
 
-  // Gauntlet (2 variants)
+  // Gauntlet (2 variants) - with side walls
   {
     type: 'gauntlet',
     name: 'Side Runners',
-    description: 'Enemies along both sides of a central path',
+    description: 'Enemies along both sides with corridor walls',
     spawnZones: [
       { x: 0.15, y: 0.25, radius: 0.1, weight: 1 },
       { x: 0.15, y: 0.45, radius: 0.1, weight: 1 },
@@ -301,12 +337,16 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.4, radius: 0.15 },
       { x: 0.5, y: 0.85, radius: 0.1 },
     ],
+    walls: [
+      { x: 0.32, y: 0.35, width: 0.04, height: 0.25 }, // Left corridor wall
+      { x: 0.68, y: 0.35, width: 0.04, height: 0.25 }, // Right corridor wall
+    ],
     playerSpawnSafeRadius: 0.18,
   },
   {
     type: 'gauntlet',
     name: 'Forward March',
-    description: 'Enemies in a forward progression pattern',
+    description: 'Enemies advancing with barrier cover',
     spawnZones: [
       { x: 0.35, y: 0.18, radius: 0.12, weight: 1.2 },
       { x: 0.65, y: 0.18, radius: 0.12, weight: 1.2 },
@@ -315,14 +355,19 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.7, y: 0.45, radius: 0.1, weight: 0.8 },
     ],
     safeZones: [{ x: 0.5, y: 0.82, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.55, width: 0.2, height: 0.04 }, // Horizontal barrier
+      { x: 0.25, y: 0.4, width: 0.06, height: 0.1 }, // Left cover
+      { x: 0.75, y: 0.4, width: 0.06, height: 0.1 }, // Right cover
+    ],
     playerSpawnSafeRadius: 0.28,
   },
 
-  // Ambush (1 variant - special)
+  // Ambush (1 variant - special) - with trap corridor
   {
     type: 'ambush',
     name: 'Pincer Attack',
-    description: 'Enemies spawn from sides after player enters',
+    description: 'Enemies spawn from sides with corridor walls',
     spawnZones: [
       { x: 0.1, y: 0.35, radius: 0.08, weight: 1 },
       { x: 0.1, y: 0.55, radius: 0.08, weight: 1 },
@@ -331,14 +376,19 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.2, radius: 0.15, weight: 1.2 },
     ],
     safeZones: [{ x: 0.5, y: 0.75, radius: 0.2 }],
+    walls: [
+      { x: 0.25, y: 0.45, width: 0.04, height: 0.2 }, // Left corridor wall
+      { x: 0.75, y: 0.45, width: 0.04, height: 0.2 }, // Right corridor wall
+      { x: 0.5, y: 0.6, width: 0.15, height: 0.04 }, // Bottom barrier
+    ],
     playerSpawnSafeRadius: 0.2,
   },
 
-  // Circular Formation (2 variants)
+  // Circular Formation (2 variants) - with center pillar
   {
     type: 'open_arena',
     name: 'Circular Siege',
-    description: 'Enemies arranged in a circle around center',
+    description: 'Enemies arranged in circle with center obstacle',
     spawnZones: [
       { x: 0.5, y: 0.15, radius: 0.1, weight: 1 },
       { x: 0.2, y: 0.3, radius: 0.1, weight: 1 },
@@ -349,6 +399,9 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.75, y: 0.65, radius: 0.08, weight: 0.8 },
     ],
     safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.42, width: 0.1, height: 0.1 }, // Center pillar
+    ],
     playerSpawnSafeRadius: 0.25,
   },
 

@@ -146,6 +146,42 @@ export const ABILITIES: AbilityData[] = [
     color: 0x22cc66,
     iconKey: 'abilityMaxHealth',
   },
+  {
+    id: 'bouncy_wall',
+    name: 'Bouncy Wall',
+    description: '+2 wall bounces',
+    color: 0x88ccff,
+    iconKey: 'abilityBouncyWall',
+  },
+  {
+    id: 'dodge_master',
+    name: 'Dodge Master',
+    description: '+15% dodge chance',
+    color: 0xaaaaff,
+    iconKey: 'abilityDodgeMaster',
+  },
+  // Devil abilities (powerful but with HP cost or risk)
+  {
+    id: 'extra_life',
+    name: 'Extra Life',
+    description: 'Revive once at 30% HP',
+    color: 0xff3366,
+    iconKey: 'abilityExtraLife',
+  },
+  {
+    id: 'through_wall',
+    name: 'Through Wall',
+    description: 'Arrows pass through walls',
+    color: 0x9933ff,
+    iconKey: 'abilityThroughWall',
+  },
+  {
+    id: 'giant',
+    name: 'Giant',
+    description: '+40% damage, larger hitbox',
+    color: 0xcc3300,
+    iconKey: 'abilityGiant',
+  },
 ]
 
 export interface LevelUpData {
@@ -491,9 +527,14 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Add ability icon
     let iconElement: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
+    let iconBaseScaleX = 1
+    let iconBaseScaleY = 1
     if (this.textures.exists(ability.iconKey)) {
       iconElement = this.add.image(iconX, 0, ability.iconKey)
       iconElement.setDisplaySize(48, 48)
+      // Capture base scale after setDisplaySize (varies based on original image size)
+      iconBaseScaleX = iconElement.scaleX
+      iconBaseScaleY = iconElement.scaleY
     } else {
       // Fallback: colored circle if icon not loaded
       iconElement = this.add.circle(iconX, 0, 20, ability.color)
@@ -554,10 +595,11 @@ export default class LevelUpScene extends Phaser.Scene {
     button.on('pointerover', () => {
       button.setFillStyle(0x444444)
       glowRect.setAlpha(0.4)
-      // Scale up icon slightly
+      // Scale up icon slightly (use relative scale to preserve setDisplaySize proportions)
       this.tweens.add({
         targets: iconElement,
-        scale: 1.1,
+        scaleX: iconBaseScaleX * 1.1,
+        scaleY: iconBaseScaleY * 1.1,
         duration: 100,
         ease: EASING.EASE_OUT,
       })
@@ -565,10 +607,11 @@ export default class LevelUpScene extends Phaser.Scene {
 
     button.on('pointerout', () => {
       button.setFillStyle(0x333333)
-      // Reset icon scale
+      // Reset icon scale to base (preserves setDisplaySize proportions)
       this.tweens.add({
         targets: iconElement,
-        scale: 1,
+        scaleX: iconBaseScaleX,
+        scaleY: iconBaseScaleY,
         duration: 100,
         ease: EASING.EASE_OUT,
       })

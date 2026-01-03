@@ -67,7 +67,13 @@ export class AudioManager {
   async resume(): Promise<void> {
     const ctx = this.getContext();
     if (ctx && ctx.state === 'suspended') {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+      } catch (err) {
+        // iOS Safari may throw "Failed to start the audio device" in some states
+        // This is not critical - audio will resume on next user interaction
+        console.warn('AudioManager: Failed to resume audio context:', err);
+      }
     }
   }
 

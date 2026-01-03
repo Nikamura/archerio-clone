@@ -5,7 +5,7 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
   constructor(scene: Phaser.Scene) {
     super(scene.physics.world, scene, {
       classType: Bullet,
-      maxSize: 1000,
+      maxSize: 2000, // Increased to handle high fire rate + multiple arrow abilities
       runChildUpdate: true,
     })
 
@@ -45,16 +45,21 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
   /**
    * Recycle the oldest active bullet when pool is exhausted.
    * This ensures gameplay continues smoothly even with high bullet counts.
+   * Only recycles bullets that have lived at least 500ms to prevent visible pop-in.
    */
   private recycleOldestBullet(): Bullet | null {
     let oldest: Bullet | null = null
     let oldestSpawnTime = Infinity
+    const currentTime = this.scene.time.now
+    const minLifetime = 500 // Don't recycle bullets younger than 500ms
 
     this.children.iterate((child) => {
       const bullet = child as Bullet
       if (bullet.active) {
         const spawnTime = bullet.getSpawnTime()
-        if (spawnTime < oldestSpawnTime) {
+        const bulletAge = currentTime - spawnTime
+        // Only consider bullets that have lived long enough
+        if (bulletAge >= minLifetime && spawnTime < oldestSpawnTime) {
           oldestSpawnTime = spawnTime
           oldest = bullet
         }

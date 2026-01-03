@@ -9,6 +9,7 @@ import ChestScene from './scenes/ChestScene'
 import DailyRewardScene from './scenes/DailyRewardScene'
 import AchievementsScene from './scenes/AchievementsScene'
 import ShopScene from './scenes/ShopScene'
+import SettingsScene from './scenes/SettingsScene'
 import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
@@ -32,7 +33,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, GameScene, UIScene, GameOverScene, LevelUpScene],
+  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, SettingsScene, GameScene, UIScene, GameOverScene, LevelUpScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

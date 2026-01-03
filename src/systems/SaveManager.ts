@@ -96,6 +96,26 @@ export interface PlayerStatistics {
   longestRun: number // in rooms
   fastestBossKill: number // in milliseconds, 0 if never killed
   highestScore: number // personal best score
+  endlessHighWave?: number // highest wave reached in endless mode
+}
+
+/**
+ * Graphics quality levels
+ */
+export enum GraphicsQuality {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+/**
+ * Colorblind mode options
+ */
+export enum ColorblindMode {
+  NONE = 'none',
+  PROTANOPIA = 'protanopia', // Red-blind
+  DEUTERANOPIA = 'deuteranopia', // Green-blind
+  TRITANOPIA = 'tritanopia', // Blue-blind
 }
 
 /**
@@ -109,6 +129,9 @@ export interface GameSettings {
   vibrationEnabled: boolean
   language: string
   autoLevelUp: boolean
+  graphicsQuality: GraphicsQuality
+  screenShakeEnabled: boolean
+  colorblindMode: ColorblindMode
 }
 
 /**
@@ -148,6 +171,16 @@ export interface SaveData {
 
   // Settings
   settings: GameSettings
+
+  // Tutorial
+  tutorialCompleted: boolean
+
+  // Daily Challenge
+  dailyChallenge?: {
+    lastCompletedDate: string // YYYY-MM-DD format
+    bestWave: number // Best wave reached in daily challenge
+    completionsCount: number // Total daily challenges completed
+  }
 }
 
 // ============================================
@@ -217,6 +250,9 @@ function getDefaultSettings(): GameSettings {
     vibrationEnabled: true,
     language: 'en',
     autoLevelUp: false,
+    graphicsQuality: GraphicsQuality.HIGH,
+    screenShakeEnabled: true,
+    colorblindMode: ColorblindMode.NONE,
   }
 }
 
@@ -261,6 +297,7 @@ function createDefaultSaveData(): SaveData {
     unlockedChapters: [1],
     statistics: getDefaultStatistics(),
     settings: getDefaultSettings(),
+    tutorialCompleted: false,
   }
 }
 
@@ -649,13 +686,14 @@ export class SaveManager {
   }
 
   /**
-   * Add hero experience
+   * Add hero experience (raw value storage only).
+   * Note: For actual XP with level-up processing, use HeroManager.addXP() instead.
+   * This method only stores the raw experience value without level calculations.
    */
   addHeroExperience(heroId: string, amount: number): void {
     const hero = this.data.heroes[heroId]
     if (!hero) return
     hero.experience += amount
-    // TODO: Calculate level ups based on experience thresholds
     this.markDirty()
   }
 
@@ -740,6 +778,8 @@ export class SaveManager {
     abilitiesGained: number
     victory: boolean
     score: number
+    isEndlessMode?: boolean
+    endlessWave?: number
   }): void {
     const stats = this.data.statistics
 
@@ -764,8 +804,17 @@ export class SaveManager {
       stats.longestRun = options.roomsCleared
     }
 
-    if (options.score > stats.highestScore) {
+    // Track regular score only in non-endless mode
+    if (!options.isEndlessMode && options.score > stats.highestScore) {
       stats.highestScore = options.score
+    }
+
+    // Track endless mode high wave
+    if (options.isEndlessMode && options.endlessWave !== undefined) {
+      const currentHighWave = stats.endlessHighWave ?? 0
+      if (options.endlessWave > currentHighWave) {
+        stats.endlessHighWave = options.endlessWave
+      }
     }
 
     this.markDirty()
@@ -846,6 +895,93 @@ export class SaveManager {
   getTalentLevel(talentId: string): number {
     const talent = this.data.talents.find((t) => t.id === talentId)
     return talent?.level ?? 0
+  }
+
+  /**
+   * Check if tutorial has been completed
+   */
+  isTutorialCompleted(): boolean {
+    return this.data.tutorialCompleted ?? false
+  }
+
+  /**
+   * Mark tutorial as completed
+   */
+  completeTutorial(): void {
+    this.data.tutorialCompleted = true
+    this.markDirty()
+  }
+
+  // ============================================
+  // Daily Challenge Methods
+  // ============================================
+
+  /**
+   * Get today's date as YYYY-MM-DD string
+   */
+  private getTodayDateString(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
+
+  /**
+   * Get daily challenge seed for today (based on date)
+   */
+  getDailyChallengeSeed(): number {
+    const dateStr = this.getTodayDateString()
+    // Convert date string to a consistent seed number
+    let hash = 0
+    for (let i = 0; i < dateStr.length; i++) {
+      const char = dateStr.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  /**
+   * Check if today's daily challenge has been completed
+   */
+  isDailyChallengeCompleted(): boolean {
+    const today = this.getTodayDateString()
+    return this.data.dailyChallenge?.lastCompletedDate === today
+  }
+
+  /**
+   * Get daily challenge stats
+   */
+  getDailyChallengeStats(): { bestWave: number; completionsCount: number } {
+    return {
+      bestWave: this.data.dailyChallenge?.bestWave ?? 0,
+      completionsCount: this.data.dailyChallenge?.completionsCount ?? 0,
+    }
+  }
+
+  /**
+   * Record daily challenge completion
+   */
+  recordDailyChallengeCompletion(waveReached: number): boolean {
+    const today = this.getTodayDateString()
+    const isNewCompletion = this.data.dailyChallenge?.lastCompletedDate !== today
+
+    if (!this.data.dailyChallenge) {
+      this.data.dailyChallenge = {
+        lastCompletedDate: today,
+        bestWave: waveReached,
+        completionsCount: 1,
+      }
+    } else {
+      this.data.dailyChallenge.lastCompletedDate = today
+      if (waveReached > this.data.dailyChallenge.bestWave) {
+        this.data.dailyChallenge.bestWave = waveReached
+      }
+      if (isNewCompletion) {
+        this.data.dailyChallenge.completionsCount++
+      }
+    }
+
+    this.markDirty()
+    return isNewCompletion
   }
 }
 

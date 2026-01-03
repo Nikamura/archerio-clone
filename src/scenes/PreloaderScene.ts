@@ -137,6 +137,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('abilityBloodthirst', 'assets/sprites/abilities/bloodthirst.png')
     this.load.image('abilityRage', 'assets/sprites/abilities/rage.png')
     this.load.image('abilityMaxHealth', 'assets/sprites/abilities/max_health.png')
+    this.load.image('abilitySpeedBoost', 'assets/sprites/abilities/speed_boost.png')
+    this.load.image('abilityBouncyWall', 'assets/sprites/abilities/bouncy_wall.png')
+    this.load.image('abilityDodgeMaster', 'assets/sprites/abilities/dodge_master.png')
+    this.load.image('abilityExtraLife', 'assets/sprites/abilities/extra_life.png')
+    this.load.image('abilityThroughWall', 'assets/sprites/abilities/through_wall.png')
+    this.load.image('abilityGiant', 'assets/sprites/abilities/giant.png')
 
     // Load hero icons
     this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')
@@ -150,6 +156,19 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapterIcon4', 'assets/sprites/ui/chapter4_icon.png')
     this.load.image('chapterIcon5', 'assets/sprites/ui/chapter5_icon.png')
     
+    // Load wall textures (chapter-themed)
+    this.load.image('wall_dungeon', 'assets/sprites/walls/wall_dungeon.png')
+    this.load.image('wall_forest', 'assets/sprites/walls/wall_forest.png')
+    this.load.image('wall_ice', 'assets/sprites/walls/wall_ice.png')
+    this.load.image('wall_lava', 'assets/sprites/walls/wall_lava.png')
+    this.load.image('wall_shadow', 'assets/sprites/walls/wall_shadow.png')
+    // Vaporwave theme (per-chapter variants)
+    this.load.image('wall_vaporwave_dungeon', 'assets/sprites/walls/wall_vaporwave_dungeon.png')
+    this.load.image('wall_vaporwave_forest', 'assets/sprites/walls/wall_vaporwave_forest.png')
+    this.load.image('wall_vaporwave_ice', 'assets/sprites/walls/wall_vaporwave_ice.png')
+    this.load.image('wall_vaporwave_lava', 'assets/sprites/walls/wall_vaporwave_lava.png')
+    this.load.image('wall_vaporwave_shadow', 'assets/sprites/walls/wall_vaporwave_shadow.png')
+
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
     this.load.image('chest_silver', 'assets/sprites/chest/silver.png')
