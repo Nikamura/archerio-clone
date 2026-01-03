@@ -115,6 +115,13 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('vaporwave_chapter4Bg', 'assets/backgrounds/vaporwave_chapter4.jpg')
     this.load.image('vaporwave_chapter5Bg', 'assets/backgrounds/vaporwave_chapter5.jpg')
 
+    // Load background animation particles
+    this.load.image('bg_dust', 'assets/backgrounds/overlays/dust.png')
+    this.load.image('bg_pollen', 'assets/backgrounds/overlays/pollen.png')
+    this.load.image('bg_snowflake', 'assets/backgrounds/overlays/snowflake.png')
+    this.load.image('bg_ember', 'assets/backgrounds/overlays/ember.png')
+    this.load.image('bg_shadow', 'assets/backgrounds/overlays/shadow.png')
+
     // Load menu effects
     this.load.image('torch', 'assets/sprites/effect/torch.png')
 

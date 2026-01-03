@@ -28,6 +28,7 @@ import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
+import { BackgroundAnimationManager, createBackgroundAnimationManager } from '../systems/BackgroundAnimationManager'
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { equipmentManager } from '../systems/EquipmentManager'
@@ -73,6 +74,7 @@ export default class GameScene extends Phaser.Scene {
   // Visual effects systems
   private screenShake!: ScreenShake
   private particles!: ParticleManager
+  private backgroundAnimations!: BackgroundAnimationManager
 
   // Game state tracking
   private isGameOver: boolean = false
@@ -253,6 +255,15 @@ export default class GameScene extends Phaser.Scene {
     bg.setDisplaySize(width, height)
 
     console.log(`GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`)
+
+    // Initialize background animations (will be configured after settings are loaded)
+    this.backgroundAnimations = createBackgroundAnimationManager(this)
+    this.backgroundAnimations.initialize(
+      selectedChapter,
+      themeManager.getSelectedThemeId(),
+      saveManager.getSettings().graphicsQuality,
+      bg
+    )
 
     // Get selected hero and stats
     const selectedHeroId = heroManager.getSelectedHeroId()
@@ -2757,6 +2768,12 @@ export default class GameScene extends Phaser.Scene {
       this.particles = null!
     }
 
+    // Clean up background animations
+    if (this.backgroundAnimations) {
+      this.backgroundAnimations.destroy()
+      this.backgroundAnimations = null!
+    }
+
     // Clean up damage aura graphics
     if (this.damageAuraGraphics) {
       this.damageAuraGraphics.destroy()
@@ -2965,6 +2982,11 @@ export default class GameScene extends Phaser.Scene {
       default:
         this.particles.setQuality(1.0) // Full particles
         break
+    }
+
+    // Update background animation quality
+    if (this.backgroundAnimations) {
+      this.backgroundAnimations.setQuality(quality)
     }
   }
 
