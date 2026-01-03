@@ -31,6 +31,10 @@ export default class UIScene extends Phaser.Scene {
   private autoLevelUpToggle!: Phaser.GameObjects.Container
   private autoLevelUpIcon!: Phaser.GameObjects.Text
 
+  // Auto room advance toggle
+  private autoRoomAdvanceToggle!: Phaser.GameObjects.Container
+  private autoRoomAdvanceIcon!: Phaser.GameObjects.Text
+
   // Reset level button (always visible)
   private resetLevelButton!: Phaser.GameObjects.Container
   private resetLevelText!: Phaser.GameObjects.Text
@@ -205,6 +209,9 @@ export default class UIScene extends Phaser.Scene {
 
     // Create auto level up toggle button
     this.createAutoLevelUpToggle()
+
+    // Create auto room advance toggle button
+    this.createAutoRoomAdvanceToggle()
 
     // Create reset level button
     this.createResetLevelButton()
@@ -459,6 +466,63 @@ export default class UIScene extends Phaser.Scene {
     // Brief flash animation
     this.tweens.add({
       targets: this.autoLevelUpToggle,
+      scale: { from: 1.2, to: 1 },
+      duration: 150,
+      ease: 'Power2.easeOut',
+    })
+  }
+
+  /**
+   * Create auto room advance toggle button (next to auto level up)
+   */
+  private createAutoRoomAdvanceToggle(): void {
+    const width = this.cameras.main.width
+    const isEnabled = saveManager.getAutoRoomAdvance()
+
+    // Create toggle container (to the left of auto level up toggle)
+    this.autoRoomAdvanceToggle = this.add.container(width - 70, 60)
+    this.autoRoomAdvanceToggle.setDepth(50)
+
+    // Background circle
+    const bg = this.add.circle(0, 0, 18, 0x000000, 0.6)
+    bg.setStrokeStyle(2, isEnabled ? 0x00ff88 : 0x666666)
+    bg.setInteractive({ useHandCursor: true })
+    this.autoRoomAdvanceToggle.add(bg)
+
+    // Door/skip icon to represent auto room advance
+    this.autoRoomAdvanceIcon = this.add.text(0, 0, '⏩', {
+      fontSize: '16px',
+    }).setOrigin(0.5)
+    this.autoRoomAdvanceIcon.setAlpha(isEnabled ? 1 : 0.4)
+    this.autoRoomAdvanceToggle.add(this.autoRoomAdvanceIcon)
+
+    // Click handler to toggle
+    bg.on('pointerdown', () => {
+      const newState = saveManager.toggleAutoRoomAdvance()
+      this.updateAutoRoomAdvanceToggle(newState)
+      console.log('UIScene: Auto room advance toggled to', newState)
+    })
+
+    // Hover effects
+    bg.on('pointerover', () => {
+      bg.setScale(1.1)
+    })
+    bg.on('pointerout', () => {
+      bg.setScale(1)
+    })
+  }
+
+  /**
+   * Update auto room advance toggle visual state
+   */
+  private updateAutoRoomAdvanceToggle(enabled: boolean): void {
+    const bg = this.autoRoomAdvanceToggle.getAt(0) as Phaser.GameObjects.Arc
+    bg.setStrokeStyle(2, enabled ? 0x00ff88 : 0x666666)
+    this.autoRoomAdvanceIcon.setAlpha(enabled ? 1 : 0.4)
+
+    // Brief flash animation
+    this.tweens.add({
+      targets: this.autoRoomAdvanceToggle,
       scale: { from: 1.2, to: 1 },
       duration: 150,
       ease: 'Power2.easeOut',

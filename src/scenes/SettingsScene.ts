@@ -136,6 +136,20 @@ export default class SettingsScene extends Phaser.Scene {
     )
     currentY += rowHeight
 
+    // Auto Room Advance
+    this.createToggleSetting(
+      width,
+      currentY,
+      'Auto Room Advance',
+      'Skip door after clearing rooms',
+      this.settings.autoRoomAdvance,
+      (value) => {
+        this.settings.autoRoomAdvance = value
+        this.saveSettings()
+      }
+    )
+    currentY += rowHeight
+
     // Colorblind Mode
     this.createColorblindModeSetting(width, currentY)
     currentY += rowHeight + 20

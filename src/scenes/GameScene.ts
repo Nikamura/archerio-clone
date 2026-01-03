@@ -1023,10 +1023,14 @@ export default class GameScene extends Phaser.Scene {
         this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
       })
 
-      // Show door after brief delay
+      // Show door OR auto-advance after brief delay
       this.time.delayedCall(500, () => {
         if (!this.isGameOver) {
-          this.spawnDoor()
+          if (saveManager.getAutoRoomAdvance()) {
+            this.enterDoor()
+          } else {
+            this.spawnDoor()
+          }
         }
       })
     }

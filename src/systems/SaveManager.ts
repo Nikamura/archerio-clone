@@ -129,6 +129,7 @@ export interface GameSettings {
   vibrationEnabled: boolean
   language: string
   autoLevelUp: boolean
+  autoRoomAdvance: boolean
   graphicsQuality: GraphicsQuality
   screenShakeEnabled: boolean
   colorblindMode: ColorblindMode
@@ -250,6 +251,7 @@ function getDefaultSettings(): GameSettings {
     vibrationEnabled: true,
     language: 'en',
     autoLevelUp: false,
+    autoRoomAdvance: false,
     graphicsQuality: GraphicsQuality.HIGH,
     screenShakeEnabled: true,
     colorblindMode: ColorblindMode.NONE,
@@ -599,6 +601,22 @@ export class SaveManager {
     this.data.settings.autoLevelUp = !this.data.settings.autoLevelUp
     this.markDirty()
     return this.data.settings.autoLevelUp
+  }
+
+  /**
+   * Get auto room advance setting
+   */
+  getAutoRoomAdvance(): boolean {
+    return this.data.settings.autoRoomAdvance ?? false
+  }
+
+  /**
+   * Toggle auto room advance setting
+   */
+  toggleAutoRoomAdvance(): boolean {
+    this.data.settings.autoRoomAdvance = !this.data.settings.autoRoomAdvance
+    this.markDirty()
+    return this.data.settings.autoRoomAdvance
   }
 
   /**
