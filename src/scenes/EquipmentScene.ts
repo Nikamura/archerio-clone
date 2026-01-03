@@ -613,6 +613,8 @@ export default class EquipmentScene extends Phaser.Scene {
     const panelY = height / 2
 
     this.detailPanel = this.add.container(width / 2, panelY)
+    // Set high depth to ensure popup appears above inventory (depth 1) and equipped slots (depth 10)
+    this.detailPanel.setDepth(100)
 
     // Backdrop
     const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)

@@ -534,7 +534,7 @@ Visual test screenshots are saved to `test/screenshots/`
    - Unknown equipment types already skip with a warning
    - Unknown perks now skip with a warning instead of causing errors
 18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
-19. 🐛 **EquipmentScene item popup opens behind inventory** - Clicking items in inventory opens the detail popup behind the inventory container instead of on top of it.
+19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
