@@ -20,6 +20,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private lightningChainCount: number = 0 // Number of enemies lightning can chain to
   private maxWallBounces: number = 0 // Maximum number of wall bounces
   private wallBounceCount: number = 0 // Current wall bounce count
+  private throughWallEnabled: boolean = false // Arrows pass through walls
 
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
@@ -57,6 +58,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     poisonDamage?: number
     lightningChainCount?: number
     maxWallBounces?: number
+    throughWall?: boolean
     projectileSprite?: string
     projectileSizeMultiplier?: number
   }) {
@@ -82,6 +84,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.lightningChainCount = options?.lightningChainCount ?? 0
     this.maxWallBounces = options?.maxWallBounces ?? 0
     this.wallBounceCount = 0
+    this.throughWallEnabled = options?.throughWall ?? false
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -129,6 +132,15 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
     const gameWidth = this.scene.scale.width
     const gameHeight = this.scene.scale.height
+
+    // Through Wall: Arrows wrap around screen edges
+    if (this.throughWallEnabled) {
+      if (this.x < 0) this.x = gameWidth
+      else if (this.x > gameWidth) this.x = 0
+      if (this.y < 0) this.y = gameHeight
+      else if (this.y > gameHeight) this.y = 0
+      return // Skip wall bouncing and normal deactivation
+    }
 
     // Handle wall bouncing
     if (this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces) {
@@ -275,6 +287,10 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   getWallBounceCount(): number {
     return this.wallBounceCount
+  }
+
+  isThroughWallEnabled(): boolean {
+    return this.throughWallEnabled
   }
 
   getSpawnTime(): number {

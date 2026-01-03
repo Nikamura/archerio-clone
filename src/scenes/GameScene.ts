@@ -1330,6 +1330,18 @@ export default class GameScene extends Phaser.Scene {
       case 'dodge_master':
         this.player.addDodgeMaster()
         break
+      // Devil abilities
+      case 'extra_life':
+        this.player.addExtraLife()
+        break
+      case 'through_wall':
+        this.player.addThroughWall()
+        break
+      case 'giant':
+        this.player.addGiant()
+        // Also increase player hitbox size
+        this.updatePlayerHitboxForGiant()
+        break
     }
     this.abilitiesGained++
 
@@ -1501,6 +1513,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Update player hitbox size for Giant ability
+   * Each level increases hitbox by 15%
+   */
+  private updatePlayerHitboxForGiant() {
+    const giantLevel = this.player.getGiantLevel()
+    if (giantLevel <= 0) return
+
+    // Base hitbox is 16, increase by 15% per level
+    const newHitboxRadius = 16 * (1 + giantLevel * 0.15)
+
+    // Also scale player sprite slightly
+    const scaleMultiplier = 1 + giantLevel * 0.1 // 10% larger per level
+    this.player.setScale(scaleMultiplier)
+
+    // Update physics body
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const displaySize = 64 * scaleMultiplier
+      const offset = (displaySize - newHitboxRadius * 2) / 2
+      body.setSize(displaySize, displaySize)
+      body.setCircle(newHitboxRadius, offset, offset)
+    }
+  }
+
+  /**
    * Debug functionality to skip the current level
    */
   private debugSkipLevel() {
@@ -1609,6 +1646,28 @@ export default class GameScene extends Phaser.Scene {
 
   private triggerGameOver() {
     if (this.isGameOver) return
+
+    // Check for Extra Life before dying
+    if (this.player.hasExtraLife()) {
+      if (this.player.useExtraLife()) {
+        console.log('Extra Life used! Reviving at 30% HP')
+        // Show revive effect
+        this.player.clearTint()
+        this.cameras.main.flash(500, 255, 215, 0) // Golden flash
+        audioManager.playLevelUp() // Triumphant sound
+        hapticManager.levelUp()
+        // Update health UI
+        this.updatePlayerHealthUI(this.player)
+        // Brief invincibility after revive
+        this.player.setTint(0xffffff)
+        this.time.delayedCall(100, () => {
+          if (this.player && this.player.active) {
+            this.player.clearTint()
+          }
+        })
+        return // Don't trigger game over
+      }
+    }
 
     this.isGameOver = true
     audioManager.playDeath()
@@ -2118,6 +2177,7 @@ export default class GameScene extends Phaser.Scene {
       poisonDamage: this.player.getPoisonDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
       maxWallBounces: this.player.getWallBounces(),
+      throughWall: this.player.isThroughWallEnabled(),
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
       projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,

@@ -252,6 +252,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addDodgeMaster()
   }
 
+  addExtraLife() {
+    this.stats?.addExtraLife()
+  }
+
+  addThroughWall() {
+    this.stats?.addThroughWall()
+  }
+
+  addGiant() {
+    this.stats?.addGiant()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0
@@ -352,6 +364,27 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getWallBounces(): number {
     return this.stats?.getWallBounces() ?? 0
+  }
+
+  // Devil ability getters
+  hasExtraLife(): boolean {
+    return this.stats?.hasExtraLife() ?? false
+  }
+
+  useExtraLife(): boolean {
+    return this.stats?.useExtraLife() ?? false
+  }
+
+  isThroughWallEnabled(): boolean {
+    return this.stats?.isThroughWallEnabled() ?? false
+  }
+
+  getGiantLevel(): number {
+    return this.stats?.getGiantLevel() ?? 0
+  }
+
+  getGiantDamageMultiplier(): number {
+    return this.stats?.getGiantDamageMultiplier() ?? 1.0
   }
 
   // Reset run-based stats

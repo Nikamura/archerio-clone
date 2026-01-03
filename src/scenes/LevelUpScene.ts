@@ -160,6 +160,28 @@ export const ABILITIES: AbilityData[] = [
     color: 0xaaaaff,
     iconKey: 'abilityDodgeMaster',
   },
+  // Devil abilities (powerful but with HP cost or risk)
+  {
+    id: 'extra_life',
+    name: 'Extra Life',
+    description: 'Revive once at 30% HP',
+    color: 0xff3366,
+    iconKey: 'abilityExtraLife',
+  },
+  {
+    id: 'through_wall',
+    name: 'Through Wall',
+    description: 'Arrows pass through walls',
+    color: 0x9933ff,
+    iconKey: 'abilityThroughWall',
+  },
+  {
+    id: 'giant',
+    name: 'Giant',
+    description: '+40% damage, larger hitbox',
+    color: 0xcc3300,
+    iconKey: 'abilityGiant',
+  },
 ]
 
 export interface LevelUpData {
