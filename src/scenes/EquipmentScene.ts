@@ -669,7 +669,21 @@ export default class EquipmentScene extends Phaser.Scene {
 
     const { width, height } = this.cameras.main
     const panelWidth = width - 40
-    const panelHeight = 280 // Increased height
+
+    // Calculate content height dynamically
+    // Header section: sprite, name, rarity, level, divider = 130px
+    const headerHeight = 130
+    // Stats section: each stat takes 22px
+    const statsEntries = Object.entries(item.baseStats).filter(([_, value]) => value !== undefined && value !== 0)
+    const statsHeight = statsEntries.length * 22
+    // Perks section: label (22px) + 10px gap before label + each perk (20px)
+    const perksHeight = item.perks.length > 0 ? 10 + 22 + item.perks.length * 20 : 0
+    // Button section: buttons + padding
+    const buttonSectionHeight = 60
+    // Total content height with padding
+    const contentHeight = headerHeight + statsHeight + perksHeight + buttonSectionHeight + 40
+
+    const panelHeight = Math.max(280, contentHeight)
     const panelY = height / 2
 
     this.detailPanel = this.add.container(width / 2, panelY)
@@ -740,20 +754,17 @@ export default class EquipmentScene extends Phaser.Scene {
     // Stats display
     const statsY = -panelHeight / 2 + 150
     let yOffset = 0
-    const statsEntries = Object.entries(item.baseStats)
 
     statsEntries.forEach(([stat, value]) => {
-      if (value !== undefined && value !== 0) {
-        const statName = this.formatStatName(stat)
-        const statText = this.add
-          .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: +${this.formatStatValue(value)}`, {
-            fontSize: '14px',
-            color: '#88ff88',
-          })
-          .setOrigin(0, 0)
-        this.detailPanel?.add(statText)
-        yOffset += 22
-      }
+      const statName = this.formatStatName(stat)
+      const statText = this.add
+        .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: +${this.formatStatValue(value as number)}`, {
+          fontSize: '14px',
+          color: '#88ff88',
+        })
+        .setOrigin(0, 0)
+      this.detailPanel?.add(statText)
+      yOffset += 22
     })
 
     // Perks display
@@ -781,7 +792,7 @@ export default class EquipmentScene extends Phaser.Scene {
       })
     }
 
-    // Action buttons
+    // Action buttons - positioned relative to bottom of panel
     const buttonY = panelHeight / 2 - 40
 
     if (isEquipped) {
