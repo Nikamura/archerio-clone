@@ -316,6 +316,7 @@ export default class GameScene extends Phaser.Scene {
       applyLightningChain: (source, damage, count) => this.auraSystem.applyLightningChain(source, damage, count),
       findNearestEnemyExcluding: (x, y, exclude) => this.findNearestEnemyExcluding(x, y, exclude),
       invalidateNearestEnemyCache: () => this.invalidateNearestEnemyCache(),
+      checkRoomCleared: () => this.roomManager.checkRoomCleared(),
     })
 
     // Ability system
@@ -486,8 +487,7 @@ export default class GameScene extends Phaser.Scene {
     if (leveledUp) {
       this.abilitySystem.handleLevelUp()
     }
-
-    this.roomManager.checkRoomCleared()
+    // Note: checkRoomCleared is called by CombatSystem after enemy.destroy()
   }
 
   private handleVictory(completionResult: unknown): void {

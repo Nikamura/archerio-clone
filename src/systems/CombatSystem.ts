@@ -40,6 +40,7 @@ export interface CombatCallbacks {
   applyLightningChain: (source: Enemy, damage: number, chainCount: number) => void
   findNearestEnemyExcluding: (x: number, y: number, exclude: Enemy) => Enemy | null
   invalidateNearestEnemyCache: () => void
+  checkRoomCleared: () => void
 }
 
 /**
@@ -472,6 +473,9 @@ export class CombatSystem {
 
     // Invalidate nearest enemy cache since enemies changed
     this.callbacks.invalidateNearestEnemyCache()
+
+    // Check if room is cleared (must be after enemy.destroy())
+    this.callbacks.checkRoomCleared()
   }
 
   /**
