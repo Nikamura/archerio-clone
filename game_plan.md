@@ -568,8 +568,12 @@ Visual test screenshots are saved to `test/screenshots/`
 22. ✅ **Graphics quality settings don't work** - NOT A BUG: Settings work correctly, applied on next game start (affects particle pool initialization)
 23. ✅ **Speed boost icon becomes very large on hover** - FIXED (2026-01-03): Changed hover tween to use relative scale (iconBaseScaleX * 1.1) instead of absolute scale, preserving setDisplaySize proportions
 24. ✅ **Player spawn position inconsistent** - FIXED (2026-01-03): Changed resetLevel() to spawn player at center (height/2) matching initial spawn position
-25. 🐛 **Dead enemy bullets can still kill after level complete** - Enemy projectiles remain active and can damage player after all enemies are dead
-26. 🐛 **No immunity period after level up** - Player can take damage immediately after selecting level up, needs brief immunity to allow dodging
+25. ✅ **Dead enemy bullets can still kill after level complete** - FIXED (2026-01-03): Clear enemy bullet pool in checkRoomCleared() when all enemies are dead
+26. ✅ **No immunity period after level up** - FIXED (2026-01-03): Added isLevelingUp flag that blocks damage during selection, clears enemy bullets on level up, and provides 1 second immunity after selection
+27. ✅ **Meowgik cat damage doesn't scale** - FIXED (2026-01-03): Changed cat damage to use player.getDamage() * 0.3 instead of static heroStats.attack, now scales with equipment, talents, abilities
+28. ✅ **Fast shooting causes shorter bullet range** - FIXED (2026-01-03): Increased bullet pool from 1000 to 2000, added 500ms minimum lifetime before recycling to prevent visible bullet pop-in
+29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
+30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE

@@ -83,6 +83,8 @@ export default class GameScene extends Phaser.Scene {
   private doorSprite: Phaser.GameObjects.Sprite | null = null
   private doorText: Phaser.GameObjects.Text | null = null
   private isTransitioning: boolean = false
+  private isLevelingUp: boolean = false // Player is selecting ability (immune to damage)
+  private showingTutorial: boolean = false // Tutorial overlay is visible
   private boss: Boss | null = null
   private runStartTime: number = 0
   private abilitiesGained: number = 0
@@ -862,6 +864,9 @@ export default class GameScene extends Phaser.Scene {
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
 
+      // Clear all enemy bullets to prevent post-clear damage
+      this.enemyBulletPool.clear(true, true)
+
       // Notify chapter manager that room was cleared
       chapterManager.clearRoom()
 
@@ -965,7 +970,7 @@ export default class GameScene extends Phaser.Scene {
    * Handle bomb explosion damage to player
    */
   private handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     // Check if player is within explosion radius
     const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
@@ -1202,6 +1207,12 @@ export default class GameScene extends Phaser.Scene {
     audioManager.playLevelUp()
     hapticManager.levelUp() // Haptic feedback for level up
 
+    // Mark player as leveling up (immune to damage during selection)
+    this.isLevelingUp = true
+
+    // Clear any enemy bullets that might be mid-flight
+    this.enemyBulletPool.clear(true, true)
+
     // Level up celebration particles
     this.particles.emitLevelUp(this.player.x, this.player.y)
 
@@ -1244,6 +1255,10 @@ export default class GameScene extends Phaser.Scene {
         if (this.joystick) {
           this.joystick.show()
         }
+        // Add brief immunity period (1 second) after level up to allow dodging
+        this.time.delayedCall(1000, () => {
+          this.isLevelingUp = false
+        })
       } catch (error) {
         console.error('GameScene: Error applying ability:', error)
         this.resetJoystickState() // Reset even on error
@@ -1251,6 +1266,7 @@ export default class GameScene extends Phaser.Scene {
         if (this.joystick) {
           this.joystick.show()
         }
+        this.isLevelingUp = false // Reset flag on error too
       }
     })
 
@@ -1301,6 +1317,11 @@ export default class GameScene extends Phaser.Scene {
       // Notify UIScene to show the auto level up notification
       this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
     }
+
+    // Brief immunity period after auto level up
+    this.time.delayedCall(500, () => {
+      this.isLevelingUp = false
+    })
   }
 
   private applyAbility(abilityId: string) {
@@ -1468,7 +1489,7 @@ export default class GameScene extends Phaser.Scene {
     player: Phaser.GameObjects.GameObject,
     bullet: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     const playerSprite = player as Player
@@ -1537,7 +1558,7 @@ export default class GameScene extends Phaser.Scene {
     player: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver) return
+    if (this.isGameOver || this.isLevelingUp) return
 
     const playerSprite = player as Player
     const enemySprite = enemy as Enemy
@@ -2120,6 +2141,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Spawn cats around the player
     const catCount = this.spiritCatConfig.count
+    // Cat damage scales with player's current attack (30% of player damage)
+    // This includes equipment, talents, abilities, and difficulty scaling
+    const catDamage = Math.floor(this.player.getDamage() * 0.3 * this.spiritCatConfig.damageMultiplier)
     for (let i = 0; i < catCount; i++) {
       // Spawn in circular pattern around player
       const spawnAngle = (Math.PI * 2 * i) / catCount + (time * 0.001) // Rotating pattern
@@ -2131,7 +2155,7 @@ export default class GameScene extends Phaser.Scene {
         spawnX,
         spawnY,
         target,
-        this.spiritCatConfig.damage,
+        catDamage,
         this.spiritCatConfig.canCrit
       )
     }
@@ -2237,6 +2261,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private shootAtEnemy(enemy: Enemy) {
+    // Don't shoot during level up, transitions, tutorial, or game over
+    if (this.isLevelingUp || this.isTransitioning || this.showingTutorial || this.isGameOver) {
+      return
+    }
+
     // Validate enemy position before shooting
     if (!isFinite(enemy.x) || !isFinite(enemy.y)) {
       console.warn('shootAtEnemy: Invalid enemy position', enemy.x, enemy.y, enemy.constructor.name)
@@ -2661,7 +2690,8 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Pause the game physics
+    // Mark tutorial as showing and pause the game physics
+    this.showingTutorial = true
     this.physics.pause()
 
     // Create tutorial container
@@ -2759,6 +2789,7 @@ export default class GameScene extends Phaser.Scene {
     const dismissTutorial = () => {
       // Mark tutorial as completed
       saveManager.completeTutorial()
+      this.showingTutorial = false
 
       // Animate out
       this.tweens.add({
