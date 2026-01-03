@@ -1221,19 +1221,39 @@ export default class GameScene extends Phaser.Scene {
 
   /**
    * Handle auto level up - randomly select an ability without showing the selection UI
+   * 5% chance to grant TWO abilities as a bonus
    */
   private handleAutoLevelUp() {
-    // Select a random ability from all available
-    const randomIndex = Math.floor(Math.random() * ABILITIES.length)
-    const selectedAbility = ABILITIES[randomIndex]
+    const isDoubleBonus = Math.random() < 0.05 // 5% chance for double ability
 
-    console.log('GameScene: Auto level up selected:', selectedAbility.id)
+    // Select first ability
+    const randomIndex1 = Math.floor(Math.random() * ABILITIES.length)
+    const selectedAbility1 = ABILITIES[randomIndex1]
 
-    // Apply the ability
-    this.applyAbility(selectedAbility.id)
+    // Apply the first ability
+    this.applyAbility(selectedAbility1.id)
 
-    // Notify UIScene to show the auto level up notification
-    this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility)
+    if (isDoubleBonus) {
+      // Select a DIFFERENT second ability
+      let randomIndex2 = Math.floor(Math.random() * ABILITIES.length)
+      while (randomIndex2 === randomIndex1) {
+        randomIndex2 = Math.floor(Math.random() * ABILITIES.length)
+      }
+      const selectedAbility2 = ABILITIES[randomIndex2]
+
+      console.log('GameScene: Auto level up DOUBLE BONUS:', selectedAbility1.id, '+', selectedAbility2.id)
+
+      // Apply the second ability
+      this.applyAbility(selectedAbility2.id)
+
+      // Notify UIScene to show the double bonus notification
+      this.scene.get('UIScene').events.emit('showAutoLevelUpDouble', selectedAbility1, selectedAbility2)
+    } else {
+      console.log('GameScene: Auto level up selected:', selectedAbility1.id)
+
+      // Notify UIScene to show the auto level up notification
+      this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
+    }
   }
 
   private applyAbility(abilityId: string) {

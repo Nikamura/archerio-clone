@@ -134,6 +134,11 @@ export default class UIScene extends Phaser.Scene {
       this.showAutoLevelUpNotification(ability)
     })
 
+    // Listen for double bonus auto level up notifications
+    this.events.on('showAutoLevelUpDouble', (ability1: AbilityData, ability2: AbilityData) => {
+      this.showDoubleAutoLevelUpNotification(ability1, ability2)
+    })
+
     // Listen for abilities update
     this.events.on('updateAbilities', (abilities: AcquiredAbility[]) => {
       this.updateSkillsBar(abilities)
@@ -534,6 +539,102 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
+   * Show special notification when auto level up grants TWO abilities (5% bonus)
+   */
+  private showDoubleAutoLevelUpNotification(ability1: AbilityData, ability2: AbilityData): void {
+    const width = this.cameras.main.width
+
+    // Create notification container at center-top of screen
+    const container = this.add.container(width / 2, 120)
+    container.setDepth(100)
+    container.setAlpha(0)
+    container.setScale(0.8)
+
+    // Taller background panel for two abilities
+    const panelWidth = 240
+    const panelHeight = 100
+    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.9)
+    panel.setStrokeStyle(3, 0xffd700) // Gold border
+    container.add(panel)
+
+    // "2x BONUS!" label at top in gold
+    const bonusLabel = this.add.text(0, -38, '2x BONUS!', {
+      fontSize: '14px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    container.add(bonusLabel)
+
+    // First ability row
+    const row1Y = -10
+    const iconSize = 28
+    const iconX = -panelWidth / 2 + 30
+
+    if (this.textures.exists(ability1.iconKey)) {
+      const icon1 = this.add.image(iconX, row1Y, ability1.iconKey)
+      icon1.setDisplaySize(iconSize, iconSize)
+      container.add(icon1)
+    }
+
+    const name1 = this.add.text(15, row1Y, ability1.name, {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    container.add(name1)
+
+    // Second ability row
+    const row2Y = 22
+
+    if (this.textures.exists(ability2.iconKey)) {
+      const icon2 = this.add.image(iconX, row2Y, ability2.iconKey)
+      icon2.setDisplaySize(iconSize, iconSize)
+      container.add(icon2)
+    }
+
+    const name2 = this.add.text(15, row2Y, ability2.name, {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    container.add(name2)
+
+    // Animate in with celebratory bounce
+    this.tweens.add({
+      targets: container,
+      alpha: 1,
+      scale: 1.05,
+      y: 135,
+      duration: 250,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Pulse effect for celebration
+        this.tweens.add({
+          targets: container,
+          scale: 1,
+          duration: 150,
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            // Hold longer for double bonus, then fade out
+            this.time.delayedCall(1800, () => {
+              this.tweens.add({
+                targets: container,
+                alpha: 0,
+                y: 100,
+                duration: 300,
+                ease: 'Power2.easeIn',
+                onComplete: () => {
+                  container.destroy()
+                },
+              })
+            })
+          },
+        })
+      },
+    })
+  }
+
+  /**
    * Create the skills bar container
    */
   private createSkillsBar(): void {
@@ -618,6 +719,7 @@ export default class UIScene extends Phaser.Scene {
     this.events.off('roomCleared')
     this.events.off('roomEntered')
     this.events.off('showAutoLevelUp')
+    this.events.off('showAutoLevelUpDouble')
     this.events.off('updateAbilities')
   }
 }
