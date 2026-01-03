@@ -17,7 +17,7 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
     // Must sync body size with display size, then center the circle
     if (this.body) {
       const displaySize = 24
-      const radius = 6 // Slightly larger hitbox for better hit detection
+      const radius = 10 // Larger hitbox for more reliable hit detection
       const offset = (displaySize - radius * 2) / 2
       this.body.setSize(displaySize, displaySize)
       this.body.setCircle(radius, offset, offset)

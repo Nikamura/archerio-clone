@@ -124,9 +124,26 @@ export default class RangedShooterEnemy extends Enemy {
   }
 
   private shoot(targetX: number, targetY: number) {
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, targetX, targetY)
-    const baseSpeed = 250
+    const baseSpeed = 350 // Faster bullets for better chance to hit
     const bulletSpeed = baseSpeed * this.projectileSpeedMultiplier
+
+    // Calculate predictive aim - lead the target based on distance and bullet travel time
+    const distance = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY)
+    const travelTime = distance / bulletSpeed
+
+    // Get player velocity for prediction (if available via scene's player reference)
+    let predictedX = targetX
+    let predictedY = targetY
+
+    const gameScene = this.scene as { player?: { body?: Phaser.Physics.Arcade.Body } }
+    if (gameScene.player?.body) {
+      const playerBody = gameScene.player.body
+      // Predict where player will be when bullet arrives (with 0.5 factor to not be too accurate)
+      predictedX = targetX + playerBody.velocity.x * travelTime * 0.5
+      predictedY = targetY + playerBody.velocity.y * travelTime * 0.5
+    }
+
+    const angle = Phaser.Math.Angle.Between(this.x, this.y, predictedX, predictedY)
     this.bulletPool.spawn(this.x, this.y, angle, bulletSpeed)
   }
 
