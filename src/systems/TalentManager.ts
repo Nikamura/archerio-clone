@@ -96,7 +96,7 @@ const BASE_SPIN_COST = 500
 const COST_INCREMENT = 250
 
 /** Maximum spins allowed per day */
-const MAX_DAILY_SPINS = 10
+const MAX_DAILY_SPINS = 42
 
 // ============================================
 // TalentManager Class

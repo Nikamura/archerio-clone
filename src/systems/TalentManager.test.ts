@@ -44,7 +44,7 @@ describe('TalentManager', () => {
     })
 
     it('should create with full daily spins', () => {
-      expect(manager.getSpinsRemaining()).toBe(10)
+      expect(manager.getSpinsRemaining()).toBe(42)
       expect(manager.canSpin()).toBe(true)
     })
 
@@ -95,17 +95,17 @@ describe('TalentManager', () => {
 
   describe('spin limits', () => {
     it('should track spins remaining', () => {
-      expect(manager.getSpinsRemaining()).toBe(10)
-      expect(manager.getMaxDailySpins()).toBe(10)
+      expect(manager.getSpinsRemaining()).toBe(42)
+      expect(manager.getMaxDailySpins()).toBe(42)
 
       manager.spin(10000, () => true)
-      expect(manager.getSpinsRemaining()).toBe(9)
+      expect(manager.getSpinsRemaining()).toBe(41)
     })
 
     it('should not allow spin when daily limit reached', () => {
-      // Force max spins
+      // Force max spins (42 per day)
       const saveData = manager.toSaveData()
-      saveData.lotteryState.spinsToday = 10
+      saveData.lotteryState.spinsToday = 42
       saveData.lotteryState.lastSpinDate = new Date().toISOString().split('T')[0]
       manager.fromSaveData(saveData)
 
@@ -120,9 +120,9 @@ describe('TalentManager', () => {
       const callback = vi.fn()
       manager.on('dailyLimitReached', callback)
 
-      // Force max spins
+      // Force max spins (42 per day)
       const saveData = manager.toSaveData()
-      saveData.lotteryState.spinsToday = 10
+      saveData.lotteryState.spinsToday = 42
       saveData.lotteryState.lastSpinDate = new Date().toISOString().split('T')[0]
       manager.fromSaveData(saveData)
 
@@ -285,7 +285,7 @@ describe('TalentManager', () => {
 
       // Accessing spins should trigger day check and reset
       expect(manager.getSpinsToday()).toBe(0)
-      expect(manager.getSpinsRemaining()).toBe(10)
+      expect(manager.getSpinsRemaining()).toBe(42)
     })
   })
 
@@ -384,7 +384,7 @@ describe('TalentManager', () => {
 
       expect(snapshot.unlockedTalents.length).toBe(1)
       expect(snapshot.spinCost).toBe(500)
-      expect(snapshot.spinsRemaining).toBe(10)
+      expect(snapshot.spinsRemaining).toBe(42)
       expect(snapshot.bonuses).toBeDefined()
     })
 

@@ -279,6 +279,9 @@ export default class EquipmentScene extends Phaser.Scene {
 
     // Setup touch/drag scrolling for mobile
     this.setupTouchScrolling()
+
+    // Initial interactivity update - disable items outside visible area
+    this.updateInventorySlotInteractivity()
   }
 
   private createInventorySlot(x: number, y: number, index: number): InventorySlot {
@@ -340,6 +343,46 @@ export default class EquipmentScene extends Phaser.Scene {
       this.inventoryContainer.y = this.inventoryStartY - this.scrollOffset
     }
     this.updateScrollIndicator()
+    this.updateInventorySlotInteractivity()
+  }
+
+  /**
+   * Enable/disable input on inventory slots based on whether they're visible in the masked area.
+   * This prevents invisible (scrolled-out) items from capturing clicks meant for other UI elements.
+   */
+  private updateInventorySlotInteractivity(): void {
+    // Guard against scene not being active or inventory container not ready
+    if (!this.inventoryContainer || !this.scene || !this.sys?.isActive()) return
+
+    const maskTop = this.inventoryStartY
+    const maskBottom = this.inventoryStartY + this.visibleHeight
+
+    this.inventorySlots.forEach((slot) => {
+      // Skip if background was destroyed
+      if (!slot.background || !slot.background.scene) return
+
+      // Calculate the slot's world Y position
+      // The slot's local Y is relative to the container, which is positioned at (inventoryStartY - scrollOffset)
+      const containerY = this.inventoryContainer!.y
+      const slotWorldY = containerY + slot.container.y
+      const slotHalfHeight = this.INVENTORY_SLOT_SIZE / 2
+
+      // Check if the slot is within the visible mask area
+      const isVisible =
+        (slotWorldY + slotHalfHeight) > maskTop &&
+        (slotWorldY - slotHalfHeight) < maskBottom
+
+      // Enable or disable interactivity based on visibility
+      if (isVisible) {
+        if (!slot.background.input?.enabled) {
+          slot.background.setInteractive({ useHandCursor: true })
+        }
+      } else {
+        if (slot.background.input?.enabled) {
+          slot.background.disableInteractive()
+        }
+      }
+    })
   }
 
   private createScrollIndicator(): void {

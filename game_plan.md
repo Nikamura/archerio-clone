@@ -535,6 +535,7 @@ Visual test screenshots are saved to `test/screenshots/`
    - Unknown perks now skip with a warning instead of causing errors
 18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
 19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
+20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -783,7 +784,7 @@ Visual test screenshots are saved to `test/screenshots/`
     - TalentManager.ts: Singleton manager for lottery system
       - Lottery mechanics: spin(), getSpinCost(), getSpinsRemaining()
       - Escalating costs: 500 base + 250 per spin today
-      - Daily spin limit: 10 spins per day (resets at midnight)
+      - Daily spin limit: 42 spins per day (resets at midnight)
       - Talent stacking: Same talent can be rolled multiple times
       - calculateTotalBonuses(): Returns combined stats from all unlocked talents
       - Event system: talentUnlocked, talentUpgraded, spinFailed, dailyLimitReached
