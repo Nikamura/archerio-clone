@@ -310,7 +310,7 @@ export default class UIScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.hudContainer,
-      alpha: 0.3,
+      alpha: 0,
       duration: 300,
       ease: 'Power2.easeOut',
     })

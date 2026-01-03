@@ -463,7 +463,7 @@ Visual test screenshots are saved to `test/screenshots/`
 3. ✅ **Player hitpoints not decreasing** - FIXED: Added player-enemy collision (5 damage), enemy bullets now damage player (10 damage), UI health bar updates in real-time
 4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
 5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
-6. ⚠️ **Room complete screen shows UI clutter** - When room is cleared and "ENTER" prompt appears, instruction text and health bar should be hidden for cleaner presentation
+6. ✅ **Room complete screen shows UI clutter** - FIXED (2026-01-03): Changed HUD fade alpha from 0.3 to 0 when room is cleared, so health bar and other HUD elements are fully hidden when the ENTER door prompt appears
 7. ✅ **Ability selection not working** - FIXED: Two issues resolved:
    - Phaser Containers require explicit hit area geometry (not just `setSize()` + `setInteractive()`)
    - Used `new Phaser.Geom.Rectangle(-width/2, -height/2, width, height)` as hit area (offset because container origin is center)
@@ -526,14 +526,16 @@ Visual test screenshots are saved to `test/screenshots/`
        - EquipmentManager: addToInventory, removeFromInventory, equip, unequip, upgrade, clear
        - TalentManager: spin (lottery state + talent upgrades), reset, forceUnlock
    - **LESSON**: For singleton managers with save/load methods, always add auto-save on mutation and auto-load on construction
-15. ⚠️ **EquipmentScene scroll position affects equipped item clicks** - When inventory is scrolled down, clicking on an already equipped item (in the top slots) opens/selects inventory items from the scrolled-away top position instead of showing the equipped item details. Click detection not accounting for scroll offset.
-16. ⚠️ **EquipmentScene inventory first row cut off** - The first line of items in the inventory grid is partially cut off and the scroll bounds don't allow scrolling up far enough to fully reveal them. Scroll min bounds or mask positioning issue.
-17. ⚠️ **Removed items/perks cause errors on load** - After removing "cooldown reduction" perk and "schyte_mage" equipment type, players get errors when bulk opening chests or loading saved data that references non-existent items. System needs graceful handling of removed content during development:
-   - Equipment generation should validate types exist before creating
-   - Save data loading should skip/remove items with invalid types
-   - Perk assignment should filter out removed perks
-   - Add defensive checks in EquipmentManager.fromSaveData() and generateRandomEquipment()
-18. ⚠️ **Player sprite rotates with movement direction** - Player model rotates 360° and becomes upside down based on movement direction. Player sprite should remain static/upright regardless of movement. Likely setting angle/rotation based on velocity in Player.update() - remove rotation logic.
+15. ✅ **EquipmentScene scroll position affects equipped item clicks** - FIXED (2026-01-03): Set equipped slots to higher depth (10) than inventory container (1) to ensure equipped items are always clickable above scrolled inventory content.
+16. ✅ **EquipmentScene inventory first row cut off** - FIXED (2026-01-03): Changed first row offset from y=10 to y=SLOT_SIZE/2+5 (35px) to ensure the first row is fully visible within the mask area. Updated maxScroll calculation to account for new offset.
+17. ✅ **Removed items/perks cause errors on load** - FIXED (2026-01-03):
+   - Removed scythe_mage from spirit types list (was already removed from SpiritType enum)
+   - Added perk validation in fromSaveData() to filter out non-existent perks
+   - Unknown equipment types already skip with a warning
+   - Unknown perks now skip with a warning instead of causing errors
+18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
+19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
+20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
@@ -782,7 +784,7 @@ Visual test screenshots are saved to `test/screenshots/`
     - TalentManager.ts: Singleton manager for lottery system
       - Lottery mechanics: spin(), getSpinCost(), getSpinsRemaining()
       - Escalating costs: 500 base + 250 per spin today
-      - Daily spin limit: 10 spins per day (resets at midnight)
+      - Daily spin limit: 42 spins per day (resets at midnight)
       - Talent stacking: Same talent can be rolled multiple times
       - calculateTotalBonuses(): Returns combined stats from all unlocked talents
       - Event system: talentUnlocked, talentUpgraded, spinFailed, dailyLimitReached
