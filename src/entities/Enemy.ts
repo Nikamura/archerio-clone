@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { EnemyType } from '../config/chapterData'
+import type WallGroup from '../systems/WallGroup'
 
 /**
  * Options for enemy spawning with difficulty and chapter modifiers
@@ -60,6 +61,16 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastHealthBarValue: number = -1 // Track last health to avoid redraws
   private lastHealthBarX: number = 0 // Track last position for cheap updates
   private lastHealthBarY: number = 0
+
+  // Wall avoidance system
+  protected wallGroup: WallGroup | null = null
+  private lastPositionForStuck: { x: number; y: number } = { x: 0, y: 0 }
+  private stuckFrames: number = 0
+  private readonly STUCK_THRESHOLD = 5 // Frames without movement before triggering avoidance
+  private readonly STUCK_DISTANCE_THRESHOLD = 0.5 // Minimum movement per frame
+  private alternateAngle: number | null = null // Current avoidance direction
+  private alternateTimer: number = 0 // Time since avoidance started
+  private readonly ALTERNATE_DURATION = 500 // ms to follow alternate path
 
   constructor(
     scene: Phaser.Scene,
@@ -458,12 +469,19 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       return false
     }
 
-    // Simple AI: move toward player
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+    // Simple AI: move toward player with wall avoidance
     const baseSpeed = 80
     const speed = baseSpeed * this.speedMultiplier
 
-    this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+    if (this.wallGroup) {
+      // Use wall-aware movement
+      const movement = this.calculateMovementWithWallAvoidance(playerX, playerY, speed, time)
+      this.setVelocity(movement.vx, movement.vy)
+    } else {
+      // Fallback to direct movement
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+      this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+    }
 
     // Ensure enemy stays within world bounds (extra safety check)
     const body = this.body as Phaser.Physics.Arcade.Body
@@ -481,6 +499,136 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     return false
+  }
+
+  /**
+   * Set wall group reference for wall avoidance pathfinding
+   */
+  setWallGroup(wallGroup: WallGroup): void {
+    this.wallGroup = wallGroup
+  }
+
+  /**
+   * Check if a position is blocked by any wall
+   */
+  protected isPositionBlockedByWall(x: number, y: number): boolean {
+    if (!this.wallGroup) return false
+
+    const padding = 20 // Account for enemy size
+    for (const wall of this.wallGroup.getWalls()) {
+      const halfWidth = wall.width / 2 + padding
+      const halfHeight = wall.height / 2 + padding
+
+      if (
+        x >= wall.x - halfWidth &&
+        x <= wall.x + halfWidth &&
+        y >= wall.y - halfHeight &&
+        y <= wall.y + halfHeight
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Find an alternate direction when blocked by a wall
+   */
+  private findAlternateDirection(
+    blockedAngle: number,
+    playerX: number,
+    playerY: number
+  ): number {
+    // Sample 7 directions offset from the blocked direction
+    const offsets = [
+      Math.PI / 4, // 45 degrees clockwise
+      -Math.PI / 4, // 45 degrees counter-clockwise
+      Math.PI / 2, // 90 degrees clockwise
+      -Math.PI / 2, // 90 degrees counter-clockwise
+      (3 * Math.PI) / 4,
+      (-3 * Math.PI) / 4,
+      Math.PI, // Opposite direction (last resort)
+    ]
+
+    const testDistance = 40 // Pixels ahead to check
+    let bestAngle = blockedAngle
+    let bestScore = -Infinity
+
+    for (const offset of offsets) {
+      const testAngle = blockedAngle + offset
+      const testX = this.x + Math.cos(testAngle) * testDistance
+      const testY = this.y + Math.sin(testAngle) * testDistance
+
+      // Check if test position is blocked by wall
+      if (this.isPositionBlockedByWall(testX, testY)) {
+        continue
+      }
+
+      // Score by how much this direction moves toward player
+      const distBefore = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY)
+      const distAfter = Phaser.Math.Distance.Between(testX, testY, playerX, playerY)
+      const progressScore = distBefore - distAfter // Positive = getting closer
+
+      // Prefer smaller offsets (more direct paths)
+      const offsetPenalty = Math.abs(offset) * 5
+      const score = progressScore - offsetPenalty
+
+      if (score > bestScore) {
+        bestScore = score
+        bestAngle = testAngle
+      }
+    }
+
+    return bestAngle
+  }
+
+  /**
+   * Calculate movement with wall avoidance
+   * Returns velocity components for wall-aware movement
+   */
+  protected calculateMovementWithWallAvoidance(
+    playerX: number,
+    playerY: number,
+    baseSpeed: number,
+    time: number
+  ): { vx: number; vy: number } {
+    // Direct angle to player
+    const directAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+
+    // Check if currently stuck (position hasn't changed despite velocity)
+    const dx = this.x - this.lastPositionForStuck.x
+    const dy = this.y - this.lastPositionForStuck.y
+    const distMoved = Math.sqrt(dx * dx + dy * dy)
+
+    if (distMoved < this.STUCK_DISTANCE_THRESHOLD && this.body) {
+      this.stuckFrames++
+    } else {
+      this.stuckFrames = 0
+      this.alternateAngle = null // Clear alternate path when moving freely
+    }
+
+    // Update last position
+    this.lastPositionForStuck.x = this.x
+    this.lastPositionForStuck.y = this.y
+
+    // If stuck, find alternate direction
+    if (this.stuckFrames > this.STUCK_THRESHOLD) {
+      if (
+        this.alternateAngle === null ||
+        time - this.alternateTimer > this.ALTERNATE_DURATION
+      ) {
+        this.alternateAngle = this.findAlternateDirection(directAngle, playerX, playerY)
+        this.alternateTimer = time
+      }
+    }
+
+    // Use alternate angle if set, otherwise direct
+    const moveAngle = this.alternateAngle ?? directAngle
+
+    return {
+      vx: Math.cos(moveAngle) * baseSpeed,
+      vy: Math.sin(moveAngle) * baseSpeed,
+    }
   }
 
   destroy(fromScene?: boolean) {

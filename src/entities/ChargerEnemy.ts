@@ -117,15 +117,25 @@ export default class ChargerEnemy extends Enemy {
       playerY
     )
 
-    // Move toward player at normal speed
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-
     // Keep some distance before charging
     if (distanceToPlayer > 80) {
-      this.setVelocity(
-        Math.cos(angle) * this.normalSpeed,
-        Math.sin(angle) * this.normalSpeed
-      )
+      // Use wall-aware movement if wallGroup is set
+      if (this.wallGroup) {
+        const movement = this.calculateMovementWithWallAvoidance(
+          playerX,
+          playerY,
+          this.normalSpeed,
+          time
+        )
+        this.setVelocity(movement.vx, movement.vy)
+      } else {
+        // Fallback to direct movement
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+        this.setVelocity(
+          Math.cos(angle) * this.normalSpeed,
+          Math.sin(angle) * this.normalSpeed
+        )
+      }
     } else {
       this.setVelocity(0, 0)
     }

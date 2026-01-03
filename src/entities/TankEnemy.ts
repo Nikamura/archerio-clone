@@ -74,10 +74,20 @@ export default class TankEnemy extends Enemy {
     const slowSpeed = baseSpeed * this.speedMultiplier
 
     if (!this.isCharging) {
-      // Move toward player slowly
+      // Move toward player slowly with wall avoidance
       if (distanceToPlayer > 100) {
-        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        this.setVelocity(Math.cos(angle) * slowSpeed, Math.sin(angle) * slowSpeed)
+        if (this.wallGroup) {
+          const movement = this.calculateMovementWithWallAvoidance(
+            playerX,
+            playerY,
+            slowSpeed,
+            time
+          )
+          this.setVelocity(movement.vx, movement.vy)
+        } else {
+          const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+          this.setVelocity(Math.cos(angle) * slowSpeed, Math.sin(angle) * slowSpeed)
+        }
       } else {
         // Close enough - stop moving
         this.setVelocity(0, 0)

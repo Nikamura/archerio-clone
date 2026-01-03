@@ -914,8 +914,10 @@ export default class GameScene extends Phaser.Scene {
     }
     if (enemy instanceof SpawnerEnemy) {
       enemy.setEnemyGroup(this.enemies)
-      enemy.setWallGroup(this.wallGroup)
     }
+
+    // Set wall group for all enemies (for wall avoidance pathfinding)
+    enemy.setWallGroup(this.wallGroup)
 
     // Set up physics body with centered circular hitbox
     const body = enemy.body as Phaser.Physics.Arcade.Body

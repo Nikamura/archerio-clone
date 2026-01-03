@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from './Enemy'
-import WallGroup from '../systems/WallGroup'
 
 /**
  * Small minion enemy spawned by SpawnerEnemy
@@ -47,11 +46,16 @@ export class MinionEnemy extends Enemy {
       return false
     }
 
-    // Simple AI: rush toward player faster than normal enemies
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+    // Rush toward player faster than normal enemies, with wall avoidance
     const speed = 100 // Faster than normal melee (80)
 
-    this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+    if (this.wallGroup) {
+      const movement = this.calculateMovementWithWallAvoidance(playerX, playerY, speed, time)
+      this.setVelocity(movement.vx, movement.vy)
+    } else {
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+      this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+    }
 
     // Ensure minion stays within world bounds
     const body = this.body as Phaser.Physics.Arcade.Body
@@ -91,9 +95,7 @@ export default class SpawnerEnemy extends Enemy {
 
   // Reference to enemy group for adding spawned minions
   private enemyGroup: Phaser.Physics.Arcade.Group | null = null
-
-  // Reference to wall group for spawn position validation
-  private wallGroup: WallGroup | null = null
+  // Note: wallGroup is inherited from Enemy base class for spawn position validation
 
   // Options to pass to spawned minions
   private spawnOptions: EnemyOptions
@@ -141,12 +143,7 @@ export default class SpawnerEnemy extends Enemy {
     this.enemyGroup = group
   }
 
-  /**
-   * Set the wall group for spawn position validation
-   */
-  setWallGroup(wallGroup: WallGroup): void {
-    this.wallGroup = wallGroup
-  }
+  // Note: setWallGroup is inherited from Enemy base class
 
   /**
    * Check if a position is inside any wall
@@ -313,6 +310,11 @@ export default class SpawnerEnemy extends Enemy {
     const minion = new MinionEnemy(this.scene, spawnX, spawnY, this.spawnOptions)
     this.scene.add.existing(minion)
     this.scene.physics.add.existing(minion)
+
+    // Set wall group for pathfinding (inherited from spawner)
+    if (this.wallGroup) {
+      minion.setWallGroup(this.wallGroup)
+    }
 
     // Set up physics body with centered circular hitbox
     const body = minion.body as Phaser.Physics.Arcade.Body

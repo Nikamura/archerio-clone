@@ -122,9 +122,19 @@ export default class HealerEnemy extends Enemy {
       const angle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
       this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
     } else if (distanceToPlayer > this.preferredDistanceFromPlayer + 50) {
-      // Too far - move closer (but stay behind other enemies)
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-      this.setVelocity(Math.cos(angle) * speed * 0.5, Math.sin(angle) * speed * 0.5)
+      // Too far - move closer with wall avoidance
+      if (this.wallGroup) {
+        const movement = this.calculateMovementWithWallAvoidance(
+          playerX,
+          playerY,
+          speed * 0.5,
+          time
+        )
+        this.setVelocity(movement.vx, movement.vy)
+      } else {
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+        this.setVelocity(Math.cos(angle) * speed * 0.5, Math.sin(angle) * speed * 0.5)
+      }
     } else {
       // Good distance - slow side-to-side movement
       const sideAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY) + Math.PI / 2

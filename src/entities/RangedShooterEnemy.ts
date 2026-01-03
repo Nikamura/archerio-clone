@@ -65,9 +65,14 @@ export default class RangedShooterEnemy extends Enemy {
       const baseSpeed = 60
       const speed = baseSpeed * this.speedMultiplier
       if (distanceToPlayer > preferredDistance + 50) {
-        // Move closer
-        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+        // Move closer with wall avoidance
+        if (this.wallGroup) {
+          const movement = this.calculateMovementWithWallAvoidance(playerX, playerY, speed, time)
+          this.setVelocity(movement.vx, movement.vy)
+        } else {
+          const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+          this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+        }
       } else if (distanceToPlayer < preferredDistance - 50) {
         // Move away
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
