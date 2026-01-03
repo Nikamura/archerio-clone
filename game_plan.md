@@ -425,6 +425,17 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - RoomGenerator integration:
     - All randomness uses seeded RNG (layout selection, enemy combos, spawn positions)
     - `setRng(SeededRandom)` to inject seed at run start
+    - Room layouts can include `walls` array for physical obstacles
+  - **Wall System (2026-01-03):**
+    - `Wall` entity: Static physics body (Rectangle) that blocks player, enemies, and bullets
+    - `WallGroup`: Manages wall creation/destruction per room, themed by chapter color
+    - Room layouts define walls via normalized coordinates (0-1): `{ x, y, width, height }`
+    - Player/enemy collision: Physics collider pushes entities away from walls
+    - Bullet/wall collision:
+      - Normal bullets: Destroyed on wall contact
+      - Bouncy Wall ability: Bullets reflect off walls (velocity reversed)
+      - Through Wall ability: Bullets pass through walls unaffected
+    - Layouts with walls: `maze_lite` (Cover Points, Scattered Pockets), `gauntlet` (Side Runners, Forward March)
   - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
   - MainMenuScene:
     - "Enter Seed" button below PLAY opens modal dialog
@@ -546,6 +557,10 @@ Visual test screenshots are saved to `test/screenshots/`
 18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
 19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
 20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
+21. 🐛 **Damage numbers setting doesn't work** - Settings toggle for damage numbers has no effect on gameplay
+22. 🐛 **Graphics quality settings don't work** - Low/Medium/High graphics quality toggles have no effect
+23. 🐛 **Speed boost icon becomes very large on hover** - In LevelUpScene, the speed_boost ability icon scales excessively on hover
+24. 🐛 **Player spawn position inconsistent** - On initial start, player spawns in middle of room; on reset, player spawns at bottom
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE

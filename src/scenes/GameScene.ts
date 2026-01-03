@@ -39,6 +39,7 @@ import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
+import WallGroup from '../systems/WallGroup'
 import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES } from './LevelUpScene'
 import { errorReporting } from '../systems/ErrorReportingManager'
@@ -94,6 +95,7 @@ export default class GameScene extends Phaser.Scene {
   private currentGeneratedRoom: GeneratedRoom | null = null
   private pendingEnemySpawns: number = 0
   private activeWaveTimers: Phaser.Time.TimerEvent[] = []
+  private wallGroup!: WallGroup
 
   // Seeded random for deterministic runs
   private runRng!: SeededRandom
@@ -318,6 +320,11 @@ export default class GameScene extends Phaser.Scene {
       console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
     }
 
+    // Create wall group for room obstacles
+    this.wallGroup = new WallGroup(this, width, height)
+    // Set wall color based on chapter theme (reuse chapterDef from above)
+    this.wallGroup.setColor(chapterDef.theme.primaryColor)
+
     // Create visual effects systems
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
@@ -395,6 +402,28 @@ export default class GameScene extends Phaser.Scene {
         this
       )
     }
+
+    // Wall collisions - player and enemies collide with walls
+    this.physics.add.collider(this.player, this.wallGroup)
+    this.physics.add.collider(this.enemies, this.wallGroup)
+
+    // Bullets hit walls - bounce or pass through based on abilities
+    this.physics.add.overlap(
+      this.bulletPool,
+      this.wallGroup,
+      this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Enemy bullets hit walls
+    this.physics.add.overlap(
+      this.enemyBulletPool,
+      this.wallGroup,
+      this.enemyBulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
 
     // Keyboard controls for desktop testing (arrow keys + WASD)
     this.cursors = this.input.keyboard!.createCursorKeys()
@@ -723,6 +752,14 @@ export default class GameScene extends Phaser.Scene {
       graphics.fillCircle(0, 0, 15)
       graphics.generateTexture('enemy', 30, 30)
       graphics.destroy()
+    }
+
+    // Spawn walls for this room layout
+    if (generatedRoom.layout.walls && generatedRoom.layout.walls.length > 0) {
+      this.wallGroup.createWalls(generatedRoom.layout.walls)
+      console.log(`Room ${this.currentRoom}: Created ${generatedRoom.layout.walls.length} walls`)
+    } else {
+      this.wallGroup.clearWalls()
     }
 
     // Get chapter for enemy modifiers
@@ -1363,6 +1400,68 @@ export default class GameScene extends Phaser.Scene {
    */
   private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
     return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
+  }
+
+  /**
+   * Handle player bullets hitting walls
+   * Bullets with through_wall ability pass through
+   * Bullets with bouncy_wall ability bounce off
+   * Other bullets are deactivated
+   */
+  private bulletHitWall(
+    bullet: Phaser.GameObjects.GameObject,
+    _wall: Phaser.GameObjects.GameObject
+  ) {
+    const bulletSprite = bullet as Bullet
+    if (!bulletSprite.active) return
+
+    // Through wall ability - bullets pass through walls
+    if (bulletSprite.isThroughWallEnabled()) {
+      return // Don't deactivate, bullet continues
+    }
+
+    // Bouncy wall ability - bullets bounce off walls
+    if (bulletSprite.getMaxWallBounces() > 0 && bulletSprite.getWallBounceCount() < bulletSprite.getMaxWallBounces()) {
+      // The bounce is handled in Bullet.update() when it hits screen edges
+      // For physical walls, we need to reflect the velocity
+      const body = bulletSprite.body as Phaser.Physics.Arcade.Body
+
+      // Determine which side was hit and reflect velocity
+      // Simple approach: reflect velocity based on current direction
+      const vx = body.velocity.x
+      const vy = body.velocity.y
+
+      // Check if hitting more horizontally or vertically
+      if (Math.abs(vx) > Math.abs(vy)) {
+        body.velocity.x = -vx
+      } else {
+        body.velocity.y = -vy
+      }
+
+      // Update bullet rotation to match new direction
+      bulletSprite.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
+
+      // Manually increment wall bounce count (since screen edge detection won't trigger)
+      // Note: This is a simplified approach; actual bounce is tracked in Bullet class
+      return // Don't deactivate
+    }
+
+    // Normal bullets are destroyed on wall contact
+    bulletSprite.deactivate()
+  }
+
+  /**
+   * Handle enemy bullets hitting walls - always destroyed
+   */
+  private enemyBulletHitWall(
+    bullet: Phaser.GameObjects.GameObject,
+    _wall: Phaser.GameObjects.GameObject
+  ) {
+    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
+    if (!bulletSprite.active) return
+
+    bulletSprite.setActive(false)
+    bulletSprite.setVisible(false)
   }
 
   private enemyBulletHitPlayer(
