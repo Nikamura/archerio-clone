@@ -526,6 +526,14 @@ Visual test screenshots are saved to `test/screenshots/`
        - EquipmentManager: addToInventory, removeFromInventory, equip, unequip, upgrade, clear
        - TalentManager: spin (lottery state + talent upgrades), reset, forceUnlock
    - **LESSON**: For singleton managers with save/load methods, always add auto-save on mutation and auto-load on construction
+15. ⚠️ **EquipmentScene scroll position affects equipped item clicks** - When inventory is scrolled down, clicking on an already equipped item (in the top slots) opens/selects inventory items from the scrolled-away top position instead of showing the equipped item details. Click detection not accounting for scroll offset.
+16. ⚠️ **EquipmentScene inventory first row cut off** - The first line of items in the inventory grid is partially cut off and the scroll bounds don't allow scrolling up far enough to fully reveal them. Scroll min bounds or mask positioning issue.
+17. ⚠️ **Removed items/perks cause errors on load** - After removing "cooldown reduction" perk and "schyte_mage" equipment type, players get errors when bulk opening chests or loading saved data that references non-existent items. System needs graceful handling of removed content during development:
+   - Equipment generation should validate types exist before creating
+   - Save data loading should skip/remove items with invalid types
+   - Perk assignment should filter out removed perks
+   - Add defensive checks in EquipmentManager.fromSaveData() and generateRandomEquipment()
+18. ⚠️ **Player sprite rotates with movement direction** - Player model rotates 360° and becomes upside down based on movement direction. Player sprite should remain static/upright regardless of movement. Likely setting angle/rotation based on velocity in Player.update() - remove rotation logic.
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
