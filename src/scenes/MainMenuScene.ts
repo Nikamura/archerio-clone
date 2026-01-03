@@ -290,6 +290,10 @@ export default class MainMenuScene extends Phaser.Scene {
 
     playButton.on('pointerdown', () => {
       audioManager.resume()
+      // Check and spend energy before starting
+      if (!this.trySpendEnergy()) {
+        return
+      }
       audioManager.playGameStart()
       // Set custom seed if provided
       if (this.customSeed) {
@@ -330,6 +334,10 @@ export default class MainMenuScene extends Phaser.Scene {
 
     endlessButton.on('pointerdown', () => {
       audioManager.resume()
+      // Check and spend energy before starting
+      if (!this.trySpendEnergy()) {
+        return
+      }
       audioManager.playGameStart()
       // Enable endless mode, disable daily challenge mode
       this.game.registry.set('isEndlessMode', true)
@@ -372,6 +380,10 @@ export default class MainMenuScene extends Phaser.Scene {
 
     dailyChallengeButton.on('pointerdown', () => {
       audioManager.resume()
+      // Check and spend energy before starting
+      if (!this.trySpendEnergy()) {
+        return
+      }
       audioManager.playGameStart()
       // Enable daily challenge mode (uses endless mechanics with fixed daily seed)
       this.game.registry.set('isDailyChallengeMode', true)
@@ -877,6 +889,85 @@ export default class MainMenuScene extends Phaser.Scene {
 
     const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
     this.energyTimerText.setText(`Next: ${timeString}`)
+  }
+
+  /**
+   * Attempt to start a game run by spending energy
+   * @returns true if energy was spent and game can start, false otherwise
+   */
+  private trySpendEnergy(): boolean {
+    const currentEnergy = currencyManager.get('energy')
+    if (currentEnergy <= 0) {
+      this.showNoEnergyMessage()
+      return false
+    }
+
+    currencyManager.spendEnergy(1)
+    return true
+  }
+
+  /**
+   * Show a temporary "No Energy" message on screen
+   */
+  private showNoEnergyMessage(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+    overlay.setDepth(100)
+
+    // Create message container
+    const messageBox = this.add.rectangle(width / 2, height / 2, 280, 120, 0x222222, 1)
+    messageBox.setStrokeStyle(2, 0xff4444)
+    messageBox.setDepth(101)
+
+    // No energy icon and title
+    const title = this.add.text(width / 2, height / 2 - 30, '⚡ No Energy!', {
+      fontSize: '22px',
+      color: '#ff4444',
+      fontStyle: 'bold',
+    })
+    title.setOrigin(0.5)
+    title.setDepth(102)
+
+    // Description text
+    const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
+    const desc = this.add.text(width / 2, height / 2 + 5, `Next energy in: ${timeString}`, {
+      fontSize: '14px',
+      color: '#cccccc',
+    })
+    desc.setOrigin(0.5)
+    desc.setDepth(102)
+
+    // Tap to dismiss text
+    const dismissText = this.add.text(width / 2, height / 2 + 35, 'Tap to dismiss', {
+      fontSize: '12px',
+      color: '#888888',
+    })
+    dismissText.setOrigin(0.5)
+    dismissText.setDepth(102)
+
+    // Make overlay interactive to dismiss
+    overlay.setInteractive()
+    overlay.on('pointerdown', () => {
+      overlay.destroy()
+      messageBox.destroy()
+      title.destroy()
+      desc.destroy()
+      dismissText.destroy()
+    })
+
+    // Auto-dismiss after 3 seconds
+    this.time.delayedCall(3000, () => {
+      if (overlay.active) {
+        overlay.destroy()
+        messageBox.destroy()
+        title.destroy()
+        desc.destroy()
+        dismissText.destroy()
+      }
+    })
   }
 
   private createTorches(width: number) {
