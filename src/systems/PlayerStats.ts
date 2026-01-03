@@ -604,6 +604,30 @@ export class PlayerStats {
   }
 
   // ============================================
+  // Iron Will (Epic Talent) - Bonus HP when low health
+  // ============================================
+
+  /**
+   * Add flat max health bonus (for Iron Will talent)
+   * Does NOT heal the player, just increases max HP
+   */
+  addMaxHealthBonus(amount: number): void {
+    this.maxHealth += amount
+  }
+
+  /**
+   * Remove flat max health bonus (for Iron Will talent deactivation)
+   * Caps current health to new max if needed
+   */
+  removeMaxHealthBonus(amount: number): void {
+    this.maxHealth = Math.max(1, this.maxHealth - amount)
+    // Cap current health to new max health
+    if (this.health > this.maxHealth) {
+      this.health = this.maxHealth
+    }
+  }
+
+  // ============================================
   // Reset / Utility
   // ============================================
 

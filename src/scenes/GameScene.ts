@@ -127,6 +127,14 @@ export default class GameScene extends Phaser.Scene {
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses
 
+  // Equipment bonuses (cached for use throughout the game)
+  private bonusXPMultiplier: number = 1.0  // From equipment: bonus XP percent
+  private goldBonusMultiplier: number = 1.0  // From equipment: bonus gold percent
+
+  // Iron Will state tracking (Epic talent: bonus HP when low health)
+  private ironWillActive: boolean = false
+  private ironWillBonusHP: number = 0
+
   // Damage aura visual effect
   private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
 
@@ -332,6 +340,17 @@ export default class GameScene extends Phaser.Scene {
     const totalDodgeChance = (equipStats.dodgeChance ?? 0) * equipmentStatMultiplier
     this.player.setDodgeChance(totalDodgeChance)
 
+    // Calculate and cache equipment bonus multipliers for XP and gold
+    this.bonusXPMultiplier = 1 + (equipStats.bonusXPPercent ?? 0)
+    this.goldBonusMultiplier = 1 + (equipStats.goldBonusPercent ?? 0)
+    console.log('GameScene: Bonus multipliers - XP:', this.bonusXPMultiplier, 'Gold:', this.goldBonusMultiplier)
+
+    // Apply Helix rage passive: automatically grants rage level 1 at start
+    if (selectedHeroId === 'helix') {
+      this.player.addRage()
+      console.log('GameScene: Helix passive - Rage level 1 applied automatically')
+    }
+
     // Create bullet pools, bomb pool, gold pool, and health pool
     this.bulletPool = new BulletPool(this)
     this.enemyBulletPool = new EnemyBulletPool(this)
@@ -401,6 +420,18 @@ export default class GameScene extends Phaser.Scene {
     }
     this.runSeedString = this.runRng.getSeedString()
     console.log(`GameScene: Run seed: ${this.runSeedString}`)
+
+    // Apply starting abilities from Glory talent (Epic talent)
+    // Must be done after runRng is initialized for deterministic ability selection
+    if (this.talentBonuses.startingAbilities > 0) {
+      console.log(`GameScene: Applying ${this.talentBonuses.startingAbilities} starting abilities from Glory talent`)
+      const shuffledAbilities = [...ABILITIES].sort(() => this.runRng.random() - 0.5)
+      for (let i = 0; i < this.talentBonuses.startingAbilities && i < shuffledAbilities.length; i++) {
+        const ability = shuffledAbilities[i]
+        this.applyAbility(ability.id)
+        console.log(`GameScene: Starting ability applied: ${ability.name}`)
+      }
+    }
 
     // Initialize room generator with seeded RNG
     this.roomGenerator = getRoomGenerator(width, height)
@@ -1346,8 +1377,9 @@ export default class GameScene extends Phaser.Scene {
       // Spawn gold drop at enemy position
       this.spawnDrops(enemySprite)
 
-      // Add XP to player (boss gives 10 XP)
-      const xpGain = isBoss ? 10 : 1
+      // Add XP to player (boss gives 10 XP), apply equipment XP bonus
+      const baseXpGain = isBoss ? 10 : 1
+      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
@@ -1461,6 +1493,8 @@ export default class GameScene extends Phaser.Scene {
     // Apply heal on level up talent bonus
     if (this.talentBonuses.flatHealOnLevel > 0) {
       this.player.heal(this.talentBonuses.flatHealOnLevel)
+      // Check Iron Will (may deactivate if healed above threshold)
+      this.checkIronWillStatus()
       console.log('GameScene: Healed', this.talentBonuses.flatHealOnLevel, 'HP from talent')
     }
 
@@ -1783,6 +1817,9 @@ export default class GameScene extends Phaser.Scene {
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
+    // Check Iron Will talent (bonus HP when low health)
+    this.checkIronWillStatus()
+
     // Check for death
     if (playerSprite.getHealth() <= 0) {
       this.screenShake.onPlayerDeath()
@@ -1843,6 +1880,9 @@ export default class GameScene extends Phaser.Scene {
     // Update UI
     this.updatePlayerHealthUI(playerSprite)
 
+    // Check Iron Will talent (bonus HP when low health)
+    this.checkIronWillStatus()
+
     // Check for death
     if (playerSprite.getHealth() <= 0) {
       this.screenShake.onPlayerDeath()
@@ -1896,6 +1936,40 @@ export default class GameScene extends Phaser.Scene {
       const offset = (displaySize - newHitboxRadius * 2) / 2
       body.setSize(displaySize, displaySize)
       body.setCircle(newHitboxRadius, offset, offset)
+    }
+  }
+
+  /**
+   * Check and update Iron Will talent status (Epic talent: bonus HP when low health)
+   * Called after player takes damage or heals
+   */
+  private checkIronWillStatus() {
+    // Skip if player doesn't have Iron Will talent
+    if (this.talentBonuses.percentHpWhenLow <= 0) return
+
+    const currentHealth = this.player.getHealth()
+    const maxHealth = this.player.getMaxHealth()
+    const healthPercent = currentHealth / maxHealth
+    const threshold = this.talentBonuses.lowHpThreshold / 100 // Convert from percentage
+
+    const shouldBeActive = healthPercent <= threshold && healthPercent > 0
+
+    if (shouldBeActive && !this.ironWillActive) {
+      // Activate Iron Will - grant bonus max HP
+      this.ironWillActive = true
+      this.ironWillBonusHP = Math.round(maxHealth * (this.talentBonuses.percentHpWhenLow / 100))
+      this.player.addMaxHealthBonus(this.ironWillBonusHP)
+      console.log(`GameScene: Iron Will activated! +${this.ironWillBonusHP} max HP`)
+      // Update UI to show new max health
+      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+    } else if (!shouldBeActive && this.ironWillActive) {
+      // Deactivate Iron Will - remove bonus max HP
+      this.ironWillActive = false
+      this.player.removeMaxHealthBonus(this.ironWillBonusHP)
+      console.log(`GameScene: Iron Will deactivated, removed ${this.ironWillBonusHP} bonus HP`)
+      this.ironWillBonusHP = 0
+      // Update UI to show new max health
+      this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
     }
   }
 
@@ -1973,6 +2047,8 @@ export default class GameScene extends Phaser.Scene {
       this.player.setPosition(width / 2, height - 100)
       this.player.setVelocity(0, 0)
       this.player.heal(this.player.getMaxHealth()) // Full heal on reset
+      // Reset Iron Will state after full heal
+      this.checkIronWillStatus()
 
       // Spawn enemies for room 1 (will use reset RNG)
       this.spawnEnemies()
@@ -2362,8 +2438,9 @@ export default class GameScene extends Phaser.Scene {
       // Spawn drops
       this.spawnDrops(e)
 
-      // Add XP
-      const xpGain = isBoss ? 10 : 1
+      // Add XP with equipment XP bonus
+      const baseXpGain = isBoss ? 10 : 1
+      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
@@ -2504,8 +2581,9 @@ export default class GameScene extends Phaser.Scene {
     // Spawn drops
     this.spawnDrops(enemy)
 
-    // Add XP
-    const xpGain = isBoss ? 10 : 1
+    // Add XP with equipment XP bonus
+    const baseXpGain = isBoss ? 10 : 1
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
 
@@ -2685,8 +2763,9 @@ export default class GameScene extends Phaser.Scene {
     // Spawn gold drop at enemy position
     this.spawnDrops(e)
 
-    // Add XP to player (check if boss)
-    const xpGain = isBoss ? 10 : 1
+    // Add XP to player with equipment XP bonus
+    const baseXpGain = isBoss ? 10 : 1
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
 
@@ -2818,9 +2897,10 @@ export default class GameScene extends Phaser.Scene {
         this.updateSpiritCats(time, playerX, playerY)
       }
 
-      // Update gold pickups - check for collection
-      const goldCollected = this.goldPool.updateAll(playerX, playerY)
-      if (goldCollected > 0) {
+      // Update gold pickups - check for collection, apply equipment gold bonus
+      const baseGoldCollected = this.goldPool.updateAll(playerX, playerY)
+      if (baseGoldCollected > 0) {
+        const goldCollected = Math.round(baseGoldCollected * this.goldBonusMultiplier)
         this.goldEarned += goldCollected
         currencyManager.add('gold', goldCollected)
         saveManager.addGold(goldCollected)
@@ -2834,6 +2914,8 @@ export default class GameScene extends Phaser.Scene {
         this.player.heal(healAmount)
         // Update health UI
         this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+        // Check Iron Will talent (deactivate if above threshold after healing)
+        this.checkIronWillStatus()
         // Heal particles at player position
         this.particles.emitHeal(playerX, playerY)
         hapticManager.light() // Haptic feedback for collecting health

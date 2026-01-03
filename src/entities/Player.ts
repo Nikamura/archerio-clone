@@ -266,6 +266,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addGiant()
   }
 
+  // Iron Will talent support (bonus HP when low health)
+  addMaxHealthBonus(amount: number) {
+    this.stats?.addMaxHealthBonus(amount)
+  }
+
+  removeMaxHealthBonus(amount: number) {
+    this.stats?.removeMaxHealthBonus(amount)
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0
