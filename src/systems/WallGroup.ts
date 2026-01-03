@@ -70,6 +70,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private textureKey: string | undefined
   private chapterId: number = 1
   private themeName: string | undefined
+  private walls: Wall[] = []
 
   constructor(scene: Phaser.Scene, screenWidth: number, screenHeight: number) {
     super(scene.physics.world, scene)
@@ -124,7 +125,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    */
   createWalls(configs: WallConfig[]): void {
     // Clear existing walls
-    this.clear(true, true)
+    this.clearWalls()
 
     for (const config of configs) {
       // Convert normalized coordinates to screen coordinates
@@ -134,7 +135,9 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
       const height = config.height * this.screenHeight
 
       const wall = new Wall(this.scene, x, y, width, height, this.wallColor, this.textureKey, this.borderColor)
-      this.add(wall)
+      this.walls.push(wall)
+      // Add the physics object to the StaticGroup for collision detection
+      this.add(wall.getPhysicsObject())
     }
   }
 
@@ -142,6 +145,12 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * Clear all walls (called between rooms)
    */
   clearWalls(): void {
+    // Destroy wall containers (which destroys their children)
+    for (const wall of this.walls) {
+      wall.destroy()
+    }
+    this.walls = []
+    // Clear the physics group
     this.clear(true, true)
   }
 
@@ -157,6 +166,6 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * Get all walls as an array
    */
   getWalls(): Wall[] {
-    return this.getChildren() as Wall[]
+    return this.walls
   }
 }

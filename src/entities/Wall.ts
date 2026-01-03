@@ -12,9 +12,13 @@ import Phaser from 'phaser'
  * - Optional texture support with TileSprite for repeating patterns
  * - Visible border for clarity against backgrounds
  */
-export default class Wall extends Phaser.GameObjects.Container {
+export default class Wall {
   private wallGraphics: Phaser.GameObjects.Rectangle | Phaser.GameObjects.TileSprite
   private borderGraphics: Phaser.GameObjects.Graphics
+  private _x: number
+  private _y: number
+  private _width: number
+  private _height: number
 
   constructor(
     scene: Phaser.Scene,
@@ -26,17 +30,18 @@ export default class Wall extends Phaser.GameObjects.Container {
     textureKey?: string,
     borderColor: number = 0x222222
   ) {
-    super(scene, x, y)
+    this._x = x
+    this._y = y
+    this._width = width
+    this._height = height
 
     // Use texture if provided and exists, otherwise fallback to colored rectangle
     if (textureKey && scene.textures.exists(textureKey)) {
       // TileSprite repeats the texture to fill the wall area
-      this.wallGraphics = scene.add.tileSprite(0, 0, width, height, textureKey)
-      this.add(this.wallGraphics)
+      this.wallGraphics = scene.add.tileSprite(x, y, width, height, textureKey)
     } else {
       // Fallback to colored rectangle
-      this.wallGraphics = scene.add.rectangle(0, 0, width, height, color)
-      this.add(this.wallGraphics)
+      this.wallGraphics = scene.add.rectangle(x, y, width, height, color)
     }
 
     // Add visible border around the wall for clarity
@@ -44,36 +49,68 @@ export default class Wall extends Phaser.GameObjects.Container {
     const borderWidth = 3
     // Draw outer dark border
     this.borderGraphics.lineStyle(borderWidth, borderColor, 1)
-    this.borderGraphics.strokeRect(-width / 2, -height / 2, width, height)
+    this.borderGraphics.strokeRect(x - width / 2, y - height / 2, width, height)
     // Draw inner highlight for 3D effect
     this.borderGraphics.lineStyle(1, 0x666666, 0.5)
-    this.borderGraphics.strokeRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4)
-    this.add(this.borderGraphics)
+    this.borderGraphics.strokeRect(x - width / 2 + 2, y - height / 2 + 2, width - 4, height - 4)
 
-    scene.add.existing(this)
-    scene.physics.add.existing(this, true) // true = static body
+    // Add physics to the wallGraphics (Rectangle/TileSprite have proper bounds methods)
+    scene.physics.add.existing(this.wallGraphics, true) // true = static body
 
-    // Set up physics body to match wall size
-    const body = this.body as Phaser.Physics.Arcade.StaticBody
-    body.setSize(width, height)
+    // Set depth - above floor, below entities
+    this.wallGraphics.setDepth(1)
+    this.borderGraphics.setDepth(1)
+  }
 
-    this.setDepth(1) // Above floor, below entities
+  get x(): number {
+    return this._x
+  }
 
-    // Set container size for containsPoint check
-    this.setSize(width, height)
+  get y(): number {
+    return this._y
+  }
+
+  get width(): number {
+    return this._width
+  }
+
+  get height(): number {
+    return this._height
+  }
+
+  /**
+   * Get the physics body for collision detection
+   */
+  getBody(): Phaser.Physics.Arcade.StaticBody {
+    return this.wallGraphics.body as Phaser.Physics.Arcade.StaticBody
+  }
+
+  /**
+   * Get the game object with the physics body
+   */
+  getPhysicsObject(): Phaser.GameObjects.Rectangle | Phaser.GameObjects.TileSprite {
+    return this.wallGraphics
   }
 
   /**
    * Check if a point is inside the wall
    */
-  containsPoint(x: number, y: number): boolean {
-    const halfWidth = this.width / 2
-    const halfHeight = this.height / 2
+  containsPoint(px: number, py: number): boolean {
+    const halfWidth = this._width / 2
+    const halfHeight = this._height / 2
     return (
-      x >= this.x - halfWidth &&
-      x <= this.x + halfWidth &&
-      y >= this.y - halfHeight &&
-      y <= this.y + halfHeight
+      px >= this._x - halfWidth &&
+      px <= this._x + halfWidth &&
+      py >= this._y - halfHeight &&
+      py <= this._y + halfHeight
     )
+  }
+
+  /**
+   * Destroy the wall and all its graphics
+   */
+  destroy(): void {
+    this.wallGraphics.destroy()
+    this.borderGraphics.destroy()
   }
 }
