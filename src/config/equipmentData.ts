@@ -154,13 +154,6 @@ export const PERKS: Record<PerkId, Perk> = {
     stats: { goldBonusPercent: 0.05 },
     rarity: Rarity.COMMON,
   },
-  [PerkId.COOLDOWN_REDUCTION_SMALL]: {
-    id: PerkId.COOLDOWN_REDUCTION_SMALL,
-    name: 'Cooldown -5%',
-    description: 'Reduces ability cooldowns by 5%',
-    stats: { abilityCooldownReduction: 0.05 },
-    rarity: Rarity.RARE,
-  },
 }
 
 /**
@@ -215,8 +208,7 @@ export function getPerksForSlot(slot: EquipmentSlotType, rarity: Rarity): Perk[]
       case 'spirit':
         return (
           stats.bonusXPPercent !== undefined ||
-          stats.goldBonusPercent !== undefined ||
-          stats.abilityCooldownReduction !== undefined
+          stats.goldBonusPercent !== undefined
         )
       default:
         return true
@@ -408,14 +400,6 @@ export const SPIRIT_DATA: Record<SpiritType, BaseEquipmentData> = {
       attackDamagePercent: 0.08,
     },
   },
-  [SpiritType.SCYTHE_MAGE]: {
-    name: 'Scythe Mage',
-    description: 'Mystical mage that reduces ability cooldowns',
-    slot: 'spirit',
-    baseStats: {
-      abilityCooldownReduction: 0.1,
-    },
-  },
 }
 
 /**
@@ -567,9 +551,6 @@ export function applyRarityMultiplier(stats: EquipmentStats, rarity: Rarity): Eq
   if (stats.goldBonusPercent !== undefined) {
     result.goldBonusPercent = stats.goldBonusPercent * percentMultiplier
   }
-  if (stats.abilityCooldownReduction !== undefined) {
-    result.abilityCooldownReduction = stats.abilityCooldownReduction * percentMultiplier
-  }
   if (stats.projectileSpeedPercent !== undefined) {
     result.projectileSpeedPercent = stats.projectileSpeedPercent * percentMultiplier
   }
@@ -606,7 +587,6 @@ export function calculateEquipmentStats(
     'dodgeChance',
     'bonusXPPercent',
     'goldBonusPercent',
-    'abilityCooldownReduction',
     'projectileSpeedPercent',
   ])
 
