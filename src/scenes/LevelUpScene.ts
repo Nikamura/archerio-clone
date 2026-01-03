@@ -1,12 +1,6 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
-import {
-  showModal,
-  glow,
-  applyButtonEffects,
-  DURATION,
-  EASING,
-} from '../systems/UIAnimations'
+import { DURATION, EASING } from '../systems/UIAnimations'
 import { errorReporting } from '../systems/ErrorReportingManager'
 
 export interface AbilityData {
@@ -191,14 +185,11 @@ export interface LevelUpData {
 const SELECTION_TIME_MS = 5000 // 5 seconds to choose
 
 export default class LevelUpScene extends Phaser.Scene {
-  private playerLevel: number = 1
-  private buttons: Phaser.GameObjects.Rectangle[] = []
   private abilityCards: Phaser.GameObjects.Container[] = []
-  private titleContainer?: Phaser.GameObjects.Container
+  private modalContainer!: Phaser.GameObjects.Container
   private selectedAbilities: AbilityData[] = []
   private selectionTimer?: Phaser.Time.TimerEvent
-  private progressBar?: Phaser.GameObjects.Rectangle
-  private progressBarBg?: Phaser.GameObjects.Rectangle
+  private progressBar?: Phaser.GameObjects.Graphics
   private timerText?: Phaser.GameObjects.Text
   private isSelecting: boolean = false
 
@@ -206,14 +197,11 @@ export default class LevelUpScene extends Phaser.Scene {
     super({ key: 'LevelUpScene' })
   }
 
-  init(data: LevelUpData) {
-    this.playerLevel = data?.playerLevel || 1
-    this.buttons = []
+  init(_data: LevelUpData) {
     this.abilityCards = []
     this.selectedAbilities = []
     this.selectionTimer = undefined
     this.progressBar = undefined
-    this.progressBarBg = undefined
     this.timerText = undefined
     this.isSelecting = false
   }
@@ -223,147 +211,97 @@ export default class LevelUpScene extends Phaser.Scene {
       const width = this.cameras.main.width
       const height = this.cameras.main.height
 
-      // Register shutdown event
       this.events.once('shutdown', this.shutdown, this)
 
-      // CRITICAL: Ensure this scene receives input and is on top
+      // Ensure input works
       this.input.enabled = true
-      this.input.setTopOnly(false) // Allow all objects to receive input
+      this.input.setTopOnly(false)
       this.scene.bringToTop()
 
-      // Set canvas pointer events to ensure touch works
       if (this.game.canvas) {
         this.game.canvas.style.pointerEvents = 'auto'
-        // Also re-enable the parent container; Safari can inherit a 'none' from the joystick
         if (this.game.canvas.parentElement) {
           this.game.canvas.parentElement.style.pointerEvents = 'auto'
         }
       }
 
-    // Dark overlay background with fade in
-    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
-    bg.setInteractive() // Capture all clicks on background too
-    bg.setDepth(-1) // Ensure background is behind everything
+      // Dark overlay
+      const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
+      bg.setInteractive()
+      bg.setDepth(-1)
 
-    // Fade in overlay
-    this.tweens.add({
-      targets: bg,
-      alpha: 0.9,
-      duration: DURATION.FAST,
-      ease: EASING.EASE_OUT,
-    })
+      this.tweens.add({
+        targets: bg,
+        alpha: 0.85,
+        duration: DURATION.FAST,
+        ease: EASING.EASE_OUT,
+      })
 
-    // Title container for animation
-    this.titleContainer = this.add.container(width / 2, 100)
-    this.titleContainer.setDepth(1)
+      // Main modal container
+      this.modalContainer = this.add.container(width / 2, height / 2)
+      this.modalContainer.setDepth(10)
+      this.modalContainer.setScale(0.8)
+      this.modalContainer.setAlpha(0)
 
-    // Title background glow
-    const titleGlow = this.add.rectangle(0, 0, 250, 60, 0xffdd00, 0.15)
-    titleGlow.setStrokeStyle(2, 0xffdd00)
-    this.titleContainer.add(titleGlow)
+      // Modal background
+      const modalWidth = width - 40
+      const modalHeight = 320
+      const modalBg = this.add.graphics()
+      modalBg.fillStyle(0x1a1a2e, 0.98)
+      modalBg.fillRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16)
+      modalBg.lineStyle(2, 0x4a4a6a, 1)
+      modalBg.strokeRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16)
+      this.modalContainer.add(modalBg)
 
-    // Title text
-    const title = this.add
-      .text(0, 0, 'LEVEL UP!', {
-        fontSize: '32px',
+      // Title
+      const title = this.add.text(0, -modalHeight / 2 + 30, 'LEVEL UP', {
+        fontSize: '24px',
         color: '#ffdd00',
         fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-    this.titleContainer.add(title)
+      }).setOrigin(0.5)
+      title.setStroke('#000000', 3)
+      this.modalContainer.add(title)
 
-    // Animate title in with bounce
-    showModal(this, this.titleContainer, DURATION.NORMAL)
+      // Subtitle
+      const subtitle = this.add.text(0, -modalHeight / 2 + 55, 'Choose an ability', {
+        fontSize: '12px',
+        color: '#888888',
+      }).setOrigin(0.5)
+      this.modalContainer.add(subtitle)
 
-    // Pulsing glow on title
-    glow(this, titleGlow, 0.1, 0.25, 800)
+      // Select 3 random abilities
+      this.selectedAbilities = this.selectRandomAbilities(3)
 
-    // Create particles around title
-    this.createTitleParticles(width)
-
-    // Global input log for debugging (use once to avoid listener accumulation)
-    this.input.once('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      console.log('LevelUpScene: Global pointerdown at', pointer.x, pointer.y)
-    })
-
-    // Select 3 random abilities
-    this.selectedAbilities = this.selectRandomAbilities(3)
-
-    // Create ability cards - vertically stacked with staggered animation
-    const buttonWidth = width - 60
-    const buttonHeight = 80
-    const startY = 180
-    const spacing = 100
+      // Create ability cards
+      const cardWidth = modalWidth - 30
+      const cardHeight = 60
+      const cardSpacing = 70
+      const startY = -40
 
       this.selectedAbilities.forEach((ability, index) => {
-        const y = startY + index * spacing
-        // Delay each card's creation for stagger effect
-        this.time.delayedCall(DURATION.FAST + index * 100, () => {
-          try {
-            this.createAbilityCard(width / 2, y, buttonWidth, buttonHeight, ability, index)
-          } catch (error) {
-            console.error('LevelUpScene: Error creating ability card:', error)
-          }
-        })
+        const y = startY + index * cardSpacing
+        this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index)
       })
 
-      // Create progress bar at bottom
-      this.createProgressBar(width, height)
+      // Progress bar at bottom of modal
+      this.createProgressBar(modalWidth, modalHeight)
 
-      // Start selection timer after cards are shown
-      const totalCardDelay = DURATION.FAST + (this.selectedAbilities.length - 1) * 100 + DURATION.NORMAL
-      this.time.delayedCall(totalCardDelay, () => {
-        this.startSelectionTimer()
+      // Animate modal in
+      this.tweens.add({
+        targets: this.modalContainer,
+        scale: 1,
+        alpha: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          this.startSelectionTimer()
+        },
       })
 
-      console.log('LevelUpScene: Created for level', this.playerLevel)
+      console.log('LevelUpScene: Created (modern modal)')
     } catch (error) {
       console.error('LevelUpScene: Error in create:', error)
-      // Try to close the scene gracefully
       this.scene.stop('LevelUpScene')
-    }
-  }
-
-  private createTitleParticles(width: number) {
-    try {
-      // Create particle texture if not exists
-      if (!this.textures.exists('levelup_particle')) {
-        const graphics = this.add.graphics()
-        graphics.fillStyle(0xffdd00, 1)
-        graphics.fillCircle(4, 4, 4)
-        graphics.generateTexture('levelup_particle', 8, 8)
-        graphics.destroy()
-      }
-
-    // Create particle emitters on each side of title
-    const leftEmitter = this.add.particles(width / 2 - 100, 100, 'levelup_particle', {
-      speed: { min: 20, max: 50 },
-      angle: { min: 240, max: 300 },
-      scale: { start: 0.6, end: 0 },
-      alpha: { start: 0.8, end: 0 },
-      lifespan: { min: 600, max: 1000 },
-      frequency: 200,
-      quantity: 1,
-      blendMode: Phaser.BlendModes.ADD,
-      tint: [0xffdd00, 0xffaa00, 0xff8800],
-    })
-    leftEmitter.setDepth(1)
-
-      const rightEmitter = this.add.particles(width / 2 + 100, 100, 'levelup_particle', {
-        speed: { min: 20, max: 50 },
-        angle: { min: 240, max: 300 },
-        scale: { start: 0.6, end: 0 },
-        alpha: { start: 0.8, end: 0 },
-        lifespan: { min: 600, max: 1000 },
-        frequency: 200,
-        quantity: 1,
-        blendMode: Phaser.BlendModes.ADD,
-        tint: [0xffdd00, 0xffaa00, 0xff8800],
-      })
-      rightEmitter.setDepth(1)
-    } catch (error) {
-      console.error('LevelUpScene: Error creating title particles:', error)
-      // Non-critical, continue without particles
     }
   }
 
@@ -372,60 +310,46 @@ export default class LevelUpScene extends Phaser.Scene {
     return shuffled.slice(0, count)
   }
 
-  private createProgressBar(width: number, height: number) {
-    const barWidth = width - 60
-    const barHeight = 8
-    const barY = height - 50
+  private createProgressBar(modalWidth: number, modalHeight: number) {
+    const barWidth = modalWidth - 60
+    const barHeight = 6
+    const barY = modalHeight / 2 - 25
 
-    // Background bar
-    this.progressBarBg = this.add.rectangle(width / 2, barY, barWidth, barHeight, 0x333333)
-    this.progressBarBg.setStrokeStyle(1, 0x666666)
-    this.progressBarBg.setDepth(100)
+    // Background
+    const bgBar = this.add.graphics()
+    bgBar.fillStyle(0x333355, 1)
+    bgBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3)
+    this.modalContainer.add(bgBar)
 
-    // Progress bar (starts full, depletes over time)
-    this.progressBar = this.add.rectangle(
-      width / 2 - barWidth / 2 + barWidth / 2,
-      barY,
-      barWidth,
-      barHeight - 2,
-      0xffdd00
-    )
-    this.progressBar.setOrigin(0.5, 0.5)
-    this.progressBar.setDepth(101)
+    // Progress bar
+    this.progressBar = this.add.graphics()
+    this.modalContainer.add(this.progressBar)
+    this.progressBar.setData('width', barWidth)
+    this.progressBar.setData('y', barY)
+    this.progressBar.setData('height', barHeight)
 
-    // Timer text above progress bar
-    this.timerText = this.add.text(width / 2, barY - 18, '5.0', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
+    // Timer text
+    this.timerText = this.add.text(0, barY - 12, '5.0', {
+      fontSize: '12px',
+      color: '#888888',
     }).setOrigin(0.5)
-    this.timerText.setDepth(102)
+    this.modalContainer.add(this.timerText)
 
-    // Start invisible - will fade in when timer starts
-    this.progressBarBg.setAlpha(0)
-    this.progressBar.setAlpha(0)
-    this.timerText.setAlpha(0)
+    // Initial fill
+    this.progressBar.fillStyle(0xffdd00, 1)
+    this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3)
   }
 
   private startSelectionTimer() {
     if (this.isSelecting) return
 
-    const width = this.cameras.main.width
-    const barWidth = width - 60
-
-    // Fade in progress bar
-    this.tweens.add({
-      targets: [this.progressBarBg, this.progressBar, this.timerText],
-      alpha: 1,
-      duration: DURATION.FAST,
-      ease: EASING.EASE_OUT,
-    })
-
+    const barWidth = this.progressBar?.getData('width') || 200
+    const barY = this.progressBar?.getData('y') || 0
+    const barHeight = this.progressBar?.getData('height') || 6
     const startTime = this.time.now
 
-    // Update progress bar every frame
     const updateEvent = this.time.addEvent({
-      delay: 16, // ~60fps
+      delay: 16,
       loop: true,
       callback: () => {
         if (this.isSelecting) {
@@ -437,31 +361,25 @@ export default class LevelUpScene extends Phaser.Scene {
         const remaining = Math.max(0, SELECTION_TIME_MS - elapsed)
         const progress = remaining / SELECTION_TIME_MS
 
-        // Update progress bar width
+        // Update progress bar
         if (this.progressBar) {
-          this.progressBar.setDisplaySize(barWidth * progress, 6)
-          // Shift origin to keep bar left-aligned
-          this.progressBar.setX(width / 2 - barWidth / 2 + (barWidth * progress) / 2)
+          this.progressBar.clear()
 
-          // Change color as time runs out: yellow -> orange -> red
-          if (progress < 0.3) {
-            this.progressBar.setFillStyle(0xff3333) // Red
-          } else if (progress < 0.6) {
-            this.progressBar.setFillStyle(0xff9933) // Orange
-          }
+          let color = 0xffdd00
+          if (progress < 0.3) color = 0xff3333
+          else if (progress < 0.6) color = 0xff9933
+
+          this.progressBar.fillStyle(color, 1)
+          this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth * progress, barHeight, 3)
         }
 
         // Update timer text
         if (this.timerText) {
           this.timerText.setText((remaining / 1000).toFixed(1))
-          if (progress < 0.3) {
-            this.timerText.setColor('#ff3333')
-          } else if (progress < 0.6) {
-            this.timerText.setColor('#ff9933')
-          }
+          if (progress < 0.3) this.timerText.setColor('#ff3333')
+          else if (progress < 0.6) this.timerText.setColor('#ff9933')
         }
 
-        // Time's up - select random ability
         if (remaining <= 0) {
           updateEvent.destroy()
           this.selectRandomAbilityOnTimeout()
@@ -475,18 +393,16 @@ export default class LevelUpScene extends Phaser.Scene {
   private selectRandomAbilityOnTimeout() {
     if (this.isSelecting || this.selectedAbilities.length === 0) return
 
-    // Pick random ability from the 3 shown
     const randomIndex = Math.floor(Math.random() * this.selectedAbilities.length)
     const randomAbility = this.selectedAbilities[randomIndex]
     const randomContainer = this.abilityCards[randomIndex]
 
-    console.log('LevelUpScene: Auto-selecting ability due to timeout:', randomAbility.id)
+    console.log('LevelUpScene: Auto-selecting:', randomAbility.id)
 
-    // Briefly highlight the selected card
     if (randomContainer) {
       this.tweens.add({
         targets: randomContainer,
-        scale: 1.1,
+        scale: 1.05,
         duration: 100,
         yoyo: true,
         onComplete: () => {
@@ -507,206 +423,152 @@ export default class LevelUpScene extends Phaser.Scene {
     index: number
   ) {
     try {
-      // Create container for the whole card
       const container = this.add.container(x, y)
-      container.setDepth(10 + index) // Ensure cards are above background
+      container.setDepth(10 + index)
 
-    // Outer glow/border effect
-    const glowRect = this.add.rectangle(0, 0, cardWidth + 6, cardHeight + 6, ability.color, 0.2)
-    container.add(glowRect)
+      // Card background
+      const cardBg = this.add.graphics()
+      cardBg.fillStyle(0x252540, 1)
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
 
-    // Main button background
-    const button = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x333333)
-    button.setStrokeStyle(3, ability.color)
-    button.setInteractive({ useHandCursor: true })
-    container.add(button)
+      // Left accent bar (ability color)
+      cardBg.fillStyle(ability.color, 1)
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
 
-    // Icon on the left side
-    const iconX = -cardWidth / 2 + 45
-    const textX = 15 // Relative to container center
+      container.add(cardBg)
 
-    // Add ability icon
-    let iconElement: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
-    let iconBaseScaleX = 1
-    let iconBaseScaleY = 1
-    if (this.textures.exists(ability.iconKey)) {
-      iconElement = this.add.image(iconX, 0, ability.iconKey)
-      iconElement.setDisplaySize(48, 48)
-      // Capture base scale after setDisplaySize (varies based on original image size)
-      iconBaseScaleX = iconElement.scaleX
-      iconBaseScaleY = iconElement.scaleY
-    } else {
-      // Fallback: colored circle if icon not loaded
-      iconElement = this.add.circle(iconX, 0, 20, ability.color)
-      ;(iconElement as Phaser.GameObjects.Arc).setStrokeStyle(2, 0xffffff)
-    }
-    container.add(iconElement)
+      // Interactive area
+      const hitArea = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x000000, 0)
+      hitArea.setInteractive({ useHandCursor: true })
+      container.add(hitArea)
 
-    // Ability name (larger, on top line)
-    const nameText = this.add
-      .text(textX, -15, ability.name, {
-        fontSize: '20px',
+      // Icon
+      const iconX = -cardWidth / 2 + 40
+      if (this.textures.exists(ability.iconKey)) {
+        const icon = this.add.image(iconX, 0, ability.iconKey)
+        icon.setDisplaySize(36, 36)
+        container.add(icon)
+      } else {
+        const iconCircle = this.add.circle(iconX, 0, 16, ability.color)
+        container.add(iconCircle)
+      }
+
+      // Name
+      const nameText = this.add.text(iconX + 35, -10, ability.name, {
+        fontSize: '16px',
         color: '#ffffff',
         fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-    container.add(nameText)
+      }).setOrigin(0, 0.5)
+      container.add(nameText)
 
-    // Description (smaller, below name)
-    const descText = this.add
-      .text(textX, 15, ability.description, {
-        fontSize: '14px',
-        color: '#aaaaaa',
-      })
-      .setOrigin(0.5)
-    container.add(descText)
+      // Description
+      const descText = this.add.text(iconX + 35, 10, ability.description, {
+        fontSize: '12px',
+        color: '#888888',
+      }).setOrigin(0, 0.5)
+      container.add(descText)
 
-    // Start card off-screen to the right and animate in
-    container.setX(x + 400)
-    container.setAlpha(0)
-
-    this.tweens.add({
-      targets: container,
-      x: x,
-      alpha: 1,
-      duration: DURATION.NORMAL,
-      ease: EASING.BOUNCE_OUT,
-      delay: index * 80,
-    })
-
-    // Subtle idle glow animation
-    this.tweens.add({
-      targets: glowRect,
-      alpha: { from: 0.15, to: 0.3 },
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-      ease: EASING.SINE_IN_OUT,
-      delay: index * 200,
-    })
-
-    // Apply enhanced button effects
-    applyButtonEffects(this, container, {
-      scaleOnHover: 1.03,
-      scaleOnPress: 0.97,
-    })
-
-    // Hover effects for background color
-    button.on('pointerover', () => {
-      button.setFillStyle(0x444444)
-      glowRect.setAlpha(0.4)
-      // Scale up icon slightly (use relative scale to preserve setDisplaySize proportions)
-      this.tweens.add({
-        targets: iconElement,
-        scaleX: iconBaseScaleX * 1.1,
-        scaleY: iconBaseScaleY * 1.1,
-        duration: 100,
-        ease: EASING.EASE_OUT,
-      })
-    })
-
-    button.on('pointerout', () => {
-      button.setFillStyle(0x333333)
-      // Reset icon scale to base (preserves setDisplaySize proportions)
-      this.tweens.add({
-        targets: iconElement,
-        scaleX: iconBaseScaleX,
-        scaleY: iconBaseScaleY,
-        duration: 100,
-        ease: EASING.EASE_OUT,
-      })
-    })
-
-    // Click to select with flash animation
-    button.on('pointerdown', () => {
-      console.log('LevelUpScene: button pointerdown', ability.id)
-      button.setFillStyle(0x555555)
-
-      // Flash effect on selection
-      this.tweens.add({
-        targets: container,
-        scale: 1.1,
-        duration: 80,
-        yoyo: true,
-        ease: EASING.EASE_OUT,
-        onComplete: () => {
-          this.selectAbility(ability.id, container)
-        },
-      })
+      // Hover effects
+      hitArea.on('pointerover', () => {
+        this.tweens.add({
+          targets: container,
+          scale: 1.02,
+          duration: 100,
+          ease: 'Power2.easeOut',
+        })
+        cardBg.clear()
+        cardBg.fillStyle(0x303050, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
+        cardBg.fillStyle(ability.color, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
       })
 
-      this.buttons.push(button)
+      hitArea.on('pointerout', () => {
+        this.tweens.add({
+          targets: container,
+          scale: 1,
+          duration: 100,
+          ease: 'Power2.easeOut',
+        })
+        cardBg.clear()
+        cardBg.fillStyle(0x252540, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
+        cardBg.fillStyle(ability.color, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
+      })
+
+      // Click handler
+      hitArea.on('pointerdown', () => {
+        console.log('LevelUpScene: Selected', ability.id)
+        this.tweens.add({
+          targets: container,
+          scale: 1.05,
+          duration: 80,
+          yoyo: true,
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            this.selectAbility(ability.id, container)
+          },
+        })
+      })
+
+      // Add to modal
+      this.modalContainer.add(container)
       this.abilityCards.push(container)
     } catch (error) {
-      console.error('LevelUpScene: Error in createAbilityCard:', error)
-      // Card creation failed, but other cards might still work
+      console.error('LevelUpScene: Error creating card:', error)
     }
   }
 
   private selectAbility(abilityId: string, selectedContainer?: Phaser.GameObjects.Container) {
-    console.log('LevelUpScene: selectAbility called', abilityId)
-
-    // Track ability selection for error context
-    errorReporting.addBreadcrumb('game', `Selected ability: ${abilityId}`)
-
-    // Prevent double selection
     if (this.isSelecting) return
     this.isSelecting = true
 
-    // Stop the selection timer
+    errorReporting.addBreadcrumb('game', `Selected ability: ${abilityId}`)
+
     if (this.selectionTimer) {
       this.selectionTimer.destroy()
       this.selectionTimer = undefined
     }
 
-    // Hide progress bar
-    this.tweens.add({
-      targets: [this.progressBarBg, this.progressBar, this.timerText],
-      alpha: 0,
-      duration: DURATION.FAST,
-      ease: EASING.EASE_IN,
-    })
-
     try {
-      // Disable all buttons to prevent double selection
-      this.buttons.forEach(btn => {
-        if (btn && btn.disableInteractive) {
-          btn.disableInteractive()
+      // Disable all interactions
+      this.abilityCards.forEach(card => {
+        const hitArea = card.getAt(1) as Phaser.GameObjects.Rectangle
+        if (hitArea?.disableInteractive) {
+          hitArea.disableInteractive()
         }
       })
 
-      // Play ability selection sound
       audioManager.playAbilitySelect()
 
-      // Animate out unselected cards
+      // Fade out unselected cards
       this.abilityCards.forEach(card => {
         if (card !== selectedContainer) {
           this.tweens.add({
             targets: card,
-            x: card.x - 400,
             alpha: 0,
-            duration: DURATION.FAST,
-            ease: EASING.EASE_IN,
+            x: -50,
+            duration: 150,
+            ease: 'Power2.easeIn',
           })
         }
       })
 
-      // Animate selected card to center and scale up
+      // Animate selected card
       if (selectedContainer) {
         this.tweens.add({
           targets: selectedContainer,
-          y: this.cameras.main.height / 2,
-          scale: 1.2,
-          duration: DURATION.NORMAL,
-          ease: EASING.EASE_OUT,
+          scale: 1.1,
+          duration: 150,
+          ease: 'Power2.easeOut',
           onComplete: () => {
-            // Flash and fade out
             this.tweens.add({
-              targets: selectedContainer,
+              targets: this.modalContainer,
               alpha: 0,
-              scale: 1.5,
-              duration: DURATION.FAST,
-              ease: EASING.EASE_IN,
+              scale: 0.9,
+              duration: 150,
+              ease: 'Power2.easeIn',
               onComplete: () => {
                 this.finishSelection(abilityId)
               },
@@ -714,30 +576,30 @@ export default class LevelUpScene extends Phaser.Scene {
           },
         })
       } else {
-        // If no container, just finish immediately
-        this.time.delayedCall(DURATION.FAST, () => {
-          this.finishSelection(abilityId)
+        this.tweens.add({
+          targets: this.modalContainer,
+          alpha: 0,
+          scale: 0.9,
+          duration: 150,
+          ease: 'Power2.easeIn',
+          onComplete: () => {
+            this.finishSelection(abilityId)
+          },
         })
       }
     } catch (error) {
       console.error('LevelUpScene: Error in selectAbility:', error)
-      // Attempt to stop the scene anyway if it hasn't stopped
       this.scene.stop('LevelUpScene')
     }
   }
 
   private finishSelection(abilityId: string) {
     try {
-      // Close this scene
-      console.log('LevelUpScene: stopping scene')
+      console.log('LevelUpScene: Finishing selection')
       this.scene.stop('LevelUpScene')
-
-      // Emit event to GameScene using global game events
-      console.log('LevelUpScene: emitting abilitySelected')
       this.game.events.emit('abilitySelected', abilityId)
     } catch (error) {
       console.error('LevelUpScene: Error in finishSelection:', error)
-      // Force scene stop if it hasn't stopped
       try {
         this.scene.stop('LevelUpScene')
       } catch (stopError) {
@@ -746,32 +608,23 @@ export default class LevelUpScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Clean up scene resources
-   */
   shutdown() {
-    // Clean up selection timer
     if (this.selectionTimer) {
       this.selectionTimer.destroy()
       this.selectionTimer = undefined
     }
 
-    // CRITICAL: Remove all input listeners to prevent accumulation
     this.input.removeAllListeners()
 
-    // Disable all interactive buttons to prevent ghost clicks
-    this.buttons.forEach(btn => {
-      if (btn && btn.input) {
-        btn.removeAllListeners()
-        btn.disableInteractive()
+    this.abilityCards.forEach(card => {
+      const hitArea = card.getAt(1) as Phaser.GameObjects.Rectangle
+      if (hitArea?.input) {
+        hitArea.removeAllListeners()
+        hitArea.disableInteractive()
       }
     })
-    this.buttons = []
-
-    // Clear ability cards array
     this.abilityCards = []
 
-    // Kill all tweens
     this.tweens.killAll()
   }
 }

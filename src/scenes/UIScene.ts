@@ -9,12 +9,13 @@ interface AcquiredAbility {
 }
 
 export default class UIScene extends Phaser.Scene {
+  // Top HUD elements
   private healthBar!: Phaser.GameObjects.Graphics
   private healthBarBg!: Phaser.GameObjects.Graphics
   private healthText!: Phaser.GameObjects.Text
-  private xpBar!: Phaser.GameObjects.Graphics
-  private xpBarBg!: Phaser.GameObjects.Graphics
+  private levelBadge!: Phaser.GameObjects.Container
   private levelText!: Phaser.GameObjects.Text
+  private xpBar!: Phaser.GameObjects.Graphics
   private roomText!: Phaser.GameObjects.Text
 
   // Boss health bar
@@ -27,52 +28,123 @@ export default class UIScene extends Phaser.Scene {
   private hudContainer!: Phaser.GameObjects.Container
   private isHudVisible: boolean = true
 
-  // Auto level up toggle
-  private autoLevelUpToggle!: Phaser.GameObjects.Container
-  private autoLevelUpIcon!: Phaser.GameObjects.Text
+  // Menu system
+  private menuButton!: Phaser.GameObjects.Container
+  private menuPanel!: Phaser.GameObjects.Container
+  private isMenuOpen: boolean = false
 
-  // Auto room advance toggle
-  private autoRoomAdvanceToggle!: Phaser.GameObjects.Container
-  private autoRoomAdvanceIcon!: Phaser.GameObjects.Text
-
-  // Reset level button (always visible)
-  private resetLevelButton!: Phaser.GameObjects.Container
-  private resetLevelText!: Phaser.GameObjects.Text
-
-  // Skip run button (end run early to collect rewards)
-  private skipRunButton!: Phaser.GameObjects.Container
-
-  // Skills bar (shows acquired abilities)
+  // Skills bar (bottom)
   private skillsContainer!: Phaser.GameObjects.Container
 
-  // FPS counter
-  private fpsText!: Phaser.GameObjects.Text
+  // FPS counter (debug only)
+  private fpsText?: Phaser.GameObjects.Text
+
+  // Notification queue
+  private notificationContainer!: Phaser.GameObjects.Container
+  private notificationQueue: Array<{ ability: AbilityData; isDouble?: boolean; ability2?: AbilityData }> = []
+  private isShowingNotification: boolean = false
 
   constructor() {
     super({ key: 'UIScene' })
   }
 
   create() {
-    // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
-    // Create HUD container for easy visibility toggling
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Create HUD container
     this.hudContainer = this.add.container(0, 0)
     this.isHudVisible = true
 
+    // === TOP HUD BAR ===
+    this.createTopHUD(width)
+
+    // === MENU BUTTON & PANEL ===
+    this.createMenuSystem(width, height)
+
+    // === SKILLS BAR (bottom) ===
+    this.createSkillsBar(height)
+
+    // === BOSS HEALTH BAR ===
+    this.createBossHealthBar(width, height)
+
+    // === NOTIFICATION AREA ===
+    this.notificationContainer = this.add.container(width / 2, 70)
+    this.notificationContainer.setDepth(100)
+
+    // === FPS COUNTER (debug only) ===
+    if (this.game.registry.get('debug')) {
+      this.fpsText = this.add.text(width - 10, 10, 'FPS: 60', {
+        fontSize: '11px',
+        color: '#00ff00',
+        fontStyle: 'bold',
+      })
+      this.fpsText.setOrigin(1, 0)
+      this.fpsText.setDepth(100)
+      this.fpsText.setAlpha(0.7)
+
+      // Debug mode indicator
+      const debugText = this.add.text(10, height - 20, 'DEBUG', {
+        fontSize: '10px',
+        color: '#ff0000',
+        fontStyle: 'bold',
+      })
+      debugText.setAlpha(0.5)
+
+      // Debug skip button (DOM for reliability)
+      const btn = document.createElement('button')
+      btn.innerText = 'SKIP'
+      btn.style.cssText = `
+        position: absolute; top: 60px; right: 10px; z-index: 10000;
+        background: #cc0000; color: white; border: none; padding: 6px 10px;
+        font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 11px;
+      `
+      btn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this.game.events.emit('debugSkipLevel')
+      }
+      document.body.appendChild(btn)
+      this.events.once('shutdown', () => btn.remove())
+    }
+
+    // === EVENT LISTENERS ===
+    this.setupEventListeners()
+
+    console.log('UIScene: Created (modern layout)')
+  }
+
+  /**
+   * Create the top HUD bar with health, room counter, and level
+   */
+  private createTopHUD(width: number) {
+    // Semi-transparent top bar background
+    const topBarBg = this.add.graphics()
+    topBarBg.fillStyle(0x000000, 0.4)
+    topBarBg.fillRoundedRect(8, 8, width - 16, 44, 8)
+    this.hudContainer.add(topBarBg)
+
+    // --- HEALTH BAR (left side) ---
+    const healthX = 16
+    const healthY = 16
+    const healthWidth = 120
+    const healthHeight = 14
+
     // Health bar background
     this.healthBarBg = this.add.graphics()
-    this.healthBarBg.fillStyle(0x000000, 0.5)
-    this.healthBarBg.fillRect(10, 10, 204, 24)
+    this.healthBarBg.fillStyle(0x000000, 0.6)
+    this.healthBarBg.fillRoundedRect(healthX, healthY, healthWidth, healthHeight, 4)
     this.hudContainer.add(this.healthBarBg)
 
-    // Health bar
+    // Health bar fill
     this.healthBar = this.add.graphics()
     this.hudContainer.add(this.healthBar)
 
-    // Health text (displayed on the health bar)
-    this.healthText = this.add.text(112, 22, '100/100', {
-      fontSize: '12px',
+    // Health text
+    this.healthText = this.add.text(healthX + healthWidth / 2, healthY + healthHeight / 2, '100', {
+      fontSize: '10px',
       color: '#ffffff',
       fontStyle: 'bold',
     })
@@ -80,47 +152,272 @@ export default class UIScene extends Phaser.Scene {
     this.healthText.setStroke('#000000', 2)
     this.hudContainer.add(this.healthText)
 
-    // Initialize health bar display (must be after healthText is created)
+    // Initialize health bar
     this.updateHealthBar(100, 100, 100)
 
-    // XP bar background (below health bar)
-    this.xpBarBg = this.add.graphics()
-    this.xpBarBg.fillStyle(0x000000, 0.5)
-    this.xpBarBg.fillRect(10, 40, 154, 16)
-    this.hudContainer.add(this.xpBarBg)
+    // --- ROOM COUNTER (center) ---
+    this.roomText = this.add.text(width / 2, 28, 'Room 1/20', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    })
+    this.roomText.setOrigin(0.5)
+    this.roomText.setStroke('#000000', 3)
+    this.hudContainer.add(this.roomText)
 
-    // XP bar
+    // --- LEVEL BADGE with XP (right side, before menu) ---
+    const levelX = width - 70
+    this.levelBadge = this.add.container(levelX, 28)
+
+    // XP bar background
+    const xpBarWidth = 40
+    const xpBarHeight = 4
+    const xpBg = this.add.graphics()
+    xpBg.fillStyle(0x000000, 0.6)
+    xpBg.fillRoundedRect(-xpBarWidth / 2, 8, xpBarWidth, xpBarHeight, 2)
+    this.levelBadge.add(xpBg)
+
+    // XP bar fill
     this.xpBar = this.add.graphics()
+    this.levelBadge.add(this.xpBar)
     this.updateXPBar(0)
-    this.hudContainer.add(this.xpBar)
 
-    // Level text (right of XP bar)
-    this.levelText = this.add.text(170, 40, 'Lv.1', {
+    // Level text
+    this.levelText = this.add.text(0, -2, 'Lv.1', {
       fontSize: '14px',
       color: '#ffdd00',
       fontStyle: 'bold',
     })
-    this.hudContainer.add(this.levelText)
+    this.levelText.setOrigin(0.5)
+    this.levelText.setStroke('#000000', 2)
+    this.levelBadge.add(this.levelText)
 
-    // Listen for health updates from GameScene
+    this.hudContainer.add(this.levelBadge)
+  }
+
+  /**
+   * Create menu button and slide-out panel
+   */
+  private createMenuSystem(width: number, _height: number) {
+    // Menu button (gear icon)
+    this.menuButton = this.add.container(width - 26, 28)
+    this.menuButton.setDepth(50)
+
+    const menuBg = this.add.circle(0, 0, 14, 0x000000, 0.6)
+    menuBg.setStrokeStyle(2, 0x666666)
+    menuBg.setInteractive({ useHandCursor: true })
+    this.menuButton.add(menuBg)
+
+    const menuIcon = this.add.text(0, 0, '☰', {
+      fontSize: '14px',
+      color: '#ffffff',
+    }).setOrigin(0.5)
+    this.menuButton.add(menuIcon)
+
+    // Menu panel (hidden by default)
+    this.menuPanel = this.add.container(width + 100, 60)
+    this.menuPanel.setDepth(51)
+    this.menuPanel.setAlpha(0)
+
+    const panelWidth = 115
+    const panelBg = this.add.graphics()
+    panelBg.fillStyle(0x111111, 0.95)
+    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
+    panelBg.lineStyle(2, 0x444444)
+    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
+    this.menuPanel.add(panelBg)
+
+    // Menu items
+    const menuItems = [
+      { icon: '⚡', label: 'Auto Lv', key: 'autoLevel', y: 25 },
+      { icon: '⏩', label: 'Auto Rm', key: 'autoRoom', y: 60 },
+      { icon: '↺', label: 'Reset', key: 'reset', y: 95 },
+      { icon: '🚪', label: 'End Run', key: 'skip', y: 130 },
+    ]
+
+    menuItems.forEach(item => {
+      const row = this.add.container(-panelWidth / 2, item.y)
+
+      const rowBg = this.add.rectangle(0, 0, panelWidth - 16, 28, 0x222222, 0)
+      rowBg.setInteractive({ useHandCursor: true })
+      row.add(rowBg)
+
+      const icon = this.add.text(-38, 0, item.icon, { fontSize: '14px' }).setOrigin(0.5)
+      row.add(icon)
+
+      const label = this.add.text(-15, 0, item.label, {
+        fontSize: '12px',
+        color: '#ffffff',
+      }).setOrigin(0, 0.5)
+      row.add(label)
+
+      // Toggle indicators for auto options
+      if (item.key === 'autoLevel' || item.key === 'autoRoom') {
+        const isEnabled = item.key === 'autoLevel'
+          ? saveManager.getAutoLevelUp()
+          : saveManager.getAutoRoomAdvance()
+        const indicator = this.add.circle(42, 0, 4, isEnabled ? 0x00ff88 : 0x444444)
+        row.add(indicator)
+        row.setData('indicator', indicator)
+        row.setData('enabled', isEnabled)
+      }
+
+      // Hover effects
+      rowBg.on('pointerover', () => rowBg.setFillStyle(0x333333, 1))
+      rowBg.on('pointerout', () => rowBg.setFillStyle(0x222222, 0))
+
+      // Click handlers
+      rowBg.on('pointerdown', () => {
+        this.handleMenuAction(item.key, row)
+      })
+
+      this.menuPanel.add(row)
+    })
+
+    // Menu button click handler
+    menuBg.on('pointerdown', () => this.toggleMenu())
+    menuBg.on('pointerover', () => menuBg.setStrokeStyle(2, 0x888888))
+    menuBg.on('pointerout', () => menuBg.setStrokeStyle(2, 0x666666))
+
+    // Close menu when clicking outside
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.isMenuOpen) {
+        const menuBounds = new Phaser.Geom.Rectangle(width - 120, 50, 120, 170)
+        const buttonBounds = new Phaser.Geom.Rectangle(width - 40, 14, 28, 28)
+        if (!menuBounds.contains(pointer.x, pointer.y) && !buttonBounds.contains(pointer.x, pointer.y)) {
+          this.closeMenu()
+        }
+      }
+    })
+  }
+
+  private toggleMenu() {
+    if (this.isMenuOpen) {
+      this.closeMenu()
+    } else {
+      this.openMenu()
+    }
+  }
+
+  private openMenu() {
+    if (this.isMenuOpen) return
+    this.isMenuOpen = true
+
+    const width = this.cameras.main.width
+    this.tweens.add({
+      targets: this.menuPanel,
+      x: width - 10,
+      alpha: 1,
+      duration: 150,
+      ease: 'Power2.easeOut',
+    })
+  }
+
+  private closeMenu() {
+    if (!this.isMenuOpen) return
+    this.isMenuOpen = false
+
+    const width = this.cameras.main.width
+    this.tweens.add({
+      targets: this.menuPanel,
+      x: width + 100,
+      alpha: 0,
+      duration: 150,
+      ease: 'Power2.easeIn',
+    })
+  }
+
+  private handleMenuAction(key: string, row: Phaser.GameObjects.Container) {
+    switch (key) {
+      case 'autoLevel': {
+        const newState = saveManager.toggleAutoLevelUp()
+        const indicator = row.getData('indicator') as Phaser.GameObjects.Arc
+        indicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
+        row.setData('enabled', newState)
+        break
+      }
+      case 'autoRoom': {
+        const newState = saveManager.toggleAutoRoomAdvance()
+        const indicator = row.getData('indicator') as Phaser.GameObjects.Arc
+        indicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
+        row.setData('enabled', newState)
+        break
+      }
+      case 'reset':
+        this.game.events.emit('resetLevel')
+        this.closeMenu()
+        break
+      case 'skip':
+        this.game.events.emit('skipRun')
+        this.closeMenu()
+        break
+    }
+  }
+
+  /**
+   * Create skills bar at the bottom
+   */
+  private createSkillsBar(height: number) {
+    this.skillsContainer = this.add.container(10, height - 45)
+    this.skillsContainer.setDepth(10)
+    this.hudContainer.add(this.skillsContainer)
+  }
+
+  /**
+   * Create boss health bar (hidden by default)
+   */
+  private createBossHealthBar(width: number, height: number) {
+    const barWidth = width - 40
+    const barHeight = 12
+    const yPos = height - 55
+
+    this.bossHealthContainer = this.add.container(0, 0)
+
+    // Background
+    this.bossHealthBarBg = this.add.graphics()
+    this.bossHealthBarBg.fillStyle(0x000000, 0.7)
+    this.bossHealthBarBg.fillRoundedRect(20, yPos, barWidth, barHeight, 4)
+    this.bossHealthContainer.add(this.bossHealthBarBg)
+
+    // Health bar
+    this.bossHealthBar = this.add.graphics()
+    this.bossHealthContainer.add(this.bossHealthBar)
+
+    // Boss name
+    this.bossNameText = this.add.text(width / 2, yPos - 14, 'BOSS', {
+      fontSize: '12px',
+      color: '#ff4444',
+      fontStyle: 'bold',
+    })
+    this.bossNameText.setOrigin(0.5, 0.5)
+    this.bossNameText.setStroke('#000000', 2)
+    this.bossHealthContainer.add(this.bossNameText)
+
+    this.bossHealthContainer.setVisible(false)
+  }
+
+  /**
+   * Setup event listeners
+   */
+  private setupEventListeners() {
+    // Health updates
     this.events.on('updateHealth', (currentHealth: number, maxHealth: number) => {
       const percentage = (currentHealth / maxHealth) * 100
       this.updateHealthBar(percentage, currentHealth, maxHealth)
     })
 
-    // Listen for XP updates from GameScene
+    // XP updates
     this.events.on('updateXP', (xpPercentage: number, level: number) => {
       this.updateXPBar(xpPercentage)
       this.updateLevel(level)
-      this.updateResetLevelText(level)
     })
 
-    // Listen for room updates from GameScene
+    // Room updates
     this.events.on('updateRoom', (currentRoom: number, totalRooms: number, endlessWave?: number) => {
       this.updateRoomCounter(currentRoom, totalRooms, endlessWave)
     })
 
-    // Listen for boss health events
+    // Boss health events
     this.events.on('showBossHealth', (health: number, maxHealth: number) => {
       this.showBossHealthBar(health, maxHealth)
     })
@@ -131,158 +428,96 @@ export default class UIScene extends Phaser.Scene {
       this.hideBossHealthBar()
     })
 
-    // Listen for room cleared/entered events to toggle HUD visibility
-    this.events.on('roomCleared', () => {
-      this.fadeOutHUD()
-    })
-    this.events.on('roomEntered', () => {
-      this.fadeInHUD()
-    })
+    // HUD visibility
+    this.events.on('roomCleared', () => this.fadeOutHUD())
+    this.events.on('roomEntered', () => this.fadeInHUD())
 
-    // Listen for auto level up notifications
+    // Auto level up notifications
     this.events.on('showAutoLevelUp', (ability: AbilityData) => {
-      this.showAutoLevelUpNotification(ability)
+      this.queueNotification(ability)
     })
-
-    // Listen for double bonus auto level up notifications
     this.events.on('showAutoLevelUpDouble', (ability1: AbilityData, ability2: AbilityData) => {
-      this.showDoubleAutoLevelUpNotification(ability1, ability2)
+      this.queueNotification(ability1, true, ability2)
     })
 
-    // Listen for abilities update
+    // Abilities update
     this.events.on('updateAbilities', (abilities: AcquiredAbility[]) => {
       this.updateSkillsBar(abilities)
     })
-
-    // Room counter
-    this.roomText = this.add.text(
-      this.cameras.main.width / 2,
-      20,
-      '',
-      {
-        fontSize: '20px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      }
-    )
-    this.roomText.setOrigin(0.5, 0)
-    this.hudContainer.add(this.roomText)
-
-    // Debug skip button
-    if (this.game.registry.get('debug')) {
-      // Visible indicator that debug mode is active
-      const debugModeText = this.add.text(10, this.cameras.main.height - 20, 'DEBUG MODE ACTIVE', {
-        fontSize: '10px',
-        color: '#ff0000',
-        fontStyle: 'bold',
-      })
-      debugModeText.setDepth(100)
-
-      // Create a DOM button for debug skip to avoid being blocked by the joystick
-      const btn = document.createElement('button')
-      btn.innerText = 'DEBUG SKIP'
-      btn.style.position = 'absolute'
-      btn.style.top = '70px'
-      btn.style.right = '10px'
-      btn.style.zIndex = '10000'
-      btn.style.backgroundColor = '#cc0000'
-      btn.style.color = 'white'
-      btn.style.border = 'none'
-      btn.style.padding = '10px'
-      btn.style.fontWeight = 'bold'
-      btn.style.cursor = 'pointer'
-      btn.style.borderRadius = '5px'
-      
-      btn.onclick = (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        console.log('UIScene: Debug Skip DOM Button Pressed')
-        this.game.events.emit('debugSkipLevel')
-      }
-      
-      document.body.appendChild(btn)
-      
-      // Cleanup DOM button on scene shutdown
-      this.events.once('shutdown', () => {
-        if (btn.parentNode) {
-          btn.parentNode.removeChild(btn)
-        }
-      })
-    }
-
-    // Create boss health bar (initially hidden)
-    this.createBossHealthBar()
-
-    // Create auto level up toggle button
-    this.createAutoLevelUpToggle()
-
-    // Create auto room advance toggle button
-    this.createAutoRoomAdvanceToggle()
-
-    // Create reset level button
-    this.createResetLevelButton()
-
-    // Create skip run button
-    this.createSkipRunButton()
-
-    // Create skills bar container
-    this.createSkillsBar()
-
-    // Create FPS counter in top-right corner
-    this.fpsText = this.add.text(this.cameras.main.width - 10, 10, 'FPS: 60', {
-      fontSize: '12px',
-      color: '#00ff00',
-      fontStyle: 'bold',
-    })
-    this.fpsText.setOrigin(1, 0)
-    this.fpsText.setDepth(100)
-
-    console.log('UIScene: Created')
   }
 
   update() {
-    // Update FPS counter
-    const fps = Math.round(this.game.loop.actualFps)
-    this.fpsText.setText(`FPS: ${fps}`)
-
-    // Color code based on performance
-    if (fps >= 55) {
-      this.fpsText.setColor('#00ff00') // Green - good
-    } else if (fps >= 30) {
-      this.fpsText.setColor('#ffff00') // Yellow - acceptable
-    } else {
-      this.fpsText.setColor('#ff0000') // Red - poor
+    // Update FPS counter (debug only)
+    if (this.fpsText) {
+      const fps = Math.round(this.game.loop.actualFps)
+      this.fpsText.setText(`${fps}`)
+      this.fpsText.setColor(fps >= 55 ? '#00ff00' : fps >= 30 ? '#ffff00' : '#ff0000')
     }
   }
 
-  private createBossHealthBar() {
-    const width = this.cameras.main.width
-    const barWidth = width - 40 // Full width with padding
-    const barHeight = 16
-    const yPos = this.cameras.main.height - 50 // Bottom of screen
+  updateHealthBar(percentage: number, currentHealth: number, _maxHealth: number) {
+    const healthX = 16
+    const healthY = 16
+    const healthWidth = 120
+    const healthHeight = 14
 
-    // Container to group all boss UI elements
-    this.bossHealthContainer = this.add.container(0, 0)
+    this.healthBar.clear()
 
-    // Background
-    this.bossHealthBarBg = this.add.graphics()
-    this.bossHealthBarBg.fillStyle(0x000000, 0.7)
-    this.bossHealthBarBg.fillRect(20, yPos, barWidth, barHeight)
+    const colors = themeManager.getColors()
+    let color = colors.healthFull
+    if (percentage < 50) color = colors.healthMid
+    if (percentage < 25) color = colors.healthLow
 
-    // Health bar
-    this.bossHealthBar = this.add.graphics()
+    this.healthBar.fillStyle(color, 1)
+    const fillWidth = Math.max(0, (percentage / 100) * (healthWidth - 4))
+    this.healthBar.fillRoundedRect(healthX + 2, healthY + 2, fillWidth, healthHeight - 4, 3)
 
-    // Boss name
-    this.bossNameText = this.add.text(width / 2, yPos - 20, 'BOSS', {
-      fontSize: '16px',
-      color: '#ff4444',
-      fontStyle: 'bold',
+    this.healthText.setText(`${Math.ceil(currentHealth)}`)
+  }
+
+  updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {
+    if (endlessWave !== undefined) {
+      this.roomText.setText(`Wave ${endlessWave} • ${currentRoom}/${totalRooms}`)
+    } else {
+      this.roomText.setText(`${currentRoom}/${totalRooms}`)
+    }
+  }
+
+  updateXPBar(percentage: number) {
+    const xpBarWidth = 40
+    const xpBarHeight = 4
+
+    this.xpBar.clear()
+    const colors = themeManager.getColors()
+    this.xpBar.fillStyle(colors.xpBar, 1)
+    const fillWidth = Math.max(0, (percentage / 100) * xpBarWidth)
+    this.xpBar.fillRoundedRect(-xpBarWidth / 2, 8, fillWidth, xpBarHeight, 2)
+  }
+
+  updateLevel(level: number) {
+    this.levelText.setText(`Lv.${level}`)
+  }
+
+  private fadeOutHUD(): void {
+    if (!this.isHudVisible) return
+    this.isHudVisible = false
+    this.tweens.add({
+      targets: this.hudContainer,
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2.easeOut',
     })
-    this.bossNameText.setOrigin(0.5, 0.5)
+  }
 
-    // Add to container
-    this.bossHealthContainer.add([this.bossHealthBarBg, this.bossHealthBar, this.bossNameText])
-    this.bossHealthContainer.setVisible(false)
+  private fadeInHUD(): void {
+    if (this.isHudVisible) return
+    this.isHudVisible = true
+    this.tweens.add({
+      targets: this.hudContainer,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut',
+    })
   }
 
   private showBossHealthBar(health: number, maxHealth: number) {
@@ -292,16 +527,17 @@ export default class UIScene extends Phaser.Scene {
 
   private updateBossHealthBar(health: number, maxHealth: number) {
     const width = this.cameras.main.width
+    const height = this.cameras.main.height
     const barWidth = width - 44
-    const barHeight = 12
-    const yPos = this.cameras.main.height - 48
+    const barHeight = 8
+    const yPos = height - 53
 
     const percentage = Math.max(0, health / maxHealth)
-
     const colors = themeManager.getColors()
+
     this.bossHealthBar.clear()
     this.bossHealthBar.fillStyle(colors.bossHealth, 1)
-    this.bossHealthBar.fillRect(22, yPos, barWidth * percentage, barHeight)
+    this.bossHealthBar.fillRoundedRect(22, yPos, barWidth * percentage, barHeight, 3)
   }
 
   private hideBossHealthBar() {
@@ -310,391 +546,113 @@ export default class UIScene extends Phaser.Scene {
     }
   }
 
-  updateHealthBar(percentage: number, currentHealth: number, maxHealth: number) {
-    this.healthBar.clear()
-
-    // Health bar color based on percentage - use theme colors
-    const colors = themeManager.getColors()
-    let color = colors.healthFull
-    if (percentage < 50) color = colors.healthMid
-    if (percentage < 25) color = colors.healthLow
-
-    this.healthBar.fillStyle(color, 1)
-    this.healthBar.fillRect(12, 12, percentage * 2, 20)
-
-    // Update health text
-    this.healthText.setText(`${Math.ceil(currentHealth)}/${Math.ceil(maxHealth)}`)
+  /**
+   * Queue a notification to show
+   */
+  private queueNotification(ability: AbilityData, isDouble?: boolean, ability2?: AbilityData) {
+    this.notificationQueue.push({ ability, isDouble, ability2 })
+    this.processNotificationQueue()
   }
 
-  updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {
-    if (endlessWave !== undefined) {
-      // Endless mode: show wave number and room
-      this.roomText.setText(`Wave ${endlessWave} - ${currentRoom}/${totalRooms}`)
+  /**
+   * Process notification queue
+   */
+  private processNotificationQueue() {
+    if (this.isShowingNotification || this.notificationQueue.length === 0) return
+    this.isShowingNotification = true
+
+    const notification = this.notificationQueue.shift()!
+    this.showNotification(notification.ability, notification.isDouble, notification.ability2)
+  }
+
+  /**
+   * Show a compact notification toast
+   */
+  private showNotification(ability: AbilityData, isDouble?: boolean, ability2?: AbilityData) {
+    // Clear existing notifications
+    this.notificationContainer.removeAll(true)
+
+    const panelWidth = isDouble ? 160 : 140
+    const panelHeight = isDouble ? 50 : 36
+
+    // Background
+    const bg = this.add.graphics()
+    bg.fillStyle(0x000000, 0.85)
+    bg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 6)
+    bg.lineStyle(2, isDouble ? 0xffd700 : ability.color, 1)
+    bg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 6)
+    this.notificationContainer.add(bg)
+
+    if (isDouble && ability2) {
+      // Double bonus notification
+      const bonusLabel = this.add.text(0, -14, '2× BONUS', {
+        fontSize: '10px',
+        color: '#ffd700',
+        fontStyle: 'bold',
+      }).setOrigin(0.5)
+      this.notificationContainer.add(bonusLabel)
+
+      // First ability icon + name
+      if (this.textures.exists(ability.iconKey)) {
+        const icon1 = this.add.image(-panelWidth / 2 + 20, 4, ability.iconKey)
+        icon1.setDisplaySize(20, 20)
+        this.notificationContainer.add(icon1)
+      }
+      const name1 = this.add.text(-10, 4, ability.name, {
+        fontSize: '10px',
+        color: '#ffffff',
+      }).setOrigin(0, 0.5)
+      this.notificationContainer.add(name1)
+
+      // Second ability icon + name
+      if (this.textures.exists(ability2.iconKey)) {
+        const icon2 = this.add.image(-panelWidth / 2 + 20, 20, ability2.iconKey)
+        icon2.setDisplaySize(20, 20)
+        this.notificationContainer.add(icon2)
+      }
+      const name2 = this.add.text(-10, 20, ability2.name, {
+        fontSize: '10px',
+        color: '#ffffff',
+      }).setOrigin(0, 0.5)
+      this.notificationContainer.add(name2)
     } else {
-      this.roomText.setText(`Room ${currentRoom}/${totalRooms}`)
+      // Single ability notification
+      if (this.textures.exists(ability.iconKey)) {
+        const icon = this.add.image(-panelWidth / 2 + 22, 0, ability.iconKey)
+        icon.setDisplaySize(24, 24)
+        this.notificationContainer.add(icon)
+      }
+
+      const name = this.add.text(0, 0, ability.name, {
+        fontSize: '12px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5)
+      this.notificationContainer.add(name)
     }
-  }
-
-  updateXPBar(percentage: number) {
-    this.xpBar.clear()
-    const colors = themeManager.getColors()
-    this.xpBar.fillStyle(colors.xpBar, 1)
-    this.xpBar.fillRect(12, 42, percentage * 150, 12)
-  }
-
-  updateLevel(level: number) {
-    this.levelText.setText(`Lv.${level}`)
-  }
-
-  /**
-   * Fade out HUD elements when room is cleared for cleaner presentation
-   */
-  private fadeOutHUD(): void {
-    if (!this.isHudVisible) return
-    this.isHudVisible = false
-
-    this.tweens.add({
-      targets: this.hudContainer,
-      alpha: 0,
-      duration: 300,
-      ease: 'Power2.easeOut',
-    })
-  }
-
-  /**
-   * Fade in HUD elements when entering a new room
-   */
-  private fadeInHUD(): void {
-    if (this.isHudVisible) return
-    this.isHudVisible = true
-
-    this.tweens.add({
-      targets: this.hudContainer,
-      alpha: 1,
-      duration: 200,
-      ease: 'Power2.easeOut',
-    })
-  }
-
-  /**
-   * Create auto level up toggle button in top right corner
-   */
-  private createAutoLevelUpToggle(): void {
-    const width = this.cameras.main.width
-    const isEnabled = saveManager.getAutoLevelUp()
-
-    // Create toggle container
-    this.autoLevelUpToggle = this.add.container(width - 30, 60)
-    this.autoLevelUpToggle.setDepth(50)
-
-    // Background circle
-    const bg = this.add.circle(0, 0, 18, 0x000000, 0.6)
-    bg.setStrokeStyle(2, isEnabled ? 0x00ff88 : 0x666666)
-    bg.setInteractive({ useHandCursor: true })
-    this.autoLevelUpToggle.add(bg)
-
-    // Lightning icon to represent auto/fast mode
-    this.autoLevelUpIcon = this.add.text(0, 0, '⚡', {
-      fontSize: '18px',
-    }).setOrigin(0.5)
-    this.autoLevelUpIcon.setAlpha(isEnabled ? 1 : 0.4)
-    this.autoLevelUpToggle.add(this.autoLevelUpIcon)
-
-    // Click handler to toggle
-    bg.on('pointerdown', () => {
-      const newState = saveManager.toggleAutoLevelUp()
-      this.updateAutoLevelUpToggle(newState)
-      console.log('UIScene: Auto level up toggled to', newState)
-    })
-
-    // Hover effects
-    bg.on('pointerover', () => {
-      bg.setScale(1.1)
-    })
-    bg.on('pointerout', () => {
-      bg.setScale(1)
-    })
-  }
-
-  /**
-   * Create reset level button that allows restarting with all upgrades
-   */
-  private createResetLevelButton(): void {
-    const width = this.cameras.main.width
-
-    // Create button container in top-right area (below auto-level toggle)
-    this.resetLevelButton = this.add.container(width - 45, 100)
-    this.resetLevelButton.setDepth(50)
-
-    // Background rectangle (visual only)
-    const bg = this.add.rectangle(0, 0, 70, 36, 0x000000, 0.7)
-    bg.setStrokeStyle(2, 0x00aaff)
-    this.resetLevelButton.add(bg)
-
-    // Reset icon (circular arrow symbol)
-    const icon = this.add.text(-22, 0, '↺', {
-      fontSize: '18px',
-      color: '#00aaff',
-    }).setOrigin(0.5)
-    this.resetLevelButton.add(icon)
-
-    // Text showing current level
-    this.resetLevelText = this.add.text(12, 0, 'Lv.1', {
-      fontSize: '12px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    this.resetLevelButton.add(this.resetLevelText)
-
-    // Make container interactive with explicit hit area (required for Phaser containers)
-    this.resetLevelButton.setInteractive(
-      new Phaser.Geom.Rectangle(-35, -18, 70, 36),
-      Phaser.Geom.Rectangle.Contains
-    )
-    this.resetLevelButton.input!.cursor = 'pointer'
-
-    // Click handler to reset level
-    this.resetLevelButton.on('pointerdown', () => {
-      console.log('UIScene: Reset level button pressed')
-      this.game.events.emit('resetLevel')
-
-      // Brief press animation
-      this.tweens.add({
-        targets: this.resetLevelButton,
-        scale: { from: 0.9, to: 1 },
-        duration: 100,
-        ease: 'Power2.easeOut',
-      })
-    })
-
-    // Hover effects
-    this.resetLevelButton.on('pointerover', () => {
-      bg.setFillStyle(0x002244, 0.9)
-      bg.setStrokeStyle(2, 0x00ccff)
-    })
-
-    this.resetLevelButton.on('pointerout', () => {
-      bg.setFillStyle(0x000000, 0.7)
-      bg.setStrokeStyle(2, 0x00aaff)
-    })
-  }
-
-  /**
-   * Update the reset level button text with current level
-   */
-  private updateResetLevelText(level: number): void {
-    if (this.resetLevelText) {
-      this.resetLevelText.setText(`Lv.${level}`)
-    }
-  }
-
-  /**
-   * Create skip run button that allows ending the run early to collect rewards
-   */
-  private createSkipRunButton(): void {
-    const width = this.cameras.main.width
-
-    // Create button container below reset level button
-    this.skipRunButton = this.add.container(width - 45, 140)
-    this.skipRunButton.setDepth(50)
-
-    // Background rectangle
-    const bg = this.add.rectangle(0, 0, 70, 36, 0x000000, 0.7)
-    bg.setStrokeStyle(2, 0xff6644)
-    this.skipRunButton.add(bg)
-
-    // Exit/skip icon
-    const icon = this.add.text(-22, 0, '🚪', {
-      fontSize: '16px',
-    }).setOrigin(0.5)
-    this.skipRunButton.add(icon)
-
-    // Text label
-    const label = this.add.text(12, 0, 'Skip', {
-      fontSize: '12px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    this.skipRunButton.add(label)
-
-    // Make container interactive with explicit hit area
-    this.skipRunButton.setInteractive(
-      new Phaser.Geom.Rectangle(-35, -18, 70, 36),
-      Phaser.Geom.Rectangle.Contains
-    )
-    this.skipRunButton.input!.cursor = 'pointer'
-
-    // Click handler to skip run
-    this.skipRunButton.on('pointerdown', () => {
-      console.log('UIScene: Skip run button pressed')
-      this.game.events.emit('skipRun')
-
-      // Brief press animation
-      this.tweens.add({
-        targets: this.skipRunButton,
-        scale: { from: 0.9, to: 1 },
-        duration: 100,
-        ease: 'Power2.easeOut',
-      })
-    })
-
-    // Hover effects
-    this.skipRunButton.on('pointerover', () => {
-      bg.setFillStyle(0x331100, 0.9)
-      bg.setStrokeStyle(2, 0xff8866)
-    })
-
-    this.skipRunButton.on('pointerout', () => {
-      bg.setFillStyle(0x000000, 0.7)
-      bg.setStrokeStyle(2, 0xff6644)
-    })
-  }
-
-  /**
-   * Update toggle visual state
-   */
-  private updateAutoLevelUpToggle(enabled: boolean): void {
-    const bg = this.autoLevelUpToggle.getAt(0) as Phaser.GameObjects.Arc
-    bg.setStrokeStyle(2, enabled ? 0x00ff88 : 0x666666)
-    this.autoLevelUpIcon.setAlpha(enabled ? 1 : 0.4)
-
-    // Brief flash animation
-    this.tweens.add({
-      targets: this.autoLevelUpToggle,
-      scale: { from: 1.2, to: 1 },
-      duration: 150,
-      ease: 'Power2.easeOut',
-    })
-  }
-
-  /**
-   * Create auto room advance toggle button (next to auto level up)
-   */
-  private createAutoRoomAdvanceToggle(): void {
-    const width = this.cameras.main.width
-    const isEnabled = saveManager.getAutoRoomAdvance()
-
-    // Create toggle container (to the left of auto level up toggle)
-    this.autoRoomAdvanceToggle = this.add.container(width - 70, 60)
-    this.autoRoomAdvanceToggle.setDepth(50)
-
-    // Background circle
-    const bg = this.add.circle(0, 0, 18, 0x000000, 0.6)
-    bg.setStrokeStyle(2, isEnabled ? 0x00ff88 : 0x666666)
-    bg.setInteractive({ useHandCursor: true })
-    this.autoRoomAdvanceToggle.add(bg)
-
-    // Door/skip icon to represent auto room advance
-    this.autoRoomAdvanceIcon = this.add.text(0, 0, '⏩', {
-      fontSize: '16px',
-    }).setOrigin(0.5)
-    this.autoRoomAdvanceIcon.setAlpha(isEnabled ? 1 : 0.4)
-    this.autoRoomAdvanceToggle.add(this.autoRoomAdvanceIcon)
-
-    // Click handler to toggle
-    bg.on('pointerdown', () => {
-      const newState = saveManager.toggleAutoRoomAdvance()
-      this.updateAutoRoomAdvanceToggle(newState)
-      console.log('UIScene: Auto room advance toggled to', newState)
-    })
-
-    // Hover effects
-    bg.on('pointerover', () => {
-      bg.setScale(1.1)
-    })
-    bg.on('pointerout', () => {
-      bg.setScale(1)
-    })
-  }
-
-  /**
-   * Update auto room advance toggle visual state
-   */
-  private updateAutoRoomAdvanceToggle(enabled: boolean): void {
-    const bg = this.autoRoomAdvanceToggle.getAt(0) as Phaser.GameObjects.Arc
-    bg.setStrokeStyle(2, enabled ? 0x00ff88 : 0x666666)
-    this.autoRoomAdvanceIcon.setAlpha(enabled ? 1 : 0.4)
-
-    // Brief flash animation
-    this.tweens.add({
-      targets: this.autoRoomAdvanceToggle,
-      scale: { from: 1.2, to: 1 },
-      duration: 150,
-      ease: 'Power2.easeOut',
-    })
-  }
-
-  /**
-   * Show notification when auto level up selects an ability
-   */
-  private showAutoLevelUpNotification(ability: AbilityData): void {
-    const width = this.cameras.main.width
-
-    // Create notification container at center-top of screen
-    const container = this.add.container(width / 2, 120)
-    container.setDepth(100)
-    container.setAlpha(0)
-    container.setScale(0.8)
-
-    // Background panel
-    const panelWidth = 220
-    const panelHeight = 60
-    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.85)
-    panel.setStrokeStyle(2, ability.color)
-    container.add(panel)
-
-    // Ability icon on the left
-    const iconX = -panelWidth / 2 + 30
-    if (this.textures.exists(ability.iconKey)) {
-      const icon = this.add.image(iconX, 0, ability.iconKey)
-      icon.setDisplaySize(36, 36)
-      container.add(icon)
-    }
-
-    // Text content offset to the right of the icon
-    const textOffsetX = 15
-
-    // "AUTO" label
-    const autoLabel = this.add.text(textOffsetX, -18, 'AUTO', {
-      fontSize: '10px',
-      color: '#888888',
-    }).setOrigin(0.5)
-    container.add(autoLabel)
-
-    // Ability name
-    const abilityName = this.add.text(textOffsetX, 2, ability.name, {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    container.add(abilityName)
-
-    // Description
-    const desc = this.add.text(textOffsetX, 20, ability.description, {
-      fontSize: '11px',
-      color: '#aaaaaa',
-    }).setOrigin(0.5)
-    container.add(desc)
 
     // Animate in
+    this.notificationContainer.setAlpha(0)
+    this.notificationContainer.setY(50)
+
     this.tweens.add({
-      targets: container,
+      targets: this.notificationContainer,
       alpha: 1,
-      scale: 1,
-      y: 130,
-      duration: 200,
-      ease: 'Back.easeOut',
+      y: 70,
+      duration: 150,
+      ease: 'Power2.easeOut',
       onComplete: () => {
-        // Hold for a moment then fade out
-        this.time.delayedCall(1200, () => {
+        // Hold then fade out
+        this.time.delayedCall(isDouble ? 1500 : 1000, () => {
           this.tweens.add({
-            targets: container,
+            targets: this.notificationContainer,
             alpha: 0,
-            y: 100,
-            duration: 300,
+            y: 50,
+            duration: 200,
             ease: 'Power2.easeIn',
             onComplete: () => {
-              container.destroy()
+              this.isShowingNotification = false
+              this.processNotificationQueue()
             },
           })
         })
@@ -703,169 +661,57 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Show special notification when auto level up grants TWO abilities (5% bonus)
+   * Update skills bar with acquired abilities
    */
-  private showDoubleAutoLevelUpNotification(ability1: AbilityData, ability2: AbilityData): void {
-    const width = this.cameras.main.width
-
-    // Create notification container at center-top of screen
-    const container = this.add.container(width / 2, 120)
-    container.setDepth(100)
-    container.setAlpha(0)
-    container.setScale(0.8)
-
-    // Taller background panel for two abilities
-    const panelWidth = 240
-    const panelHeight = 100
-    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.9)
-    panel.setStrokeStyle(3, 0xffd700) // Gold border
-    container.add(panel)
-
-    // "2x BONUS!" label at top in gold
-    const bonusLabel = this.add.text(0, -38, '2x BONUS!', {
-      fontSize: '14px',
-      color: '#ffd700',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    container.add(bonusLabel)
-
-    // First ability row
-    const row1Y = -10
-    const iconSize = 28
-    const iconX = -panelWidth / 2 + 30
-
-    if (this.textures.exists(ability1.iconKey)) {
-      const icon1 = this.add.image(iconX, row1Y, ability1.iconKey)
-      icon1.setDisplaySize(iconSize, iconSize)
-      container.add(icon1)
-    }
-
-    const name1 = this.add.text(15, row1Y, ability1.name, {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    container.add(name1)
-
-    // Second ability row
-    const row2Y = 22
-
-    if (this.textures.exists(ability2.iconKey)) {
-      const icon2 = this.add.image(iconX, row2Y, ability2.iconKey)
-      icon2.setDisplaySize(iconSize, iconSize)
-      container.add(icon2)
-    }
-
-    const name2 = this.add.text(15, row2Y, ability2.name, {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5)
-    container.add(name2)
-
-    // Animate in with celebratory bounce
-    this.tweens.add({
-      targets: container,
-      alpha: 1,
-      scale: 1.05,
-      y: 135,
-      duration: 250,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        // Pulse effect for celebration
-        this.tweens.add({
-          targets: container,
-          scale: 1,
-          duration: 150,
-          ease: 'Power2.easeOut',
-          onComplete: () => {
-            // Hold longer for double bonus, then fade out
-            this.time.delayedCall(1800, () => {
-              this.tweens.add({
-                targets: container,
-                alpha: 0,
-                y: 100,
-                duration: 300,
-                ease: 'Power2.easeIn',
-                onComplete: () => {
-                  container.destroy()
-                },
-              })
-            })
-          },
-        })
-      },
-    })
-  }
-
-  /**
-   * Create the skills bar container
-   */
-  private createSkillsBar(): void {
-    // Position below level text, aligned to left
-    this.skillsContainer = this.add.container(10, 65)
-    this.skillsContainer.setDepth(10)
-    this.hudContainer.add(this.skillsContainer)
-  }
-
-  /**
-   * Update the skills bar when abilities are acquired
-   */
-  private updateSkillsBar(abilities: AcquiredAbility[]): void {
-    // Clear existing skill icons
+  private updateSkillsBar(abilities: AcquiredAbility[]) {
     this.skillsContainer.removeAll(true)
 
-    // Display skills in a horizontal row
-    const iconSize = 24
-    const iconSpacing = 28
-    const maxDisplay = 10 // Max skills to display in a row
+    const iconSize = 22
+    const iconSpacing = 26
+    const maxDisplay = 12
 
     abilities.slice(0, maxDisplay).forEach((acquired, index) => {
-      // Find the ability data
       const abilityData = ABILITIES.find(a => a.id === acquired.id)
       if (!abilityData) return
 
       const x = index * iconSpacing
 
-      // Skill icon background (colored border)
-      const iconBg = this.add.rectangle(x, 0, iconSize + 2, iconSize + 2, 0x111111)
-      iconBg.setStrokeStyle(1, abilityData.color)
+      // Icon background
+      const iconBg = this.add.graphics()
+      iconBg.fillStyle(0x000000, 0.6)
+      iconBg.fillRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4)
+      iconBg.lineStyle(1, abilityData.color, 0.8)
+      iconBg.strokeRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4)
       this.skillsContainer.add(iconBg)
 
-      // Skill icon
+      // Icon
       if (this.textures.exists(abilityData.iconKey)) {
         const icon = this.add.image(x, 0, abilityData.iconKey)
-        icon.setDisplaySize(iconSize, iconSize)
+        icon.setDisplaySize(iconSize - 4, iconSize - 4)
         this.skillsContainer.add(icon)
-      } else {
-        // Fallback: colored circle
-        const circle = this.add.circle(x, 0, iconSize / 2 - 2, abilityData.color)
-        this.skillsContainer.add(circle)
       }
 
-      // Level badge (bottom-right corner) if level > 1
+      // Level badge (only if > 1)
       if (acquired.level > 1) {
-        const badgeX = x + iconSize / 2 - 4
-        const badgeY = iconSize / 2 - 4
-
-        // Badge background
-        const badge = this.add.circle(badgeX, badgeY, 7, 0x000000, 0.9)
+        const badgeX = x + iconSize / 2 - 5
+        const badgeY = iconSize / 2 - 5
+        const badge = this.add.circle(badgeX, badgeY, 6, 0x000000, 0.9)
+        badge.setStrokeStyle(1, abilityData.color)
         this.skillsContainer.add(badge)
 
-        // Level number
-        const levelText = this.add.text(badgeX, badgeY, `${acquired.level}`, {
-          fontSize: '9px',
+        const levelNum = this.add.text(badgeX, badgeY, `${acquired.level}`, {
+          fontSize: '8px',
           color: '#ffffff',
           fontStyle: 'bold',
         }).setOrigin(0.5)
-        this.skillsContainer.add(levelText)
+        this.skillsContainer.add(levelNum)
       }
     })
 
-    // Show overflow indicator if more skills
+    // Overflow indicator
     if (abilities.length > maxDisplay) {
       const moreText = this.add.text(maxDisplay * iconSpacing, 0, `+${abilities.length - maxDisplay}`, {
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#888888',
       }).setOrigin(0, 0.5)
       this.skillsContainer.add(moreText)
@@ -873,7 +719,6 @@ export default class UIScene extends Phaser.Scene {
   }
 
   shutdown() {
-    // Remove all event listeners to prevent memory leaks
     this.events.off('updateHealth')
     this.events.off('updateXP')
     this.events.off('updateRoom')
