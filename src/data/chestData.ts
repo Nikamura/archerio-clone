@@ -108,6 +108,9 @@ export const CHEST_THRESHOLDS = {
   // Boss thresholds
   BOSS_SILVER: true, // Kill boss = +1 silver
 
+  // Golden chest chance (percentage, 0-100)
+  GOLDEN_CHEST_CHANCE: 10, // 10% chance on victory
+
   // Maximum total chests per run
   MAX_CHESTS_PER_RUN: 4,
 }
@@ -151,6 +154,12 @@ export function calculateChestRewards(
   if (isVictory && totalChests < CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN) {
     rewards.silver++
     totalChests++
+
+    // Small chance for golden chest on victory
+    if (Math.random() * 100 < CHEST_THRESHOLDS.GOLDEN_CHEST_CHANCE) {
+      rewards.golden++
+      totalChests++
+    }
   }
 
   // Boss defeat bonus
