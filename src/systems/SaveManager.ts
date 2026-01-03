@@ -170,6 +170,9 @@ export interface SaveData {
 
   // Settings
   settings: GameSettings
+
+  // Tutorial
+  tutorialCompleted: boolean
 }
 
 // ============================================
@@ -286,6 +289,7 @@ function createDefaultSaveData(): SaveData {
     unlockedChapters: [1],
     statistics: getDefaultStatistics(),
     settings: getDefaultSettings(),
+    tutorialCompleted: false,
   }
 }
 
@@ -872,6 +876,21 @@ export class SaveManager {
   getTalentLevel(talentId: string): number {
     const talent = this.data.talents.find((t) => t.id === talentId)
     return talent?.level ?? 0
+  }
+
+  /**
+   * Check if tutorial has been completed
+   */
+  isTutorialCompleted(): boolean {
+    return this.data.tutorialCompleted ?? false
+  }
+
+  /**
+   * Mark tutorial as completed
+   */
+  completeTutorial(): void {
+    this.data.tutorialCompleted = true
+    this.markDirty()
   }
 }
 
