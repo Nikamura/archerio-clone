@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
-import { saveManager, GameSettings, GraphicsQuality } from '../systems/SaveManager'
+import { saveManager, GameSettings, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { hapticManager } from '../systems/HapticManager'
 
 /**
@@ -134,6 +134,10 @@ export default class SettingsScene extends Phaser.Scene {
         this.saveSettings()
       }
     )
+    currentY += rowHeight
+
+    // Colorblind Mode
+    this.createColorblindModeSetting(width, currentY)
     currentY += rowHeight + 20
 
     // Reset Progress button (dangerous)
@@ -205,6 +209,84 @@ export default class SettingsScene extends Phaser.Scene {
         buttons.forEach((btn, i) => {
           btn.setStyle({
             backgroundColor: qualities[i] === quality ? '#4a9eff' : '#444444',
+          })
+        })
+      })
+
+      buttons.push(button)
+    })
+  }
+
+  private createColorblindModeSetting(width: number, y: number) {
+    const leftX = 20
+    const rightX = width - 20
+
+    // Label
+    this.add
+      .text(leftX, y, 'Colorblind Mode', {
+        fontSize: '16px',
+        color: '#ffffff',
+      })
+      .setOrigin(0, 0.5)
+
+    // Description
+    this.add
+      .text(leftX, y + 18, 'Adjust colors for accessibility', {
+        fontSize: '11px',
+        color: '#888888',
+      })
+      .setOrigin(0, 0.5)
+
+    // Mode buttons
+    const modes: ColorblindMode[] = [
+      ColorblindMode.NONE,
+      ColorblindMode.PROTANOPIA,
+      ColorblindMode.DEUTERANOPIA,
+      ColorblindMode.TRITANOPIA,
+    ]
+    const labels = ['Off', 'Pro', 'Deu', 'Tri']
+    const buttonWidth = 42
+    const buttonGap = 6
+    const totalButtonWidth = buttonWidth * 4 + buttonGap * 3
+    const buttonStartX = rightX - totalButtonWidth
+
+    const buttons: Phaser.GameObjects.Text[] = []
+
+    modes.forEach((mode, index) => {
+      const x = buttonStartX + index * (buttonWidth + buttonGap) + buttonWidth / 2
+      const isSelected = this.settings.colorblindMode === mode
+
+      const button = this.add
+        .text(x, y, labels[index], {
+          fontSize: '12px',
+          color: '#ffffff',
+          backgroundColor: isSelected ? '#4a9eff' : '#444444',
+          padding: { x: 6, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+
+      button.on('pointerover', () => {
+        if (this.settings.colorblindMode !== mode) {
+          button.setStyle({ backgroundColor: '#666666' })
+        }
+      })
+
+      button.on('pointerout', () => {
+        if (this.settings.colorblindMode !== mode) {
+          button.setStyle({ backgroundColor: '#444444' })
+        }
+      })
+
+      button.on('pointerdown', () => {
+        audioManager.playMenuSelect()
+        this.settings.colorblindMode = mode
+        this.saveSettings()
+
+        // Update all button styles
+        buttons.forEach((btn, i) => {
+          btn.setStyle({
+            backgroundColor: modes[i] === mode ? '#4a9eff' : '#444444',
           })
         })
       })

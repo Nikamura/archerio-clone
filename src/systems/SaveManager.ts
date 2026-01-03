@@ -108,6 +108,16 @@ export enum GraphicsQuality {
 }
 
 /**
+ * Colorblind mode options
+ */
+export enum ColorblindMode {
+  NONE = 'none',
+  PROTANOPIA = 'protanopia', // Red-blind
+  DEUTERANOPIA = 'deuteranopia', // Green-blind
+  TRITANOPIA = 'tritanopia', // Blue-blind
+}
+
+/**
  * Game settings that persist
  */
 export interface GameSettings {
@@ -120,6 +130,7 @@ export interface GameSettings {
   autoLevelUp: boolean
   graphicsQuality: GraphicsQuality
   screenShakeEnabled: boolean
+  colorblindMode: ColorblindMode
 }
 
 /**
@@ -230,6 +241,7 @@ function getDefaultSettings(): GameSettings {
     autoLevelUp: false,
     graphicsQuality: GraphicsQuality.HIGH,
     screenShakeEnabled: true,
+    colorblindMode: ColorblindMode.NONE,
   }
 }
 

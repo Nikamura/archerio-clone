@@ -25,7 +25,7 @@ import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
-import { saveManager, GraphicsQuality } from '../systems/SaveManager'
+import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
@@ -327,6 +327,7 @@ export default class GameScene extends Phaser.Scene {
     const settings = saveManager.getSettings()
     this.applyGraphicsQuality(settings.graphicsQuality)
     this.screenShake.setEnabled(settings.screenShakeEnabled)
+    this.applyColorblindMode(settings.colorblindMode)
 
     // Create damage aura graphics (rendered below player)
     this.damageAuraGraphics = this.add.graphics()
@@ -2496,6 +2497,62 @@ export default class GameScene extends Phaser.Scene {
       case GraphicsQuality.HIGH:
       default:
         this.particles.setQuality(1.0) // Full particles
+        break
+    }
+  }
+
+  /**
+   * Apply colorblind mode filter to the camera
+   * Uses color matrix transformations to simulate how colors appear to colorblind users
+   * and shifts problematic colors to be more distinguishable
+   */
+  private applyColorblindMode(mode: ColorblindMode): void {
+    const camera = this.cameras.main
+
+    // Reset any existing post pipeline
+    camera.resetPostPipeline()
+
+    if (mode === ColorblindMode.NONE) {
+      return
+    }
+
+    // Apply colorblind-friendly color adjustment using Phaser's built-in ColorMatrix
+    // These matrices shift colors to be more distinguishable for each type of colorblindness
+    const pipeline = camera.postFX?.addColorMatrix()
+    if (!pipeline) {
+      console.warn('ColorMatrix post FX not available')
+      return
+    }
+
+    switch (mode) {
+      case ColorblindMode.PROTANOPIA:
+        // Protanopia (red-blind): Shift reds toward blue, enhance blue-yellow contrast
+        pipeline.set([
+          0.567, 0.433, 0, 0, 0,
+          0.558, 0.442, 0, 0, 0,
+          0, 0.242, 0.758, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
+        break
+
+      case ColorblindMode.DEUTERANOPIA:
+        // Deuteranopia (green-blind): Shift greens toward blue, enhance contrast
+        pipeline.set([
+          0.625, 0.375, 0, 0, 0,
+          0.7, 0.3, 0, 0, 0,
+          0, 0.3, 0.7, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
+        break
+
+      case ColorblindMode.TRITANOPIA:
+        // Tritanopia (blue-blind): Shift blues toward red, enhance red-green contrast
+        pipeline.set([
+          0.95, 0.05, 0, 0, 0,
+          0, 0.433, 0.567, 0, 0,
+          0, 0.475, 0.525, 0, 0,
+          0, 0, 0, 1, 0,
+        ])
         break
     }
   }
