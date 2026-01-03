@@ -219,33 +219,34 @@ export default class UIScene extends Phaser.Scene {
     this.menuPanel.setDepth(51)
     this.menuPanel.setAlpha(0)
 
+    const panelWidth = 115
     const panelBg = this.add.graphics()
     panelBg.fillStyle(0x111111, 0.95)
-    panelBg.fillRoundedRect(-90, 0, 100, 160, 8)
+    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
     panelBg.lineStyle(2, 0x444444)
-    panelBg.strokeRoundedRect(-90, 0, 100, 160, 8)
+    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
     this.menuPanel.add(panelBg)
 
     // Menu items
     const menuItems = [
-      { icon: '⚡', label: 'Auto Level', key: 'autoLevel', y: 25 },
-      { icon: '⏩', label: 'Auto Room', key: 'autoRoom', y: 60 },
+      { icon: '⚡', label: 'Auto Lv', key: 'autoLevel', y: 25 },
+      { icon: '⏩', label: 'Auto Rm', key: 'autoRoom', y: 60 },
       { icon: '↺', label: 'Reset', key: 'reset', y: 95 },
       { icon: '🚪', label: 'End Run', key: 'skip', y: 130 },
     ]
 
     menuItems.forEach(item => {
-      const row = this.add.container(-40, item.y)
+      const row = this.add.container(-panelWidth / 2, item.y)
 
-      const rowBg = this.add.rectangle(0, 0, 80, 28, 0x222222, 0)
+      const rowBg = this.add.rectangle(0, 0, panelWidth - 16, 28, 0x222222, 0)
       rowBg.setInteractive({ useHandCursor: true })
       row.add(rowBg)
 
-      const icon = this.add.text(-30, 0, item.icon, { fontSize: '14px' }).setOrigin(0.5)
+      const icon = this.add.text(-38, 0, item.icon, { fontSize: '14px' }).setOrigin(0.5)
       row.add(icon)
 
-      const label = this.add.text(5, 0, item.label, {
-        fontSize: '11px',
+      const label = this.add.text(-15, 0, item.label, {
+        fontSize: '12px',
         color: '#ffffff',
       }).setOrigin(0, 0.5)
       row.add(label)
@@ -255,7 +256,7 @@ export default class UIScene extends Phaser.Scene {
         const isEnabled = item.key === 'autoLevel'
           ? saveManager.getAutoLevelUp()
           : saveManager.getAutoRoomAdvance()
-        const indicator = this.add.circle(32, 0, 4, isEnabled ? 0x00ff88 : 0x444444)
+        const indicator = this.add.circle(42, 0, 4, isEnabled ? 0x00ff88 : 0x444444)
         row.add(indicator)
         row.setData('indicator', indicator)
         row.setData('enabled', isEnabled)
@@ -281,7 +282,7 @@ export default class UIScene extends Phaser.Scene {
     // Close menu when clicking outside
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.isMenuOpen) {
-        const menuBounds = new Phaser.Geom.Rectangle(width - 100, 50, 100, 170)
+        const menuBounds = new Phaser.Geom.Rectangle(width - 120, 50, 120, 170)
         const buttonBounds = new Phaser.Geom.Rectangle(width - 40, 14, 28, 28)
         if (!menuBounds.contains(pointer.x, pointer.y) && !buttonBounds.contains(pointer.x, pointer.y)) {
           this.closeMenu()
