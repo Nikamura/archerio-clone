@@ -442,7 +442,15 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
       - `corner_rooms`: Four Corners, Corners Plus Center (pillars, obstacles)
       - `ambush`: Pincer Attack (corridor trap walls)
       - `open_arena`: Circular Siege (center pillar)
-    - **FUTURE:** Generate themed wall sprites based on chapter (dungeon stone, forest logs, ice crystals, lava rock, shadow pillars)
+    - ✅ **Themed wall textures** (2026-01-03):
+      - Chapter 1 (Dark Dungeon): `wall_dungeon.png` - Stone brick walls with moss
+      - Chapter 2 (Forest Ruins): `wall_forest.png` - Wooden logs and overgrown stones
+      - Chapter 3 (Frozen Caves): `wall_ice.png` - Ice crystals and frozen rock
+      - Chapter 4 (Volcanic Depths): `wall_lava.png` - Lava rock with glowing cracks
+      - Chapter 5 (Shadow Realm): `wall_shadow.png` - Dark energy pillars with purple glow
+      - Shop theme: `wall_vaporwave.png` - Pink/purple neon grid
+      - Wall entity uses TileSprite for repeating textures
+      - WallGroup.setTexture(chapterId) maps chapter to texture key
   - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
   - MainMenuScene:
     - "Enter Seed" button below PLAY opens modal dialog

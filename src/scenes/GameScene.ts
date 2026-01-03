@@ -324,8 +324,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Create wall group for room obstacles
     this.wallGroup = new WallGroup(this, width, height)
-    // Set wall color based on chapter theme (reuse chapterDef from above)
-    this.wallGroup.setColor(chapterDef.theme.primaryColor)
+    // Set wall texture and color based on chapter theme
+    this.wallGroup.setTexture(selectedChapter) // e.g., 'chapter_1' -> 'wall_dungeon'
+    this.wallGroup.setColor(chapterDef.theme.primaryColor) // Fallback if texture missing
 
     // Create visual effects systems
     this.screenShake = createScreenShake(this)

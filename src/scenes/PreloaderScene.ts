@@ -156,6 +156,14 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapterIcon4', 'assets/sprites/ui/chapter4_icon.png')
     this.load.image('chapterIcon5', 'assets/sprites/ui/chapter5_icon.png')
     
+    // Load wall textures (chapter-themed)
+    this.load.image('wall_dungeon', 'assets/sprites/walls/wall_dungeon.png')
+    this.load.image('wall_forest', 'assets/sprites/walls/wall_forest.png')
+    this.load.image('wall_ice', 'assets/sprites/walls/wall_ice.png')
+    this.load.image('wall_lava', 'assets/sprites/walls/wall_lava.png')
+    this.load.image('wall_shadow', 'assets/sprites/walls/wall_shadow.png')
+    this.load.image('wall_vaporwave', 'assets/sprites/walls/wall_vaporwave.png')
+
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
     this.load.image('chest_silver', 'assets/sprites/chest/silver.png')

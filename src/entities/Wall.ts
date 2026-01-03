@@ -9,28 +9,45 @@ import Phaser from 'phaser'
  * - Collision with player, enemies, and bullets
  * - Bullets with bouncy_wall ability bounce off walls
  * - Bullets with through_wall ability pass through
+ * - Optional texture support with TileSprite for repeating patterns
  */
-export default class Wall extends Phaser.GameObjects.Rectangle {
+export default class Wall extends Phaser.GameObjects.Container {
+  private wallGraphics: Phaser.GameObjects.Rectangle | Phaser.GameObjects.TileSprite
+
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     width: number,
     height: number,
-    color: number = 0x444444
+    color: number = 0x444444,
+    textureKey?: string
   ) {
-    super(scene, x, y, width, height, color)
+    super(scene, x, y)
+
+    // Use texture if provided and exists, otherwise fallback to colored rectangle
+    if (textureKey && scene.textures.exists(textureKey)) {
+      // TileSprite repeats the texture to fill the wall area
+      this.wallGraphics = scene.add.tileSprite(0, 0, width, height, textureKey)
+      this.add(this.wallGraphics)
+    } else {
+      // Fallback to colored rectangle
+      this.wallGraphics = scene.add.rectangle(0, 0, width, height, color)
+      this.wallGraphics.setStrokeStyle(2, 0x666666)
+      this.add(this.wallGraphics)
+    }
 
     scene.add.existing(this)
     scene.physics.add.existing(this, true) // true = static body
 
-    // Set up physics body to match rectangle size
+    // Set up physics body to match wall size
     const body = this.body as Phaser.Physics.Arcade.StaticBody
     body.setSize(width, height)
 
-    // Visual styling
-    this.setStrokeStyle(2, 0x666666)
     this.setDepth(1) // Above floor, below entities
+
+    // Set container size for containsPoint check
+    this.setSize(width, height)
   }
 
   /**
