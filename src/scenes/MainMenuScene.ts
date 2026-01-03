@@ -567,6 +567,38 @@ export default class MainMenuScene extends Phaser.Scene {
     // Apply button effects to shop button
     applyButtonEffects(this, shopButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
 
+    // ============================================
+    // SETTINGS BUTTON (Below shop)
+    // ============================================
+
+    const settingsY = shopY + 45
+
+    const settingsButton = this.add.text(width / 2, settingsY, 'Settings', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#555555',
+      padding: { x: 20, y: 10 },
+    })
+    settingsButton.setOrigin(0.5)
+    settingsButton.setInteractive({ useHandCursor: true })
+    settingsButton.setDepth(10)
+
+    settingsButton.on('pointerover', () => {
+      settingsButton.setStyle({ backgroundColor: '#777777' })
+    })
+
+    settingsButton.on('pointerout', () => {
+      settingsButton.setStyle({ backgroundColor: '#555555' })
+    })
+
+    settingsButton.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      transitionToScene(this, 'SettingsScene', TransitionType.FADE, DURATION.FAST)
+    })
+
+    // Apply button effects to settings button
+    applyButtonEffects(this, settingsButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
+
     // Instructions (bottom)
     const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {
       fontSize: '12px',

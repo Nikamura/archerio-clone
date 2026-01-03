@@ -99,6 +99,15 @@ export interface PlayerStatistics {
 }
 
 /**
+ * Graphics quality levels
+ */
+export enum GraphicsQuality {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+/**
  * Game settings that persist
  */
 export interface GameSettings {
@@ -109,6 +118,8 @@ export interface GameSettings {
   vibrationEnabled: boolean
   language: string
   autoLevelUp: boolean
+  graphicsQuality: GraphicsQuality
+  screenShakeEnabled: boolean
 }
 
 /**
@@ -217,6 +228,8 @@ function getDefaultSettings(): GameSettings {
     vibrationEnabled: true,
     language: 'en',
     autoLevelUp: false,
+    graphicsQuality: GraphicsQuality.HIGH,
+    screenShakeEnabled: true,
   }
 }
 
