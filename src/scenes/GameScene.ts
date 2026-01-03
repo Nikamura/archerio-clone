@@ -174,6 +174,12 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off('resetLevel', this.resetLevel, this)
     })
 
+    // Listen for skip run event (allows ending run early to collect rewards)
+    this.game.events.on('skipRun', this.handleSkipRun, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('skipRun', this.handleSkipRun, this)
+    })
+
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
     const handleVisibilityChange = () => {
@@ -2145,6 +2151,67 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // Launch game over scene with stats
+      this.scene.launch('GameOverScene', {
+        roomsCleared: totalRoomsCleared,
+        enemiesKilled: this.enemiesKilled,
+        isVictory: false,
+        playTimeMs,
+        abilitiesGained: this.abilitiesGained,
+        goldEarned: this.goldEarned,
+        runSeed: this.runSeedString,
+        acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        heroXPEarned: this.heroXPEarned,
+        isEndlessMode: this.isEndlessMode,
+        endlessWave: this.endlessWave,
+        isDailyChallengeMode: this.isDailyChallengeMode,
+        chapterId: chapterManager.getSelectedChapter(),
+        difficulty: this.difficultyConfig.label.toLowerCase(),
+      })
+
+      // Stop GameScene last - this prevents texture issues when restarting
+      this.scene.stop('GameScene')
+    })
+  }
+
+  /**
+   * Handle skip run - allows player to end run early and collect rewards
+   */
+  private handleSkipRun(): void {
+    if (this.isGameOver) return
+
+    this.isGameOver = true
+    console.log('Run skipped! Collecting rewards...')
+
+    // End the chapter run (skipped counts as failed/abandoned)
+    chapterManager.endRun(true)
+
+    // Stop player movement
+    this.player.setVelocity(0, 0)
+
+    // Clean up joystick
+    if (this.joystick) {
+      this.joystick.destroy()
+    }
+
+    // Calculate play time
+    const playTimeMs = Date.now() - this.runStartTime
+
+    // Brief delay before showing game over screen
+    this.time.delayedCall(300, () => {
+      // Stop UIScene first
+      this.scene.stop('UIScene')
+
+      // Calculate total rooms cleared in endless mode (across all waves)
+      const totalRoomsCleared = this.isEndlessMode
+        ? (this.endlessWave - 1) * this.totalRooms + this.currentRoom - 1
+        : this.currentRoom - 1
+
+      // Record daily challenge completion if applicable
+      if (this.isDailyChallengeMode) {
+        saveManager.recordDailyChallengeCompletion(this.endlessWave)
+      }
+
+      // Launch game over scene with stats (not a victory, but not a death either)
       this.scene.launch('GameOverScene', {
         roomsCleared: totalRoomsCleared,
         enemiesKilled: this.enemiesKilled,
