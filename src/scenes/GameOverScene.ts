@@ -38,6 +38,7 @@ export interface GameOverData {
   heroXPEarned?: number
   isEndlessMode?: boolean
   endlessWave?: number
+  isDailyChallengeMode?: boolean
 }
 
 /**
@@ -115,6 +116,7 @@ export default class GameOverScene extends Phaser.Scene {
   private isEndlessMode: boolean = false
   private endlessWave: number = 1
   private isNewEndlessHighScore: boolean = false
+  private isDailyChallengeMode: boolean = false
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -127,6 +129,7 @@ export default class GameOverScene extends Phaser.Scene {
     this.acquiredAbilities = data?.acquiredAbilities ?? []
     this.isEndlessMode = data?.isEndlessMode ?? false
     this.endlessWave = data?.endlessWave ?? 1
+    this.isDailyChallengeMode = data?.isDailyChallengeMode ?? false
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
@@ -276,10 +279,13 @@ export default class GameOverScene extends Phaser.Scene {
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
 
-    // Title text - different for endless mode
+    // Title text - different for each game mode
     let titleText: string
     let titleColor: string
-    if (this.isEndlessMode) {
+    if (this.isDailyChallengeMode) {
+      titleText = `DAILY CHALLENGE`
+      titleColor = '#00ddff'
+    } else if (this.isEndlessMode) {
       titleText = `WAVE ${this.endlessWave}`
       titleColor = this.isNewEndlessHighScore ? '#ffdd00' : '#ff6b35'
     } else {
@@ -296,8 +302,18 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    // Show new high wave badge for endless mode
-    if (this.isEndlessMode && this.isNewEndlessHighScore) {
+    // Show wave info for daily challenge or new best for endless
+    let subtitleOffset = 0
+    if (this.isDailyChallengeMode) {
+      this.add
+        .text(width / 2, 95, `Wave ${this.endlessWave} Reached`, {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+      subtitleOffset = 20
+    } else if (this.isEndlessMode && this.isNewEndlessHighScore) {
       this.add
         .text(width / 2, 95, 'NEW BEST!', {
           fontSize: '16px',
@@ -306,10 +322,11 @@ export default class GameOverScene extends Phaser.Scene {
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
+      subtitleOffset = 10
     }
 
     // Stats section
-    const statsStartY = this.isEndlessMode && this.isNewEndlessHighScore ? 130 : 120
+    const statsStartY = 120 + subtitleOffset
     const lineHeight = 32
 
     // Rooms cleared

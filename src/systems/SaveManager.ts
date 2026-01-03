@@ -174,6 +174,13 @@ export interface SaveData {
 
   // Tutorial
   tutorialCompleted: boolean
+
+  // Daily Challenge
+  dailyChallenge?: {
+    lastCompletedDate: string // YYYY-MM-DD format
+    bestWave: number // Best wave reached in daily challenge
+    completionsCount: number // Total daily challenges completed
+  }
 }
 
 // ============================================
@@ -903,6 +910,78 @@ export class SaveManager {
   completeTutorial(): void {
     this.data.tutorialCompleted = true
     this.markDirty()
+  }
+
+  // ============================================
+  // Daily Challenge Methods
+  // ============================================
+
+  /**
+   * Get today's date as YYYY-MM-DD string
+   */
+  private getTodayDateString(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
+
+  /**
+   * Get daily challenge seed for today (based on date)
+   */
+  getDailyChallengeSeed(): number {
+    const dateStr = this.getTodayDateString()
+    // Convert date string to a consistent seed number
+    let hash = 0
+    for (let i = 0; i < dateStr.length; i++) {
+      const char = dateStr.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash)
+  }
+
+  /**
+   * Check if today's daily challenge has been completed
+   */
+  isDailyChallengeCompleted(): boolean {
+    const today = this.getTodayDateString()
+    return this.data.dailyChallenge?.lastCompletedDate === today
+  }
+
+  /**
+   * Get daily challenge stats
+   */
+  getDailyChallengeStats(): { bestWave: number; completionsCount: number } {
+    return {
+      bestWave: this.data.dailyChallenge?.bestWave ?? 0,
+      completionsCount: this.data.dailyChallenge?.completionsCount ?? 0,
+    }
+  }
+
+  /**
+   * Record daily challenge completion
+   */
+  recordDailyChallengeCompletion(waveReached: number): boolean {
+    const today = this.getTodayDateString()
+    const isNewCompletion = this.data.dailyChallenge?.lastCompletedDate !== today
+
+    if (!this.data.dailyChallenge) {
+      this.data.dailyChallenge = {
+        lastCompletedDate: today,
+        bestWave: waveReached,
+        completionsCount: 1,
+      }
+    } else {
+      this.data.dailyChallenge.lastCompletedDate = today
+      if (waveReached > this.data.dailyChallenge.bestWave) {
+        this.data.dailyChallenge.bestWave = waveReached
+      }
+      if (isNewCompletion) {
+        this.data.dailyChallenge.completionsCount++
+      }
+    }
+
+    this.markDirty()
+    return isNewCompletion
   }
 }
 

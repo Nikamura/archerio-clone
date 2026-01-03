@@ -295,8 +295,9 @@ export default class MainMenuScene extends Phaser.Scene {
       if (this.customSeed) {
         this.game.registry.set('runSeed', this.customSeed)
       }
-      // Disable endless mode for normal play
+      // Disable special modes for normal play
       this.game.registry.set('isEndlessMode', false)
+      this.game.registry.set('isDailyChallengeMode', false)
       // Use fade transition when starting game
       transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
       this.scene.launch('UIScene')
@@ -330,15 +331,58 @@ export default class MainMenuScene extends Phaser.Scene {
     endlessButton.on('pointerdown', () => {
       audioManager.resume()
       audioManager.playGameStart()
-      // Enable endless mode
+      // Enable endless mode, disable daily challenge mode
       this.game.registry.set('isEndlessMode', true)
+      this.game.registry.set('isDailyChallengeMode', false)
       // Use fade transition when starting game
       transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
       this.scene.launch('UIScene')
     })
 
-    // Seed input button (below play buttons)
-    const seedButton = this.add.text(width / 2, 305, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
+    // DAILY CHALLENGE button (below play buttons)
+    const dailyCompleted = saveManager.isDailyChallengeCompleted()
+    const dailyStats = saveManager.getDailyChallengeStats()
+    const dailyChallengeColor = dailyCompleted ? '#4a6a4a' : '#00ddff'
+    const dailyChallengeHoverColor = dailyCompleted ? '#5a7a5a' : '#44eeff'
+    const dailyLabel = dailyCompleted ? `DAILY ✓ (Wave ${dailyStats.bestWave})` : 'DAILY CHALLENGE'
+
+    const dailyChallengeButton = this.add.text(width / 2, 305, dailyLabel, {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: dailyChallengeColor,
+      padding: { x: 20, y: 8 },
+    })
+    dailyChallengeButton.setOrigin(0.5)
+    dailyChallengeButton.setInteractive({ useHandCursor: true })
+    dailyChallengeButton.setDepth(10)
+
+    // Apply enhanced button effects
+    applyButtonEffects(this, dailyChallengeButton, {
+      scaleOnHover: 1.05,
+      scaleOnPress: 0.95,
+    })
+
+    dailyChallengeButton.on('pointerover', () => {
+      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeHoverColor })
+    })
+
+    dailyChallengeButton.on('pointerout', () => {
+      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeColor })
+    })
+
+    dailyChallengeButton.on('pointerdown', () => {
+      audioManager.resume()
+      audioManager.playGameStart()
+      // Enable daily challenge mode (uses endless mechanics with fixed daily seed)
+      this.game.registry.set('isDailyChallengeMode', true)
+      this.game.registry.set('isEndlessMode', false) // Will be set to true in GameScene
+      // Use fade transition when starting game
+      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+      this.scene.launch('UIScene')
+    })
+
+    // Seed input button (below daily button)
+    const seedButton = this.add.text(width / 2, 340, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
       fontSize: '12px',
       color: this.customSeed ? '#00ddff' : '#888888',
       backgroundColor: '#333333',
@@ -365,7 +409,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // MENU BUTTONS (Two rows for better layout)
     // ============================================
 
-    const menuY = 340
+    const menuY = 375
     const menuButtonConfigs = [
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },

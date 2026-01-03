@@ -97,6 +97,9 @@ export default class GameScene extends Phaser.Scene {
   private endlessWave: number = 1 // Track current wave in endless mode
   private endlessDifficultyMultiplier: number = 1.0 // Increases each wave
 
+  // Daily challenge mode
+  private isDailyChallengeMode: boolean = false
+
   // Room generation system
   private roomGenerator!: RoomGenerator
   private currentGeneratedRoom: GeneratedRoom | null = null
@@ -186,10 +189,16 @@ export default class GameScene extends Phaser.Scene {
       window.removeEventListener('blur', handleBlur)
     })
 
-    // Check if endless mode is enabled
+    // Check game mode
     this.isEndlessMode = this.game.registry.get('isEndlessMode') === true
+    this.isDailyChallengeMode = this.game.registry.get('isDailyChallengeMode') === true
     this.endlessWave = 1
     this.endlessDifficultyMultiplier = 1.0
+
+    // Daily challenge uses endless mode mechanics with fixed seed
+    if (this.isDailyChallengeMode) {
+      this.isEndlessMode = true // Daily challenge uses endless mechanics
+    }
 
     // Reset game state
     this.isGameOver = false
@@ -363,13 +372,19 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Initialize seeded random for deterministic run
-    // Check if a seed was passed from MainMenuScene
-    const passedSeed = this.game.registry.get('runSeed')
-    if (passedSeed) {
-      this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
-      this.game.registry.remove('runSeed') // Clear it for next run
+    // Daily challenge uses fixed daily seed, otherwise check for passed seed
+    if (this.isDailyChallengeMode) {
+      const dailySeed = saveManager.getDailyChallengeSeed()
+      this.runRng = new SeededRandom(dailySeed)
+      console.log(`GameScene: Daily Challenge mode - using daily seed`)
     } else {
-      this.runRng = new SeededRandom()
+      const passedSeed = this.game.registry.get('runSeed')
+      if (passedSeed) {
+        this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
+        this.game.registry.remove('runSeed') // Clear it for next run
+      } else {
+        this.runRng = new SeededRandom()
+      }
     }
     this.runSeedString = this.runRng.getSeedString()
     console.log(`GameScene: Run seed: ${this.runSeedString}`)
@@ -1933,6 +1948,11 @@ export default class GameScene extends Phaser.Scene {
         ? (this.endlessWave - 1) * this.totalRooms + this.currentRoom - 1
         : this.currentRoom - 1
 
+      // Record daily challenge completion if applicable
+      if (this.isDailyChallengeMode) {
+        saveManager.recordDailyChallengeCompletion(this.endlessWave)
+      }
+
       // Launch game over scene with stats
       this.scene.launch('GameOverScene', {
         roomsCleared: totalRoomsCleared,
@@ -1946,6 +1966,7 @@ export default class GameScene extends Phaser.Scene {
         heroXPEarned: this.heroXPEarned,
         isEndlessMode: this.isEndlessMode,
         endlessWave: this.endlessWave,
+        isDailyChallengeMode: this.isDailyChallengeMode,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
