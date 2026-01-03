@@ -96,6 +96,7 @@ export interface PlayerStatistics {
   longestRun: number // in rooms
   fastestBossKill: number // in milliseconds, 0 if never killed
   highestScore: number // personal best score
+  endlessHighWave?: number // highest wave reached in endless mode
 }
 
 /**
@@ -770,6 +771,8 @@ export class SaveManager {
     abilitiesGained: number
     victory: boolean
     score: number
+    isEndlessMode?: boolean
+    endlessWave?: number
   }): void {
     const stats = this.data.statistics
 
@@ -794,8 +797,17 @@ export class SaveManager {
       stats.longestRun = options.roomsCleared
     }
 
-    if (options.score > stats.highestScore) {
+    // Track regular score only in non-endless mode
+    if (!options.isEndlessMode && options.score > stats.highestScore) {
       stats.highestScore = options.score
+    }
+
+    // Track endless mode high wave
+    if (options.isEndlessMode && options.endlessWave !== undefined) {
+      const currentHighWave = stats.endlessHighWave ?? 0
+      if (options.endlessWave > currentHighWave) {
+        stats.endlessHighWave = options.endlessWave
+      }
     }
 
     this.markDirty()

@@ -258,14 +258,17 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     // ============================================
-    // PLAY BUTTON (Center)
+    // PLAY BUTTONS (Center - two buttons side by side)
     // ============================================
 
-    const playButton = this.add.text(width / 2, 270, 'PLAY', {
-      fontSize: '28px',
+    const buttonY = 265
+
+    // PLAY button (left)
+    const playButton = this.add.text(width / 2 - 60, buttonY, 'PLAY', {
+      fontSize: '22px',
       color: '#ffffff',
       backgroundColor: '#4a9eff',
-      padding: { x: 50, y: 15 },
+      padding: { x: 28, y: 12 },
     })
     playButton.setOrigin(0.5)
     playButton.setInteractive({ useHandCursor: true })
@@ -292,13 +295,50 @@ export default class MainMenuScene extends Phaser.Scene {
       if (this.customSeed) {
         this.game.registry.set('runSeed', this.customSeed)
       }
+      // Disable endless mode for normal play
+      this.game.registry.set('isEndlessMode', false)
       // Use fade transition when starting game
       transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
       this.scene.launch('UIScene')
     })
 
-    // Seed input button (below play button)
-    const seedButton = this.add.text(width / 2, 310, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
+    // ENDLESS button (right)
+    const endlessButton = this.add.text(width / 2 + 60, buttonY, 'ENDLESS', {
+      fontSize: '22px',
+      color: '#ffffff',
+      backgroundColor: '#ff6b35',
+      padding: { x: 16, y: 12 },
+    })
+    endlessButton.setOrigin(0.5)
+    endlessButton.setInteractive({ useHandCursor: true })
+    endlessButton.setDepth(10)
+
+    // Apply enhanced button effects
+    applyButtonEffects(this, endlessButton, {
+      scaleOnHover: 1.08,
+      scaleOnPress: 0.95,
+    })
+
+    endlessButton.on('pointerover', () => {
+      endlessButton.setStyle({ backgroundColor: '#ff8855' })
+    })
+
+    endlessButton.on('pointerout', () => {
+      endlessButton.setStyle({ backgroundColor: '#ff6b35' })
+    })
+
+    endlessButton.on('pointerdown', () => {
+      audioManager.resume()
+      audioManager.playGameStart()
+      // Enable endless mode
+      this.game.registry.set('isEndlessMode', true)
+      // Use fade transition when starting game
+      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+      this.scene.launch('UIScene')
+    })
+
+    // Seed input button (below play buttons)
+    const seedButton = this.add.text(width / 2, 305, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
       fontSize: '12px',
       color: this.customSeed ? '#00ddff' : '#888888',
       backgroundColor: '#333333',

@@ -106,8 +106,8 @@ export default class UIScene extends Phaser.Scene {
     })
 
     // Listen for room updates from GameScene
-    this.events.on('updateRoom', (currentRoom: number, totalRooms: number) => {
-      this.updateRoomCounter(currentRoom, totalRooms)
+    this.events.on('updateRoom', (currentRoom: number, totalRooms: number, endlessWave?: number) => {
+      this.updateRoomCounter(currentRoom, totalRooms, endlessWave)
     })
 
     // Listen for boss health events
@@ -286,8 +286,13 @@ export default class UIScene extends Phaser.Scene {
     this.healthText.setText(`${Math.ceil(currentHealth)}/${Math.ceil(maxHealth)}`)
   }
 
-  updateRoomCounter(currentRoom: number, totalRooms: number) {
-    this.roomText.setText(`Room ${currentRoom}/${totalRooms}`)
+  updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {
+    if (endlessWave !== undefined) {
+      // Endless mode: show wave number and room
+      this.roomText.setText(`Wave ${endlessWave} - ${currentRoom}/${totalRooms}`)
+    } else {
+      this.roomText.setText(`Room ${currentRoom}/${totalRooms}`)
+    }
   }
 
   updateXPBar(percentage: number) {

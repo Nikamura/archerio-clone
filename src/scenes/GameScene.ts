@@ -92,6 +92,11 @@ export default class GameScene extends Phaser.Scene {
   private heroXPEarned: number = 0 // Track hero XP earned this run
   private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
+  // Endless mode
+  private isEndlessMode: boolean = false
+  private endlessWave: number = 1 // Track current wave in endless mode
+  private endlessDifficultyMultiplier: number = 1.0 // Increases each wave
+
   // Room generation system
   private roomGenerator!: RoomGenerator
   private currentGeneratedRoom: GeneratedRoom | null = null
@@ -181,11 +186,16 @@ export default class GameScene extends Phaser.Scene {
       window.removeEventListener('blur', handleBlur)
     })
 
+    // Check if endless mode is enabled
+    this.isEndlessMode = this.game.registry.get('isEndlessMode') === true
+    this.endlessWave = 1
+    this.endlessDifficultyMultiplier = 1.0
+
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
     this.currentRoom = 1
-    this.totalRooms = chapterManager.getTotalRooms()
+    this.totalRooms = this.isEndlessMode ? 10 : chapterManager.getTotalRooms() // Endless mode uses 10 rooms per wave
     this.isRoomCleared = false
     this.doorSprite = null
     this.doorText = null
@@ -483,7 +493,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateRoomUI() {
-    this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
+    if (this.isEndlessMode) {
+      // In endless mode, show wave number instead of room/total
+      this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms, this.endlessWave)
+    } else {
+      this.scene.get('UIScene').events.emit('updateRoom', this.currentRoom, this.totalRooms)
+    }
   }
 
   private spawnDoor() {
@@ -567,16 +582,24 @@ export default class GameScene extends Phaser.Scene {
   private transitionToNextRoom() {
     this.currentRoom++
 
-    // Check for victory
+    // Check for victory or wave completion
     if (this.currentRoom > this.totalRooms) {
-      this.triggerVictory()
-      return
+      if (this.isEndlessMode) {
+        // Endless mode: Start next wave with increased difficulty
+        this.startNextEndlessWave()
+        return
+      } else {
+        this.triggerVictory()
+        return
+      }
     }
 
-    // Notify chapter manager of room advancement
-    const advanced = chapterManager.advanceRoom()
-    if (!advanced) {
-      console.warn('GameScene: Failed to advance room in chapter manager')
+    // Notify chapter manager of room advancement (only in normal mode)
+    if (!this.isEndlessMode) {
+      const advanced = chapterManager.advanceRoom()
+      if (!advanced) {
+        console.warn('GameScene: Failed to advance room in chapter manager')
+      }
     }
 
     // Clean up current room
@@ -603,6 +626,85 @@ export default class GameScene extends Phaser.Scene {
     errorReporting.addBreadcrumb('game', `Entered room ${this.currentRoom}`)
 
     console.log('Entered room', this.currentRoom)
+  }
+
+  /**
+   * Start the next wave in endless mode
+   * Increases difficulty and resets room counter
+   */
+  private startNextEndlessWave() {
+    this.endlessWave++
+    this.currentRoom = 1
+
+    // Increase difficulty by 15% each wave
+    this.endlessDifficultyMultiplier = 1 + (this.endlessWave - 1) * 0.15
+
+    // Clean up current room
+    this.cleanupRoom()
+
+    // Show wave notification
+    this.showEndlessWaveNotification()
+
+    // Spawn new enemies with increased difficulty
+    this.spawnEnemiesForRoom()
+
+    // Reset room state
+    this.isRoomCleared = false
+    this.isTransitioning = false
+
+    // Update UI
+    this.updateRoomUI()
+
+    // Notify UIScene to fade in HUD when entering new room
+    this.scene.get('UIScene').events.emit('roomEntered')
+
+    // Fade back in
+    this.cameras.main.fadeIn(300, 0, 0, 0)
+
+    console.log(`Endless Mode: Starting Wave ${this.endlessWave} (difficulty x${this.endlessDifficultyMultiplier.toFixed(2)})`)
+  }
+
+  /**
+   * Show wave notification in endless mode
+   */
+  private showEndlessWaveNotification() {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Wave text
+    const waveText = this.add.text(width / 2, height / 2 - 50, `WAVE ${this.endlessWave}`, {
+      fontSize: '48px',
+      color: '#ffdd00',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6,
+    })
+    waveText.setOrigin(0.5)
+    waveText.setDepth(100)
+
+    // Difficulty text
+    const diffText = this.add.text(width / 2, height / 2 + 10, `Difficulty x${this.endlessDifficultyMultiplier.toFixed(1)}`, {
+      fontSize: '20px',
+      color: '#ff6666',
+      stroke: '#000000',
+      strokeThickness: 3,
+    })
+    diffText.setOrigin(0.5)
+    diffText.setDepth(100)
+
+    // Animate and destroy
+    this.tweens.add({
+      targets: [waveText, diffText],
+      alpha: 0,
+      y: '-=30',
+      duration: 1500,
+      delay: 1000,
+      ease: 'Power2',
+      onComplete: () => {
+        waveText.destroy()
+        diffText.destroy()
+      }
+    })
   }
 
   private cleanupRoom() {
@@ -794,13 +896,16 @@ export default class GameScene extends Phaser.Scene {
           // Get chapter-specific modifiers for this enemy type
           const chapterModifiers = getEnemyModifiers(selectedChapter, spawn.enemyType as ChapterEnemyType)
 
+          // Apply endless mode difficulty multiplier
+          const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
+
           // Combine difficulty config with chapter modifiers and chapter scaling
           const enemyOptions = {
-            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier,
-            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier,
-            speedMultiplier: chapterModifiers.speedMultiplier,
-            attackCooldownMultiplier: chapterModifiers.attackCooldownMultiplier,
-            projectileSpeedMultiplier: chapterModifiers.projectileSpeedMultiplier,
+            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier * endlessMult,
+            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier * endlessMult,
+            speedMultiplier: (chapterModifiers.speedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.5), // Speed scales less aggressively
+            attackCooldownMultiplier: (chapterModifiers.attackCooldownMultiplier ?? 1) / (1 + (endlessMult - 1) * 0.3), // Faster attacks
+            projectileSpeedMultiplier: (chapterModifiers.projectileSpeedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.3),
             abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
           }
 
@@ -830,9 +935,11 @@ export default class GameScene extends Phaser.Scene {
 
     // Difficulty modifiers for boss (combine difficulty config with chapter scaling)
     const chapterDef = getChapterDefinition(selectedChapter)
+    // Apply endless mode difficulty multiplier to boss
+    const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
     const bossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier,
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult,
     }
 
     // Create the appropriate boss using the factory
@@ -1821,9 +1928,14 @@ export default class GameScene extends Phaser.Scene {
       // Stop UIScene first
       this.scene.stop('UIScene')
 
+      // Calculate total rooms cleared in endless mode (across all waves)
+      const totalRoomsCleared = this.isEndlessMode
+        ? (this.endlessWave - 1) * this.totalRooms + this.currentRoom - 1
+        : this.currentRoom - 1
+
       // Launch game over scene with stats
       this.scene.launch('GameOverScene', {
-        roomsCleared: this.currentRoom - 1,
+        roomsCleared: totalRoomsCleared,
         enemiesKilled: this.enemiesKilled,
         isVictory: false,
         playTimeMs,
@@ -1832,6 +1944,8 @@ export default class GameScene extends Phaser.Scene {
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
         heroXPEarned: this.heroXPEarned,
+        isEndlessMode: this.isEndlessMode,
+        endlessWave: this.endlessWave,
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
