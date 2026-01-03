@@ -710,20 +710,25 @@ export function calculateStarRating(
  * @param chapterId The completed chapter
  * @param stars Star rating achieved (1-3)
  * @param firstTime Whether this is the first time completing
+ * @param difficultyMultiplier Optional difficulty reward multiplier (default 1.0)
  */
 export function calculateChapterRewards(
   chapterId: ChapterId,
   stars: 1 | 2 | 3,
-  firstTime: boolean
+  firstTime: boolean,
+  difficultyMultiplier: number = 1.0
 ): ChapterRewards {
   const chapter = CHAPTER_DEFINITIONS[chapterId]
   const starMultiplier = STAR_REWARD_MULTIPLIERS[stars]
   const firstTimeMultiplier = firstTime ? chapter.firstTimeBonus : 1.0
 
+  // Combined multiplier: chapter base × stars × first time × difficulty
+  const totalMultiplier = starMultiplier * firstTimeMultiplier * difficultyMultiplier
+
   return {
-    gold: Math.floor(chapter.rewards.gold * starMultiplier * firstTimeMultiplier),
-    gems: Math.floor(chapter.rewards.gems * starMultiplier * firstTimeMultiplier),
-    scrolls: Math.floor(chapter.rewards.scrolls * starMultiplier * firstTimeMultiplier),
+    gold: Math.floor(chapter.rewards.gold * totalMultiplier),
+    gems: Math.floor(chapter.rewards.gems * totalMultiplier),
+    scrolls: Math.floor(chapter.rewards.scrolls * totalMultiplier),
   }
 }
 

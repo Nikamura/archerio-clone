@@ -1048,9 +1048,11 @@ export default class GameScene extends Phaser.Scene {
     console.log('Victory! All rooms cleared!')
 
     // Complete chapter in manager to unlock next chapter and calculate rewards
+    // Pass difficulty gold multiplier for reward scaling
     const completionResult = chapterManager.completeChapter(
       this.player.getHealth(),
-      this.player.getMaxHealth()
+      this.player.getMaxHealth(),
+      this.difficultyConfig.goldMultiplier
     )
 
     // Clean up joystick
@@ -1078,6 +1080,8 @@ export default class GameScene extends Phaser.Scene {
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
         heroXPEarned: this.heroXPEarned,
+        chapterId: chapterManager.getSelectedChapter(),
+        difficulty: this.difficultyConfig.label.toLowerCase(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting
@@ -1988,6 +1992,8 @@ export default class GameScene extends Phaser.Scene {
         isEndlessMode: this.isEndlessMode,
         endlessWave: this.endlessWave,
         isDailyChallengeMode: this.isDailyChallengeMode,
+        chapterId: chapterManager.getSelectedChapter(),
+        difficulty: this.difficultyConfig.label.toLowerCase(),
       })
 
       // Stop GameScene last - this prevents texture issues when restarting

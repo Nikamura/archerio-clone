@@ -39,6 +39,8 @@ export interface GameOverData {
   isEndlessMode?: boolean
   endlessWave?: number
   isDailyChallengeMode?: boolean
+  chapterId?: number
+  difficulty?: string
 }
 
 /**
@@ -134,11 +136,18 @@ export default class GameOverScene extends Phaser.Scene {
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
     this.goldEarned = this.stats.goldEarned ?? calculateGoldEarned(this.stats.enemiesKilled, bossDefeated)
+
+    // Get chapter and difficulty for scaled rewards
+    const chapterId = data?.chapterId ?? chapterManager.getSelectedChapter()
+    const difficulty = data?.difficulty ?? 'normal'
+
     this.chestRewards = calculateChestRewards(
       this.stats.roomsCleared,
       this.stats.enemiesKilled,
       bossDefeated,
-      this.stats.isVictory ?? false
+      this.stats.isVictory ?? false,
+      chapterId,
+      difficulty
     )
 
     // Calculate score
