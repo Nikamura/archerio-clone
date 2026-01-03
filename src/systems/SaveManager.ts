@@ -6,6 +6,8 @@
  */
 
 import { DifficultyLevel } from '../config/difficulty'
+import { EnemyType } from '../config/chapterData'
+import { BossId } from '../config/bossData'
 
 // ============================================
 // Type Definitions
@@ -82,6 +84,14 @@ export interface ChapterProgress {
 }
 
 /**
+ * Monster kill statistics - tracks kills per enemy/boss type
+ */
+export interface MonsterKillStats {
+  enemies: Partial<Record<EnemyType, number>>
+  bosses: Partial<Record<BossId, number>>
+}
+
+/**
  * Player statistics
  */
 export interface PlayerStatistics {
@@ -97,6 +107,7 @@ export interface PlayerStatistics {
   fastestBossKill: number // in milliseconds, 0 if never killed
   highestScore: number // personal best score
   endlessHighWave?: number // highest wave reached in endless mode
+  monsterKills: MonsterKillStats // per-enemy and per-boss kill counts
 }
 
 /**
@@ -221,6 +232,16 @@ function getDefaultHeroes(): Record<string, HeroData> {
 }
 
 /**
+ * Get default monster kill stats
+ */
+function getDefaultMonsterKills(): MonsterKillStats {
+  return {
+    enemies: {},
+    bosses: {},
+  }
+}
+
+/**
  * Get default statistics
  */
 function getDefaultStatistics(): PlayerStatistics {
@@ -236,6 +257,7 @@ function getDefaultStatistics(): PlayerStatistics {
     longestRun: 0,
     fastestBossKill: 0,
     highestScore: 0,
+    monsterKills: getDefaultMonsterKills(),
   }
 }
 
@@ -346,13 +368,22 @@ function migrateData(data: Partial<SaveData>): SaveData {
 
   // Merge with defaults to ensure all fields exist
   const defaults = createDefaultSaveData()
+  const currentStats = currentData.statistics ?? {}
+  const currentMonsterKills = (currentStats as PlayerStatistics).monsterKills ?? getDefaultMonsterKills()
   return {
     ...defaults,
     ...currentData,
     // Ensure nested objects are properly merged
     heroes: { ...defaults.heroes, ...(currentData.heroes ?? {}) },
     equipped: { ...defaults.equipped, ...(currentData.equipped ?? {}) },
-    statistics: { ...defaults.statistics, ...(currentData.statistics ?? {}) },
+    statistics: {
+      ...defaults.statistics,
+      ...currentStats,
+      monsterKills: {
+        enemies: { ...defaults.statistics.monsterKills.enemies, ...currentMonsterKills.enemies },
+        bosses: { ...defaults.statistics.monsterKills.bosses, ...currentMonsterKills.bosses },
+      },
+    },
     settings: { ...defaults.settings, ...(currentData.settings ?? {}) },
   }
 }
@@ -783,6 +814,45 @@ export class SaveManager {
   updateStatistics(updates: Partial<PlayerStatistics>): void {
     this.data.statistics = { ...this.data.statistics, ...updates }
     this.markDirty()
+  }
+
+  /**
+   * Record an enemy kill for statistics
+   */
+  recordEnemyKill(enemyType: EnemyType): void {
+    const currentKills = this.data.statistics.monsterKills.enemies[enemyType] ?? 0
+    this.data.statistics.monsterKills.enemies[enemyType] = currentKills + 1
+    this.markDirty()
+  }
+
+  /**
+   * Record a boss kill for statistics
+   */
+  recordBossKill(bossId: BossId): void {
+    const currentKills = this.data.statistics.monsterKills.bosses[bossId] ?? 0
+    this.data.statistics.monsterKills.bosses[bossId] = currentKills + 1
+    this.markDirty()
+  }
+
+  /**
+   * Get kill count for a specific enemy type
+   */
+  getEnemyKillCount(enemyType: EnemyType): number {
+    return this.data.statistics.monsterKills.enemies[enemyType] ?? 0
+  }
+
+  /**
+   * Get kill count for a specific boss
+   */
+  getBossKillCount(bossId: BossId): number {
+    return this.data.statistics.monsterKills.bosses[bossId] ?? 0
+  }
+
+  /**
+   * Get all monster kill statistics
+   */
+  getMonsterKillStats(): Readonly<MonsterKillStats> {
+    return this.data.statistics.monsterKills
   }
 
   /**
