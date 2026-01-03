@@ -781,19 +781,43 @@ export default class EquipmentScene extends Phaser.Scene {
       })
     }
 
-    // Action buttons
+    // Action buttons - use smaller font and dynamic positioning
     const buttonY = panelHeight / 2 - 40
+    const buttonStyle = {
+      fontSize: '14px',
+      padding: { x: 10, y: 8 },
+    }
+    const buttonGap = 8
+
+    // Prepare upgrade button info (needed for both branches)
+    const canUpgrade = equipmentManager.canUpgrade(item)
+    const upgradeCost = equipmentManager.getUpgradeCost(item)
+    const canAfford = currencyManager.canAfford('gold', upgradeCost.gold)
+    const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#333344'
 
     if (isEquipped) {
-      // Unequip button (left)
+      // Two buttons: UNEQUIP and +LV - position them evenly
       const unequipBtn = this.add
-        .text(-80, buttonY, 'UNEQUIP', {
-          fontSize: '16px',
+        .text(0, buttonY, 'UNEQUIP', {
+          ...buttonStyle,
           color: '#ffffff',
           backgroundColor: '#aa4444',
-          padding: { x: 20, y: 10 },
         })
         .setOrigin(0.5)
+
+      const upgradeBtn = this.add
+        .text(0, buttonY, `+LV (${upgradeCost.gold}g)`, {
+          ...buttonStyle,
+          color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
+          backgroundColor: upgradeColor,
+        })
+        .setOrigin(0.5)
+
+      // Position buttons with gap between them
+      const totalWidth = unequipBtn.width + upgradeBtn.width + buttonGap
+      const startX = -totalWidth / 2
+      unequipBtn.setX(startX + unequipBtn.width / 2)
+      upgradeBtn.setX(startX + unequipBtn.width + buttonGap + upgradeBtn.width / 2)
 
       unequipBtn.setInteractive({ useHandCursor: true })
       unequipBtn.on('pointerdown', () => {
@@ -803,16 +827,46 @@ export default class EquipmentScene extends Phaser.Scene {
       })
       UIAnimations.applyButtonEffects(this, unequipBtn)
       this.detailPanel.add(unequipBtn)
+
+      if (canUpgrade.canUpgrade && canAfford) {
+        upgradeBtn.setInteractive({ useHandCursor: true })
+        upgradeBtn.on('pointerdown', () => this.onUpgradeClick(item))
+        UIAnimations.applyButtonEffects(this, upgradeBtn)
+      }
+      this.detailPanel.add(upgradeBtn)
     } else {
-      // Equip button (left)
+      // Three buttons: EQUIP, SELL, +LV - position them dynamically
       const equipBtn = this.add
-        .text(-110, buttonY, 'EQUIP', {
-          fontSize: '16px',
+        .text(0, buttonY, 'EQUIP', {
+          ...buttonStyle,
           color: '#ffffff',
           backgroundColor: '#44aa44',
-          padding: { x: 15, y: 10 },
         })
         .setOrigin(0.5)
+
+      const sellPrice = equipmentManager.getSellPrice(item)
+      const sellBtn = this.add
+        .text(0, buttonY, `SELL (${sellPrice}g)`, {
+          ...buttonStyle,
+          color: '#ffffff',
+          backgroundColor: '#aa6622',
+        })
+        .setOrigin(0.5)
+
+      const upgradeBtn = this.add
+        .text(0, buttonY, `+LV (${upgradeCost.gold}g)`, {
+          ...buttonStyle,
+          color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
+          backgroundColor: upgradeColor,
+        })
+        .setOrigin(0.5)
+
+      // Position buttons dynamically based on their widths
+      const totalWidth = equipBtn.width + sellBtn.width + upgradeBtn.width + buttonGap * 2
+      const startX = -totalWidth / 2
+      equipBtn.setX(startX + equipBtn.width / 2)
+      sellBtn.setX(startX + equipBtn.width + buttonGap + sellBtn.width / 2)
+      upgradeBtn.setX(startX + equipBtn.width + buttonGap + sellBtn.width + buttonGap + upgradeBtn.width / 2)
 
       equipBtn.setInteractive({ useHandCursor: true })
       equipBtn.on('pointerdown', () => {
@@ -823,44 +877,18 @@ export default class EquipmentScene extends Phaser.Scene {
       UIAnimations.applyButtonEffects(this, equipBtn)
       this.detailPanel.add(equipBtn)
 
-      // Sell button (center) - only for inventory items
-      const sellPrice = equipmentManager.getSellPrice(item)
-      const sellBtn = this.add
-        .text(0, buttonY, `SELL (${sellPrice}g)`, {
-          fontSize: '16px',
-          color: '#ffffff',
-          backgroundColor: '#aa6622',
-          padding: { x: 15, y: 10 },
-        })
-        .setOrigin(0.5)
-
       sellBtn.setInteractive({ useHandCursor: true })
       sellBtn.on('pointerdown', () => this.onSellClick(item))
       UIAnimations.applyButtonEffects(this, sellBtn)
       this.detailPanel.add(sellBtn)
+
+      if (canUpgrade.canUpgrade && canAfford) {
+        upgradeBtn.setInteractive({ useHandCursor: true })
+        upgradeBtn.on('pointerdown', () => this.onUpgradeClick(item))
+        UIAnimations.applyButtonEffects(this, upgradeBtn)
+      }
+      this.detailPanel.add(upgradeBtn)
     }
-
-    // Upgrade button (right)
-    const canUpgrade = equipmentManager.canUpgrade(item)
-    const upgradeCost = equipmentManager.getUpgradeCost(item)
-    const canAfford = currencyManager.canAfford('gold', upgradeCost.gold)
-
-    const upgradeColor = canUpgrade.canUpgrade && canAfford ? '#4477aa' : '#333344'
-    const upgradeBtn = this.add
-      .text(isEquipped ? 80 : 110, buttonY, `+LV (${upgradeCost.gold}g)`, {
-        fontSize: '16px',
-        color: canUpgrade.canUpgrade && canAfford ? '#ffffff' : '#888888',
-        backgroundColor: upgradeColor,
-        padding: { x: 15, y: 10 },
-      })
-      .setOrigin(0.5)
-
-    if (canUpgrade.canUpgrade && canAfford) {
-      upgradeBtn.setInteractive({ useHandCursor: true })
-      upgradeBtn.on('pointerdown', () => this.onUpgradeClick(item))
-      UIAnimations.applyButtonEffects(this, upgradeBtn)
-    }
-    this.detailPanel.add(upgradeBtn)
 
     // Animation in
     UIAnimations.showModal(this, this.detailPanel)
