@@ -44,6 +44,13 @@ const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
     4: 'wall_vaporwave_lava',
     5: 'wall_vaporwave_shadow',
   },
+  lotr: {
+    1: 'wall_lotr_dungeon',
+    2: 'wall_lotr_forest',
+    3: 'wall_lotr_ice',
+    4: 'wall_lotr_lava',
+    5: 'wall_lotr_shadow',
+  },
   dungeon: {
     1: 'wall_dungeon',
     2: 'wall_dungeon',

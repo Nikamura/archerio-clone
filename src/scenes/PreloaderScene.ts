@@ -213,6 +213,16 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('vaporwave_chapter4Bg', 'assets/backgrounds/vaporwave_chapter4.jpg')
     this.load.image('vaporwave_chapter5Bg', 'assets/backgrounds/vaporwave_chapter5.jpg')
 
+    // Load LOTR (Middle-Earth) theme assets
+    this.load.image('lotr_playerSprite', 'assets/sprites/player/lotr_archer.png')
+    this.load.image('lotr_bulletSprite', 'assets/sprites/projectile/lotr_arrow.png')
+    this.load.image('lotr_menuBg', 'assets/backgrounds/lotr_menu.jpg')
+    this.load.image('lotr_chapter1Bg', 'assets/backgrounds/lotr_chapter1.jpg')
+    this.load.image('lotr_chapter2Bg', 'assets/backgrounds/lotr_chapter2.jpg')
+    this.load.image('lotr_chapter3Bg', 'assets/backgrounds/lotr_chapter3.jpg')
+    this.load.image('lotr_chapter4Bg', 'assets/backgrounds/lotr_chapter4.jpg')
+    this.load.image('lotr_chapter5Bg', 'assets/backgrounds/lotr_chapter5.jpg')
+
     // Load background animation particles
     this.load.image('bg_dust', 'assets/backgrounds/overlays/dust.png')
     this.load.image('bg_pollen', 'assets/backgrounds/overlays/pollen.png')
@@ -273,6 +283,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('wall_vaporwave_ice', 'assets/sprites/walls/wall_vaporwave_ice.png')
     this.load.image('wall_vaporwave_lava', 'assets/sprites/walls/wall_vaporwave_lava.png')
     this.load.image('wall_vaporwave_shadow', 'assets/sprites/walls/wall_vaporwave_shadow.png')
+    // LOTR theme (per-chapter variants)
+    this.load.image('wall_lotr_dungeon', 'assets/sprites/walls/wall_lotr_dungeon.png')
+    this.load.image('wall_lotr_forest', 'assets/sprites/walls/wall_lotr_forest.png')
+    this.load.image('wall_lotr_ice', 'assets/sprites/walls/wall_lotr_ice.png')
+    this.load.image('wall_lotr_lava', 'assets/sprites/walls/wall_lotr_lava.png')
+    this.load.image('wall_lotr_shadow', 'assets/sprites/walls/wall_lotr_shadow.png')
 
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')

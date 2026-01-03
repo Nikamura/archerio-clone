@@ -1,6 +1,6 @@
 // Theme system definitions
 
-export type ThemeId = 'medieval' | 'vaporwave'
+export type ThemeId = 'medieval' | 'vaporwave' | 'lotr'
 
 export interface ThemeColors {
   // Primary button colors (Play button, primary actions)
@@ -131,6 +131,51 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'vaporwave_chapter5Bg',
       loadingBarColor: 0xff00ff,
       loadingBgColor: 0x1a0033,
+    },
+  },
+  lotr: {
+    id: 'lotr',
+    name: 'Middle-Earth',
+    description: 'Journey through the realms of Tolkien',
+    unlockCost: 666,
+    unlockCurrency: 'gold',
+    colors: {
+      // Gold and forest green - Elvish aesthetic
+      primaryButton: 0xd4af37, // Gold
+      primaryButtonHover: 0xffd700, // Bright gold
+      secondaryButton: 0x2e5d34, // Forest green
+      secondaryButtonHover: 0x3e7d44, // Lighter forest green
+      // Health bar - green to gold to Mordor red
+      healthFull: 0x4a7c59, // Elvish green
+      healthMid: 0xd4af37, // Gold (One Ring)
+      healthLow: 0x8b0000, // Dark red (Eye of Sauron)
+      // XP and boss - gold and Mordor fire
+      xpBar: 0xd4af37, // Gold
+      bossHealth: 0xff4500, // Mordor orange-red
+      // Text colors - parchment and gold
+      titleText: '#f5deb3', // Wheat/parchment
+      accentText: '#ffd700', // Gold
+      mutedText: '#8b7355', // Tan/brown
+      // Chapter colors themed to Middle-Earth locations
+      chapterColors: {
+        1: 0x228b22, // The Shire - forest green
+        2: 0x4682b4, // Rivendell - steel blue
+        3: 0x2f4f4f, // Moria - dark slate gray
+        4: 0x8b0000, // Mordor - dark red
+        5: 0x1c1c1c, // Mount Doom - near black
+      },
+    },
+    assets: {
+      playerSprite: 'lotr_playerSprite',
+      bulletSprite: 'lotr_bulletSprite',
+      menuBg: 'lotr_menuBg',
+      chapter1Bg: 'lotr_chapter1Bg',
+      chapter2Bg: 'lotr_chapter2Bg',
+      chapter3Bg: 'lotr_chapter3Bg',
+      chapter4Bg: 'lotr_chapter4Bg',
+      chapter5Bg: 'lotr_chapter5Bg',
+      loadingBarColor: 0xd4af37, // Gold
+      loadingBgColor: 0x1a1a0a, // Dark parchment
     },
   },
 }

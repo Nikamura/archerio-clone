@@ -1115,9 +1115,11 @@ Visual test screenshots are saved to `test/screenshots/`
     - Fixed browser global linting issues in Joystick.ts
 [x] Theme system (2026-01-03)
     - Purchasable visual themes that change game appearance
-    - Two themes implemented:
+    - Three themes implemented:
       - **Medieval** (free, default): Classic dungeon-crawler aesthetic with stone walls, traditional colors
       - **Vaporwave** (10000 gold): Neon synthwave aesthetic with magenta/cyan colors
+      - **Middle-Earth** (666 gold): Lord of the Rings inspired with gold/green elvish colors, parchment textures
+        - Chapter themes: The Shire, Rivendell, Moria, Mordor, Mount Doom
     - Theme system components:
       - `src/config/themeData.ts`: Theme definitions with ThemeColors and ThemeAssets interfaces
       - `src/systems/ThemeManager.ts`: Singleton manager for unlock/select with localStorage persistence

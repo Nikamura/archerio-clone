@@ -10,6 +10,12 @@ import { type ThemeId, THEME_DEFINITIONS } from '../config/themeData'
 export default class ShopScene extends Phaser.Scene {
   private themeCards: Phaser.GameObjects.Container[] = []
   private goldText?: Phaser.GameObjects.Text
+  private scrollContainer?: Phaser.GameObjects.Container
+  private scrollY = 0
+  private maxScroll = 0
+  private isDragging = false
+  private dragStartY = 0
+  private dragStartScrollY = 0
 
   constructor() {
     super({ key: 'ShopScene' })
@@ -19,17 +25,24 @@ export default class ShopScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
+    // Reset scroll state
+    this.scrollY = 0
+    this.themeCards = []
+
     // Dark semi-transparent background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e, 0.98)
 
-    // Header section
+    // Header section (fixed)
     this.createHeader(width)
 
-    // Theme cards
-    this.createThemeCards(width)
+    // Theme cards (scrollable)
+    this.createScrollableThemeCards(width, height)
 
-    // Back button
+    // Back button (fixed)
     this.createBackButton(width, height)
+
+    // Setup scroll input
+    this.setupScrollInput(width, height)
   }
 
   private createHeader(width: number): void {
@@ -60,17 +73,82 @@ export default class ShopScene extends Phaser.Scene {
       .setOrigin(0.5)
   }
 
-  private createThemeCards(width: number): void {
+  private createScrollableThemeCards(width: number, height: number): void {
     const themeStates = themeManager.getAllThemeStates()
-    const cardHeight = 200
+    const cardHeight = 190
     const cardSpacing = 20
-    const startY = 150
+    const startY = 120 // Header ends around 110
 
+    // Scroll area bounds
+    const scrollAreaTop = startY
+    const scrollAreaBottom = height - 80 // Leave room for back button
+    const scrollAreaHeight = scrollAreaBottom - scrollAreaTop
+
+    // Create scroll container
+    this.scrollContainer = this.add.container(0, 0)
+
+    // Create mask for scroll area
+    const maskGraphics = this.make.graphics({ x: 0, y: 0 })
+    maskGraphics.fillStyle(0xffffff)
+    maskGraphics.fillRect(0, scrollAreaTop, width, scrollAreaHeight)
+    const mask = maskGraphics.createGeometryMask()
+    this.scrollContainer.setMask(mask)
+
+    // Calculate total content height
+    const totalContentHeight = themeStates.length * (cardHeight + cardSpacing)
+    this.maxScroll = Math.max(0, totalContentHeight - scrollAreaHeight + 20)
+
+    // Create theme cards inside scroll container
     themeStates.forEach((state, index) => {
-      const yPos = startY + index * (cardHeight + cardSpacing)
+      const yPos = scrollAreaTop + 10 + index * (cardHeight + cardSpacing) + cardHeight / 2
       const card = this.createThemeCard(width / 2, yPos, state)
+      this.scrollContainer!.add(card)
       this.themeCards.push(card)
     })
+  }
+
+  private setupScrollInput(width: number, height: number): void {
+    const scrollAreaTop = 120
+    const scrollAreaBottom = height - 80
+
+    // Create invisible zone for drag scrolling
+    const scrollZone = this.add.zone(width / 2, (scrollAreaTop + scrollAreaBottom) / 2, width, scrollAreaBottom - scrollAreaTop)
+    scrollZone.setInteractive()
+
+    // Mouse wheel scrolling
+    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
+      this.scrollY = Phaser.Math.Clamp(this.scrollY + deltaY * 0.5, 0, this.maxScroll)
+      this.updateScrollPosition()
+    })
+
+    // Touch/drag scrolling
+    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.isDragging = true
+      this.dragStartY = pointer.y
+      this.dragStartScrollY = this.scrollY
+    })
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.isDragging) {
+        const deltaY = this.dragStartY - pointer.y
+        this.scrollY = Phaser.Math.Clamp(this.dragStartScrollY + deltaY, 0, this.maxScroll)
+        this.updateScrollPosition()
+      }
+    })
+
+    this.input.on('pointerup', () => {
+      this.isDragging = false
+    })
+
+    this.input.on('pointerupoutside', () => {
+      this.isDragging = false
+    })
+  }
+
+  private updateScrollPosition(): void {
+    if (this.scrollContainer) {
+      this.scrollContainer.y = -this.scrollY
+    }
   }
 
   private createThemeCard(
