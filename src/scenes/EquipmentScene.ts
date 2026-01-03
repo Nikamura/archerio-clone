@@ -11,7 +11,9 @@ import {
   EquipmentSlotType,
   EQUIPMENT_SLOTS,
   RARITY_CONFIGS,
+  PerkId,
 } from '../systems/Equipment'
+import { PERKS } from '../config/equipmentData'
 import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
@@ -929,9 +931,14 @@ export default class EquipmentScene extends Phaser.Scene {
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
   }
 
-  private formatPerkName(perk: string): string {
-    // Convert snake_case to readable format
-    return perk
+  private formatPerkName(perkId: string): string {
+    // Look up the perk's actual name with real values
+    const perk = PERKS[perkId as PerkId]
+    if (perk) {
+      return perk.name
+    }
+    // Fallback: convert snake_case to readable format
+    return perkId
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
