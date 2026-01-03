@@ -1,6 +1,6 @@
 // Theme system definitions
 
-export type ThemeId = 'medieval' | 'vaporwave' | 'lotr'
+export type ThemeId = 'medieval' | 'vaporwave' | 'lotr' | 'strangerThings'
 
 export interface ThemeColors {
   // Primary button colors (Play button, primary actions)
@@ -47,7 +47,7 @@ export interface ThemeDefinition {
   name: string
   description: string
   unlockCost: number
-  unlockCurrency: 'gold' | 'free'
+  unlockCurrency: 'gold' | 'gems' | 'free'
   colors: ThemeColors
   assets: ThemeAssets
 }
@@ -176,6 +176,51 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'lotr_chapter5Bg',
       loadingBarColor: 0xd4af37, // Gold
       loadingBgColor: 0x1a1a0a, // Dark parchment
+    },
+  },
+  strangerThings: {
+    id: 'strangerThings',
+    name: 'Upside Down',
+    description: 'Enter the dark dimension from Hawkins',
+    unlockCost: 44,
+    unlockCurrency: 'gems',
+    colors: {
+      // Red and dark - Upside Down aesthetic
+      primaryButton: 0xcc0000, // Stranger Things red
+      primaryButtonHover: 0xff0000, // Bright red
+      secondaryButton: 0x1a1a2e, // Dark blue-black
+      secondaryButtonHover: 0x2a2a4e, // Slightly lighter
+      // Health bar - eerie colors
+      healthFull: 0x00ff88, // Toxic green (like Eleven's powers)
+      healthMid: 0xffaa00, // Warning orange
+      healthLow: 0xcc0000, // Danger red
+      // XP and boss - glowing red/purple
+      xpBar: 0xff00aa, // Pink-purple (psychic energy)
+      bossHealth: 0xcc0000, // Demogorgon red
+      // Text colors - flickering lights aesthetic
+      titleText: '#ff0000', // Red (like the Christmas lights)
+      accentText: '#00ff88', // Electric green
+      mutedText: '#666688', // Faded blue-gray
+      // Chapter colors themed to Stranger Things locations
+      chapterColors: {
+        1: 0x2e4a1e, // Hawkins - small town green
+        2: 0x4a4a6e, // Hawkins Lab - sterile purple-gray
+        3: 0x1a0a0a, // The Upside Down - dark red-black
+        4: 0x3a1a4a, // The Void - deep purple
+        5: 0x0a0a1a, // The Mind Flayer - pitch black with hint of blue
+      },
+    },
+    assets: {
+      playerSprite: 'st_playerSprite',
+      bulletSprite: 'st_bulletSprite',
+      menuBg: 'st_menuBg',
+      chapter1Bg: 'st_chapter1Bg',
+      chapter2Bg: 'st_chapter2Bg',
+      chapter3Bg: 'st_chapter3Bg',
+      chapter4Bg: 'st_chapter4Bg',
+      chapter5Bg: 'st_chapter5Bg',
+      loadingBarColor: 0xcc0000, // Stranger Things red
+      loadingBgColor: 0x0a0a0a, // Near black
     },
   },
 }

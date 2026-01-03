@@ -30,6 +30,8 @@ export class ThemeManager extends Phaser.Events.EventEmitter {
   // Currency callbacks (injected from BootScene)
   private getGold: () => number = () => 0
   private spendGold: (amount: number) => boolean = () => false
+  private getGems: () => number = () => 0
+  private spendGems: (amount: number) => boolean = () => false
   private onSave: () => void = () => {}
 
   private constructor() {
@@ -58,10 +60,18 @@ export class ThemeManager extends Phaser.Events.EventEmitter {
   setCurrencyCallbacks(callbacks: {
     getGold: () => number
     spendGold: (amount: number) => boolean
+    getGems?: () => number
+    spendGems?: (amount: number) => boolean
     onSave?: () => void
   }): void {
     this.getGold = callbacks.getGold
     this.spendGold = callbacks.spendGold
+    if (callbacks.getGems) {
+      this.getGems = callbacks.getGems
+    }
+    if (callbacks.spendGems) {
+      this.spendGems = callbacks.spendGems
+    }
     if (callbacks.onSave) {
       this.onSave = callbacks.onSave
     }
@@ -137,10 +147,13 @@ export class ThemeManager extends Phaser.Events.EventEmitter {
     if (theme.unlockCurrency === 'gold') {
       return this.getGold() >= theme.unlockCost
     }
+    if (theme.unlockCurrency === 'gems') {
+      return this.getGems() >= theme.unlockCost
+    }
     return false
   }
 
-  getUnlockCost(themeId: ThemeId): { cost: number; currency: 'gold' | 'free' } {
+  getUnlockCost(themeId: ThemeId): { cost: number; currency: 'gold' | 'gems' | 'free' } {
     const theme = THEME_DEFINITIONS[themeId]
     return { cost: theme.unlockCost, currency: theme.unlockCurrency }
   }
@@ -151,11 +164,15 @@ export class ThemeManager extends Phaser.Events.EventEmitter {
 
     const theme = THEME_DEFINITIONS[themeId]
 
-    // Free themes don't need currency check
+    // Check currency based on type
     if (theme.unlockCurrency === 'gold') {
       if (!this.canUnlock(themeId)) return false
       if (!this.spendGold(theme.unlockCost)) return false
+    } else if (theme.unlockCurrency === 'gems') {
+      if (!this.canUnlock(themeId)) return false
+      if (!this.spendGems(theme.unlockCost)) return false
     }
+    // Free themes don't need currency check
 
     this.unlockedThemes.add(themeId)
     this.emit(THEME_EVENTS.THEME_UNLOCKED, { themeId })
@@ -192,7 +209,7 @@ export class ThemeManager extends Phaser.Events.EventEmitter {
     isUnlocked: boolean
     isSelected: boolean
     cost: number
-    currency: 'gold' | 'free'
+    currency: 'gold' | 'gems' | 'free'
   }> {
     return getAllThemeIds().map((id) => {
       const theme = THEME_DEFINITIONS[id]

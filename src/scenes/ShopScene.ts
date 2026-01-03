@@ -63,12 +63,20 @@ export default class ShopScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    // Gold display
+    // Currency display (Gold and Gems)
     const gold = currencyManager.get('gold')
+    const gems = currencyManager.get('gems')
     this.goldText = this.add
-      .text(width / 2, 95, `Gold: ${gold.toLocaleString()}`, {
+      .text(width / 2 - 60, 95, `Gold: ${gold.toLocaleString()}`, {
         fontSize: '14px',
         color: '#FFD700',
+      })
+      .setOrigin(0.5)
+
+    this.add
+      .text(width / 2 + 60, 95, `Gems: ${gems}`, {
+        fontSize: '14px',
+        color: '#00CCFF',
       })
       .setOrigin(0.5)
   }
@@ -107,25 +115,24 @@ export default class ShopScene extends Phaser.Scene {
     })
   }
 
-  private setupScrollInput(width: number, height: number): void {
+  private setupScrollInput(_width: number, height: number): void {
     const scrollAreaTop = 120
     const scrollAreaBottom = height - 80
 
-    // Create invisible zone for drag scrolling
-    const scrollZone = this.add.zone(width / 2, (scrollAreaTop + scrollAreaBottom) / 2, width, scrollAreaBottom - scrollAreaTop)
-    scrollZone.setInteractive()
-
-    // Mouse wheel scrolling
+    // Mouse wheel scrolling (works without blocking buttons)
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
       this.scrollY = Phaser.Math.Clamp(this.scrollY + deltaY * 0.5, 0, this.maxScroll)
       this.updateScrollPosition()
     })
 
-    // Touch/drag scrolling
-    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDragging = true
-      this.dragStartY = pointer.y
-      this.dragStartScrollY = this.scrollY
+    // Touch/drag scrolling using scene-level input (doesn't block buttons)
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Only start drag if in scroll area
+      if (pointer.y >= scrollAreaTop && pointer.y <= scrollAreaBottom) {
+        this.isDragging = true
+        this.dragStartY = pointer.y
+        this.dragStartScrollY = this.scrollY
+      }
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -161,7 +168,7 @@ export default class ShopScene extends Phaser.Scene {
       isUnlocked: boolean
       isSelected: boolean
       cost: number
-      currency: 'gold' | 'free'
+      currency: 'gold' | 'gems' | 'free'
     }
   ): Phaser.GameObjects.Container {
     const cardWidth = 340
@@ -258,10 +265,11 @@ export default class ShopScene extends Phaser.Scene {
       // UNLOCK button with cost
       const canAfford = themeManager.canUnlock(state.id)
       const btnColor = canAfford ? '#6b8e23' : '#555555'
+      const currencyLabel = state.currency === 'gems' ? 'GEMS' : 'GOLD'
       const unlockBtn = this.createButton(
         cardWidth / 2 - 80,
         cardHeight / 2 - 30,
-        `${state.cost.toLocaleString()} GOLD`,
+        `${state.cost.toLocaleString()} ${currencyLabel}`,
         btnColor,
         () => this.unlockTheme(state.id)
       )

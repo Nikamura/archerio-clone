@@ -51,6 +51,13 @@ const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
     4: 'wall_lotr_lava',
     5: 'wall_lotr_shadow',
   },
+  strangerThings: {
+    1: 'wall_st_dungeon',
+    2: 'wall_st_forest',
+    3: 'wall_st_ice',
+    4: 'wall_st_lava',
+    5: 'wall_st_shadow',
+  },
   dungeon: {
     1: 'wall_dungeon',
     2: 'wall_dungeon',

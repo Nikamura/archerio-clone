@@ -55,6 +55,8 @@ export default class BootScene extends Phaser.Scene {
     themeManager.setCurrencyCallbacks({
       getGold: () => currencyManager.get('gold'),
       spendGold: (amount) => currencyManager.spend('gold', amount),
+      getGems: () => currencyManager.get('gems'),
+      spendGems: (amount) => currencyManager.spend('gems', amount),
       onSave: () => saveManager.save()
     })
 

@@ -223,6 +223,16 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('lotr_chapter4Bg', 'assets/backgrounds/lotr_chapter4.jpg')
     this.load.image('lotr_chapter5Bg', 'assets/backgrounds/lotr_chapter5.jpg')
 
+    // Load Stranger Things (Upside Down) theme assets
+    this.load.image('st_playerSprite', 'assets/sprites/player/st_player.png')
+    this.load.image('st_bulletSprite', 'assets/sprites/projectile/st_bullet.png')
+    this.load.image('st_menuBg', 'assets/backgrounds/st_menu.jpg')
+    this.load.image('st_chapter1Bg', 'assets/backgrounds/st_chapter1.jpg')
+    this.load.image('st_chapter2Bg', 'assets/backgrounds/st_chapter2.jpg')
+    this.load.image('st_chapter3Bg', 'assets/backgrounds/st_chapter3.jpg')
+    this.load.image('st_chapter4Bg', 'assets/backgrounds/st_chapter4.jpg')
+    this.load.image('st_chapter5Bg', 'assets/backgrounds/st_chapter5.jpg')
+
     // Load background animation particles
     this.load.image('bg_dust', 'assets/backgrounds/overlays/dust.png')
     this.load.image('bg_pollen', 'assets/backgrounds/overlays/pollen.png')
@@ -289,6 +299,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('wall_lotr_ice', 'assets/sprites/walls/wall_lotr_ice.png')
     this.load.image('wall_lotr_lava', 'assets/sprites/walls/wall_lotr_lava.png')
     this.load.image('wall_lotr_shadow', 'assets/sprites/walls/wall_lotr_shadow.png')
+    // Stranger Things theme (per-chapter variants)
+    this.load.image('wall_st_dungeon', 'assets/sprites/walls/wall_st_dungeon.png')
+    this.load.image('wall_st_forest', 'assets/sprites/walls/wall_st_forest.png')
+    this.load.image('wall_st_ice', 'assets/sprites/walls/wall_st_ice.png')
+    this.load.image('wall_st_lava', 'assets/sprites/walls/wall_st_lava.png')
+    this.load.image('wall_st_shadow', 'assets/sprites/walls/wall_st_shadow.png')
 
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')

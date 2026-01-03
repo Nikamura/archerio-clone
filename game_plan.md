@@ -1115,18 +1115,20 @@ Visual test screenshots are saved to `test/screenshots/`
     - Fixed browser global linting issues in Joystick.ts
 [x] Theme system (2026-01-03)
     - Purchasable visual themes that change game appearance
-    - Three themes implemented:
+    - Four themes implemented:
       - **Medieval** (free, default): Classic dungeon-crawler aesthetic with stone walls, traditional colors
       - **Vaporwave** (10000 gold): Neon synthwave aesthetic with magenta/cyan colors
       - **Middle-Earth** (666 gold): Lord of the Rings inspired with gold/green elvish colors, parchment textures
         - Chapter themes: The Shire, Rivendell, Moria, Mordor, Mount Doom
+      - **Upside Down** (44 gems): Stranger Things inspired with red/black colors, eerie atmosphere
+        - Chapter themes: Hawkins, Hawkins Lab, The Upside Down, The Void, Mind Flayer
     - Theme system components:
       - `src/config/themeData.ts`: Theme definitions with ThemeColors and ThemeAssets interfaces
       - `src/systems/ThemeManager.ts`: Singleton manager for unlock/select with localStorage persistence
     - ThemeColors: UI colors (buttons, health bars, XP bar, text, chapter colors)
     - ThemeAssets: Asset keys for player sprite, bullet, backgrounds (menu + 5 chapters)
-    - Per-chapter themed wall textures (wall_dungeon.png, wall_vaporwave_dungeon.png, etc.)
-    - Shop integration for purchasing themes with gold
+    - Per-chapter themed wall textures (wall_dungeon.png, wall_vaporwave_dungeon.png, wall_st_dungeon.png, etc.)
+    - Shop integration for purchasing themes with gold or gems
     - Selected theme persists across sessions via localStorage
 ```
 
