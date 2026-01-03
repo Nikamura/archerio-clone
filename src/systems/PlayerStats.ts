@@ -527,6 +527,14 @@ export class PlayerStats {
     this.wallBounceLevel++
   }
 
+  /**
+   * Add Dodge Master ability (+15% dodge chance per level)
+   * Stacking: Additive (capped at 75%)
+   */
+  addDodgeMaster(): void {
+    this.dodgeChance = Math.min(0.75, this.dodgeChance + 0.15)
+  }
+
   // ============================================
   // Reset / Utility
   // ============================================

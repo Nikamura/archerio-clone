@@ -248,6 +248,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addWallBounce()
   }
 
+  addDodgeMaster() {
+    this.stats?.addDodgeMaster()
+  }
+
   // New ability getters
   getPiercingLevel(): number {
     return this.stats?.getPiercingLevel() ?? 0

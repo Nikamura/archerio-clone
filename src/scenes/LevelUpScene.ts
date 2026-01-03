@@ -153,6 +153,13 @@ export const ABILITIES: AbilityData[] = [
     color: 0x88ccff,
     iconKey: 'abilityBouncyWall',
   },
+  {
+    id: 'dodge_master',
+    name: 'Dodge Master',
+    description: '+15% dodge chance',
+    color: 0xaaaaff,
+    iconKey: 'abilityDodgeMaster',
+  },
 ]
 
 export interface LevelUpData {

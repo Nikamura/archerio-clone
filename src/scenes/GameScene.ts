@@ -1327,6 +1327,9 @@ export default class GameScene extends Phaser.Scene {
       case 'bouncy_wall':
         this.player.addWallBounce()
         break
+      case 'dodge_master':
+        this.player.addDodgeMaster()
+        break
     }
     this.abilitiesGained++
 
