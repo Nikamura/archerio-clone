@@ -178,11 +178,12 @@ assets/
 ### Best Practices
 
 1. **Always use `--clean`**: AI generates fake checkerboard backgrounds, use `--clean` or `-c` for true transparency
-2. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
-3. **Naming**: Use descriptive prompts that include key visual features
-4. **Review**: AI generation can vary - regenerate if needed
-5. **Animation**: For smooth animations, generate more frames and remove duplicates
-6. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
+2. **Auto-resize**: The script automatically resizes sprites to target size (AI generates 1024x1024, script resizes to type default: player=64px, ui=48px, etc.)
+3. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
+4. **Naming**: Use descriptive prompts that include key visual features
+5. **Review**: AI generation can vary - regenerate if needed
+6. **Animation**: For smooth animations, generate more frames and remove duplicates
+7. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
 
 ---
 
@@ -301,7 +302,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - ✅ Room progression with scaling difficulty
 - ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
 - ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards (using Container for proper click handling)
-- ✅ **16 abilities implemented** - All MVP abilities + 8 new V1 abilities complete:
+- ✅ **22 abilities implemented** - All MVP abilities + V1 abilities + devil abilities complete:
   - Front Arrow (+1 projectile, -25% damage per level)
   - Multishot (side arrows at 45°, -15% attack speed per level)
   - Attack Speed (+25% multiplicative)
@@ -316,9 +317,18 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Lightning Chain (chains to 2 nearby enemies per level, 50% damage, 150px range)
   - Diagonal Arrows (+2 arrows at 30° angles per level, 80% damage)
   - Rear Arrow (+1 backwards arrow per level, 70% damage)
-  - Bouncy Wall (2 wall bounces per level, full damage on bounces)
+  - Damage Aura (10 DPS in 80px radius around player, visual aura ring)
   - Bloodthirst (+2 HP heal per kill per level, red flash visual)
   - Rage (+5% damage per 10% missing HP per level, scales dynamically)
+  - Speed Boost (+15% movement speed per level, multiplicative)
+  - Vitality (+10% max HP per level, heals gained amount)
+  - **New Abilities (2026-01-03):**
+  - Bouncy Wall (+2 wall bounces per level, arrows reflect off screen edges)
+  - Dodge Master (+15% dodge chance per level, capped at 75%)
+  - **Devil Abilities (2026-01-03):** High-risk/high-reward abilities
+  - Extra Life (revive once at 30% HP per level, golden flash on revive)
+  - Through Wall (arrows wrap around screen edges instead of disappearing)
+  - Giant (+40% damage per level, +10-15% hitbox size per level)
 - ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
 - ✅ **Boss fight** - Room 10 boss with 3 attack patterns:
   - Spread Shot: 8 projectiles in circular pattern (2 waves)
