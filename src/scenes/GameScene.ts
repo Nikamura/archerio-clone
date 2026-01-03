@@ -23,7 +23,7 @@ import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
@@ -777,9 +777,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private spawnEnemiesForRoom() {
-    // Room 10 is the boss room
+    // Room 20 is the final boss room
     if (this.currentRoom === this.totalRooms) {
       this.spawnBoss()
+      return
+    }
+
+    // Room 10 is the mini-boss room - spawn an actual boss with reduced stats
+    if (STANDARD_ROOM_LAYOUT.miniBossRooms.includes(this.currentRoom)) {
+      this.spawnMiniBoss()
       return
     }
 
@@ -997,6 +1003,54 @@ export default class GameScene extends Phaser.Scene {
     this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
 
     console.log(`Boss spawned: ${bossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
+  }
+
+  private spawnMiniBoss() {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Spawn mini-boss at center-top of screen (same as boss)
+    const bossX = width / 2
+    const bossY = height / 3
+
+    // Get current chapter and select a mini-boss from its pool
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const miniBossType: BossType = getRandomMiniBossForChapter(selectedChapter, this.runRng)
+
+    // Mini-boss has reduced stats compared to final boss (50% health, 60% damage)
+    const chapterDef = getChapterDefinition(selectedChapter)
+    const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
+    const miniBossOptions = {
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult * 0.5,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult * 0.6,
+    }
+
+    // Create the mini-boss using the factory
+    const newMiniBoss = createBoss(this, bossX, bossY, miniBossType, this.enemyBulletPool, miniBossOptions)
+    this.boss = newMiniBoss as Boss // Type assertion for compatibility
+    this.add.existing(this.boss)
+    this.physics.add.existing(this.boss)
+
+    // Set up physics body with centered circular hitbox (slightly smaller than full boss)
+    const body = this.boss.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const displaySize = getBossDisplaySize(miniBossType) * 0.85 // Slightly smaller
+      const radius = getBossHitboxRadius(miniBossType) * 0.85
+      const offset = (displaySize - radius * 2) / 2
+      body.setSize(displaySize, displaySize)
+      body.setCircle(radius, offset, offset)
+      body.setCollideWorldBounds(true)
+    }
+
+    // Scale down the visual slightly to indicate mini-boss
+    this.boss.setScale(0.85)
+
+    this.enemies.add(this.boss)
+
+    // Show boss health bar in UI (same as full boss)
+    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+
+    console.log(`Mini-boss spawned: ${miniBossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
   }
 
   private checkRoomCleared() {

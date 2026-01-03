@@ -146,8 +146,10 @@ export interface ChapterDefinition {
   bossType: BossType
   /** All boss types available in this chapter (for variety) */
   bossPool: BossType[]
-  /** Mini-boss type (typically a stronger version of an enemy) */
+  /** Mini-boss type (typically a stronger version of an enemy) - fallback if no miniBossPool */
   miniBossType: EnemyType
+  /** Pool of boss types that can spawn as mini-bosses at room 10 */
+  miniBossPool: BossType[]
   /** Difficulty scaling compared to base */
   scaling: ChapterScaling
   /** Per-enemy-type behavior modifiers for this chapter */
@@ -256,7 +258,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     tacticComboNames: ['Melee Rush', 'Ranged Support', 'Spread Formation'],
     bossType: 'demon',
     bossPool: ['demon'],
-    miniBossType: 'spreader', // Larger spreader as mini-boss
+    miniBossType: 'spreader', // Fallback if no boss spawns
+    miniBossPool: ['demon'], // Demon appears as mini-boss at room 10
     scaling: {
       enemyHpMultiplier: 1.0,
       enemyDamageMultiplier: 1.0,
@@ -300,7 +303,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     ],
     bossType: 'treant',
     bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
-    miniBossType: 'bomber',
+    miniBossType: 'bomber', // Fallback
+    miniBossPool: ['wild_boar', 'forest_spirit'], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 2.5, // Exponential scaling: ~2.5x per chapter
       enemyDamageMultiplier: 1.3,
@@ -357,7 +361,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     ],
     bossType: 'frost_giant',
     bossPool: ['frost_giant', 'ice_golem', 'frost_wyrm', 'crystal_guardian'],
-    miniBossType: 'tank',
+    miniBossType: 'tank', // Fallback
+    miniBossPool: ['frost_wyrm', 'crystal_guardian'], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 7.0, // Exponential scaling continues
       enemyDamageMultiplier: 1.6,
@@ -419,7 +424,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     ],
     bossType: 'inferno_demon', // Main boss for chapter 4
     bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
-    miniBossType: 'healer',
+    miniBossType: 'healer', // Fallback
+    miniBossPool: ['lava_golem', 'magma_wyrm'], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 18.0, // Exponential scaling ramps up
       enemyDamageMultiplier: 2.0,
@@ -498,7 +504,8 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     ],
     bossType: 'final_boss', // Main boss for chapter 5 (final challenge)
     bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses
-    miniBossType: 'spawner',
+    miniBossType: 'spawner', // Fallback
+    miniBossPool: ['nightmare', 'void_lord'], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 50.0, // 50x harder than chapter 1
       enemyDamageMultiplier: 2.5,
@@ -830,4 +837,33 @@ export function getChapterEnemyModifiers(chapterId: ChapterId): ChapterEnemyModi
  */
 export function getEnemySpawnWeight(chapterId: ChapterId, enemyType: EnemyType): number {
   return getEnemyModifiers(chapterId, enemyType).spawnWeight ?? 1.0
+}
+
+/**
+ * Get a random mini-boss from the chapter's mini-boss pool
+ * @param chapterId The chapter to get a mini-boss for
+ * @param rng Optional seeded random generator (uses Math.random if not provided)
+ * @returns A random BossType from the chapter's mini-boss pool
+ */
+export function getRandomMiniBossForChapter(chapterId: ChapterId, rng?: { random: () => number }): BossType {
+  const chapter = CHAPTER_DEFINITIONS[chapterId]
+  const pool = chapter.miniBossPool
+
+  if (pool.length === 0) {
+    // Fallback to main boss if no mini-boss pool defined
+    return chapter.bossType
+  }
+
+  const randomValue = rng ? rng.random() : Math.random()
+  const randomIndex = Math.floor(randomValue * pool.length)
+  return pool[randomIndex]
+}
+
+/**
+ * Get all mini-boss types in a chapter's pool
+ * @param chapterId The chapter to get mini-bosses for
+ * @returns Array of all BossTypes available as mini-bosses in the chapter
+ */
+export function getMiniBossPoolForChapter(chapterId: ChapterId): BossType[] {
+  return [...CHAPTER_DEFINITIONS[chapterId].miniBossPool]
 }
