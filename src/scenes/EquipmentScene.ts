@@ -145,6 +145,8 @@ export default class EquipmentScene extends Phaser.Scene {
       const y = startY + this.SLOT_SIZE / 2 + 10
 
       const container = this.createEquippedSlot(x, y, slot)
+      // Set high depth to ensure equipped slots are always clickable above inventory
+      container.setDepth(10)
       this.equippedSlots.set(slot, container)
     })
   }
@@ -238,7 +240,9 @@ export default class EquipmentScene extends Phaser.Scene {
     const mask = maskGraphics.createGeometryMask()
 
     // Container positioned at the inventory area start
+    // Use lower depth than equipped slots to prevent scroll-overlap click issues
     this.inventoryContainer = this.add.container(0, inventoryY)
+    this.inventoryContainer.setDepth(1)
     this.inventoryContainer.setMask(mask)
 
     // Create inventory slots - positions relative to container (which is at inventoryY)
@@ -246,18 +250,21 @@ export default class EquipmentScene extends Phaser.Scene {
     const totalSlots = Math.max(this.INVENTORY_COLS * this.INVENTORY_ROWS, inventory.length + 8)
     const rows = Math.ceil(totalSlots / this.INVENTORY_COLS)
 
+    // Start first row at half slot size to ensure it's fully visible within the mask
+    const firstRowOffset = this.INVENTORY_SLOT_SIZE / 2 + 5
+
     for (let i = 0; i < totalSlots; i++) {
       const col = i % this.INVENTORY_COLS
       const row = Math.floor(i / this.INVENTORY_COLS)
       const x = startX + col * (this.INVENTORY_SLOT_SIZE + 8)
-      const y = 10 + row * (this.INVENTORY_SLOT_SIZE + 8) // Relative to container
+      const y = firstRowOffset + row * (this.INVENTORY_SLOT_SIZE + 8) // Relative to container
 
       const slotData = this.createInventorySlot(x, y, i)
       this.inventorySlots.push(slotData)
     }
 
-    // Calculate max scroll
-    const contentHeight = rows * (this.INVENTORY_SLOT_SIZE + 8) + 20
+    // Calculate max scroll - account for the firstRowOffset at start
+    const contentHeight = firstRowOffset + rows * (this.INVENTORY_SLOT_SIZE + 8)
     this.maxScroll = Math.max(0, contentHeight - this.visibleHeight)
 
     // Create scroll indicator
