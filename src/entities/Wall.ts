@@ -10,9 +10,11 @@ import Phaser from 'phaser'
  * - Bullets with bouncy_wall ability bounce off walls
  * - Bullets with through_wall ability pass through
  * - Optional texture support with TileSprite for repeating patterns
+ * - Visible border for clarity against backgrounds
  */
 export default class Wall extends Phaser.GameObjects.Container {
   private wallGraphics: Phaser.GameObjects.Rectangle | Phaser.GameObjects.TileSprite
+  private borderGraphics: Phaser.GameObjects.Graphics
 
   constructor(
     scene: Phaser.Scene,
@@ -21,7 +23,8 @@ export default class Wall extends Phaser.GameObjects.Container {
     width: number,
     height: number,
     color: number = 0x444444,
-    textureKey?: string
+    textureKey?: string,
+    borderColor: number = 0x222222
   ) {
     super(scene, x, y)
 
@@ -33,9 +36,19 @@ export default class Wall extends Phaser.GameObjects.Container {
     } else {
       // Fallback to colored rectangle
       this.wallGraphics = scene.add.rectangle(0, 0, width, height, color)
-      this.wallGraphics.setStrokeStyle(2, 0x666666)
       this.add(this.wallGraphics)
     }
+
+    // Add visible border around the wall for clarity
+    this.borderGraphics = scene.add.graphics()
+    const borderWidth = 3
+    // Draw outer dark border
+    this.borderGraphics.lineStyle(borderWidth, borderColor, 1)
+    this.borderGraphics.strokeRect(-width / 2, -height / 2, width, height)
+    // Draw inner highlight for 3D effect
+    this.borderGraphics.lineStyle(1, 0x666666, 0.5)
+    this.borderGraphics.strokeRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4)
+    this.add(this.borderGraphics)
 
     scene.add.existing(this)
     scene.physics.add.existing(this, true) // true = static body

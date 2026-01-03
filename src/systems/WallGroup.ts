@@ -23,6 +23,17 @@ const CHAPTER_WALL_TEXTURES: Record<number, string> = {
 }
 
 /**
+ * Border colors for each chapter to make walls stand out from backgrounds
+ */
+const CHAPTER_BORDER_COLORS: Record<number, number> = {
+  1: 0x1a1a1a, // Dark gray for dungeon
+  2: 0x2d4a2d, // Dark green for forest
+  3: 0x1a3a5a, // Dark blue for ice
+  4: 0x4a1a0a, // Dark red-brown for lava
+  5: 0x2a1a3a, // Dark purple for shadow
+}
+
+/**
  * Wall texture mapping for purchasable themes (per-chapter variants)
  */
 const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
@@ -55,6 +66,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private screenWidth: number
   private screenHeight: number
   private wallColor: number = 0x444444
+  private borderColor: number = 0x222222
   private textureKey: string | undefined
   private chapterId: number = 1
   private themeName: string | undefined
@@ -93,7 +105,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   }
 
   /**
-   * Update texture key based on current chapter and theme
+   * Update texture key and border color based on current chapter and theme
    */
   private updateTextureKey(): void {
     if (this.themeName && THEME_WALL_TEXTURES[this.themeName]) {
@@ -103,6 +115,8 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
       // Use default chapter texture
       this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId]
     }
+    // Update border color for chapter
+    this.borderColor = CHAPTER_BORDER_COLORS[this.chapterId] || 0x222222
   }
 
   /**
@@ -119,7 +133,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
       const width = config.width * this.screenWidth
       const height = config.height * this.screenHeight
 
-      const wall = new Wall(this.scene, x, y, width, height, this.wallColor, this.textureKey)
+      const wall = new Wall(this.scene, x, y, width, height, this.wallColor, this.textureKey, this.borderColor)
       this.add(wall)
     }
   }
