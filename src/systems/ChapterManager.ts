@@ -485,10 +485,14 @@ export class ChapterManager {
 
   /**
    * Complete the chapter with given performance metrics
+   * @param hpRemaining Current HP at completion
+   * @param maxHp Maximum HP
+   * @param difficultyMultiplier Optional reward multiplier based on difficulty (default 1.0)
    */
   completeChapter(
     hpRemaining: number,
-    maxHp: number
+    maxHp: number,
+    difficultyMultiplier: number = 1.0
   ): ChapterCompletionResult | null {
     if (!this.currentRun?.isActive) {
       console.warn('ChapterManager: No active run to complete')
@@ -505,11 +509,12 @@ export class ChapterManager {
     const progress = this.chapterProgress.get(chapterId)!
     const isFirstCompletion = !progress.completed
 
-    // Calculate rewards
+    // Calculate rewards with difficulty scaling
     const rewards = calculateRewardsFromData(
       chapterId,
       stars as 1 | 2 | 3,
-      isFirstCompletion
+      isFirstCompletion,
+      difficultyMultiplier
     )
 
     // Update progress

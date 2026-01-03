@@ -116,56 +116,181 @@ export const CHEST_THRESHOLDS = {
 }
 
 /**
+ * Chapter-based chest reward scaling
+ * Higher chapters = better chest rewards
+ */
+export const CHAPTER_CHEST_SCALING: Record<number, {
+  /** Base wooden chest count */
+  baseWooden: number
+  /** Bonus silver chest chance (0-100) */
+  bonusSilverChance: number
+  /** Golden chest chance multiplier (1.0 = normal) */
+  goldenChanceMultiplier: number
+  /** Upgrade wooden to silver chance (0-100) */
+  upgradeToSilverChance: number
+}> = {
+  1: {
+    baseWooden: 1,
+    bonusSilverChance: 0,
+    goldenChanceMultiplier: 1.0,
+    upgradeToSilverChance: 0,
+  },
+  2: {
+    baseWooden: 1,
+    bonusSilverChance: 10,
+    goldenChanceMultiplier: 1.2,
+    upgradeToSilverChance: 10,
+  },
+  3: {
+    baseWooden: 1,
+    bonusSilverChance: 20,
+    goldenChanceMultiplier: 1.5,
+    upgradeToSilverChance: 20,
+  },
+  4: {
+    baseWooden: 2,
+    bonusSilverChance: 30,
+    goldenChanceMultiplier: 2.0,
+    upgradeToSilverChance: 30,
+  },
+  5: {
+    baseWooden: 2,
+    bonusSilverChance: 50,
+    goldenChanceMultiplier: 3.0,
+    upgradeToSilverChance: 50,
+  },
+}
+
+/**
+ * Difficulty-based chest reward scaling
+ * Harder difficulties = better rewards
+ */
+export const DIFFICULTY_CHEST_SCALING: Record<string, {
+  /** Extra wooden chests */
+  extraWooden: number
+  /** Golden chance multiplier (stacks with chapter) */
+  goldenChanceMultiplier: number
+  /** Chance to upgrade silver to golden (0-100) */
+  upgradeToGoldenChance: number
+}> = {
+  easy: {
+    extraWooden: 0,
+    goldenChanceMultiplier: 0.5, // Half golden chance on easy
+    upgradeToGoldenChance: 0,
+  },
+  normal: {
+    extraWooden: 0,
+    goldenChanceMultiplier: 1.0,
+    upgradeToGoldenChance: 0,
+  },
+  hard: {
+    extraWooden: 1,
+    goldenChanceMultiplier: 1.5,
+    upgradeToGoldenChance: 10,
+  },
+  insanity: {
+    extraWooden: 2,
+    goldenChanceMultiplier: 2.5,
+    upgradeToGoldenChance: 25,
+  },
+}
+
+/**
  * Calculate chest rewards based on run performance
  *
  * @param roomsCleared - Number of rooms cleared (0-10)
  * @param enemiesKilled - Total enemies killed
  * @param bossDefeated - Whether the boss was defeated
  * @param isVictory - Whether the run was completed successfully
+ * @param chapterId - Chapter being played (1-5), defaults to 1
+ * @param difficulty - Difficulty level ('easy', 'normal', 'hard', 'insanity'), defaults to 'normal'
  * @returns Chest rewards earned
  */
 export function calculateChestRewards(
   roomsCleared: number,
   enemiesKilled: number,
   bossDefeated: boolean,
-  isVictory: boolean
+  isVictory: boolean,
+  chapterId: number = 1,
+  difficulty: string = 'normal'
 ): ChestRewards {
+  // Get scaling values for chapter and difficulty
+  const chapterScaling = CHAPTER_CHEST_SCALING[chapterId] || CHAPTER_CHEST_SCALING[1]
+  const difficultyScaling = DIFFICULTY_CHEST_SCALING[difficulty] || DIFFICULTY_CHEST_SCALING['normal']
+
   const rewards: ChestRewards = {
-    wooden: 1, // Base: 1 wooden chest per run
+    wooden: chapterScaling.baseWooden + difficultyScaling.extraWooden,
     silver: 0,
     golden: 0,
   }
 
-  let totalChests = 1
+  // Calculate max chests based on chapter (higher chapters can earn more)
+  const maxChests = CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN + Math.floor((chapterId - 1) / 2)
+  let totalChests = rewards.wooden
 
   // Bonus for clearing 5+ rooms
-  if (roomsCleared >= CHEST_THRESHOLDS.ROOMS_FOR_BONUS_WOODEN && totalChests < CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN) {
+  if (roomsCleared >= CHEST_THRESHOLDS.ROOMS_FOR_BONUS_WOODEN && totalChests < maxChests) {
     rewards.wooden++
     totalChests++
   }
 
   // Bonus for killing 30+ enemies
-  if (enemiesKilled >= CHEST_THRESHOLDS.KILLS_FOR_BONUS_WOODEN && totalChests < CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN) {
+  if (enemiesKilled >= CHEST_THRESHOLDS.KILLS_FOR_BONUS_WOODEN && totalChests < maxChests) {
     rewards.wooden++
     totalChests++
   }
 
   // Victory bonus (completing all rooms)
-  if (isVictory && totalChests < CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN) {
+  if (isVictory && totalChests < maxChests) {
     rewards.silver++
     totalChests++
 
-    // Small chance for golden chest on victory
-    if (Math.random() * 100 < CHEST_THRESHOLDS.GOLDEN_CHEST_CHANCE) {
+    // Golden chest chance scaled by chapter and difficulty
+    const goldenChance = CHEST_THRESHOLDS.GOLDEN_CHEST_CHANCE *
+      chapterScaling.goldenChanceMultiplier *
+      difficultyScaling.goldenChanceMultiplier
+
+    if (Math.random() * 100 < goldenChance && totalChests < maxChests) {
       rewards.golden++
       totalChests++
     }
   }
 
   // Boss defeat bonus
-  if (bossDefeated && totalChests < CHEST_THRESHOLDS.MAX_CHESTS_PER_RUN) {
+  if (bossDefeated && totalChests < maxChests) {
     rewards.silver++
     totalChests++
+  }
+
+  // Chapter-based bonus silver chance
+  if (chapterScaling.bonusSilverChance > 0 && Math.random() * 100 < chapterScaling.bonusSilverChance) {
+    if (totalChests < maxChests) {
+      rewards.silver++
+      totalChests++
+    }
+  }
+
+  // Upgrade wooden to silver based on chapter scaling
+  if (rewards.wooden > 0 && chapterScaling.upgradeToSilverChance > 0) {
+    const upgrades = Math.min(
+      rewards.wooden,
+      Math.floor(rewards.wooden * chapterScaling.upgradeToSilverChance / 100) +
+        (Math.random() * 100 < (chapterScaling.upgradeToSilverChance % 100) ? 1 : 0)
+    )
+    if (upgrades > 0) {
+      rewards.wooden -= upgrades
+      rewards.silver += upgrades
+    }
+  }
+
+  // Upgrade silver to golden based on difficulty scaling (for insanity/hard)
+  if (rewards.silver > 0 && difficultyScaling.upgradeToGoldenChance > 0) {
+    for (let i = 0; i < rewards.silver; i++) {
+      if (Math.random() * 100 < difficultyScaling.upgradeToGoldenChance) {
+        rewards.silver--
+        rewards.golden++
+      }
+    }
   }
 
   return rewards
