@@ -182,6 +182,9 @@ export default class HealthPool extends Phaser.Physics.Arcade.Group {
     this.getChildren().forEach((child) => {
       const health = child as HealthPickup
       if (health.active) {
+        // Kill any existing tweens (spawn animation) before fly animation
+        this._poolScene.tweens.killTweensOf(health)
+
         // Animate health flying to player position
         this._poolScene.tweens.add({
           targets: health,

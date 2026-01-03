@@ -416,10 +416,10 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
       const containerY = this.contentContainer!.y
       const cardWorldY = containerY + card.container.y
-      const cardHalfHeight = this.ENTRY_HEIGHT / 2
 
-      const isVisible =
-        cardWorldY + cardHalfHeight > maskTop && cardWorldY - cardHalfHeight < maskBottom
+      // Check if the card's CENTER is within the visible mask area
+      // Using center-based check prevents items just outside the mask from catching clicks
+      const isVisible = cardWorldY >= maskTop && cardWorldY <= maskBottom
 
       if (isVisible) {
         if (!card.background.input?.enabled) {
@@ -1091,6 +1091,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
         padding: { x: 50, y: 10 },
       })
       .setOrigin(0.5)
+      .setDepth(20) // Above content container (depth 1) and scroll indicator (depth 10)
 
     button.setInteractive({ useHandCursor: true })
     button.on('pointerdown', () => {

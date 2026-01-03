@@ -366,12 +366,10 @@ export default class EquipmentScene extends Phaser.Scene {
       // The slot's local Y is relative to the container, which is positioned at (inventoryStartY - scrollOffset)
       const containerY = this.inventoryContainer!.y
       const slotWorldY = containerY + slot.container.y
-      const slotHalfHeight = this.INVENTORY_SLOT_SIZE / 2
 
-      // Check if the slot is within the visible mask area
-      const isVisible =
-        (slotWorldY + slotHalfHeight) > maskTop &&
-        (slotWorldY - slotHalfHeight) < maskBottom
+      // Check if the slot's CENTER is within the visible mask area
+      // Using center-based check prevents items just outside the mask from catching clicks
+      const isVisible = slotWorldY >= maskTop && slotWorldY <= maskBottom
 
       // Enable or disable interactivity based on visibility
       if (isVisible) {
@@ -473,6 +471,7 @@ export default class EquipmentScene extends Phaser.Scene {
         color: '#FFD700',
       })
       .setOrigin(0, 0.5)
+      .setDepth(20) // Above inventory container
 
     // Fusion button
     this.fusionButton = this.add
@@ -483,6 +482,7 @@ export default class EquipmentScene extends Phaser.Scene {
         padding: { x: 15, y: 8 },
       })
       .setOrigin(1, 0.5)
+      .setDepth(20) // Above inventory container
 
     this.fusionButton.setInteractive({ useHandCursor: true })
     this.fusionButton.on('pointerdown', () => this.onFusionClick())
@@ -497,6 +497,7 @@ export default class EquipmentScene extends Phaser.Scene {
         padding: { x: 10, y: 8 },
       })
       .setOrigin(1, 0.5)
+      .setDepth(20) // Above inventory container
 
     this.fuseAllButton.setInteractive({ useHandCursor: true })
     this.fuseAllButton.on('pointerdown', () => this.onFuseAllClick())
@@ -516,6 +517,7 @@ export default class EquipmentScene extends Phaser.Scene {
         padding: { x: 40, y: 10 },
       })
       .setOrigin(0.5)
+      .setDepth(20) // Above inventory container (depth 1) and equipped slots (depth 10)
 
     backButton.setInteractive({ useHandCursor: true })
     backButton.on('pointerdown', () => {

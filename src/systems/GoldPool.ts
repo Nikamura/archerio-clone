@@ -194,6 +194,9 @@ export default class GoldPool extends Phaser.Physics.Arcade.Group {
     this.getChildren().forEach((child) => {
       const gold = child as GoldPickup
       if (gold.active) {
+        // Kill any existing tweens (spawn animation) before fly animation
+        this._poolScene.tweens.killTweensOf(gold)
+
         // Animate gold flying to player position
         this._poolScene.tweens.add({
           targets: gold,

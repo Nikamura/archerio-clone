@@ -34,6 +34,12 @@ export default class AchievementsScene extends Phaser.Scene {
   private dragStartY = 0
   private scrollStartY = 0
 
+  // Track interactive tier circles for visibility-based interactivity
+  private interactiveTierCircles: Array<{
+    circle: Phaser.GameObjects.Arc
+    container: Phaser.GameObjects.Container
+  }> = []
+
   constructor() {
     super({ key: 'AchievementsScene' })
   }
@@ -41,6 +47,9 @@ export default class AchievementsScene extends Phaser.Scene {
   create() {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
+
+    // Clear interactive circles from previous scene runs
+    this.interactiveTierCircles = []
 
     // Background (lowest depth)
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e).setDepth(0)
@@ -167,6 +176,9 @@ export default class AchievementsScene extends Phaser.Scene {
 
     // Setup scroll input
     this.setupScrollInput(width)
+
+    // Initial interactivity update for items outside visible area
+    this.updateTierCircleInteractivity()
   }
 
   private setupScrollInput(width: number) {
@@ -232,6 +244,45 @@ export default class AchievementsScene extends Phaser.Scene {
     if (this.scrollContainer) {
       this.scrollContainer.y = -this.scrollY
     }
+
+    // Update interactivity for scrolled items
+    this.updateTierCircleInteractivity()
+  }
+
+  /**
+   * Enable/disable input on tier circles based on whether they're visible in the masked area.
+   * This prevents invisible (scrolled-out) items from capturing clicks meant for other UI elements.
+   */
+  private updateTierCircleInteractivity(): void {
+    // Guard against scene not being active or scroll container not ready
+    if (!this.scrollContainer || !this.scene || !this.sys?.isActive()) return
+
+    const maskTop = this.scrollBounds.top
+    const maskBottom = this.scrollBounds.bottom
+
+    this.interactiveTierCircles.forEach(({ circle, container }) => {
+      // Skip if circle was destroyed
+      if (!circle || !circle.scene) return
+
+      // Calculate the container's world Y position
+      // The container's local Y is relative to scrollContainer, which is at -scrollY
+      const containerWorldY = this.scrollContainer!.y + container.y
+
+      // Check if the container's CENTER is within the visible mask area
+      // Using center-based check prevents items just outside the mask from catching clicks
+      const isVisible = containerWorldY >= maskTop && containerWorldY <= maskBottom
+
+      // Enable or disable interactivity based on visibility
+      if (isVisible) {
+        if (!circle.input?.enabled) {
+          circle.setInteractive({ useHandCursor: true })
+        }
+      } else {
+        if (circle.input?.enabled) {
+          circle.disableInteractive()
+        }
+      }
+    })
   }
 
   private createAchievementCard(
@@ -365,6 +416,9 @@ export default class AchievementsScene extends Phaser.Scene {
           repeat: -1,
           ease: 'Sine.easeInOut',
         })
+
+        // Track this circle for visibility-based interactivity updates
+        this.interactiveTierCircles.push({ circle, container })
       }
     }
 
@@ -599,7 +653,7 @@ export default class AchievementsScene extends Phaser.Scene {
 
   private createBackButton(width: number, height: number) {
     // Footer background to cover scroll content
-    this.add.rectangle(width / 2, height - 25, width, 50, 0x1a1a2e).setDepth(10)
+    this.add.rectangle(width / 2, height - 25, width, 50, 0x1a1a2e).setDepth(20)
 
     const backButton = this.add
       .text(width / 2, height - 25, '< BACK', {
@@ -609,7 +663,7 @@ export default class AchievementsScene extends Phaser.Scene {
         padding: { x: 20, y: 8 },
       })
       .setOrigin(0.5)
-      .setDepth(11)
+      .setDepth(20)
       .setInteractive({ useHandCursor: true })
 
     backButton.on('pointerover', () => {
