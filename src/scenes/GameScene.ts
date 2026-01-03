@@ -25,7 +25,7 @@ import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getEnemyModifiers, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
-import { saveManager } from '../systems/SaveManager'
+import { saveManager, GraphicsQuality } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
 import { hapticManager } from '../systems/HapticManager'
@@ -322,6 +322,11 @@ export default class GameScene extends Phaser.Scene {
     this.screenShake = createScreenShake(this)
     this.particles = createParticleManager(this)
     this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Apply graphics quality settings
+    const settings = saveManager.getSettings()
+    this.applyGraphicsQuality(settings.graphicsQuality)
+    this.screenShake.setEnabled(settings.screenShakeEnabled)
 
     // Create damage aura graphics (rendered below player)
     this.damageAuraGraphics = this.add.graphics()
@@ -2474,6 +2479,24 @@ export default class GameScene extends Phaser.Scene {
     if (this.doorText) {
       this.doorText.destroy()
       this.doorText = null
+    }
+  }
+
+  /**
+   * Apply graphics quality settings to particle and effect systems
+   */
+  private applyGraphicsQuality(quality: GraphicsQuality): void {
+    switch (quality) {
+      case GraphicsQuality.LOW:
+        this.particles.setQuality(0.3) // 30% particles
+        break
+      case GraphicsQuality.MEDIUM:
+        this.particles.setQuality(0.6) // 60% particles
+        break
+      case GraphicsQuality.HIGH:
+      default:
+        this.particles.setQuality(1.0) // Full particles
+        break
     }
   }
 }
