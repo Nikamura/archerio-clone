@@ -1130,12 +1130,12 @@ Battle Pass implementation:
 - Remote config for balance tuning without update
 - Push notification system (energy refilled, daily rewards, events)
 
-**Quality of life:**
-- Settings: Low/Medium/High graphics presets
-- Effect reduction for performance
-- Colorblind modes
-- Tutorial system for new players
-- Replay last run (same seed)
+**Quality of life (implemented 2026-01-03):**
+- [x] Settings: Low/Medium/High graphics presets
+- [x] Effect reduction for performance (integrated with graphics quality)
+- [x] Colorblind modes (Protanopia, Deuteranopia, Tritanopia)
+- [x] Tutorial system for new players
+- [x] Replay last run (same seed)
 
 ### V2 technical additions
 
