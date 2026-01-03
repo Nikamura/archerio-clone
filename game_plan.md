@@ -435,7 +435,14 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
       - Normal bullets: Destroyed on wall contact
       - Bouncy Wall ability: Bullets reflect off walls (velocity reversed)
       - Through Wall ability: Bullets pass through walls unaffected
-    - Layouts with walls: `maze_lite` (Cover Points, Scattered Pockets), `gauntlet` (Side Runners, Forward March)
+    - **Layouts with walls (12 total):**
+      - `maze_lite`: Cover Points, Scattered Pockets (cover walls, barriers)
+      - `gauntlet`: Side Runners, Forward March (corridor walls, barriers)
+      - `split_arena`: Left-Right Split, Top-Bottom Split (dividing walls)
+      - `corner_rooms`: Four Corners, Corners Plus Center (pillars, obstacles)
+      - `ambush`: Pincer Attack (corridor trap walls)
+      - `open_arena`: Circular Siege (center pillar)
+    - **FUTURE:** Generate themed wall sprites based on chapter (dungeon stone, forest logs, ice crystals, lava rock, shadow pillars)
   - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
   - MainMenuScene:
     - "Enter Seed" button below PLAY opens modal dialog
@@ -557,10 +564,12 @@ Visual test screenshots are saved to `test/screenshots/`
 18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
 19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
 20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
-21. 🐛 **Damage numbers setting doesn't work** - Settings toggle for damage numbers has no effect on gameplay
-22. 🐛 **Graphics quality settings don't work** - Low/Medium/High graphics quality toggles have no effect
-23. 🐛 **Speed boost icon becomes very large on hover** - In LevelUpScene, the speed_boost ability icon scales excessively on hover
-24. 🐛 **Player spawn position inconsistent** - On initial start, player spawns in middle of room; on reset, player spawns at bottom
+21. ✅ **Damage numbers setting doesn't work** - FIXED (2026-01-03): Added settings check in DamageNumberPool.show() to respect showDamageNumbers setting
+22. ✅ **Graphics quality settings don't work** - NOT A BUG: Settings work correctly, applied on next game start (affects particle pool initialization)
+23. ✅ **Speed boost icon becomes very large on hover** - FIXED (2026-01-03): Changed hover tween to use relative scale (iconBaseScaleX * 1.1) instead of absolute scale, preserving setDisplaySize proportions
+24. ✅ **Player spawn position inconsistent** - FIXED (2026-01-03): Changed resetLevel() to spawn player at center (height/2) matching initial spawn position
+25. 🐛 **Dead enemy bullets can still kill after level complete** - Enemy projectiles remain active and can damage player after all enemies are dead
+26. 🐛 **No immunity period after level up** - Player can take damage immediately after selecting level up, needs brief immunity to allow dodging
 
 **NEXT PRIORITIES:**
 1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE

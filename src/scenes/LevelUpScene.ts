@@ -527,9 +527,14 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Add ability icon
     let iconElement: Phaser.GameObjects.Image | Phaser.GameObjects.Arc
+    let iconBaseScaleX = 1
+    let iconBaseScaleY = 1
     if (this.textures.exists(ability.iconKey)) {
       iconElement = this.add.image(iconX, 0, ability.iconKey)
       iconElement.setDisplaySize(48, 48)
+      // Capture base scale after setDisplaySize (varies based on original image size)
+      iconBaseScaleX = iconElement.scaleX
+      iconBaseScaleY = iconElement.scaleY
     } else {
       // Fallback: colored circle if icon not loaded
       iconElement = this.add.circle(iconX, 0, 20, ability.color)
@@ -590,10 +595,11 @@ export default class LevelUpScene extends Phaser.Scene {
     button.on('pointerover', () => {
       button.setFillStyle(0x444444)
       glowRect.setAlpha(0.4)
-      // Scale up icon slightly
+      // Scale up icon slightly (use relative scale to preserve setDisplaySize proportions)
       this.tweens.add({
         targets: iconElement,
-        scale: 1.1,
+        scaleX: iconBaseScaleX * 1.1,
+        scaleY: iconBaseScaleY * 1.1,
         duration: 100,
         ease: EASING.EASE_OUT,
       })
@@ -601,10 +607,11 @@ export default class LevelUpScene extends Phaser.Scene {
 
     button.on('pointerout', () => {
       button.setFillStyle(0x333333)
-      // Reset icon scale
+      // Reset icon scale to base (preserves setDisplaySize proportions)
       this.tweens.add({
         targets: iconElement,
-        scale: 1,
+        scaleX: iconBaseScaleX,
+        scaleY: iconBaseScaleY,
         duration: 100,
         ease: EASING.EASE_OUT,
       })

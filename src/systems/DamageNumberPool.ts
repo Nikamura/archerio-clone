@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { saveManager } from './SaveManager'
 
 export type DamageNumberType = 'normal' | 'crit' | 'player' | 'heal' | 'dot' | 'dodge'
 
@@ -109,6 +110,10 @@ export default class DamageNumberPool {
    * @param type The type of damage (affects color/size)
    */
   show(x: number, y: number, damage: number, type: DamageNumberType = 'normal'): void {
+    // Check if damage numbers are enabled in settings
+    const settings = saveManager.getSettings()
+    if (!settings.showDamageNumbers) return
+
     const text = this.getAvailableText()
     if (!text) return
 

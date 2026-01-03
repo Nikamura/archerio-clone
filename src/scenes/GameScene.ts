@@ -1704,10 +1704,10 @@ export default class GameScene extends Phaser.Scene {
       // Clean up current room (but NOT the player - keep abilities!)
       this.cleanupRoom()
 
-      // Reset player position and heal to full
+      // Reset player position and heal to full (same position as initial spawn)
       const width = this.cameras.main.width
       const height = this.cameras.main.height
-      this.player.setPosition(width / 2, height - 100)
+      this.player.setPosition(width / 2, height / 2)
       this.player.setVelocity(0, 0)
       this.player.heal(this.player.getMaxHealth()) // Full heal on reset
 
