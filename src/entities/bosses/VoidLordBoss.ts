@@ -58,7 +58,7 @@ export default class VoidLordBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'voidLordBoss', options)
+    super(scene, x, y, bulletPool, 'boss_void_lord', options)
 
     this.baseHealth = 400
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))

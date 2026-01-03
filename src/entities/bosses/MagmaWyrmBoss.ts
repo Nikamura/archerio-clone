@@ -52,7 +52,7 @@ export default class MagmaWyrmBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'magmaWyrmBoss', options)
+    super(scene, x, y, bulletPool, 'boss_magma_wyrm', options)
 
     this.baseHealth = 300
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))

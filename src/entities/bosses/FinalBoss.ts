@@ -73,7 +73,7 @@ export default class FinalBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions
   ) {
-    super(scene, x, y, bulletPool, 'finalBoss', options)
+    super(scene, x, y, bulletPool, 'boss_final_boss', options)
 
     this.baseHealth = 600 // Much higher HP for final boss
     this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0))
