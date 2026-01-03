@@ -16,10 +16,13 @@ export default defineConfig({
     open: true,
   },
   build: {
+    // Phaser is ~1.5MB minified - this is expected for a game engine
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks: {
           phaser: ['phaser'],
+          sentry: ['@sentry/browser'],
         },
       },
     },
