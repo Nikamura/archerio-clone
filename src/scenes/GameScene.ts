@@ -24,6 +24,7 @@ import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
+import { BossId } from '../config/bossData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
@@ -88,6 +89,7 @@ export default class GameScene extends Phaser.Scene {
   private isLevelingUp: boolean = false // Player is selecting ability (immune to damage)
   private showingTutorial: boolean = false // Tutorial overlay is visible
   private boss: Boss | null = null
+  private currentBossType: BossType | null = null // For kill tracking
   private runStartTime: number = 0
   private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
@@ -749,6 +751,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Reset boss state
     this.boss = null
+    this.currentBossType = null
     this.scene.get('UIScene').events.emit('hideBossHealth')
 
     // Destroy all enemies
@@ -833,33 +836,36 @@ export default class GameScene extends Phaser.Scene {
     const { x, y, enemyType } = spawn
     let enemy: Enemy
 
+    // Include enemyType in options for kill tracking
+    const optionsWithType: EnemyOptions = { ...enemyOptions, enemyType }
+
     switch (enemyType) {
       case 'ranged':
-        enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        enemy = new RangedShooterEnemy(this, x, y, this.enemyBulletPool, optionsWithType)
         break
       case 'spreader':
-        enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        enemy = new SpreaderEnemy(this, x, y, this.enemyBulletPool, optionsWithType)
         break
       case 'bomber':
         enemy = new BomberEnemy(
-          this, x, y, this.bombPool, enemyOptions,
+          this, x, y, this.bombPool, optionsWithType,
           (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
         )
         break
       case 'tank':
-        enemy = new TankEnemy(this, x, y, this.enemyBulletPool, enemyOptions)
+        enemy = new TankEnemy(this, x, y, this.enemyBulletPool, optionsWithType)
         break
       case 'charger':
-        enemy = new ChargerEnemy(this, x, y, enemyOptions)
+        enemy = new ChargerEnemy(this, x, y, optionsWithType)
         break
       case 'healer':
-        enemy = new HealerEnemy(this, x, y, enemyOptions)
+        enemy = new HealerEnemy(this, x, y, optionsWithType)
         break
       case 'spawner':
-        enemy = new SpawnerEnemy(this, x, y, enemyOptions)
+        enemy = new SpawnerEnemy(this, x, y, optionsWithType)
         break
       default:
-        enemy = new Enemy(this, x, y, enemyOptions)
+        enemy = new Enemy(this, x, y, optionsWithType)
     }
 
     this.add.existing(enemy)
@@ -983,6 +989,7 @@ export default class GameScene extends Phaser.Scene {
     // Create the appropriate boss using the factory
     const newBoss = createBoss(this, bossX, bossY, bossType, this.enemyBulletPool, bossOptions)
     this.boss = newBoss as Boss // Type assertion for compatibility
+    this.currentBossType = bossType // Store for kill tracking
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1317,6 +1324,7 @@ export default class GameScene extends Phaser.Scene {
     if (killed) {
       // Track kill
       this.enemiesKilled++
+      this.recordKill(enemySprite, !!isBoss)
 
       // Bloodthirst: Heal on kill
       const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -1387,6 +1395,34 @@ export default class GameScene extends Phaser.Scene {
       return 'ranged'
     }
     return 'melee'
+  }
+
+  /**
+   * Convert BossType to BossId for kill tracking
+   * Handles aliases like 'treant' -> 'tree_guardian' and 'frost_giant' -> 'ice_golem'
+   */
+  private normalizeBossType(bossType: BossType): BossId {
+    switch (bossType) {
+      case 'treant':
+        return 'tree_guardian'
+      case 'frost_giant':
+        return 'ice_golem'
+      default:
+        return bossType as BossId
+    }
+  }
+
+  /**
+   * Record a kill for statistics tracking
+   */
+  private recordKill(enemy: Enemy, isBoss: boolean): void {
+    if (isBoss && this.currentBossType) {
+      const bossId = this.normalizeBossType(this.currentBossType)
+      saveManager.recordBossKill(bossId)
+    } else {
+      const enemyType = enemy.getEnemyType()
+      saveManager.recordEnemyKill(enemyType)
+    }
   }
 
   /**
@@ -2210,6 +2246,8 @@ export default class GameScene extends Phaser.Scene {
 
       if (killed) {
         this.enemiesKilled++
+        const isBoss = this.boss && target === (this.boss as unknown as Enemy)
+        this.recordKill(target, !!isBoss)
         this.spawnDrops(target)
 
         // Bloodthirst heal on kill
@@ -2217,6 +2255,12 @@ export default class GameScene extends Phaser.Scene {
         if (bloodthirstHeal > 0) {
           this.player.heal(bloodthirstHeal)
           this.updatePlayerHealthUI(this.player)
+        }
+
+        // Clear boss reference if boss was killed
+        if (isBoss) {
+          this.boss = null
+          this.scene.get('UIScene').events.emit('hideBossHealth')
         }
 
         target.destroy()
@@ -2299,7 +2343,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Handle deaths from aura damage
     for (const e of enemiesToDestroy) {
+      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
       this.enemiesKilled++
+      this.recordKill(e, !!isBoss)
 
       // Bloodthirst heal on kill
       const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -2317,7 +2363,6 @@ export default class GameScene extends Phaser.Scene {
       this.spawnDrops(e)
 
       // Add XP
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
       const xpGain = isBoss ? 10 : 1
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
@@ -2437,6 +2482,7 @@ export default class GameScene extends Phaser.Scene {
    */
   private handleEnemyKilledBySpiritCat(enemy: Enemy, isBoss: boolean): void {
     this.enemiesKilled++
+    this.recordKill(enemy, isBoss)
 
     // Bloodthirst: Heal on kill (if player has ability)
     const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -2620,7 +2666,9 @@ export default class GameScene extends Phaser.Scene {
    * Extracted for batch processing in update loop
    */
   private handleEnemyDOTDeath(e: Enemy): void {
+    const isBoss = this.boss && e === (this.boss as unknown as Enemy)
     this.enemiesKilled++
+    this.recordKill(e, !!isBoss)
 
     // Bloodthirst: Heal on kill
     const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -2638,7 +2686,6 @@ export default class GameScene extends Phaser.Scene {
     this.spawnDrops(e)
 
     // Add XP to player (check if boss)
-    const isBoss = this.boss && e === (this.boss as unknown as Enemy)
     const xpGain = isBoss ? 10 : 1
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()

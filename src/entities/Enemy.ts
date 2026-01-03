@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { EnemyType } from '../config/chapterData'
 
 /**
  * Options for enemy spawning with difficulty and chapter modifiers
@@ -16,6 +17,8 @@ export interface EnemyOptions {
   projectileSpeedMultiplier?: number
   /** Special ability intensity from chapter (heal amount, spawn rate, etc, default 1.0) */
   abilityIntensityMultiplier?: number
+  /** Enemy type for tracking kills */
+  enemyType?: EnemyType
 }
 
 export default class Enemy extends Phaser.Physics.Arcade.Sprite {
@@ -23,6 +26,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private maxHealth: number
   protected damageMultiplier: number = 1.0 // For difficulty scaling
   protected speedMultiplier: number = 1.0 // For chapter-specific speed
+  protected readonly enemyType: EnemyType // For kill tracking
 
   // Fire DOT tracking
   private fireDamage: number = 0 // Damage per tick
@@ -64,6 +68,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     options?: EnemyOptions
   ) {
     super(scene, x, y, 'enemyMelee')
+
+    // Store enemy type for kill tracking
+    this.enemyType = options?.enemyType ?? 'melee'
 
     // Apply difficulty modifiers
     const baseHealth = 30
@@ -330,6 +337,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    */
   getMaxHealth(): number {
     return this.maxHealth
+  }
+
+  /**
+   * Get the enemy type for kill tracking
+   */
+  getEnemyType(): EnemyType {
+    return this.enemyType
   }
 
   /**

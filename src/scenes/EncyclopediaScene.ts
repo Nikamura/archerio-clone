@@ -12,6 +12,7 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
 import { encyclopediaManager } from '../systems/EncyclopediaManager'
+import { saveManager } from '../systems/SaveManager'
 import * as UIAnimations from '../systems/UIAnimations'
 import {
   EncyclopediaCategory,
@@ -820,11 +821,14 @@ export default class EncyclopediaScene extends Phaser.Scene {
       }
       case 'enemies': {
         const en = entry as EnemyEncyclopediaEntry
-        return en.behavior
+        const kills = saveManager.getEnemyKillCount(en.id)
+        return kills > 0 ? `${en.behavior} • Defeated: ${kills.toLocaleString()}` : en.behavior
       }
       case 'bosses': {
         const bo = entry as BossEncyclopediaEntry
-        return `Chapter ${bo.chapter} - ${bo.attackPatterns.length} attacks`
+        const kills = saveManager.getBossKillCount(bo.id)
+        const base = `Chapter ${bo.chapter} - ${bo.attackPatterns.length} attacks`
+        return kills > 0 ? `${base} • Defeated: ${kills.toLocaleString()}` : base
       }
       case 'abilities': {
         const ab = entry as AbilityEncyclopediaEntry
@@ -945,6 +949,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
       }
       case 'enemies': {
         const en = entry as EnemyEncyclopediaEntry
+        const enemyKills = saveManager.getEnemyKillCount(en.id)
         this.addDetailLine(en.description, y, '#aaaacc')
         y += 35
         this.addDetailLine('Behavior:', y, '#ffdd00')
@@ -952,10 +957,13 @@ export default class EncyclopediaScene extends Phaser.Scene {
         this.addDetailLine(en.behavior, y, '#ffffff')
         y += 35
         this.addDetailLine(`First appears in Chapter ${en.introducedChapter}`, y, '#888899')
+        y += 30
+        this.addDetailLine(`Defeated: ${enemyKills.toLocaleString()}`, y, '#66ff66')
         break
       }
       case 'bosses': {
         const bo = entry as BossEncyclopediaEntry
+        const bossKills = saveManager.getBossKillCount(bo.id)
         this.addDetailLine(bo.description, y, '#aaaacc')
         y += 35
         this.addDetailLine(`Chapter ${bo.chapter} ${bo.isMainBoss ? '(Main Boss)' : ''}`, y, '#ffdd00')
@@ -963,6 +971,8 @@ export default class EncyclopediaScene extends Phaser.Scene {
         this.addDetailLine('Attack Patterns:', y, '#ff6644')
         y += 22
         this.addDetailLine(bo.attackPatterns.join(', '), y, '#ffffff')
+        y += 30
+        this.addDetailLine(`Defeated: ${bossKills.toLocaleString()}`, y, '#66ff66')
         break
       }
       case 'abilities': {
