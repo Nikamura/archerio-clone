@@ -713,8 +713,9 @@ export default class GameOverScene extends Phaser.Scene {
         () => {
           console.log('Seed copied to clipboard:', this.runSeed)
         },
-        (err) => {
-          console.warn('Failed to copy seed:', err)
+        (_err) => {
+          // Clipboard API can fail on iOS Safari due to permission restrictions
+          // This is expected behavior - silently fall back to execCommand
           this.fallbackCopyToClipboard()
         }
       )
@@ -736,8 +737,9 @@ export default class GameOverScene extends Phaser.Scene {
     try {
       document.execCommand('copy')
       console.log('Seed copied to clipboard (fallback):', this.runSeed)
-    } catch (err) {
-      console.warn('Fallback copy failed:', err)
+    } catch {
+      // Copy failed - user will need to manually copy the seed
+      // This is not critical functionality, so we don't log an error
     }
     document.body.removeChild(textArea)
   }
