@@ -1153,7 +1153,15 @@ Battle Pass implementation:
 **Expanded content:**
 - 10 total chapters (50 rooms each for later chapters)
 - 8 heroes with unique skill trees
-- Endless mode: Survive as long as possible, leaderboard rankings
+- ✅ Endless mode: Survive as long as possible (2026-01-03)
+  - ENDLESS button on main menu (orange, next to PLAY)
+  - 10 rooms per wave with boss at end
+  - Difficulty increases 15% each wave (HP, damage, speed, attack cooldown)
+  - Wave notification with difficulty multiplier display
+  - UIScene shows "Wave X - Room/10" format
+  - GameOverScene displays wave reached with NEW BEST badge
+  - SaveManager tracks endlessHighWave statistic
+  - (Leaderboard rankings require backend - not implemented)
 - Challenge modes: Daily dungeon with special rules, fixed rewards
 - Special events: Limited-time themed content with exclusive rewards
 
@@ -1187,6 +1195,14 @@ Battle Pass implementation:
 ### V2 technical additions
 
 ```
+[x] Endless Mode (2026-01-03)
+    - Added ENDLESS button to MainMenuScene
+    - GameScene.isEndlessMode flag with wave system (10 rooms per wave)
+    - Difficulty scaling: 15% per wave (HP, damage, speed, attack cooldown)
+    - Wave notification UI with difficulty multiplier
+    - UIScene shows "Wave X - Room/10" format
+    - GameOverScene handles endless mode with NEW BEST badge
+    - SaveManager.endlessHighWave statistic tracking
 [ ] Ad SDK integration (Google AdMob or similar web equivalent)
 [ ] IAP integration (Stripe for web, or wrapper for app stores)
 [ ] Battle Pass system with tier tracking
