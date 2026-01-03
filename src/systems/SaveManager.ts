@@ -649,13 +649,14 @@ export class SaveManager {
   }
 
   /**
-   * Add hero experience
+   * Add hero experience (raw value storage only).
+   * Note: For actual XP with level-up processing, use HeroManager.addXP() instead.
+   * This method only stores the raw experience value without level calculations.
    */
   addHeroExperience(heroId: string, amount: number): void {
     const hero = this.data.heroes[heroId]
     if (!hero) return
     hero.experience += amount
-    // TODO: Calculate level ups based on experience thresholds
     this.markDirty()
   }
 

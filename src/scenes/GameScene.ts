@@ -977,10 +977,9 @@ export default class GameScene extends Phaser.Scene {
     // Calculate damage based on bullet properties
     let damage = this.player.getDamage()
 
-    // Check for critical hit
+    // Check for critical hit - crit damage numbers are displayed via DamageNumberPool.showEnemyDamage(isCrit: true)
     if (bulletSprite.isCriticalHit()) {
       damage = this.player.getDamageWithCrit(true)
-      // TODO: Show crit damage number (yellow/bigger)
     }
 
     // Apply piercing damage reduction if bullet has hit enemies before
