@@ -329,3 +329,6 @@ Unit-testable logic is in `src/systems/PlayerStats.ts` (86+ tests)
 4. Use managers for any persistent state
 5. Use object pools for frequently spawned entities
 6. Test on actual mobile devices for touch/haptic features
+7. **Update encyclopedia**: When adding new enemies, bosses, abilities, or game mechanics, update `src/config/encyclopediaData.ts` to document them
+8. **Resize AI-generated images**: AI generates 1024px+ images - always resize to target size (player: 64px, enemy: 64px, boss: 128px, projectile: 32px, item: 32px, ui: 48px) to prevent sprites from covering the entire screen
+9. **Add localStorage persistence**: Any new data/manager that tracks player progress must save to localStorage - follow the Manager Pattern with `saveToStorage()` on mutation and `loadFromStorage()` on construction

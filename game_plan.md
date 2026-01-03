@@ -184,6 +184,9 @@ assets/
 5. **Review**: AI generation can vary - regenerate if needed
 6. **Animation**: For smooth animations, generate more frames and remove duplicates
 7. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
+8. **IMPORTANT - Resize images**: AI generates 1024px+ images that will cover the entire screen if not resized. Always resize to target size (player: 64px, enemy: 64px, boss: 128px, projectile: 32px, item: 32px, ui: 48px)
+9. **Update encyclopedia**: When adding new enemies, bosses, abilities, or game mechanics, always update `src/config/encyclopediaData.ts` to document them for players
+10. **Add localStorage persistence**: Any new data/manager that tracks player progress must implement `saveToStorage()` and `loadFromStorage()` methods following the Manager Pattern - data is lost on refresh otherwise!
 
 ---
 
