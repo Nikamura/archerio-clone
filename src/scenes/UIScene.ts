@@ -39,6 +39,9 @@ export default class UIScene extends Phaser.Scene {
   private resetLevelButton!: Phaser.GameObjects.Container
   private resetLevelText!: Phaser.GameObjects.Text
 
+  // Skip run button (end run early to collect rewards)
+  private skipRunButton!: Phaser.GameObjects.Container
+
   // Skills bar (shows acquired abilities)
   private skillsContainer!: Phaser.GameObjects.Container
 
@@ -218,6 +221,9 @@ export default class UIScene extends Phaser.Scene {
 
     // Create reset level button
     this.createResetLevelButton()
+
+    // Create skip run button
+    this.createSkipRunButton()
 
     // Create skills bar container
     this.createSkillsBar()
@@ -480,6 +486,68 @@ export default class UIScene extends Phaser.Scene {
     if (this.resetLevelText) {
       this.resetLevelText.setText(`Lv.${level}`)
     }
+  }
+
+  /**
+   * Create skip run button that allows ending the run early to collect rewards
+   */
+  private createSkipRunButton(): void {
+    const width = this.cameras.main.width
+
+    // Create button container below reset level button
+    this.skipRunButton = this.add.container(width - 45, 140)
+    this.skipRunButton.setDepth(50)
+
+    // Background rectangle
+    const bg = this.add.rectangle(0, 0, 70, 36, 0x000000, 0.7)
+    bg.setStrokeStyle(2, 0xff6644)
+    this.skipRunButton.add(bg)
+
+    // Exit/skip icon
+    const icon = this.add.text(-22, 0, '🚪', {
+      fontSize: '16px',
+    }).setOrigin(0.5)
+    this.skipRunButton.add(icon)
+
+    // Text label
+    const label = this.add.text(12, 0, 'Skip', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    this.skipRunButton.add(label)
+
+    // Make container interactive with explicit hit area
+    this.skipRunButton.setInteractive(
+      new Phaser.Geom.Rectangle(-35, -18, 70, 36),
+      Phaser.Geom.Rectangle.Contains
+    )
+    this.skipRunButton.input!.cursor = 'pointer'
+
+    // Click handler to skip run
+    this.skipRunButton.on('pointerdown', () => {
+      console.log('UIScene: Skip run button pressed')
+      this.game.events.emit('skipRun')
+
+      // Brief press animation
+      this.tweens.add({
+        targets: this.skipRunButton,
+        scale: { from: 0.9, to: 1 },
+        duration: 100,
+        ease: 'Power2.easeOut',
+      })
+    })
+
+    // Hover effects
+    this.skipRunButton.on('pointerover', () => {
+      bg.setFillStyle(0x331100, 0.9)
+      bg.setStrokeStyle(2, 0xff8866)
+    })
+
+    this.skipRunButton.on('pointerout', () => {
+      bg.setFillStyle(0x000000, 0.7)
+      bg.setStrokeStyle(2, 0xff6644)
+    })
   }
 
   /**
