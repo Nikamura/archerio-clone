@@ -93,27 +93,27 @@ export class PlayerStats {
 
   /**
    * Get XP required to level up from current level
-   * Uses exponential scaling to make later levels harder:
-   * - Level 1→2: 6 XP (first level-up requires some effort)
-   * - Level 2+: baseXP * 1.4^(level-2), where baseXP defaults to 10
+   * Uses gentle exponential scaling for satisfying progression:
+   * - Level 1→2: 4 XP (quick first level-up feels rewarding)
+   * - Level 2+: baseXP * 1.25^(level-2), where baseXP defaults to 10
    *
    * With default baseXP of 10:
    * - Level 2→3: 10 XP
-   * - Level 3→4: 14 XP
-   * - Level 4→5: 20 XP
-   * - Level 5→6: 27 XP
-   * - Level 6→7: 38 XP
-   * - Level 7→8: 54 XP
+   * - Level 3→4: 13 XP
+   * - Level 4→5: 16 XP
+   * - Level 5→6: 20 XP
+   * - Level 6→7: 24 XP
+   * - Level 7→8: 31 XP
    *
-   * This steeper curve ensures players don't snowball in later rooms.
-   * Formula: baseXpToLevelUp * (1.4 ^ (level - 2)) for level >= 2
+   * This gentler curve keeps leveling feeling achievable throughout the run.
+   * Formula: baseXpToLevelUp * (1.25 ^ (level - 2)) for level >= 2
    */
   private getXpRequiredForCurrentLevel(): number {
     if (this.level === 1) {
-      return 6  // First level-up requires effort
+      return 4  // Quick first level-up feels rewarding
     }
-    // Steeper exponential scaling: base XP * 1.4^(level-2)
-    const multiplier = Math.pow(1.4, this.level - 2)
+    // Gentle exponential scaling: base XP * 1.25^(level-2)
+    const multiplier = Math.pow(1.25, this.level - 2)
     return Math.round(this.baseXpToLevelUp * multiplier)
   }
 
