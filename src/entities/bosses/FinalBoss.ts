@@ -670,7 +670,7 @@ export default class FinalBoss extends BaseBoss {
     this.cleanupVoidZones()
     this.cleanupClones()
     this.cleanupMinions()
-    this.scene.cameras.main.setScroll(0, 0)
+    this.scene?.cameras?.main?.setScroll(0, 0)
     super.destroy(fromScene)
   }
 }

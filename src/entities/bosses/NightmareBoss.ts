@@ -374,8 +374,8 @@ export default class NightmareBoss extends BaseBoss {
       this.distortionGraphics = null
     }
 
-    // Reset camera
-    this.scene.cameras.main.setScroll(0, 0)
+    // Reset camera (guard against scene shutdown)
+    this.scene?.cameras?.main?.setScroll(0, 0)
 
     super.destroy(fromScene)
   }
