@@ -123,13 +123,7 @@ export class AbilitySystem {
         this.player.addChainsawOrbit()
         break
 
-      // Conditional damage abilities (synergy mechanics)
-      case 'shatter':
-        this.player.addShatter()
-        break
-      case 'fire_spread':
-        this.player.addFireSpread()
-        break
+      // Note: Shatter and Fire Spread are now passive effects of Ice Shot and Fire Damage
       case 'bleed':
         this.player.addBleed()
         break

@@ -59,7 +59,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: 'fire_damage',
     name: 'Fire',
-    description: '18% DOT',
+    description: '18% DOT, spreads on death',
     color: 0xff6600,
     iconKey: 'abilityFireDamage',
   },
@@ -74,7 +74,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: 'ice_shot',
     name: 'Ice Shot',
-    description: '15% freeze chance',
+    description: '15% freeze, +50% dmg frozen',
     color: 0x66ccff,
     iconKey: 'abilityIceShot',
   },
@@ -187,22 +187,9 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc4400,
     iconKey: 'abilityChainsawOrbit',
   },
-  // Conditional damage abilities (synergy mechanics)
-  {
-    id: 'shatter',
-    name: 'Shatter',
-    description: '+50% dmg to frozen enemies',
-    color: 0x99ddff,
-    iconKey: 'abilityShatter',
-  },
-  {
-    id: 'fire_spread',
-    name: 'Fire Spread',
-    description: 'Burning enemies spread fire on death',
-    color: 0xff4400,
-    iconKey: 'abilityFireSpread',
-    maxLevel: 1, // Non-stacking ability
-  },
+  // Note: Shatter and Fire Spread are now passive effects:
+  // - Ice Shot: Frozen enemies take +50% damage (shatter is built-in)
+  // - Fire Damage: Burning enemies spread fire on death (fire spread is built-in)
   {
     id: 'bleed',
     name: 'Bleed',

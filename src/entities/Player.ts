@@ -273,13 +273,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addChainsawOrbit()
   }
 
-  addShatter() {
-    this.stats?.addShatter()
-  }
-
-  addFireSpread() {
-    this.stats?.addFireSpread()
-  }
+  // Note: addShatter() and addFireSpread() removed - these are now passive effects:
+  // - Shatter: Automatically enabled when player has Ice Shot
+  // - Fire Spread: Automatically enabled when player has Fire Damage
 
   // Iron Will talent support (bonus HP when low health)
   addMaxHealthBonus(amount: number) {

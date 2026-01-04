@@ -71,9 +71,9 @@ export class PlayerStats {
   // Orbital abilities
   private chainsawOrbitLevel: number = 0  // Number of chainsaws orbiting player
 
-  // Conditional damage abilities (synergy mechanics)
-  private shatterLevel: number = 0  // +50% damage per level to frozen enemies
-  private fireSpreadEnabled: boolean = false  // Burning enemies spread fire on death
+  // Note: Shatter and Fire Spread are now passive effects:
+  // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
+  // - Fire Spread: Fire Damage enables fire spread on death automatically
 
   constructor(options?: {
     maxHealth?: number
@@ -426,29 +426,31 @@ export class PlayerStats {
     return Math.floor(this.getDamage() * 0.5)
   }
 
-  // Conditional damage ability getters
+  // Conditional damage ability getters (now passive effects)
 
   /**
    * Get shatter level (bonus damage to frozen enemies)
+   * Now returns 1 if player has Ice Shot, 0 otherwise (passive effect)
    */
   getShatterLevel(): number {
-    return this.shatterLevel
+    return this.freezeChance > 0 ? 1 : 0
   }
 
   /**
-   * Get shatter damage multiplier (+50% per level to frozen enemies)
-   * Returns 1.0 if no shatter, 1.5 for level 1, 2.0 for level 2, etc.
+   * Get shatter damage multiplier (+50% to frozen enemies)
+   * Automatically enabled when player has Ice Shot ability
    */
   getShatterDamageMultiplier(): number {
-    if (this.shatterLevel <= 0) return 1.0
-    return 1.0 + (this.shatterLevel * 0.5)
+    if (this.freezeChance <= 0) return 1.0
+    return 1.5  // +50% damage to frozen enemies
   }
 
   /**
    * Check if fire spread is enabled
+   * Automatically enabled when player has Fire Damage ability
    */
   hasFireSpread(): boolean {
-    return this.fireSpreadEnabled
+    return this.fireDamagePercent > 0
   }
 
   /**
@@ -700,21 +702,9 @@ export class PlayerStats {
     this.chainsawOrbitLevel++
   }
 
-  /**
-   * Add Shatter ability (+50% damage to frozen enemies per level)
-   * Stacking: Each level adds +50% bonus damage to frozen enemies
-   */
-  addShatter(): void {
-    this.shatterLevel++
-  }
-
-  /**
-   * Add Fire Spread ability (burning enemies spread fire on death)
-   * Non-stacking: Only need one level
-   */
-  addFireSpread(): void {
-    this.fireSpreadEnabled = true
-  }
+  // Note: addShatter() and addFireSpread() removed - these are now passive effects:
+  // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
+  // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
 
   // ============================================
   // Iron Will (Epic Talent) - Bonus HP when low health
@@ -780,9 +770,7 @@ export class PlayerStats {
     this.giantLevel = 0
     // Reset orbital abilities
     this.chainsawOrbitLevel = 0
-    // Reset conditional damage abilities
-    this.shatterLevel = 0
-    this.fireSpreadEnabled = false
+    // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
   /**
@@ -819,8 +807,8 @@ export class PlayerStats {
     throughWallEnabled: boolean
     giantLevel: number
     chainsawOrbitLevel: number
-    shatterLevel: number
-    fireSpreadEnabled: boolean
+    hasFireSpread: boolean
+    hasShatter: boolean
   } {
     return {
       health: this.health,
@@ -853,8 +841,8 @@ export class PlayerStats {
       throughWallEnabled: this.throughWallEnabled,
       giantLevel: this.giantLevel,
       chainsawOrbitLevel: this.chainsawOrbitLevel,
-      shatterLevel: this.shatterLevel,
-      fireSpreadEnabled: this.fireSpreadEnabled,
+      hasFireSpread: this.hasFireSpread(),
+      hasShatter: this.getShatterLevel() > 0,
     }
   }
 }

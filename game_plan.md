@@ -303,13 +303,17 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - Mini-boss at room 10, final boss at room 20 (3 attack patterns each)
 - Difficulty selection: Easy/Normal/Hard with stat modifiers
 
-**Abilities (23 total):**
+**Abilities (21 total):**
 - Core: Front Arrow, Multishot, Attack Speed, Attack Boost, Piercing, Ricochet, Fire DOT, Crit
-- Elemental: Ice Shot (freeze), Poison Shot (stacking DOT), Lightning Chain, Bleed (10% DOT, 2x if enemy moving)
+- Elemental: Ice Shot (freeze + shatter), Poison Shot (stacking DOT), Lightning Chain, Bleed (10% DOT, 2x if enemy moving)
 - Arrow mods: Diagonal, Rear, Bouncy Wall, Through Wall
 - Utility: Damage Aura, Bloodthirst, Rage, Speed Boost, Vitality, Dodge Master
 - Devil: Extra Life, Giant
-- Synergy: Shatter (+50% dmg to frozen), Fire Spread (burning enemies spread fire on death)
+- Orbital: Chainsaw Orbit
+
+**Passive Synergies (built into abilities):**
+- Ice Shot: +50% damage to frozen enemies (Shatter effect)
+- Fire Damage: Burning enemies spread fire to nearby enemies on death (Fire Spread effect)
 
 **Elemental Resistances (per chapter):**
 Different chapters have different elemental resistances, encouraging players to adapt their builds:
