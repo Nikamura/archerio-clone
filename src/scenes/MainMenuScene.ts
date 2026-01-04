@@ -690,7 +690,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   /**
-   * Show a temporary "No Energy" message on screen
+   * Show a "No Energy" message with option to watch ad for energy
    */
   private showNoEnergyMessage(): void {
     const width = this.cameras.main.width
@@ -700,13 +700,13 @@ export default class MainMenuScene extends Phaser.Scene {
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     overlay.setDepth(100)
 
-    // Create message container
-    const messageBox = this.add.rectangle(width / 2, height / 2, 280, 120, 0x222222, 1)
+    // Create message container (larger to fit watch ad button)
+    const messageBox = this.add.rectangle(width / 2, height / 2, 280, 180, 0x222222, 1)
     messageBox.setStrokeStyle(2, 0xff4444)
     messageBox.setDepth(101)
 
     // No energy icon and title
-    const title = this.add.text(width / 2, height / 2 - 30, '⚡ No Energy!', {
+    const title = this.add.text(width / 2, height / 2 - 60, '⚡ No Energy!', {
       fontSize: '22px',
       color: '#ff4444',
       fontStyle: 'bold',
@@ -716,40 +716,256 @@ export default class MainMenuScene extends Phaser.Scene {
 
     // Description text
     const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
-    const desc = this.add.text(width / 2, height / 2 + 5, `Next energy in: ${timeString}`, {
+    const desc = this.add.text(width / 2, height / 2 - 30, `Next energy in: ${timeString}`, {
       fontSize: '14px',
       color: '#cccccc',
     })
     desc.setOrigin(0.5)
     desc.setDepth(102)
 
+    // Watch Ad button
+    const watchAdBg = this.add.rectangle(width / 2, height / 2 + 10, 200, 40, 0x4a9eff, 1)
+    watchAdBg.setStrokeStyle(2, 0x6bb6ff)
+    watchAdBg.setDepth(102)
+    watchAdBg.setInteractive({ useHandCursor: true })
+
+    const watchAdText = this.add.text(width / 2, height / 2 + 10, '📺 Watch Ad for +1 Energy', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    })
+    watchAdText.setOrigin(0.5)
+    watchAdText.setDepth(103)
+
+    // Hover effects for button
+    watchAdBg.on('pointerover', () => {
+      watchAdBg.setFillStyle(0x6bb6ff)
+    })
+    watchAdBg.on('pointerout', () => {
+      watchAdBg.setFillStyle(0x4a9eff)
+    })
+
+    // Click to show mock ad
+    watchAdBg.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      // Destroy current modal
+      overlay.destroy()
+      messageBox.destroy()
+      title.destroy()
+      desc.destroy()
+      watchAdBg.destroy()
+      watchAdText.destroy()
+      dismissText.destroy()
+      // Show mock ad
+      this.showMockAdPopup()
+    })
+
     // Tap to dismiss text
-    const dismissText = this.add.text(width / 2, height / 2 + 35, 'Tap to dismiss', {
+    const dismissText = this.add.text(width / 2, height / 2 + 60, 'Tap outside to dismiss', {
       fontSize: '12px',
       color: '#888888',
     })
     dismissText.setOrigin(0.5)
     dismissText.setDepth(102)
 
-    // Make overlay interactive to dismiss
+    // Make overlay interactive to dismiss (but not the message box area)
     overlay.setInteractive()
-    overlay.on('pointerdown', () => {
-      overlay.destroy()
-      messageBox.destroy()
-      title.destroy()
-      desc.destroy()
-      dismissText.destroy()
-    })
-
-    // Auto-dismiss after 3 seconds
-    this.time.delayedCall(3000, () => {
-      if (overlay.active) {
+    overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Only dismiss if clicked outside the message box
+      const boxBounds = messageBox.getBounds()
+      if (!boxBounds.contains(pointer.x, pointer.y)) {
         overlay.destroy()
         messageBox.destroy()
         title.destroy()
         desc.destroy()
+        watchAdBg.destroy()
+        watchAdText.destroy()
         dismissText.destroy()
       }
+    })
+  }
+
+  /**
+   * Show a mock ad popup with a cat image
+   * Gives +1 energy after "watching"
+   */
+  private showMockAdPopup(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Create overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
+    overlay.setDepth(200)
+
+    // Ad container
+    const adBox = this.add.rectangle(width / 2, height / 2, 300, 400, 0xffffff, 1)
+    adBox.setStrokeStyle(3, 0x333333)
+    adBox.setDepth(201)
+
+    // "AD" label in top corner
+    const adLabel = this.add.text(width / 2 - 130, height / 2 - 180, 'AD', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#ffaa00',
+      padding: { x: 6, y: 2 },
+    })
+    adLabel.setDepth(202)
+
+    // Cat image placeholder (using graphics to draw a cute cat face)
+    const catGraphics = this.add.graphics()
+    catGraphics.setDepth(202)
+
+    const catX = width / 2
+    const catY = height / 2 - 40
+
+    // Cat face (circle)
+    catGraphics.fillStyle(0xffcc66)
+    catGraphics.fillCircle(catX, catY, 80)
+
+    // Cat ears
+    catGraphics.fillStyle(0xffcc66)
+    catGraphics.fillTriangle(catX - 70, catY - 50, catX - 40, catY - 90, catX - 20, catY - 50)
+    catGraphics.fillTriangle(catX + 70, catY - 50, catX + 40, catY - 90, catX + 20, catY - 50)
+
+    // Inner ears
+    catGraphics.fillStyle(0xffaa88)
+    catGraphics.fillTriangle(catX - 60, catY - 55, catX - 45, catY - 80, catX - 30, catY - 55)
+    catGraphics.fillTriangle(catX + 60, catY - 55, catX + 45, catY - 80, catX + 30, catY - 55)
+
+    // Eyes
+    catGraphics.fillStyle(0x333333)
+    catGraphics.fillCircle(catX - 30, catY - 10, 15)
+    catGraphics.fillCircle(catX + 30, catY - 10, 15)
+
+    // Eye highlights
+    catGraphics.fillStyle(0xffffff)
+    catGraphics.fillCircle(catX - 35, catY - 15, 5)
+    catGraphics.fillCircle(catX + 25, catY - 15, 5)
+
+    // Nose
+    catGraphics.fillStyle(0xff8888)
+    catGraphics.fillTriangle(catX, catY + 15, catX - 10, catY + 5, catX + 10, catY + 5)
+
+    // Mouth - vertical line from nose
+    catGraphics.lineStyle(3, 0x333333)
+    catGraphics.beginPath()
+    catGraphics.moveTo(catX, catY + 15)
+    catGraphics.lineTo(catX, catY + 25)
+    catGraphics.strokePath()
+
+    // Mouth - smile arc (using arc for the curved smile)
+    catGraphics.beginPath()
+    catGraphics.arc(catX, catY + 25, 20, 0.2, Math.PI - 0.2, false)
+    catGraphics.strokePath()
+
+    // Whiskers
+    catGraphics.lineStyle(2, 0x333333)
+    catGraphics.beginPath()
+    // Left whiskers
+    catGraphics.moveTo(catX - 40, catY + 10)
+    catGraphics.lineTo(catX - 80, catY)
+    catGraphics.moveTo(catX - 40, catY + 20)
+    catGraphics.lineTo(catX - 80, catY + 20)
+    catGraphics.moveTo(catX - 40, catY + 30)
+    catGraphics.lineTo(catX - 80, catY + 40)
+    // Right whiskers
+    catGraphics.moveTo(catX + 40, catY + 10)
+    catGraphics.lineTo(catX + 80, catY)
+    catGraphics.moveTo(catX + 40, catY + 20)
+    catGraphics.lineTo(catX + 80, catY + 20)
+    catGraphics.moveTo(catX + 40, catY + 30)
+    catGraphics.lineTo(catX + 80, catY + 40)
+    catGraphics.strokePath()
+
+    // Ad text
+    const adTitle = this.add.text(width / 2, height / 2 + 90, 'Cute Cat Wants to Help!', {
+      fontSize: '18px',
+      color: '#333333',
+      fontStyle: 'bold',
+    })
+    adTitle.setOrigin(0.5)
+    adTitle.setDepth(202)
+
+    const adDesc = this.add.text(width / 2, height / 2 + 115, 'Watch this adorable cat for energy', {
+      fontSize: '12px',
+      color: '#666666',
+    })
+    adDesc.setOrigin(0.5)
+    adDesc.setDepth(202)
+
+    // Progress bar for "watching" the ad
+    const progressBg = this.add.rectangle(width / 2, height / 2 + 150, 200, 20, 0xdddddd)
+    progressBg.setDepth(202)
+
+    const progressBar = this.add.rectangle(width / 2 - 100, height / 2 + 150, 0, 18, 0x4a9eff)
+    progressBar.setOrigin(0, 0.5)
+    progressBar.setDepth(203)
+
+    const progressText = this.add.text(width / 2, height / 2 + 150, 'Loading...', {
+      fontSize: '12px',
+      color: '#333333',
+    })
+    progressText.setOrigin(0.5)
+    progressText.setDepth(204)
+
+    // Animate progress bar over 3 seconds
+    this.tweens.add({
+      targets: progressBar,
+      width: 200,
+      duration: 3000,
+      ease: 'Linear',
+      onUpdate: () => {
+        const progress = Math.floor((progressBar.width / 200) * 100)
+        progressText.setText(`${progress}%`)
+      },
+      onComplete: () => {
+        progressText.setText('Complete!')
+
+        // Give energy reward
+        currencyManager.add('energy', 1)
+        audioManager.playLevelUp()
+
+        // Show reward message
+        const rewardText = this.add.text(width / 2, height / 2 + 180, '+1 Energy Received!', {
+          fontSize: '16px',
+          color: '#00cc00',
+          fontStyle: 'bold',
+        })
+        rewardText.setOrigin(0.5)
+        rewardText.setDepth(202)
+
+        // Close button
+        const closeBg = this.add.rectangle(width / 2, height / 2 + 220, 120, 36, 0x4a9eff)
+        closeBg.setStrokeStyle(2, 0x6bb6ff)
+        closeBg.setDepth(202)
+        closeBg.setInteractive({ useHandCursor: true })
+
+        const closeText = this.add.text(width / 2, height / 2 + 220, 'Close', {
+          fontSize: '16px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+        })
+        closeText.setOrigin(0.5)
+        closeText.setDepth(203)
+
+        closeBg.on('pointerover', () => closeBg.setFillStyle(0x6bb6ff))
+        closeBg.on('pointerout', () => closeBg.setFillStyle(0x4a9eff))
+        closeBg.on('pointerdown', () => {
+          audioManager.playMenuSelect()
+          overlay.destroy()
+          adBox.destroy()
+          adLabel.destroy()
+          catGraphics.destroy()
+          adTitle.destroy()
+          adDesc.destroy()
+          progressBg.destroy()
+          progressBar.destroy()
+          progressText.destroy()
+          rewardText.destroy()
+          closeBg.destroy()
+          closeText.destroy()
+        })
+      },
     })
   }
 
