@@ -571,7 +571,8 @@ export default class GameScene extends Phaser.Scene {
         onXPGained: (xp) => {
           const leveledUp = this.player.addXP(xp)
           this.updateXPUI()
-          if (leveledUp) {
+          // Don't trigger level up if player is dead or game is over
+          if (leveledUp && !this.player.isDead() && !this.isGameOver) {
             this.handleLevelUp()
           }
         },
@@ -1420,6 +1421,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private handleLevelUp() {
+    // Don't allow level up if player is dead or game is over
+    if (this.isGameOver || this.player.isDead()) {
+      console.log('GameScene: handleLevelUp blocked - player is dead or game over')
+      return
+    }
+
     console.log('GameScene: handleLevelUp called')
     audioManager.playLevelUp()
     hapticManager.levelUp() // Haptic feedback for level up
@@ -1827,6 +1834,12 @@ export default class GameScene extends Phaser.Scene {
     audioManager.playDeath()
     hapticManager.death() // Haptic feedback for player death
     console.log('Game Over! Enemies killed:', this.enemiesKilled)
+
+    // Stop LevelUpScene if it's active (handles race condition edge cases)
+    if (this.scene.isActive('LevelUpScene')) {
+      this.scene.stop('LevelUpScene')
+      this.game.events.off('abilitySelected') // Clean up listener
+    }
 
     // End the chapter run (failed)
     chapterManager.endRun(true)
