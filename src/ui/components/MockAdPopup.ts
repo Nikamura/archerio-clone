@@ -5,6 +5,7 @@ import { audioManager } from '../../systems/AudioManager'
 export interface MockAdPopupConfig {
   scene: Phaser.Scene
   onComplete?: () => void
+  buttonText?: string
 }
 
 export interface MockAdPopupResult {
@@ -16,7 +17,7 @@ export interface MockAdPopupResult {
  * Grants +1 energy after "watching" (3 second progress bar)
  */
 export function showMockAdPopup(config: MockAdPopupConfig): MockAdPopupResult {
-  const { scene, onComplete } = config
+  const { scene, onComplete, buttonText = 'Close' } = config
   const width = scene.cameras.main.width
   const height = scene.cameras.main.height
 
@@ -189,7 +190,7 @@ export function showMockAdPopup(config: MockAdPopupConfig): MockAdPopupResult {
       closeButton.setDepth(202)
       closeButton.setInteractive({ useHandCursor: true })
 
-      closeText = scene.add.text(width / 2, height / 2 + 220, 'Close', {
+      closeText = scene.add.text(width / 2, height / 2 + 220, buttonText, {
         fontSize: '16px',
         color: '#ffffff',
         fontStyle: 'bold',

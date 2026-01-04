@@ -832,6 +832,7 @@ export default class GameOverScene extends Phaser.Scene {
   private showRespawnAd(): void {
     showMockAdPopup({
       scene: this,
+      buttonText: 'Respawn',
       onComplete: () => {
         console.log('GameOverScene: Ad complete - triggering respawn')
         this.triggerRespawn()
