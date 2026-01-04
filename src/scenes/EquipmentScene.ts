@@ -12,6 +12,7 @@ import {
   EQUIPMENT_SLOTS,
   RARITY_CONFIGS,
   PerkId,
+  EquipmentStats,
 } from '../systems/Equipment'
 import { PERKS } from '../config/equipmentData'
 import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
@@ -527,15 +528,14 @@ export default class EquipmentScene extends Phaser.Scene {
     // Calculate content height dynamically
     // Header section: sprite, name, rarity, level, divider = 130px
     const headerHeight = 130
-    // Stats section: each stat takes 22px
-    const statsEntries = Object.entries(item.baseStats).filter(([_, value]) => value !== undefined && value !== 0)
+    // Stats section: combine base stats + perk stats, each stat takes 22px
+    const combinedStats = this.getCombinedItemStats(item)
+    const statsEntries = Object.entries(combinedStats).filter(([_, value]) => value !== undefined && value !== 0)
     const statsHeight = statsEntries.length * 22
-    // Perks section: label (22px) + 10px gap before label + each perk (20px)
-    const perksHeight = item.perks.length > 0 ? 10 + 22 + item.perks.length * 20 : 0
     // Button section: buttons + padding
     const buttonSectionHeight = 60
     // Total content height with padding
-    const contentHeight = headerHeight + statsHeight + perksHeight + buttonSectionHeight + 40
+    const contentHeight = headerHeight + statsHeight + buttonSectionHeight + 40
 
     const panelHeight = Math.max(280, contentHeight)
     const panelY = height / 2
@@ -620,31 +620,6 @@ export default class EquipmentScene extends Phaser.Scene {
       this.detailPanel?.add(statText)
       yOffset += 22
     })
-
-    // Perks display
-    if (item.perks.length > 0) {
-      yOffset += 10
-      const perksLabel = this.add
-        .text(-panelWidth / 2 + 30, statsY + yOffset, 'Unique Perks:', {
-          fontSize: '14px',
-          color: '#aaaaaa',
-          fontStyle: 'bold',
-        })
-        .setOrigin(0, 0)
-      this.detailPanel.add(perksLabel)
-      yOffset += 22
-
-      item.perks.forEach((perk) => {
-        const perkText = this.add
-          .text(-panelWidth / 2 + 40, statsY + yOffset, `• ${this.formatPerkName(perk)}`, {
-            fontSize: '13px',
-            color: '#ffaa00',
-          })
-          .setOrigin(0, 0)
-        this.detailPanel?.add(perkText)
-        yOffset += 20
-      })
-    }
 
     // Action buttons - use smaller font and dynamic positioning
     const buttonY = panelHeight / 2 - 40
@@ -783,17 +758,35 @@ export default class EquipmentScene extends Phaser.Scene {
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
   }
 
-  private formatPerkName(perkId: string): string {
-    // Look up the perk's actual name with real values
-    const perk = PERKS[perkId as PerkId]
-    if (perk) {
-      return perk.name
+  /**
+   * Combines item's base stats with all perk stats into a single object.
+   * This ensures duplicate attributes (e.g., "Dodge 5%" + "Dodge 1%") are combined.
+   */
+  private getCombinedItemStats(item: Equipment): EquipmentStats {
+    const combined: EquipmentStats = {}
+
+    // Add base stats
+    for (const [key, value] of Object.entries(item.baseStats)) {
+      if (value !== undefined && value !== 0) {
+        const statKey = key as keyof EquipmentStats
+        combined[statKey] = (combined[statKey] ?? 0) + value
+      }
     }
-    // Fallback: convert snake_case to readable format
-    return perkId
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
+
+    // Add perk stats
+    for (const perkId of item.perks) {
+      const perk = PERKS[perkId as PerkId]
+      if (perk?.stats) {
+        for (const [key, value] of Object.entries(perk.stats)) {
+          if (value !== undefined && value !== 0) {
+            const statKey = key as keyof EquipmentStats
+            combined[statKey] = (combined[statKey] ?? 0) + value
+          }
+        }
+      }
+    }
+
+    return combined
   }
 
   private onUpgradeClick(item: Equipment): void {
