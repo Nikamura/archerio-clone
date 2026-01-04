@@ -2147,6 +2147,12 @@ export default class GameScene extends Phaser.Scene {
     // Reset game over state
     this.isGameOver = false
 
+    // Grant temporary immunity (0.5 seconds)
+    this.isLevelingUp = true
+    this.time.delayedCall(500, () => {
+      this.isLevelingUp = false
+    })
+
     // Restore player to 50% HP
     const maxHealth = this.player.getMaxHealth()
     const healAmount = Math.floor(maxHealth * 0.5)
@@ -2154,6 +2160,12 @@ export default class GameScene extends Phaser.Scene {
 
     // Clear dead state visual
     this.player.clearTint()
+
+    // Show respawn visual effect - expanding ring
+    this.showRespawnEffect()
+
+    // Push all enemies away from player
+    this.pushEnemiesAway()
 
     // Show revive effect
     this.cameras.main.flash(500, 255, 215, 0) // Golden flash
@@ -2177,6 +2189,124 @@ export default class GameScene extends Phaser.Scene {
     this.updatePlayerHealthUI(this.player)
 
     console.log('GameScene: Respawn complete - Player HP:', this.player.getHealth())
+  }
+
+  /**
+   * Show visual effect for respawn (expanding golden ring)
+   */
+  private showRespawnEffect(): void {
+    const graphics = this.add.graphics()
+    graphics.setDepth(50)
+
+    const playerX = this.player.x
+    const playerY = this.player.y
+    const maxRadius = 150
+    const duration = 400
+
+    // Animate expanding ring
+    let elapsed = 0
+    const timer = this.time.addEvent({
+      delay: 16, // ~60fps
+      repeat: Math.floor(duration / 16),
+      callback: () => {
+        elapsed += 16
+        const progress = elapsed / duration
+        const radius = maxRadius * progress
+        const alpha = 1 - progress
+
+        graphics.clear()
+        graphics.lineStyle(4, 0xffd700, alpha) // Gold color
+        graphics.strokeCircle(playerX, playerY, radius)
+
+        // Inner glow
+        graphics.lineStyle(8, 0xffaa00, alpha * 0.5)
+        graphics.strokeCircle(playerX, playerY, radius * 0.8)
+
+        if (progress >= 1) {
+          graphics.destroy()
+          timer.destroy()
+        }
+      },
+    })
+
+    // Add particle burst effect
+    if (this.particles) {
+      this.particles.emitLevelUp(playerX, playerY)
+    }
+  }
+
+  /**
+   * Push all enemies away from player on respawn
+   */
+  private pushEnemiesAway(): void {
+    const pushForce = 300
+    const pushRadius = 200
+
+    // Push regular enemies
+    this.enemies.getChildren().forEach((child) => {
+      const enemy = child as Enemy
+      if (!enemy.active) return
+
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        enemy.x,
+        enemy.y
+      )
+
+      // Only push enemies within radius
+      if (distance < pushRadius && distance > 0) {
+        const angle = Phaser.Math.Angle.Between(
+          this.player.x,
+          this.player.y,
+          enemy.x,
+          enemy.y
+        )
+        // Apply stronger push to closer enemies
+        const forceFactor = 1 - distance / pushRadius
+        const force = pushForce * forceFactor
+
+        const body = enemy.body as Phaser.Physics.Arcade.Body
+        if (body) {
+          body.setVelocity(
+            Math.cos(angle) * force,
+            Math.sin(angle) * force
+          )
+        }
+      }
+    })
+
+    // Push boss if present
+    if (this.boss && this.boss.active) {
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        this.boss.x,
+        this.boss.y
+      )
+
+      if (distance < pushRadius && distance > 0) {
+        const angle = Phaser.Math.Angle.Between(
+          this.player.x,
+          this.player.y,
+          this.boss.x,
+          this.boss.y
+        )
+        const forceFactor = 1 - distance / pushRadius
+        const force = pushForce * 0.5 * forceFactor // Boss gets pushed less
+
+        const body = this.boss.body as Phaser.Physics.Arcade.Body
+        if (body) {
+          body.setVelocity(
+            Math.cos(angle) * force,
+            Math.sin(angle) * force
+          )
+        }
+      }
+    }
+
+    // Clear any enemy bullets near player
+    this.enemyBulletPool.clear(true, true)
   }
 
   /**
