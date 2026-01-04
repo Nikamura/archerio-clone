@@ -43,6 +43,7 @@ export type EncyclopediaCategory =
   | 'perks'
   | 'achievements'
   | 'chests'
+  | 'guides'
 
 // ============================================
 // Tab Configuration
@@ -55,6 +56,7 @@ export interface CategoryTabConfig {
 }
 
 export const CATEGORY_TABS: CategoryTabConfig[] = [
+  { id: 'guides', label: 'Guides', color: 0x00bfff },
   { id: 'equipment', label: 'Equip', color: 0x4a9eff },
   { id: 'enemies', label: 'Enemies', color: 0xff4444 },
   { id: 'bosses', label: 'Bosses', color: 0x990000 },
@@ -463,10 +465,227 @@ export function getAllChestEntries(): ChestEncyclopediaEntry[] {
 }
 
 // ============================================
+// Guide Encyclopedia Data
+// ============================================
+
+export interface GuideEncyclopediaEntry {
+  id: string
+  name: string
+  description: string
+  details: string[]
+  icon: string
+  color: number
+}
+
+/**
+ * Game mechanic guides for the encyclopedia
+ * Explains core systems and how they work
+ */
+export const GUIDE_ENCYCLOPEDIA: GuideEncyclopediaEntry[] = [
+  {
+    id: 'core_gameplay',
+    name: 'Core Gameplay',
+    description: 'Stop to shoot, move to dodge!',
+    details: [
+      'Your archer auto-fires when you stand still.',
+      'Moving stops your attacks but lets you dodge.',
+      'Balance offense and defense by timing your movements.',
+      'Clear all enemies in a room to proceed.',
+      'Defeat the boss at the end of each chapter.',
+    ],
+    icon: '🎯',
+    color: 0x00bfff,
+  },
+  {
+    id: 'equipment_fusion',
+    name: 'Equipment Fusion',
+    description: 'Combine items to increase rarity',
+    details: [
+      'Fusion combines 3 identical items into 1 higher rarity.',
+      'Items must be the same TYPE and RARITY to fuse.',
+      'The new item\'s level = average of consumed items (rounded up).',
+      'Legendary items cannot be fused (already max rarity).',
+      '"Fuse All" chains fusions automatically until no more matches.',
+      'Rarity order: Common → Great → Rare → Epic → Legendary',
+    ],
+    icon: '✨',
+    color: 0xffd700,
+  },
+  {
+    id: 'rarity_system',
+    name: 'Rarity System',
+    description: 'Equipment quality tiers and their benefits',
+    details: [
+      'Common (Gray): Max Lv.20, 0 perks, 1.0x stats',
+      'Great (Green): Max Lv.30, 1 perk, 1.2x stats',
+      'Rare (Blue): Max Lv.40, 2 perks, 1.5x stats',
+      'Epic (Purple): Max Lv.50, 3 perks, 2.0x stats',
+      'Legendary (Gold): Max Lv.70, 4 perks, 3.0x stats',
+      'Higher rarity = more perks, higher max level, better stats.',
+    ],
+    icon: '💎',
+    color: 0xa855f7,
+  },
+  {
+    id: 'equipment_upgrades',
+    name: 'Equipment Upgrades',
+    description: 'Level up your gear with gold and scrolls',
+    details: [
+      'Upgrade costs increase with level and rarity.',
+      'Each level increases the item\'s base stats.',
+      'Max level is determined by the item\'s rarity.',
+      'Upgrading equipped items improves your stats immediately.',
+      'Gold and scrolls are required for each upgrade.',
+    ],
+    icon: '⬆️',
+    color: 0x22cc66,
+  },
+  {
+    id: 'equipment_perks',
+    name: 'Equipment Perks',
+    description: 'Bonus stats on higher rarity gear',
+    details: [
+      'Perks provide additional stat bonuses.',
+      'Number of perk slots depends on rarity.',
+      'Perks are randomly assigned when equipment is created.',
+      'Common items have 0 perks, Legendary items have 4.',
+      'Attack, defense, crit, and utility perks are available.',
+    ],
+    icon: '🔮',
+    color: 0xff6644,
+  },
+  {
+    id: 'ability_priority',
+    name: 'Ability Priority',
+    description: 'Set which abilities to auto-learn first',
+    details: [
+      'Access via the gear icon on the main menu.',
+      'Drag abilities to reorder your priority list.',
+      'Top abilities are chosen first during auto-select.',
+      'Auto-select triggers on timeout or auto-level-up mode.',
+      'New abilities are added to the bottom of the list.',
+      'Reset button restores default priority order.',
+    ],
+    icon: '📋',
+    color: 0xffdd00,
+  },
+  {
+    id: 'abilities_levelup',
+    name: 'Abilities & Level-Up',
+    description: 'In-run upgrades when you gain levels',
+    details: [
+      'Gain XP by defeating enemies.',
+      'Each level-up offers 3 random abilities to choose.',
+      'Abilities stack - picking the same one increases its power.',
+      'Some abilities can only be obtained once (no stacking).',
+      'Build synergies by combining complementary abilities.',
+    ],
+    icon: '⚡',
+    color: 0x4a9eff,
+  },
+  {
+    id: 'talent_lottery',
+    name: 'Talent System',
+    description: 'Permanent upgrades via the talent lottery',
+    details: [
+      'Spend gold to spin the talent wheel.',
+      'Talents are permanent bonuses across all runs.',
+      'Common (50%), Rare (35%), Epic (15%) drop rates.',
+      'Each talent can be upgraded multiple times.',
+      'Effects apply automatically to every run.',
+    ],
+    icon: '🎰',
+    color: 0x9932cc,
+  },
+  {
+    id: 'chapters_endless',
+    name: 'Chapters & Endless',
+    description: 'Game progression modes',
+    details: [
+      'Story mode has multiple chapters with unique enemies.',
+      'Each chapter ends with a boss fight.',
+      'Complete chapters to unlock new content.',
+      'Endless mode unlocks after completing chapters.',
+      'Endless mode has infinite waves with scaling difficulty.',
+      'Difficulty increases 1.5x per wave in endless mode.',
+    ],
+    icon: '📖',
+    color: 0xff4444,
+  },
+  {
+    id: 'boss_mechanics',
+    name: 'Boss Mechanics',
+    description: 'How to fight bosses effectively',
+    details: [
+      'Bosses appear at the end of each chapter.',
+      'Watch for telegraph indicators (red lines/circles).',
+      'Red warnings show where attacks will land.',
+      'Bosses cycle through multiple attack patterns.',
+      'Move during attacks, stop during recovery phases.',
+      'Some bosses have mini-bosses that spawn mid-chapter.',
+      'Boss HP and damage scale with chapter difficulty.',
+    ],
+    icon: '👹',
+    color: 0x990000,
+  },
+  {
+    id: 'heroes_system',
+    name: 'Heroes',
+    description: 'Unlock heroes with unique abilities',
+    details: [
+      'Each hero has a unique active ability.',
+      'Heroes have different stat bonuses (perks).',
+      'Unlock heroes with gold or gems.',
+      'Hero abilities are on cooldown and activated manually.',
+      'Choose your hero before starting a run.',
+    ],
+    icon: '🦸',
+    color: 0x22cc66,
+  },
+  {
+    id: 'equipment_slots',
+    name: 'Equipment Slots',
+    description: 'Four slots for different gear types',
+    details: [
+      'Weapon: Determines attack damage and projectile type.',
+      'Armor: Provides HP, damage reduction, and defense.',
+      'Ring: Grants crit chance, crit damage, or dodge.',
+      'Spirit: Gives XP bonus, gold bonus, or combat help.',
+      'Each slot can hold one item at a time.',
+      'Equip the best gear for your playstyle!',
+    ],
+    icon: '🎒',
+    color: 0x4a9eff,
+  },
+  {
+    id: 'daily_rewards',
+    name: 'Daily Rewards',
+    description: 'Log in daily for bonus rewards',
+    details: [
+      '7-day login reward cycle.',
+      'Rewards increase each consecutive day.',
+      'Includes gold, gems, scrolls, and chests.',
+      'Missing a day resets your streak.',
+      'Day 7 gives the best rewards!',
+    ],
+    icon: '📅',
+    color: 0xffd700,
+  },
+]
+
+/**
+ * Get all guide entries for the encyclopedia
+ */
+export function getAllGuideEntries(): GuideEncyclopediaEntry[] {
+  return GUIDE_ENCYCLOPEDIA
+}
+
+// ============================================
 // Count Helpers
 // ============================================
 
 export const ENCYCLOPEDIA_COUNTS = {
+  guides: GUIDE_ENCYCLOPEDIA.length,
   equipment: Object.keys(WEAPON_DATA).length +
     Object.keys(ARMOR_DATA).length +
     Object.keys(RING_DATA).length +
