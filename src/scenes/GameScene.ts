@@ -25,7 +25,7 @@ import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getXpMultiplierForChapter, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { BossId, getBossDefinition } from '../config/bossData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
@@ -2349,9 +2349,10 @@ export default class GameScene extends Phaser.Scene {
       // Spawn drops
       this.spawnDrops(e)
 
-      // Add XP with equipment XP bonus
+      // Add XP with equipment XP bonus and chapter scaling
       const baseXpGain = isBoss ? 10 : 1
-      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
+      const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
+      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
@@ -2492,9 +2493,10 @@ export default class GameScene extends Phaser.Scene {
       // Spawn drops
       this.spawnDrops(e)
 
-      // Add XP with equipment XP bonus
+      // Add XP with equipment XP bonus and chapter scaling
       const baseXpGain = isBoss ? 10 : 1
-      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
+      const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
+      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
       const leveledUp = this.player.addXP(xpGain)
       this.updateXPUI()
 
@@ -2732,9 +2734,10 @@ export default class GameScene extends Phaser.Scene {
     // Spawn gold drop at enemy position
     this.spawnDrops(e)
 
-    // Add XP to player with equipment XP bonus
+    // Add XP to player with equipment XP bonus and chapter scaling
     const baseXpGain = isBoss ? 10 : 1
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
+    const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
     const leveledUp = this.player.addXP(xpGain)
     this.updateXPUI()
 

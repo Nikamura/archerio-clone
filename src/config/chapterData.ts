@@ -88,6 +88,8 @@ export interface ChapterScaling {
   bossHpMultiplier: number
   /** Boss damage multiplier (base = 1.0) */
   bossDamageMultiplier: number
+  /** XP gain multiplier for kills (base = 1.0) - harder chapters reward more XP */
+  xpMultiplier: number
 }
 
 /**
@@ -266,6 +268,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 0,
       bossHpMultiplier: 1.0,
       bossDamageMultiplier: 1.0,
+      xpMultiplier: 1.0, // Base XP
     },
     // Chapter 1: Standard enemy behavior (tutorial chapter)
     enemyModifiers: {
@@ -311,6 +314,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 1,
       bossHpMultiplier: 3.0,
       bossDamageMultiplier: 1.3,
+      xpMultiplier: 1.5, // +50% XP for harder enemies
     },
     // Chapter 2: Forest theme - ranged focus, agile melee
     enemyModifiers: {
@@ -369,6 +373,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 2,
       bossHpMultiplier: 8.0,
       bossDamageMultiplier: 1.6,
+      xpMultiplier: 2.0, // +100% XP for tougher enemies
     },
     // Chapter 3: Ice theme - slow but powerful, chargers are deadly
     enemyModifiers: {
@@ -432,6 +437,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 3,
       bossHpMultiplier: 20.0,
       bossDamageMultiplier: 2.0,
+      xpMultiplier: 2.5, // +150% XP for dangerous enemies
     },
     // Chapter 4: Fire theme - fast and aggressive, support enemies are key targets
     enemyModifiers: {
@@ -512,6 +518,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 3, // Rebalanced: 3 (was 4)
       bossHpMultiplier: 40.0, // Rebalanced: 40x (was 60x)
       bossDamageMultiplier: 2.2, // Rebalanced: 2.2x (was 2.5x)
+      xpMultiplier: 3.0, // +200% XP for ultimate challenge
     },
     // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
     enemyModifiers: {
@@ -676,6 +683,14 @@ export function getBossDamageForChapter(
 ): number {
   const chapter = CHAPTER_DEFINITIONS[chapterId]
   return Math.round(baseDamage * chapter.scaling.bossDamageMultiplier * difficultyMultiplier)
+}
+
+/**
+ * Get XP multiplier for kills in a chapter
+ * Harder chapters reward more XP per kill
+ */
+export function getXpMultiplierForChapter(chapterId: ChapterId): number {
+  return CHAPTER_DEFINITIONS[chapterId].scaling.xpMultiplier
 }
 
 /**

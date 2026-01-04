@@ -12,7 +12,7 @@ import type DamageNumberPool from '../../systems/DamageNumberPool'
 import type { TalentBonuses } from '../../config/talentData'
 import type { DifficultyConfig } from '../../config/difficulty'
 import { chapterManager } from '../../systems/ChapterManager'
-import { getChapterDefinition, type ChapterId } from '../../config/chapterData'
+import { getChapterDefinition, getXpMultiplierForChapter, type ChapterId } from '../../config/chapterData'
 
 /**
  * Damage result from player taking damage
@@ -593,9 +593,11 @@ export class CombatSystem {
       this.player.heal(bloodthirstHeal)
     }
 
-    // Add XP with equipment XP bonus
+    // Add XP with equipment XP bonus and chapter scaling
     const baseXpGain = isBoss ? 10 : 1
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
+    const chapterId = chapterManager.getSelectedChapter()
+    const chapterXpMultiplier = getXpMultiplierForChapter(chapterId)
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
 
     // Notify event handlers
     this.eventHandlers.onEnemyKilled(enemy, isBoss)
