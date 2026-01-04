@@ -1740,8 +1740,13 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Select highest priority ability
-    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(availableAbilities)
+    // First, randomly select 3 abilities (just like the UI would show)
+    // This ensures auto-level-up behavior matches manual timeout behavior
+    const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5)
+    const randomSubset = shuffled.slice(0, 3)
+
+    // Then select highest priority ability from the random subset
+    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(randomSubset)
 
     if (!selectedAbility) {
       console.log('GameScene: No ability could be selected')
