@@ -2,6 +2,21 @@ import Phaser from 'phaser'
 import Wall from '../entities/Wall'
 
 /**
+ * Wall texture tile size in pixels.
+ * All wall dimensions are snapped to multiples of this value for proper texture alignment.
+ */
+export const WALL_TILE_SIZE = 64
+
+/**
+ * Snap a value to the nearest multiple of WALL_TILE_SIZE.
+ * Minimum value is WALL_TILE_SIZE to ensure walls are always at least 1 tile.
+ */
+function snapToTileSize(value: number): number {
+  const snapped = Math.round(value / WALL_TILE_SIZE) * WALL_TILE_SIZE
+  return Math.max(WALL_TILE_SIZE, snapped)
+}
+
+/**
  * Wall configuration for room layouts
  */
 export interface WallConfig {
@@ -136,6 +151,7 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
 
   /**
    * Create walls from configuration array
+   * Wall dimensions are snapped to multiples of WALL_TILE_SIZE for proper texture alignment
    */
   createWalls(configs: WallConfig[]): void {
     // Clear existing walls
@@ -143,10 +159,14 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
 
     for (const config of configs) {
       // Convert normalized coordinates to screen coordinates
-      const x = config.x * this.screenWidth
-      const y = config.y * this.screenHeight
-      const width = config.width * this.screenWidth
-      const height = config.height * this.screenHeight
+      // Snap width and height to tile size multiples for texture alignment
+      const width = snapToTileSize(config.width * this.screenWidth)
+      const height = snapToTileSize(config.height * this.screenHeight)
+
+      // Calculate position (center of wall) and snap to half-tile for better alignment
+      const halfTile = WALL_TILE_SIZE / 2
+      const x = Math.round((config.x * this.screenWidth) / halfTile) * halfTile
+      const y = Math.round((config.y * this.screenHeight) / halfTile) * halfTile
 
       const wall = new Wall(this.scene, x, y, width, height, this.wallColor, this.textureKey, this.borderColor)
       this.walls.push(wall)
