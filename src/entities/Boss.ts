@@ -52,6 +52,17 @@ export default class Boss extends Enemy {
     this.setTexture('bossSprite')
     this.setDisplaySize(64, 64)
 
+    // Set up centered circular hitbox for boss
+    // Hitbox is ~40% of display size for fair collision detection
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const displaySize = 64
+      const hitboxRadius = Math.floor(displaySize * 0.4) // ~26 pixels
+      body.setSize(displaySize, displaySize)
+      const offset = (displaySize - hitboxRadius * 2) / 2
+      body.setCircle(hitboxRadius, offset, offset)
+    }
+
     // Create telegraph lines for barrage (3 lines)
     for (let i = 0; i < 3; i++) {
       const line = scene.add.line(0, 0, 0, 0, 0, 0, 0xff0000, 0.7)
