@@ -9,6 +9,7 @@ import { heroManager } from '../systems/HeroManager'
 import type { HeroLevelUpEvent } from '../systems/Hero'
 import { debugToast } from '../systems/DebugToast'
 import { ABILITIES } from './LevelUpScene'
+import { showMockAdPopup } from '../ui/components/MockAdPopup'
 import { errorReporting } from '../systems/ErrorReportingManager'
 import {
   calculateChestRewards,
@@ -22,6 +23,26 @@ import {
 export interface AcquiredAbility {
   id: string
   level: number
+}
+
+/**
+ * Saved enemy state for respawn feature
+ */
+export interface EnemyRespawnState {
+  x: number
+  y: number
+  health: number
+  maxHealth: number
+  type: string
+}
+
+/**
+ * Room state saved for respawn
+ */
+export interface RespawnRoomState {
+  enemies: EnemyRespawnState[]
+  bossHealth?: number
+  bossMaxHealth?: number
 }
 
 export interface GameOverData {
@@ -40,6 +61,10 @@ export interface GameOverData {
   isDailyChallengeMode?: boolean
   chapterId?: number
   difficulty?: string
+  /** Whether player can respawn (one-time use per run) */
+  canRespawn?: boolean
+  /** Saved room state for respawn */
+  respawnRoomState?: RespawnRoomState
 }
 
 /**
@@ -117,6 +142,8 @@ export default class GameOverScene extends Phaser.Scene {
   private endlessWave: number = 1
   private isNewEndlessHighScore: boolean = false
   private isDailyChallengeMode: boolean = false
+  private canRespawn: boolean = false
+  private respawnRoomState: RespawnRoomState | null = null
 
   constructor() {
     super({ key: 'GameOverScene' })
@@ -129,6 +156,8 @@ export default class GameOverScene extends Phaser.Scene {
     this.isEndlessMode = data?.isEndlessMode ?? false
     this.endlessWave = data?.endlessWave ?? 1
     this.isDailyChallengeMode = data?.isDailyChallengeMode ?? false
+    this.canRespawn = data?.canRespawn ?? false
+    this.respawnRoomState = data?.respawnRoomState ?? null
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
@@ -722,6 +751,84 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   /**
+   * Create the respawn button (watch ad for second life)
+   */
+  private createRespawnButton(y: number): void {
+    const width = this.cameras.main.width
+    const buttonWidth = 220
+    const buttonHeight = 50
+    const buttonColor = 0xff9900 // Orange for ad-related button
+    const hoverColor = 0xffaa33
+    const pressColor = 0xcc7700
+
+    const button = this.add
+      .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(100)
+
+    // Play icon (triangle)
+    const playIcon = this.add.graphics()
+    playIcon.fillStyle(0xffffff, 1)
+    playIcon.fillTriangle(
+      width / 2 - 80, y - 8,
+      width / 2 - 80, y + 8,
+      width / 2 - 65, y
+    )
+    playIcon.setDepth(101)
+
+    this.add
+      .text(width / 2 + 10, y, 'SECOND CHANCE', {
+        fontSize: '18px',
+        fontFamily: 'Arial',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(101)
+
+    button.on('pointerover', () => {
+      button.setFillStyle(hoverColor)
+    })
+
+    button.on('pointerout', () => {
+      button.setFillStyle(buttonColor)
+    })
+
+    button.on('pointerdown', () => {
+      console.log('GameOverScene: Respawn button clicked - showing ad')
+      button.setFillStyle(pressColor)
+      audioManager.playMenuSelect()
+      this.showRespawnAd()
+    })
+  }
+
+  /**
+   * Show mock ad popup for respawn
+   */
+  private showRespawnAd(): void {
+    showMockAdPopup({
+      scene: this,
+      onComplete: () => {
+        console.log('GameOverScene: Ad complete - triggering respawn')
+        this.triggerRespawn()
+      }
+    })
+  }
+
+  /**
+   * Trigger respawn - resume GameScene with restored player HP
+   */
+  private triggerRespawn(): void {
+    console.log('GameOverScene: Respawning player in current room')
+
+    // Emit respawn event to GameScene
+    this.game.events.emit('playerRespawn', this.respawnRoomState)
+
+    // Stop GameOverScene and let GameScene resume
+    this.scene.stop('GameOverScene')
+  }
+
+  /**
    * Create the continue button
    */
   private createContinueButton(y: number, isVictory: boolean): void {
@@ -730,6 +837,11 @@ export default class GameOverScene extends Phaser.Scene {
     const buttonHeight = 50
     const buttonText = 'MAIN MENU'
     const buttonColor = isVictory ? 0x00ff88 : 0x4a9eff
+
+    // If respawn is available, add respawn button above main menu button
+    if (this.canRespawn && !isVictory) {
+      this.createRespawnButton(y - 65)
+    }
 
     const button = this.add
       .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
@@ -821,13 +933,13 @@ export default class GameOverScene extends Phaser.Scene {
    */
   private continueGame() {
     console.log('GameOverScene: continueGame() called')
-    
+
     // Prevent multiple calls
     if (this.rewardsCollected) {
       console.log('GameOverScene: Already continuing, ignoring duplicate call')
       return
     }
-    
+
     // Collect rewards first
     this.collectRewards()
 
@@ -838,9 +950,13 @@ export default class GameOverScene extends Phaser.Scene {
     this.tweens.killAll()
 
     console.log('GameOverScene: Returning to main menu...')
-    
-    // GameScene already stopped itself before launching GameOverScene
-    // UIScene was also stopped by GameScene
+
+    // If respawn was available, GameScene is paused instead of stopped
+    // We need to stop it now since player chose not to respawn
+    if (this.canRespawn && this.scene.isActive('GameScene')) {
+      this.scene.stop('GameScene')
+    }
+
     // Return to main menu
     // start() will shut down the current scene (GameOverScene) correctly
     this.scene.start('MainMenuScene')

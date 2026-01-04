@@ -48,6 +48,7 @@ import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES, type AbilityData } from '../config/abilityData'
 import { abilityPriorityManager } from '../systems/AbilityPriorityManager'
 import { errorReporting } from '../systems/ErrorReportingManager'
+import type { RespawnRoomState, EnemyRespawnState } from './GameOverScene'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -96,6 +97,9 @@ export default class GameScene extends Phaser.Scene {
 
   // Daily challenge mode
   private isDailyChallengeMode: boolean = false
+
+  // Respawn tracking (one-time use per run)
+  private respawnUsed: boolean = false
 
   // Room generation system
   private roomGenerator!: RoomGenerator
@@ -200,6 +204,12 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off('quitFromPause', this.handleQuitFromPause, this)
     })
 
+    // Listen for respawn event (from GameOverScene after watching ad)
+    this.game.events.on('playerRespawn', this.handleRespawn, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('playerRespawn', this.handleRespawn, this)
+    })
+
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
     const handleVisibilityChange = () => {
@@ -250,6 +260,7 @@ export default class GameScene extends Phaser.Scene {
     this.runStartTime = Date.now()
     this.goldEarned = 0
     this.heroXPEarned = 0
+    this.respawnUsed = false
 
     // Update error reporting context
     const selectedHero = heroManager.getSelectedHeroId()
@@ -2023,8 +2034,16 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off('abilitySelected') // Clean up listener
     }
 
-    // End the chapter run (failed)
-    chapterManager.endRun(true)
+    // Check if respawn is available (one-time use per run)
+    const canRespawn = !this.respawnUsed
+
+    // Save room state for respawn (enemy and boss HP)
+    const respawnRoomState = canRespawn ? this.saveRoomStateForRespawn() : undefined
+
+    // Only end run if respawn is not available
+    if (!canRespawn) {
+      chapterManager.endRun(true)
+    }
 
     // Stop player movement
     this.player.setVelocity(0, 0)
@@ -2032,8 +2051,8 @@ export default class GameScene extends Phaser.Scene {
     // Flash player red and fade out
     this.player.setTint(0xff0000)
 
-    // Clean up input system
-    if (this.inputSystem) {
+    // Only destroy input system if respawn is not available
+    if (!canRespawn && this.inputSystem) {
       this.inputSystem.destroy()
     }
 
@@ -2042,7 +2061,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Brief delay before showing game over screen
     this.time.delayedCall(500, () => {
-      // Stop UIScene first
+      // Stop UIScene first (but keep GameScene if respawn is available)
       this.scene.stop('UIScene')
 
       // Calculate total rooms cleared in endless mode (across all waves)
@@ -2071,11 +2090,93 @@ export default class GameScene extends Phaser.Scene {
         isDailyChallengeMode: this.isDailyChallengeMode,
         chapterId: chapterManager.getSelectedChapter(),
         difficulty: this.difficultyConfig.label.toLowerCase(),
+        canRespawn,
+        respawnRoomState,
       })
 
-      // Stop GameScene last - this prevents texture issues when restarting
-      this.scene.stop('GameScene')
+      // Only stop GameScene if respawn is NOT available
+      // When respawn is available, keep the scene running so we can resume
+      if (!canRespawn) {
+        this.scene.stop('GameScene')
+      }
     })
+  }
+
+  /**
+   * Save current room state for respawn (enemy and boss HP)
+   */
+  private saveRoomStateForRespawn(): RespawnRoomState {
+    const enemies: EnemyRespawnState[] = []
+
+    // Save all active enemies' HP and position
+    this.enemies.getChildren().forEach((child) => {
+      const enemy = child as Enemy
+      if (enemy.active) {
+        enemies.push({
+          x: enemy.x,
+          y: enemy.y,
+          health: enemy.getHealth(),
+          maxHealth: enemy.getMaxHealth(),
+          type: enemy.constructor.name,
+        })
+      }
+    })
+
+    // Save boss HP if present
+    const bossHealth = this.boss?.getHealth()
+    const bossMaxHealth = this.boss?.getMaxHealth()
+
+    console.log(`GameScene: Saved room state - ${enemies.length} enemies, boss HP: ${bossHealth ?? 'N/A'}`)
+
+    return {
+      enemies,
+      bossHealth,
+      bossMaxHealth,
+    }
+  }
+
+  /**
+   * Handle player respawn from GameOverScene (after watching ad)
+   */
+  private handleRespawn(_roomState: RespawnRoomState): void {
+    console.log('GameScene: Handling respawn')
+
+    // Mark respawn as used (one-time per run)
+    this.respawnUsed = true
+
+    // Reset game over state
+    this.isGameOver = false
+
+    // Restore player to 50% HP
+    const maxHealth = this.player.getMaxHealth()
+    const healAmount = Math.floor(maxHealth * 0.5)
+    this.player.heal(healAmount)
+
+    // Clear dead state visual
+    this.player.clearTint()
+
+    // Show revive effect
+    this.cameras.main.flash(500, 255, 215, 0) // Golden flash
+    audioManager.playLevelUp()
+    hapticManager.levelUp()
+
+    // Enemies and boss keep their current HP since we didn't destroy GameScene
+    // The room state was passed for potential future use, but enemies are already in place
+
+    // Restart UIScene
+    this.scene.launch('UIScene')
+
+    // Re-initialize input system since it may have been in an inconsistent state
+    const gameContainer = this.game.canvas.parentElement
+    this.inputSystem = new InputSystem({
+      scene: this,
+      joystickContainer: gameContainer ?? undefined,
+    })
+
+    // Update health UI
+    this.updatePlayerHealthUI(this.player)
+
+    console.log('GameScene: Respawn complete - Player HP:', this.player.getHealth())
   }
 
   /**
