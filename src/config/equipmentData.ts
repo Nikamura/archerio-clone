@@ -523,12 +523,16 @@ export function applyRarityMultiplier(stats: EquipmentStats, rarity: Rarity): Eq
   }
 
   // Percentage stats scale slightly (half rate)
+  // IMPORTANT: Negative stats (penalties) don't scale - they define weapon characteristics
   const percentMultiplier = 1 + (config.statMultiplier - 1) * 0.5
   if (stats.attackDamagePercent !== undefined) {
-    result.attackDamagePercent = stats.attackDamagePercent * percentMultiplier
+    result.attackDamagePercent =
+      stats.attackDamagePercent > 0 ? stats.attackDamagePercent * percentMultiplier : stats.attackDamagePercent
   }
   if (stats.attackSpeedPercent !== undefined) {
-    result.attackSpeedPercent = stats.attackSpeedPercent * percentMultiplier
+    // Negative attack speed (slow weapons) stays constant as a defining trait
+    result.attackSpeedPercent =
+      stats.attackSpeedPercent > 0 ? stats.attackSpeedPercent * percentMultiplier : stats.attackSpeedPercent
   }
   if (stats.maxHealthPercent !== undefined) {
     result.maxHealthPercent = stats.maxHealthPercent * percentMultiplier
@@ -593,9 +597,12 @@ export function calculateEquipmentStats(
   for (const [key, value] of Object.entries(rarityScaled)) {
     if (value !== undefined) {
       const statKey = key as keyof EquipmentStats
-      const scaledValue = value * levelMultiplier
+      const isPercentageStat = percentageStats.has(key)
+      // Negative percentage stats (penalties) don't scale with level - they're defining traits
+      const shouldScale = !isPercentageStat || value > 0
+      const scaledValue = shouldScale ? value * levelMultiplier : value
       // Only floor flat stats, keep percentage stats as decimals
-      result[statKey] = percentageStats.has(key) ? scaledValue : Math.floor(scaledValue)
+      result[statKey] = isPercentageStat ? scaledValue : Math.floor(scaledValue)
     }
   }
 

@@ -11,6 +11,7 @@ import {
   EquipmentSlotType,
   EQUIPMENT_SLOTS,
   RARITY_CONFIGS,
+  Rarity,
   PerkId,
   EquipmentStats,
 } from '../systems/Equipment'
@@ -932,9 +933,28 @@ export default class EquipmentScene extends Phaser.Scene {
       }
     }
 
-    // Item is considered "better overall" if it has more better stats than worse stats
-    // and the equipped item exists (otherwise, any item is better than nothing)
-    const isBetterOverall = !equipped || betterCount > worseCount
+    // Item is considered "better overall" if:
+    // 1. No equipped item (any item is better than nothing), OR
+    // 2. More better stats than worse stats, OR
+    // 3. Equal count but higher rarity (tiebreaker for different stat types)
+    // 4. Equal count and rarity but higher level
+    let isBetterOverall = false
+    if (!equipped) {
+      isBetterOverall = true
+    } else if (betterCount > worseCount) {
+      isBetterOverall = true
+    } else if (betterCount === worseCount) {
+      // Use rarity order as tiebreaker: LEGENDARY > EPIC > RARE > GREAT > COMMON
+      const rarityOrder = [Rarity.COMMON, Rarity.GREAT, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY]
+      const itemRarityIndex = rarityOrder.indexOf(item.rarity)
+      const equippedRarityIndex = rarityOrder.indexOf(equipped.rarity)
+
+      if (itemRarityIndex > equippedRarityIndex) {
+        isBetterOverall = true
+      } else if (itemRarityIndex === equippedRarityIndex && item.level > equipped.level) {
+        isBetterOverall = true
+      }
+    }
 
     return { differences, isBetterOverall }
   }
