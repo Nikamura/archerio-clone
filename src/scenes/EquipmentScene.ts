@@ -46,6 +46,26 @@ interface InventorySlot {
   item: Equipment | null
 }
 
+// Sort options for inventory
+type SortOption = 'rarity' | 'level' | 'slot'
+
+// Rarity order for sorting (highest first)
+const RARITY_ORDER: Record<Rarity, number> = {
+  legendary: 5,
+  epic: 4,
+  rare: 3,
+  great: 2,
+  common: 1,
+}
+
+// Slot order for sorting
+const SLOT_ORDER: Record<EquipmentSlotType, number> = {
+  weapon: 1,
+  armor: 2,
+  ring: 3,
+  spirit: 4,
+}
+
 export default class EquipmentScene extends Phaser.Scene {
   // Layout constants
   private readonly SLOT_SIZE = 70
@@ -72,6 +92,10 @@ export default class EquipmentScene extends Phaser.Scene {
   // Scroll container for inventory
   private scrollContainer?: ScrollContainer
 
+  // Sorting state
+  private currentSort: SortOption = 'rarity'
+  private sortButtons: Map<SortOption, Phaser.GameObjects.Text> = new Map()
+
   constructor() {
     super({ key: 'EquipmentScene' })
   }
@@ -87,6 +111,7 @@ export default class EquipmentScene extends Phaser.Scene {
     this.fusionButton = null
     this.fuseAllButton = null
     this.scrollContainer = undefined
+    this.sortButtons.clear()
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e)
@@ -224,13 +249,16 @@ export default class EquipmentScene extends Phaser.Scene {
     const inventoryY = 230
     const visibleHeight = height - inventoryY - 120 // Leave room for buttons
 
-    // Section label
+    // Section label with sort buttons
     this.add
-      .text(width / 2, inventoryY - 15, 'INVENTORY', {
+      .text(20, inventoryY - 15, 'INVENTORY', {
         fontSize: '12px',
         color: '#666666',
       })
-      .setOrigin(0.5)
+      .setOrigin(0, 0.5)
+
+    // Sort buttons (right-aligned)
+    this.createSortButtons(inventoryY - 15)
 
     // Calculate layout
     const totalWidth =
@@ -267,6 +295,100 @@ export default class EquipmentScene extends Phaser.Scene {
       this.inventorySlots.push(slotData)
       this.scrollContainer.add(slotData.container)
     }
+  }
+
+  private createSortButtons(y: number): void {
+    const { width } = this.cameras.main
+    const sortOptions: { key: SortOption; label: string }[] = [
+      { key: 'rarity', label: '★' },
+      { key: 'level', label: 'Lv' },
+      { key: 'slot', label: '⚔' },
+    ]
+
+    let xPos = width - 20
+
+    // Create buttons right-to-left
+    for (let i = sortOptions.length - 1; i >= 0; i--) {
+      const option = sortOptions[i]
+      const isActive = this.currentSort === option.key
+
+      const btn = this.add.text(xPos, y, option.label, {
+        fontSize: '14px',
+        color: isActive ? '#4a9eff' : '#666666',
+        backgroundColor: isActive ? '#1a2a3e' : undefined,
+        padding: { x: 6, y: 2 },
+      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true })
+
+      btn.on('pointerover', () => {
+        if (this.currentSort !== option.key) {
+          btn.setColor('#888888')
+        }
+      })
+
+      btn.on('pointerout', () => {
+        btn.setColor(this.currentSort === option.key ? '#4a9eff' : '#666666')
+      })
+
+      btn.on('pointerup', () => {
+        this.setSort(option.key)
+      })
+
+      this.sortButtons.set(option.key, btn)
+      xPos -= btn.width + 8
+    }
+
+    // Add "Sort:" label
+    this.add.text(xPos, y, 'Sort:', {
+      fontSize: '11px',
+      color: '#555555',
+    }).setOrigin(1, 0.5)
+  }
+
+  private setSort(sort: SortOption): void {
+    if (this.currentSort === sort) return
+
+    this.currentSort = sort
+    audioManager.playMenuSelect()
+
+    // Update button visuals
+    this.sortButtons.forEach((btn, key) => {
+      const isActive = key === sort
+      btn.setColor(isActive ? '#4a9eff' : '#666666')
+      btn.setBackgroundColor(isActive ? '#1a2a3e' : '#00000000') // Transparent when inactive
+    })
+
+    // Refresh inventory with new sort
+    this.refreshInventorySlots()
+  }
+
+  private sortInventory(items: Equipment[]): Equipment[] {
+    return [...items].sort((a, b) => {
+      switch (this.currentSort) {
+        case 'rarity': {
+          // Sort by rarity (highest first), then level (highest first)
+          const rarityDiff = RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity]
+          if (rarityDiff !== 0) return rarityDiff
+          return b.level - a.level
+        }
+
+        case 'level': {
+          // Sort by level (highest first), then rarity
+          const levelDiff = b.level - a.level
+          if (levelDiff !== 0) return levelDiff
+          return RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity]
+        }
+
+        case 'slot': {
+          // Sort by slot type, then rarity
+          const slotDiff = SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]
+          if (slotDiff !== 0) return slotDiff
+          return RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity]
+        }
+
+        default:
+          return 0
+      }
+    })
   }
 
   private createInventorySlot(x: number, y: number, index: number): InventorySlot {
@@ -472,11 +594,12 @@ export default class EquipmentScene extends Phaser.Scene {
         .map((item) => item.id)
     )
 
-    // Filter out equipped items from inventory display
+    // Filter out equipped items from inventory display and sort
     const unequippedInventory = inventory.filter((item) => !equippedIds.has(item.id))
+    const sortedInventory = this.sortInventory(unequippedInventory)
 
     this.inventorySlots.forEach((slot, index) => {
-      const item = unequippedInventory[index] ?? null
+      const item = sortedInventory[index] ?? null
       slot.item = item
 
       const itemSprite = slot.container.getByName('itemSprite') as Phaser.GameObjects.Image | null

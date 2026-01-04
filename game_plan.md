@@ -389,7 +389,7 @@ Visual test screenshots are saved to `test/screenshots/`
 8. ✅ **Pause feature for long runs** - Already implemented: Pause button in gear menu, PauseScene overlay with resume/quit options, game state preservation via scene.pause()
 9. ✅ **Equipment comparison in inventory** - Already implemented: Green up-arrow on items better than equipped, stat comparison with +/- indicators in detail popup
 10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
-11. **Inventory sorting and filtering** - Sort by rarity, level, slot type, or stat value; filter by equipment slot or rarity tier
+11. ✅ **Inventory sorting** - Added sort buttons (★ rarity, Lv level, ⚔ slot type) above inventory grid, defaults to rarity sort
 12. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
 13. **Theme-specific monster names** - Monsters should have unique names in encyclopedia based on active theme for immersion (e.g., Stranger Things: "Demodog", "Demoarcher"; LOTR: "Azog the Defiler", "Orc Archer"; Vaporwave: stylized names)
 14. **Animated hero shooting** - Player heroes should have shooting animation when auto-firing (bow draw, staff swing, etc.)
