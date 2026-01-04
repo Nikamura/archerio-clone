@@ -86,7 +86,7 @@ export default class VoidLordBoss extends BaseBoss {
         break
       case 2:
         this.phase = 'phase_shift'
-        this.isPhaseShifting = false
+        this.isPhaseShifting = true // Start invincible during phase shift
         break
     }
   }

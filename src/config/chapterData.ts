@@ -507,11 +507,11 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     miniBossType: 'spawner', // Fallback
     miniBossPool: ['nightmare', 'void_lord'], // Non-main bosses as mini-bosses
     scaling: {
-      enemyHpMultiplier: 50.0, // 50x harder than chapter 1
-      enemyDamageMultiplier: 2.5,
-      extraEnemiesPerRoom: 4,
-      bossHpMultiplier: 60.0,
-      bossDamageMultiplier: 2.5,
+      enemyHpMultiplier: 30.0, // Rebalanced: 30x (was 50x, jump from Ch4's 18x was too steep)
+      enemyDamageMultiplier: 2.2, // Rebalanced: 2.2x (was 2.5x)
+      extraEnemiesPerRoom: 3, // Rebalanced: 3 (was 4)
+      bossHpMultiplier: 40.0, // Rebalanced: 40x (was 60x)
+      bossDamageMultiplier: 2.2, // Rebalanced: 2.2x (was 2.5x)
     },
     // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
     enemyModifiers: {
@@ -526,7 +526,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
         spawnWeight: 1.0,
       },
       spreader: {
-        attackCooldownMultiplier: 0.65, // Constant projectile spam
+        attackCooldownMultiplier: 0.75, // Rebalanced from 0.65 (less oppressive spam)
         projectileSpeedMultiplier: 1.2,
         spawnWeight: 1.2,
       },
@@ -549,12 +549,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       healer: {
         speedMultiplier: 1.2,
         attackCooldownMultiplier: 0.6, // Heals very frequently
-        abilityIntensityMultiplier: 1.6, // Massive heals
+        abilityIntensityMultiplier: 1.3, // Rebalanced from 1.6 (less unkillable groups)
         spawnWeight: 1.5, // Priority targets
       },
       spawner: {
-        attackCooldownMultiplier: 0.5, // Constant minion spawning
-        abilityIntensityMultiplier: 1.5, // More minions per spawn
+        attackCooldownMultiplier: 0.65, // Rebalanced from 0.5 (less overwhelming)
+        abilityIntensityMultiplier: 1.3, // Rebalanced from 1.5 (fewer minions)
         spawnWeight: 1.4,
       },
     },
