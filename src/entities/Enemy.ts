@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { EnemyType } from '../config/chapterData'
 import type WallGroup from '../systems/WallGroup'
+import { StatusEffectSystem } from '../core/StatusEffects'
 
 /**
  * Options for enemy spawning with difficulty and chapter modifiers
@@ -29,25 +30,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   protected speedMultiplier: number = 1.0 // For chapter-specific speed
   protected readonly enemyType: EnemyType // For kill tracking
 
-  // Fire DOT tracking
-  private fireDamage: number = 0 // Damage per tick
-  private fireTicks: number = 0 // Remaining ticks
-  private fireTickInterval: number = 500 // ms between ticks
-  private lastFireTick: number = 0
-
-  // Freeze effect tracking
-  private isFrozen: boolean = false
-  private freezeEndTime: number = 0
-  private readonly freezeDuration: number = 1500 // 1.5 seconds
-
-  // Poison DOT tracking
-  private poisonDamage: number = 0 // Damage per tick (base damage per stack)
-  private poisonStacks: number = 0 // Current stacks (max 5)
-  private readonly poisonMaxStacks: number = 5
-  private poisonTicks: number = 0 // Remaining ticks
-  private readonly poisonTickInterval: number = 1000 // 1 second between ticks
-  private lastPoisonTick: number = 0
-  private readonly poisonDuration: number = 4000 // 4 seconds
+  // Status effect system (handles fire, freeze, poison)
+  protected statusEffects: StatusEffectSystem
 
   // Melee attack cooldown - per-enemy instance tracking
   private lastMeleeAttackTime: number = 0
@@ -82,6 +66,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // Store enemy type for kill tracking
     this.enemyType = options?.enemyType ?? 'melee'
+
+    // Initialize status effects system
+    this.statusEffects = new StatusEffectSystem()
 
     // Apply difficulty modifiers
     const baseHealth = 30
@@ -135,12 +122,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Priority: Frozen > Burning > Poisoned > None
    */
   private updateEffectTint(): void {
-    if (this.isFrozen) {
-      this.setTint(0x66ccff) // Blue tint for frozen
-    } else if (this.fireTicks > 0) {
-      this.setTint(0xff4400) // Orange tint for burning
-    } else if (this.poisonStacks > 0) {
-      this.setTint(0x66ff66) // Green tint for poisoned
+    const tint = this.statusEffects.getTint()
+    if (tint !== null) {
+      this.setTint(tint)
     } else {
       this.clearTint()
     }
@@ -236,13 +220,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param duration Duration in ms (default 2000ms = 2 seconds)
    */
   applyFireDamage(damage: number, duration: number = 2000): void {
-    if (damage <= 0) return
-
-    this.fireDamage = damage
-    this.fireTicks = Math.ceil(duration / this.fireTickInterval)
-    this.lastFireTick = this.scene.time.now
-
-    // Update visual
+    this.statusEffects.applyFire(damage, duration, this.scene.time.now)
     this.updateEffectTint()
   }
 
@@ -250,13 +228,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Apply freeze effect - enemy can't move or attack for duration
    */
   applyFreeze(): void {
-    this.isFrozen = true
-    this.freezeEndTime = this.scene.time.now + this.freezeDuration
-
-    // Stop all movement
+    this.statusEffects.applyFreeze(this.scene.time.now)
     this.setVelocity(0, 0)
-
-    // Update visual
     this.updateEffectTint()
   }
 
@@ -264,7 +237,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Check if enemy is currently frozen
    */
   isEnemyFrozen(): boolean {
-    return this.isFrozen
+    return this.statusEffects.isFrozen()
   }
 
   /**
@@ -272,21 +245,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param damage Base damage per tick per stack
    */
   applyPoisonDamage(damage: number): void {
-    if (damage <= 0) return
-
-    // Stack poison up to max
-    if (this.poisonStacks < this.poisonMaxStacks) {
-      this.poisonStacks++
-    }
-
-    // Update damage (accumulate per stack)
-    this.poisonDamage = damage
-
-    // Reset/extend duration
-    this.poisonTicks = Math.ceil(this.poisonDuration / this.poisonTickInterval)
-    this.lastPoisonTick = this.scene.time.now
-
-    // Update visual
+    this.statusEffects.applyPoison(damage, this.scene.time.now)
     this.updateEffectTint()
   }
 
@@ -294,20 +253,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Get current poison stack count
    */
   getPoisonStacks(): number {
-    return this.poisonStacks
+    return this.statusEffects.getPoisonStacks()
   }
 
   resetHealth() {
     this.health = this.maxHealth
-    this.fireDamage = 0
-    this.fireTicks = 0
-    // Reset freeze
-    this.isFrozen = false
-    this.freezeEndTime = 0
-    // Reset poison
-    this.poisonDamage = 0
-    this.poisonStacks = 0
-    this.poisonTicks = 0
+    // Reset all status effects
+    this.statusEffects.reset()
     // Reset melee attack cooldown
     this.lastMeleeAttackTime = 0
     this.clearTint()
@@ -358,64 +310,23 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Update fire DOT effect
-   * @returns true if enemy died from fire damage
+   * Update status effects and apply damage
+   * @returns true if enemy died from status effect damage
    */
-  private updateFireDamage(time: number): boolean {
-    if (this.fireTicks > 0 && time - this.lastFireTick >= this.fireTickInterval) {
-      this.fireTicks--
-      this.lastFireTick = time
+  private updateStatusEffects(time: number): boolean {
+    const result = this.statusEffects.update(time)
 
-      // Apply fire damage
-      const died = this.takeDamage(this.fireDamage)
-
-      // Clear fire effect if no ticks remaining
-      if (this.fireTicks === 0) {
-        this.fireDamage = 0
-        if (!died) {
-          this.updateEffectTint()
-        }
-      }
-
-      return died
+    // Apply DOT damage if any
+    if (result.damage > 0) {
+      const died = this.takeDamage(result.damage)
+      if (died) return true
     }
-    return false
-  }
 
-  /**
-   * Update freeze effect
-   */
-  private updateFreeze(time: number): void {
-    if (this.isFrozen && time >= this.freezeEndTime) {
-      this.isFrozen = false
+    // Update tint if effects changed
+    if (result.effectsChanged) {
       this.updateEffectTint()
     }
-  }
 
-  /**
-   * Update poison DOT effect
-   * @returns true if enemy died from poison damage
-   */
-  private updatePoisonDamage(time: number): boolean {
-    if (this.poisonTicks > 0 && time - this.lastPoisonTick >= this.poisonTickInterval) {
-      this.poisonTicks--
-      this.lastPoisonTick = time
-
-      // Apply poison damage (damage per stack per tick)
-      const totalPoisonDamage = this.poisonDamage * this.poisonStacks
-      const died = this.takeDamage(totalPoisonDamage)
-
-      // Clear poison effect if no ticks remaining
-      if (this.poisonTicks === 0) {
-        this.poisonDamage = 0
-        this.poisonStacks = 0
-        if (!died) {
-          this.updateEffectTint()
-        }
-      }
-
-      return died
-    }
     return false
   }
 
@@ -448,23 +359,14 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       return false
     }
 
-    // Update freeze effect
-    this.updateFreeze(time)
-
-    // Update fire DOT
-    const diedFromFire = this.updateFireDamage(time)
-    if (diedFromFire) {
-      return true // Signal to caller that enemy died
-    }
-
-    // Update poison DOT
-    const diedFromPoison = this.updatePoisonDamage(time)
-    if (diedFromPoison) {
+    // Update all status effects (fire, freeze, poison)
+    const diedFromEffects = this.updateStatusEffects(time)
+    if (diedFromEffects) {
       return true // Signal to caller that enemy died
     }
 
     // If frozen, don't move or act
-    if (this.isFrozen) {
+    if (this.statusEffects.isFrozen()) {
       this.setVelocity(0, 0)
       return false
     }
