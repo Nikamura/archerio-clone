@@ -76,6 +76,15 @@ export default class EquipmentScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main
 
+    // Reset state from previous scene visits (Phaser reuses scene instances)
+    this.inventorySlots = []
+    this.equippedSlots.clear()
+    this.detailPanel = null
+    this.goldText = null
+    this.fusionButton = null
+    this.fuseAllButton = null
+    this.scrollContainer = undefined
+
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e)
 
