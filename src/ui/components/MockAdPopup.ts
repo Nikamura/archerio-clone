@@ -25,9 +25,10 @@ export function showMockAdPopup(config: MockAdPopupConfig): MockAdPopupResult {
   let closeText: Phaser.GameObjects.Text | null = null
   let rewardText: Phaser.GameObjects.Text | null = null
 
-  // Create overlay
+  // Create overlay - set interactive to block clicks on background elements
   const overlay = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
   overlay.setDepth(200)
+  overlay.setInteractive()
   elements.push(overlay)
 
   // Ad container
