@@ -352,6 +352,9 @@ export default class IceGolemBoss extends BaseBoss {
   }
 
   private createIceSpike(x: number, y: number): void {
+    // Guard against being called after boss/scene destroyed (from delayed callback)
+    if (!this.scene || !this.active) return
+
     // Triangle shape for spike
     const height = 40
     const width = 20

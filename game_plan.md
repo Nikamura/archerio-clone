@@ -374,6 +374,7 @@ Visual test screenshots are saved to `test/screenshots/`
 20. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
 21. ✅ **Lightning ability doesn't attack surrounding minions** - Fixed: Increased chain range from 150px to 250px, added visual lightning line effect, ensured minions are properly initialized with setActive(true)
 22. ✅ **Inventory sort buttons trigger item popups when scrolled** - Fixed: Set depth=100 on sort buttons to render above scroll container
+23. ✅ **IceGolemBoss createIceSpike crash (ARROW-GAME-12)** - Fixed: Added guard for destroyed scene/boss in delayedCall callback
 
 **BALANCE:**
 1. ✅ **Nerf Dodge** - Fixed: Cap reduced from 5% to 3% (MAX_DODGE_CHANCE)
