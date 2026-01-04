@@ -6,6 +6,54 @@
  */
 
 // ============================================
+// Wall Size Constants (normalized 0-1)
+// ============================================
+// These values result in pixel sizes that are multiples of WALL_TILE_SIZE (64px)
+// when applied to screen dimensions (375x667)
+
+/**
+ * Standard wall widths (normalized to 375px screen width)
+ * W1 = 1 tile (64px), W2 = 2 tiles (128px), W3 = 3 tiles (192px)
+ */
+export const WALL_W1 = 0.171 // ~64px
+export const WALL_W2 = 0.341 // ~128px
+export const WALL_W3 = 0.512 // ~192px
+
+/**
+ * Standard wall heights (normalized to 667px screen height)
+ * H1 = 1 tile (64px), H2 = 2 tiles, H3 = 3 tiles, H4 = 4 tiles, H5 = 5 tiles
+ */
+export const WALL_H1 = 0.096 // ~64px
+export const WALL_H2 = 0.192 // ~128px
+export const WALL_H3 = 0.288 // ~192px
+export const WALL_H4 = 0.384 // ~256px
+export const WALL_H5 = 0.480 // ~320px
+
+/**
+ * Wall X positions for proper corridor spacing (player is 64px, needs ~96px min corridor)
+ * These positions ensure walls either block passage completely or allow comfortable movement
+ */
+// Walls flush against screen edges (no passage possible)
+export const WALL_X_LEFT_EDGE = 0.085 // Wall center at 32px, flush with left edge
+export const WALL_X_RIGHT_EDGE = 0.915 // Wall center at 343px, flush with right edge
+
+// Walls with passage to screen edge (96px+ corridor)
+export const WALL_X_LEFT_PASSAGE = 0.34 // Wall at 128px center, leaves 96px corridor to left
+export const WALL_X_RIGHT_PASSAGE = 0.66 // Wall at 247px center, leaves 96px corridor to right
+
+// Center corridor walls (ensures 128px+ passage in center)
+export const WALL_X_LEFT_CENTER = 0.38 // For center corridors
+export const WALL_X_RIGHT_CENTER = 0.62 // For center corridors
+
+/**
+ * Minimum spacing between walls (normalized)
+ * Walls should never be closer than this to avoid feeling closed-off
+ * ~128px vertical gap, ~96px horizontal gap
+ */
+export const MIN_WALL_GAP_Y = 0.19 // ~128px vertical spacing between walls
+export const MIN_WALL_GAP_X = 0.26 // ~96px horizontal spacing between walls
+
+// ============================================
 // Types
 // ============================================
 
@@ -177,7 +225,7 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.85, radius: 0.1 },
     ],
     walls: [
-      { x: 0.5, y: 0.35, width: 0.04, height: 0.25 },
+      { x: 0.5, y: 0.35, width: WALL_W1, height: WALL_H3 },
     ],
     playerSpawnSafeRadius: 0.22,
   },
@@ -193,7 +241,7 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.9, radius: 0.15 }],
     walls: [
-      { x: 0.5, y: 0.48, width: 0.25, height: 0.04 },
+      { x: 0.5, y: 0.48, width: WALL_W2, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.3,
   },
@@ -211,15 +259,15 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.5, radius: 0.2 }],
     walls: [
-      { x: 0.35, y: 0.4, width: 0.06, height: 0.06 },
-      { x: 0.65, y: 0.4, width: 0.06, height: 0.06 },
+      { x: 0.35, y: 0.4, width: WALL_W1, height: WALL_H1 },
+      { x: 0.65, y: 0.4, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.2,
   },
   {
     type: 'corner_rooms',
     name: 'Corners Plus Center',
-    description: 'Enemies in corners with center obstacles',
+    description: 'Enemies in corners with center pillar',
     spawnZones: [
       { x: 0.2, y: 0.22, radius: 0.1, weight: 0.8 },
       { x: 0.8, y: 0.22, radius: 0.1, weight: 0.8 },
@@ -229,9 +277,7 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.85, radius: 0.12 }],
     walls: [
-      { x: 0.5, y: 0.5, width: 0.08, height: 0.08 },
-      { x: 0.3, y: 0.35, width: 0.05, height: 0.1 },
-      { x: 0.7, y: 0.35, width: 0.05, height: 0.1 },
+      { x: 0.5, y: 0.42, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -240,7 +286,7 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
   {
     type: 'maze_lite',
     name: 'Cover Points',
-    description: 'Multiple clusters with gaps for kiting, walls provide cover',
+    description: 'Side pillars provide cover for kiting',
     spawnZones: [
       { x: 0.25, y: 0.25, radius: 0.12, weight: 1 },
       { x: 0.5, y: 0.3, radius: 0.12, weight: 1 },
@@ -253,9 +299,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.65, radius: 0.08 },
     ],
     walls: [
-      { x: 0.3, y: 0.4, width: 0.08, height: 0.15 },
-      { x: 0.7, y: 0.4, width: 0.08, height: 0.15 },
-      { x: 0.5, y: 0.55, width: 0.12, height: 0.04 },
+      { x: 0.3, y: 0.38, width: WALL_W1, height: WALL_H1 },
+      { x: 0.7, y: 0.38, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.2,
   },
@@ -273,9 +318,9 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
     walls: [
-      { x: 0.5, y: 0.4, width: 0.04, height: 0.2 },
-      { x: 0.25, y: 0.45, width: 0.06, height: 0.1 },
-      { x: 0.75, y: 0.35, width: 0.06, height: 0.1 },
+      { x: 0.5, y: 0.4, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.35, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.22,
   },
@@ -298,8 +343,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.85, radius: 0.1 },
     ],
     walls: [
-      { x: 0.32, y: 0.35, width: 0.04, height: 0.25 },
-      { x: 0.68, y: 0.35, width: 0.04, height: 0.25 },
+      { x: WALL_X_LEFT_CENTER, y: 0.35, width: WALL_W1, height: WALL_H3 },
+      { x: WALL_X_RIGHT_CENTER, y: 0.35, width: WALL_W1, height: WALL_H3 },
     ],
     playerSpawnSafeRadius: 0.18,
   },
@@ -316,9 +361,9 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.82, radius: 0.15 }],
     walls: [
-      { x: 0.5, y: 0.55, width: 0.2, height: 0.04 },
-      { x: 0.25, y: 0.4, width: 0.06, height: 0.1 },
-      { x: 0.75, y: 0.4, width: 0.06, height: 0.1 },
+      { x: 0.5, y: 0.55, width: WALL_W2, height: WALL_H1 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.4, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.4, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.28,
   },
@@ -337,9 +382,9 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.75, radius: 0.2 }],
     walls: [
-      { x: 0.25, y: 0.45, width: 0.04, height: 0.2 },
-      { x: 0.75, y: 0.45, width: 0.04, height: 0.2 },
-      { x: 0.5, y: 0.6, width: 0.15, height: 0.04 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H2 },
+      { x: 0.5, y: 0.6, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.2,
   },
@@ -360,7 +405,7 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
     walls: [
-      { x: 0.5, y: 0.42, width: 0.1, height: 0.1 },
+      { x: 0.5, y: 0.42, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -463,11 +508,11 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
  * All walls are positioned with y < 0.70 to keep bottom area clear for player spawn
  */
 export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
-  // The Funnel - walls on sides force movement through center
+  // The Funnel - side pillars guide movement through center
   {
     type: 'narrow_corridor',
     name: 'The Funnel',
-    description: 'Side walls create a narrow central passage',
+    description: 'Side pillars guide movement through center',
     spawnZones: [
       { x: 0.5, y: 0.20, radius: 0.20, weight: 1.5 },
       { x: 0.5, y: 0.40, radius: 0.18, weight: 1 },
@@ -476,8 +521,8 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.15, y: 0.40, width: 0.15, height: 0.50 },
-      { x: 0.85, y: 0.40, width: 0.15, height: 0.50 },
+      { x: WALL_X_LEFT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_RIGHT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H2 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -495,41 +540,36 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.12, y: 0.35, width: 0.10, height: 0.40 },
-      { x: 0.50, y: 0.35, width: 0.10, height: 0.45 },
-      { x: 0.88, y: 0.35, width: 0.10, height: 0.40 },
+      { x: 0.50, y: 0.38, width: WALL_W1, height: WALL_H4 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
 
-  // Barricades - staggered horizontal bars create weaving path
+  // Barricades - staggered barriers create weaving path (2 walls, well spaced)
   {
     type: 'maze_lite',
     name: 'Barricades',
-    description: 'Staggered horizontal barriers create a weaving path',
+    description: 'Staggered barriers create a weaving path',
     spawnZones: [
       { x: 0.25, y: 0.15, radius: 0.12, weight: 1 },
       { x: 0.75, y: 0.15, radius: 0.12, weight: 1 },
-      { x: 0.50, y: 0.28, radius: 0.15, weight: 1.2 },
-      { x: 0.25, y: 0.40, radius: 0.10, weight: 0.8 },
-      { x: 0.75, y: 0.40, radius: 0.10, weight: 0.8 },
-      { x: 0.50, y: 0.55, radius: 0.12, weight: 0.8 },
+      { x: 0.50, y: 0.35, radius: 0.15, weight: 1.2 },
+      { x: 0.25, y: 0.50, radius: 0.10, weight: 0.8 },
+      { x: 0.75, y: 0.50, radius: 0.10, weight: 0.8 },
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.30, y: 0.20, width: 0.28, height: 0.05 },
-      { x: 0.70, y: 0.32, width: 0.28, height: 0.05 },
-      { x: 0.30, y: 0.44, width: 0.28, height: 0.05 },
-      { x: 0.70, y: 0.56, width: 0.28, height: 0.05 },
+      { x: 0.30, y: 0.25, width: WALL_W1, height: WALL_H1 },
+      { x: 0.70, y: 0.50, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
 
-  // Fortress - large central obstacle with side pillars
+  // Fortress - central obstacle forces flanking movement
   {
     type: 'corner_rooms',
     name: 'Fortress',
-    description: 'Large central obstacle forces flanking movement',
+    description: 'Central obstacle forces flanking movement',
     spawnZones: [
       { x: 0.20, y: 0.20, radius: 0.12, weight: 1.2 },
       { x: 0.80, y: 0.20, radius: 0.12, weight: 1.2 },
@@ -539,42 +579,36 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.50, y: 0.38, width: 0.28, height: 0.22 },
-      { x: 0.14, y: 0.35, width: 0.08, height: 0.30 },
-      { x: 0.86, y: 0.35, width: 0.08, height: 0.30 },
+      { x: 0.50, y: 0.38, width: WALL_W2, height: WALL_H2 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
 
-  // Pinch Points - alternating walls create zigzag path
+  // Pinch Points - center obstacle with side pillars (3 walls, well spaced)
   {
     type: 'gauntlet',
     name: 'Pinch Points',
-    description: 'Alternating obstacles create multiple chokepoints',
+    description: 'Center obstacle creates tactical positioning',
     spawnZones: [
       { x: 0.50, y: 0.15, radius: 0.18, weight: 1.5 },
       { x: 0.25, y: 0.30, radius: 0.10, weight: 1 },
       { x: 0.75, y: 0.30, radius: 0.10, weight: 1 },
-      { x: 0.50, y: 0.45, radius: 0.12, weight: 1 },
-      { x: 0.25, y: 0.58, radius: 0.08, weight: 0.7 },
-      { x: 0.75, y: 0.58, radius: 0.08, weight: 0.7 },
+      { x: 0.50, y: 0.50, radius: 0.12, weight: 1 },
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.25, y: 0.22, width: 0.16, height: 0.10 },
-      { x: 0.75, y: 0.22, width: 0.16, height: 0.10 },
-      { x: 0.50, y: 0.38, width: 0.20, height: 0.08 },
-      { x: 0.25, y: 0.52, width: 0.16, height: 0.10 },
-      { x: 0.75, y: 0.52, width: 0.16, height: 0.10 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.25, width: WALL_W1, height: WALL_H1 },
+      { x: 0.50, y: 0.45, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.25, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
 
-  // The Gauntlet - long corridor with extended side walls
+  // The Gauntlet - side pillars create tactical lanes
   {
     type: 'gauntlet',
     name: 'The Gauntlet',
-    description: 'Extended side walls create a long corridor',
+    description: 'Side pillars create tactical lanes',
     spawnZones: [
       { x: 0.50, y: 0.15, radius: 0.15, weight: 1.5 },
       { x: 0.50, y: 0.30, radius: 0.15, weight: 1.2 },
@@ -584,8 +618,8 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.20, y: 0.38, width: 0.12, height: 0.55 },
-      { x: 0.80, y: 0.38, width: 0.12, height: 0.55 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.35, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.35, width: WALL_W1, height: WALL_H2 },
     ],
     playerSpawnSafeRadius: 0.22,
   },
