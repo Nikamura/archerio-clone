@@ -26,7 +26,7 @@ import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
-import { BossId } from '../config/bossData'
+import { BossId, getBossDefinition } from '../config/bossData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
@@ -1161,8 +1161,15 @@ export default class GameScene extends Phaser.Scene {
 
     this.enemies.add(this.boss)
 
-    // Show boss health bar in UI
-    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+    // Show dramatic boss name announcement
+    this.showBossNameAnnouncement(bossType, false)
+
+    // Get boss name for UI
+    const bossDef = getBossDefinition(bossType as BossId)
+    const bossName = bossDef?.name || bossType.replace(/_/g, ' ')
+
+    // Show boss health bar in UI with name
+    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth(), bossName)
 
     console.log(`Boss spawned: ${bossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
   }
@@ -1212,10 +1219,129 @@ export default class GameScene extends Phaser.Scene {
 
     this.enemies.add(this.boss)
 
-    // Show boss health bar in UI (same as full boss)
-    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth())
+    // Show dramatic mini-boss name announcement
+    this.showBossNameAnnouncement(miniBossType, true)
+
+    // Get boss name for UI
+    const miniBossDef = getBossDefinition(miniBossType as BossId)
+    const miniBossName = miniBossDef?.name || miniBossType.replace(/_/g, ' ')
+
+    // Show boss health bar in UI with name
+    this.scene.get('UIScene').events.emit('showBossHealth', this.boss.getHealth(), this.boss.getMaxHealth(), miniBossName)
 
     console.log(`Mini-boss spawned: ${miniBossType} for chapter ${selectedChapter} at ${bossX}, ${bossY}`)
+  }
+
+  /**
+   * Display a dramatic boss name announcement before the fight
+   */
+  private showBossNameAnnouncement(bossType: BossType, isMiniBoss: boolean = false) {
+    const bossDef = getBossDefinition(bossType as BossId)
+    const bossName = bossDef?.name || bossType.replace(/_/g, ' ').toUpperCase()
+
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Get theme colors for boss name
+    const colors = themeManager.getColors()
+
+    // Create container for the announcement
+    const container = this.add.container(width / 2, height / 2 - 40)
+    container.setDepth(200)
+
+    // "MINI-BOSS" or "BOSS" label above the name
+    const labelText = isMiniBoss ? 'MINI-BOSS' : 'BOSS'
+    const label = this.add.text(0, -35, labelText, {
+      fontSize: '16px',
+      fontFamily: '"Times New Roman", Georgia, serif',
+      color: colors.bossNameSecondary,
+      fontStyle: 'italic',
+      letterSpacing: 8,
+    })
+    label.setOrigin(0.5, 0.5)
+    label.setStroke(colors.bossNameStroke, 2)
+    label.setAlpha(0)
+    container.add(label)
+
+    // Main boss name in pompous font
+    const nameText = this.add.text(0, 10, bossName.toUpperCase(), {
+      fontSize: isMiniBoss ? '28px' : '36px',
+      fontFamily: '"Times New Roman", Georgia, serif',
+      color: colors.bossNamePrimary,
+      fontStyle: 'bold',
+      letterSpacing: 4,
+    })
+    nameText.setOrigin(0.5, 0.5)
+    nameText.setStroke(colors.bossNameStroke, 4)
+    nameText.setShadow(2, 2, colors.bossNameSecondary, 8, true, true)
+    nameText.setAlpha(0)
+    nameText.setScale(0.5)
+    container.add(nameText)
+
+    // Decorative lines on sides
+    const lineLength = Math.min(nameText.width + 40, width - 60)
+    const lineY = 45
+
+    const leftLine = this.add.graphics()
+    leftLine.lineStyle(2, Phaser.Display.Color.HexStringToColor(colors.bossNameSecondary).color)
+    leftLine.lineBetween(-lineLength / 2, lineY, -20, lineY)
+    leftLine.setAlpha(0)
+    container.add(leftLine)
+
+    const rightLine = this.add.graphics()
+    rightLine.lineStyle(2, Phaser.Display.Color.HexStringToColor(colors.bossNameSecondary).color)
+    rightLine.lineBetween(20, lineY, lineLength / 2, lineY)
+    rightLine.setAlpha(0)
+    container.add(rightLine)
+
+    // Animate in with dramatic effect
+    this.tweens.add({
+      targets: label,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2',
+    })
+
+    this.tweens.add({
+      targets: nameText,
+      alpha: 1,
+      scale: 1,
+      duration: 600,
+      ease: 'Back.easeOut',
+      delay: 200,
+    })
+
+    this.tweens.add({
+      targets: [leftLine, rightLine],
+      alpha: 1,
+      duration: 400,
+      delay: 500,
+    })
+
+    // Subtle pulse effect on the name
+    this.tweens.add({
+      targets: nameText,
+      scale: 1.05,
+      duration: 800,
+      yoyo: true,
+      repeat: 1,
+      delay: 800,
+      ease: 'Sine.easeInOut',
+    })
+
+    // Fade out after display
+    this.time.delayedCall(2500, () => {
+      this.tweens.add({
+        targets: container,
+        alpha: 0,
+        y: height / 2 - 60,
+        duration: 500,
+        ease: 'Power2',
+        onComplete: () => {
+          container.destroy()
+        },
+      })
+    })
   }
 
   private checkRoomCleared() {
