@@ -142,6 +142,7 @@ export default class MainMenuScene extends Phaser.Scene {
         { id: 'daily', icon: '📅', label: 'Daily', scene: 'DailyRewardScene', badge: dailyBadge },
         { id: 'achievements', icon: '🏆', label: 'Achieve', scene: 'AchievementsScene', badge: achieveBadge },
         { id: 'guide', icon: '📖', label: 'Guide', scene: 'EncyclopediaScene' },
+        { id: 'priority', icon: '📋', label: 'Priority', scene: 'AbilityPriorityScene' },
         {
           id: 'settings',
           icon: '⚙️',

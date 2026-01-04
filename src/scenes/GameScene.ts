@@ -45,7 +45,8 @@ import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 import WallGroup from '../systems/WallGroup'
 import { SeededRandom } from '../systems/SeededRandom'
-import { ABILITIES, type AbilityData } from './LevelUpScene'
+import { ABILITIES, type AbilityData } from '../config/abilityData'
+import { abilityPriorityManager } from '../systems/AbilityPriorityManager'
 import { errorReporting } from '../systems/ErrorReportingManager'
 
 export default class GameScene extends Phaser.Scene {
@@ -1541,12 +1542,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Handle auto level up - randomly select an ability without showing the selection UI
-   * 5% chance to grant TWO abilities as a bonus
+   * Handle auto level up - select the highest priority ability without showing the selection UI
    */
   private handleAutoLevelUp() {
-    const isDoubleBonus = Math.random() < 0.05 // 5% chance for double ability
-
     // Get abilities that aren't maxed
     const availableAbilities = this.getAvailableAbilities()
 
@@ -1556,40 +1554,22 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    // Select first ability
-    const randomIndex1 = Math.floor(Math.random() * availableAbilities.length)
-    const selectedAbility1 = availableAbilities[randomIndex1]
+    // Select highest priority ability
+    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(availableAbilities)
 
-    // Apply the first ability
-    this.applyAbility(selectedAbility1.id)
-
-    if (isDoubleBonus && availableAbilities.length > 1) {
-      // Get updated available abilities after first selection
-      const availableAbilitiesAfterFirst = this.getAvailableAbilities()
-        .filter((a) => a.id !== selectedAbility1.id)
-
-      if (availableAbilitiesAfterFirst.length > 0) {
-        const randomIndex2 = Math.floor(Math.random() * availableAbilitiesAfterFirst.length)
-        const selectedAbility2 = availableAbilitiesAfterFirst[randomIndex2]
-
-        console.log('GameScene: Auto level up DOUBLE BONUS:', selectedAbility1.id, '+', selectedAbility2.id)
-
-        // Apply the second ability
-        this.applyAbility(selectedAbility2.id)
-
-        // Notify UIScene to show the double bonus notification
-        this.scene.get('UIScene').events.emit('showAutoLevelUpDouble', selectedAbility1, selectedAbility2)
-      } else {
-        // Only one ability was available, just show single
-        console.log('GameScene: Auto level up selected:', selectedAbility1.id)
-        this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
-      }
-    } else {
-      console.log('GameScene: Auto level up selected:', selectedAbility1.id)
-
-      // Notify UIScene to show the auto level up notification
-      this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
+    if (!selectedAbility) {
+      console.log('GameScene: No ability could be selected')
+      this.isLevelingUp = false
+      return
     }
+
+    // Apply the ability
+    this.applyAbility(selectedAbility.id)
+
+    console.log('GameScene: Auto level up selected (priority):', selectedAbility.id)
+
+    // Notify UIScene to show the auto level up notification
+    this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility)
 
     // Brief immunity period after auto level up
     this.time.delayedCall(500, () => {

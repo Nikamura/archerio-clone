@@ -359,7 +359,7 @@ Visual test screenshots are saved to `test/screenshots/`
 5. ✅ **Stationary enemies stuck in walls** - Fixed: isValidSpawnPosition checks wall overlap
 6. ✅ **Wall textures not tileable** - Fixed: applied seamless blend technique to all 20 wall textures
 7. ✅ **Fusion popup shows wrong items** - Fixed: showFusionResultsPopup() displays all items in grid
-8. ✅ **Damage aura visual indicator** - Already implemented: pulsing orange circle shows range
+8. **Damage aura visual indicator** - Missing visual indicator showing the aura's range and that it's active
 9. ✅ **Chest gives double items** - Fixed: removed duplicate addToInventory call in openAllChests
 10. ✅ **LOTR theme backgrounds not optimized** - Fixed: 93% size reduction (4.9MB to 369KB)
 11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
@@ -395,6 +395,8 @@ Visual test screenshots are saved to `test/screenshots/`
 12. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
 13. ✅ **Theme-specific monster names** - Added themed enemy names to encyclopedia: Vaporwave (GLITCH.exe, N30N_4RCH3R), LOTR (Goblin, Orc Archer), Stranger Things (Demodog, Demogorgon Scout)
 14. ✅ **Animated hero shooting** - Added scale pulse + recoil animation when player shoots (squash/stretch effect with slight positional kickback)
+15. ✅ **Ability priority system** - Players can set priority order for auto-learned abilities via drag-and-drop UI. Highest priority available ability is selected during auto-level-up and timeout scenarios.
+16. **Multiple priority layouts** - Allow players to save up to 4 different ability priority layouts (e.g., "Boss Rush", "Survival", "Speed Run"). First layout free, additional layouts purchasable with gold/gems. Quick-switch between layouts from Priority scene or pre-game.
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
