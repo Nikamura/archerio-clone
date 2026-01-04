@@ -151,7 +151,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: 'dodge_master',
     name: 'Dodge Master',
-    description: '+1.5% dodge chance',
+    description: '+1% dodge chance',
     color: 0xaaaaff,
     iconKey: 'abilityDodgeMaster',
   },

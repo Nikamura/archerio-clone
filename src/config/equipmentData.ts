@@ -126,16 +126,16 @@ export const PERKS: Record<PerkId, Perk> = {
   },
   [PerkId.DODGE_SMALL]: {
     id: PerkId.DODGE_SMALL,
-    name: 'Dodge +3%',
-    description: 'Adds 3% chance to dodge attacks',
-    stats: { dodgeChance: 0.03 },
+    name: 'Dodge +1%',
+    description: 'Adds 1% chance to dodge attacks',
+    stats: { dodgeChance: 0.01 },
     rarity: Rarity.GREAT,
   },
   [PerkId.DODGE_MEDIUM]: {
     id: PerkId.DODGE_MEDIUM,
-    name: 'Dodge +6%',
-    description: 'Adds 6% chance to dodge attacks',
-    stats: { dodgeChance: 0.06 },
+    name: 'Dodge +2%',
+    description: 'Adds 2% chance to dodge attacks',
+    stats: { dodgeChance: 0.02 },
     rarity: Rarity.EPIC,
   },
 
@@ -294,7 +294,7 @@ export const ARMOR_DATA: Record<ArmorType, BaseEquipmentData> = {
     slot: 'armor',
     baseStats: {
       maxHealth: 75,
-      dodgeChance: 0.05,
+      dodgeChance: 0.02,
     },
   },
   [ArmorType.PHANTOM_CLOAK]: {
@@ -303,7 +303,7 @@ export const ARMOR_DATA: Record<ArmorType, BaseEquipmentData> = {
     slot: 'armor',
     baseStats: {
       maxHealth: 50,
-      dodgeChance: 0.1,
+      dodgeChance: 0.03,
     },
   },
   [ArmorType.GOLDEN_CHESTPLATE]: {
@@ -350,7 +350,7 @@ export const RING_DATA: Record<RingType, BaseEquipmentData> = {
     description: 'Increases dodge chance',
     slot: 'ring',
     baseStats: {
-      dodgeChance: 0.05,
+      dodgeChance: 0.02,
     },
   },
   [RingType.LION_RING]: {
