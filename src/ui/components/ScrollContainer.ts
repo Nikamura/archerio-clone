@@ -36,6 +36,7 @@ export class ScrollContainer {
 
   private bounds: { top: number; bottom: number }
   private width: number
+  private initialY: number
   private onScrollCallback?: (scrollY: number) => void
 
   constructor(config: ScrollContainerConfig) {
@@ -46,6 +47,7 @@ export class ScrollContainer {
 
     const x = config.x ?? 0
     const y = config.y ?? 0
+    this.initialY = y
 
     // Create the container
     this.container = this.scene.add.container(x, y)
@@ -217,8 +219,8 @@ export class ScrollContainer {
     // Clamp scroll position
     this.scrollY = Phaser.Math.Clamp(newY, 0, maxScroll)
 
-    // Apply scroll position to container
-    this.container.y = -this.scrollY
+    // Apply scroll position to container (relative to initial position)
+    this.container.y = this.initialY - this.scrollY
 
     // Notify callback
     if (this.onScrollCallback) {
