@@ -31,12 +31,12 @@ export class ScrollContainer {
   private isDragging: boolean = false
   private dragStartY: number = 0
   private scrollStartY: number = 0
+  private dragDistance: number = 0
+  private readonly DRAG_THRESHOLD = 10
 
   private bounds: { top: number; bottom: number }
   private width: number
   private onScrollCallback?: (scrollY: number) => void
-
-  private scrollZone?: Phaser.GameObjects.Zone
 
   constructor(config: ScrollContainerConfig) {
     this.scene = config.scene
@@ -143,17 +143,6 @@ export class ScrollContainer {
   }
 
   private setupScrollInput(): void {
-    const scrollAreaHeight = this.bounds.bottom - this.bounds.top
-
-    // Create an invisible interactive zone for the scroll area
-    this.scrollZone = this.scene.add.zone(
-      this.width / 2,
-      this.bounds.top + scrollAreaHeight / 2,
-      this.width,
-      scrollAreaHeight
-    )
-    this.scrollZone.setInteractive()
-
     // Mouse wheel scrolling
     this.scene.input.on(
       'wheel',
@@ -167,16 +156,28 @@ export class ScrollContainer {
       }
     )
 
-    // Touch/mouse drag scrolling
-    this.scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDragging = true
-      this.dragStartY = pointer.y
-      this.scrollStartY = this.scrollY
+    // Touch/mouse drag scrolling - capture at scene level
+    // but only activate if pointer is in scroll area
+    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const inScrollArea =
+        pointer.y >= this.bounds.top && pointer.y <= this.bounds.bottom
+
+      if (inScrollArea && this.getMaxScroll() > 0) {
+        this.isDragging = true
+        this.dragStartY = pointer.y
+        this.scrollStartY = this.scrollY
+        this.dragDistance = 0
+      }
     })
 
     this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDragging) {
-        const deltaY = this.dragStartY - pointer.y
+      if (!this.isDragging) return
+
+      const deltaY = this.dragStartY - pointer.y
+      this.dragDistance = Math.abs(deltaY)
+
+      // Only scroll after exceeding the drag threshold
+      if (this.dragDistance > this.DRAG_THRESHOLD) {
         this.setScrollPosition(this.scrollStartY + deltaY)
       }
     })
@@ -188,6 +189,14 @@ export class ScrollContainer {
     this.scene.input.on('pointerupoutside', () => {
       this.isDragging = false
     })
+  }
+
+  /**
+   * Check if the current pointer interaction is a scroll drag (vs a click)
+   * Used by parent scene to determine if button clicks should be processed
+   */
+  isDragScrolling(): boolean {
+    return this.dragDistance >= this.DRAG_THRESHOLD
   }
 
   private scrollContent(deltaY: number): void {
@@ -215,14 +224,10 @@ export class ScrollContainer {
   destroy(): void {
     // Remove input listeners
     this.scene.input.off('wheel')
+    this.scene.input.off('pointerdown')
     this.scene.input.off('pointermove')
     this.scene.input.off('pointerup')
     this.scene.input.off('pointerupoutside')
-
-    // Destroy scroll zone
-    if (this.scrollZone) {
-      this.scrollZone.destroy()
-    }
 
     // Destroy mask
     this.mask.destroy()
