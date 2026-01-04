@@ -478,14 +478,13 @@ export default class GameScene extends Phaser.Scene {
 
     // Apply starting abilities from Glory talent (Epic talent)
     // Must be done after runRng is initialized for deterministic ability selection
+    // Now shows a selection UI instead of auto-applying random abilities
     if (this.talentBonuses.startingAbilities > 0) {
-      console.log(`GameScene: Applying ${this.talentBonuses.startingAbilities} starting abilities from Glory talent`)
-      const shuffledAbilities = [...ABILITIES].sort(() => this.runRng.random() - 0.5)
-      for (let i = 0; i < this.talentBonuses.startingAbilities && i < shuffledAbilities.length; i++) {
-        const ability = shuffledAbilities[i]
-        this.applyAbility(ability.id)
-        console.log(`GameScene: Starting ability applied: ${ability.name}`)
-      }
+      console.log(`GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`)
+      // Schedule the starting ability selection UI to launch after scene is fully ready
+      this.time.delayedCall(100, () => {
+        this.launchStartingAbilitySelection()
+      })
     }
 
     // Initialize room generator with seeded RNG
@@ -1784,6 +1783,68 @@ export default class GameScene extends Phaser.Scene {
     // Brief immunity period after auto level up
     this.time.delayedCall(500, () => {
       this.isLevelingUp = false
+    })
+  }
+
+  /**
+   * Launch the starting ability selection UI for Glory talent bonus
+   */
+  private launchStartingAbilitySelection() {
+    const totalSelections = this.talentBonuses.startingAbilities
+
+    // Pause physics and hide joystick during selection
+    this.physics.pause()
+    this.inputSystem.hide()
+
+    // Clean up any existing listeners to prevent multiple applications
+    this.game.events.off('startingAbilitySelected')
+
+    // Listen for starting ability selection using global game events
+    this.game.events.on('startingAbilitySelected', (data: { abilityId: string; remainingSelections: number; rngState: number }) => {
+      console.log('GameScene: received startingAbilitySelected', data.abilityId)
+      try {
+        this.applyAbility(data.abilityId)
+        console.log(`GameScene: Starting ability applied: ${data.abilityId}`)
+
+        if (data.remainingSelections > 0) {
+          // More selections to make - launch again with updated state
+          console.log(`GameScene: ${data.remainingSelections} more starting abilities to select`)
+          this.time.delayedCall(200, () => {
+            this.scene.launch('StartingAbilityScene', {
+              remainingSelections: data.remainingSelections,
+              currentSelection: totalSelections - data.remainingSelections + 1,
+              totalSelections: totalSelections,
+              rngState: data.rngState,
+            })
+          })
+        } else {
+          // All starting abilities selected - resume gameplay
+          console.log('GameScene: All starting abilities selected, resuming gameplay')
+          this.game.events.off('startingAbilitySelected')
+          this.resetJoystickState()
+          this.inputSystem.show()
+          this.physics.resume()
+        }
+      } catch (error) {
+        console.error('GameScene: Error applying starting ability:', error)
+        this.game.events.off('startingAbilitySelected')
+        this.resetJoystickState()
+        this.physics.resume()
+        this.inputSystem.show()
+      }
+    })
+
+    // Launch the starting ability selection scene
+    if (this.scene.isActive('StartingAbilityScene')) {
+      console.log('GameScene: StartingAbilityScene already active, restarting it')
+      this.scene.stop('StartingAbilityScene')
+    }
+
+    this.scene.launch('StartingAbilityScene', {
+      remainingSelections: totalSelections,
+      currentSelection: 1,
+      totalSelections: totalSelections,
+      rngState: this.runRng.getState(),
     })
   }
 
