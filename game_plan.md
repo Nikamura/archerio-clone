@@ -374,6 +374,10 @@ Visual test screenshots are saved to `test/screenshots/`
 5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
 6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
 7. ✅ **Theme-specific enemy sprites** - 30 themed sprites (10 enemies × 3 themes: Vaporwave, LOTR, Stranger Things), encyclopedia shows themed sprites
+8. **Pause feature for long runs** - Pause button in HUD, PauseScene overlay with resume/settings/quit options, game state preservation
+9. **Equipment comparison in inventory** - Show upgrade indicators on items better than equipped gear, item popup displays stat comparison vs currently equipped item
+10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
+11. **Inventory sorting and filtering** - Sort by rarity, level, slot type, or stat value; filter by equipment slot or rarity tier
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 

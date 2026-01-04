@@ -1,5 +1,4 @@
 import Phaser from 'phaser'
-import '../config/difficulty'
 import { ChapterId } from '../config/chapterData'
 import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
@@ -12,155 +11,82 @@ import { themeManager } from '../systems/ThemeManager'
 import { equipmentManager } from '../systems/EquipmentManager'
 import { heroManager } from '../systems/HeroManager'
 import { Rarity, WeaponType, ArmorType, RingType, SpiritType } from '../systems/Equipment'
+import { fadeInScene, transitionToScene, TransitionType, DURATION } from '../systems/UIAnimations'
 import {
-  fadeInScene,
-  transitionToScene,
-  TransitionType,
-  applyButtonEffects,
-  staggerIn,
-  DURATION,
-} from '../systems/UIAnimations'
-import { ChapterSelectPanel } from './menus/ChapterSelectPanel'
-import { DifficultyPanel } from './menus/DifficultyPanel'
+  createCurrencyBar,
+  CurrencyBarResult,
+  showNoEnergyModal,
+  showMockAdPopup,
+  createBottomNavBar,
+  BottomNavBarResult,
+  createMoreDrawer,
+  MoreDrawerResult,
+  GameMode,
+} from '../ui/components'
+import { createPlaySection } from './menus/PlaySection'
 
 export default class MainMenuScene extends Phaser.Scene {
-  private energyTimerText?: Phaser.GameObjects.Text
-  private leftTorch?: Phaser.GameObjects.Image
-  private rightTorch?: Phaser.GameObjects.Image
-  private chapterPanel?: ChapterSelectPanel
-  private difficultyPanel?: DifficultyPanel
-  private menuButtons: Phaser.GameObjects.Text[] = []
+  private currencyBar?: CurrencyBarResult
+  private bottomNavBar?: BottomNavBarResult
+  private moreDrawer?: MoreDrawerResult
 
   constructor() {
     super({ key: 'MainMenuScene' })
   }
 
   create() {
-    // Fade in scene on entry
     fadeInScene(this, DURATION.NORMAL)
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // ============================================
-    // BACKGROUND (depth 0) - use themed background
-    // ============================================
+    // Background
+    this.createBackground(width, height)
+
+    // Debug mode
+    this.setupDebugMode(width, height)
+
+    // Header (currency + title + settings)
+    this.createHeader(width)
+
+    // Play section (mode selector + collapsible chapter/difficulty + PLAY button)
+    this.createPlaySection(width)
+
+    // Bottom navigation bar
+    this.createBottomNavBar()
+
+    // More drawer (secondary navigation)
+    this.createMoreDrawer()
+
+    // Instructions footer
+    this.createFooter(width, height)
+  }
+
+  update() {
+    this.currencyBar?.updateEnergy()
+  }
+
+  private createBackground(width: number, height: number) {
     const themeAssets = themeManager.getAssets()
     const bg = this.add.image(width / 2, height / 2, themeAssets.menuBg)
     bg.setDisplaySize(width, height)
     bg.setDepth(0)
 
-    // ============================================
-    // ANIMATED TORCHES
-    // ============================================
+    // Animated torches
     this.createTorches(width)
+  }
 
-    // Debug: Unlock all chapters button
-    if (this.game.registry.get('debug')) {
-      // Visible indicator
-      this.add.text(10, height - 20, 'DEBUG MODE ACTIVE', {
-        fontSize: '10px',
-        color: '#ff0000',
-        fontStyle: 'bold',
-      }).setDepth(100)
-
-      // Create a DOM button for debug unlock to avoid being blocked by the joystick
-      const btn = document.createElement('button')
-      btn.innerText = 'DEBUG: UNLOCK ALL'
-      btn.style.position = 'absolute'
-      btn.style.top = '50px'
-      btn.style.left = '10px'
-      btn.style.zIndex = '10000'
-      btn.style.backgroundColor = '#cc0000'
-      btn.style.color = 'white'
-      btn.style.border = 'none'
-      btn.style.padding = '10px'
-      btn.style.fontWeight = 'bold'
-      btn.style.cursor = 'pointer'
-      btn.style.borderRadius = '5px'
-
-      btn.onclick = (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        // Unlock all chapters
-        for (let i = 1; i <= 5; i++) {
-          chapterManager.forceUnlockChapter(i as ChapterId)
-        }
-        // Unlock vaporwave theme
-        themeManager.unlock('vaporwave')
-        // Unlock all heroes
-        heroManager.forceUnlock('helix')
-        heroManager.forceUnlock('meowgik')
-        // Add legendary equipment (one of each slot at max level 70)
-        equipmentManager.createEquipment(WeaponType.DEATH_SCYTHE, Rarity.LEGENDARY, 70)
-        equipmentManager.createEquipment(ArmorType.GOLDEN_CHESTPLATE, Rarity.LEGENDARY, 70)
-        equipmentManager.createEquipment(RingType.LION_RING, Rarity.LEGENDARY, 70)
-        equipmentManager.createEquipment(SpiritType.LASER_BAT, Rarity.LEGENDARY, 70)
-        this.scene.restart()
-      }
-
-      document.body.appendChild(btn)
-
-      // Cleanup DOM button on scene shutdown
-      this.events.once('shutdown', () => {
-        if (btn.parentNode) {
-          btn.parentNode.removeChild(btn)
-        }
-      })
-    }
-
-    // ============================================
-    // CURRENCY DISPLAY (Top bar - compact)
-    // ============================================
-
+  private createHeader(width: number) {
+    // Currency bar
     currencyManager.updateEnergyRegeneration()
-
-    // Single row: Gold | Gems | Energy
-    const currentEnergy = currencyManager.get('energy')
-    const maxEnergy = currencyManager.getMaxEnergy()
-
-    const goldText = this.add.text(10, 10, `💰${currencyManager.get('gold')}`, {
-      fontSize: '14px',
-      color: '#FFD700',
-      stroke: '#000000',
-      strokeThickness: 2,
+    this.currencyBar = createCurrencyBar({
+      scene: this,
+      y: 10,
+      depth: 10,
     })
-    goldText.setDepth(10)
 
-    const gemsText = this.add.text(width / 2, 10, `💎${currencyManager.get('gems')}`, {
-      fontSize: '14px',
-      color: '#00FFFF',
-      stroke: '#000000',
-      strokeThickness: 2,
-    })
-    gemsText.setOrigin(0.5, 0)
-    gemsText.setDepth(10)
-
-    const energyText = this.add.text(width - 10, 10, `⚡${currentEnergy}/${maxEnergy}`, {
-      fontSize: '14px',
-      color: '#FFFF00',
-      stroke: '#000000',
-      strokeThickness: 2,
-    })
-    energyText.setOrigin(1, 0)
-    energyText.setDepth(10)
-
-    // Energy timer (below energy)
-    this.energyTimerText = this.add.text(width - 10, 28, '', {
-      fontSize: '11px',
-      color: '#cccccc',
-      stroke: '#000000',
-      strokeThickness: 2,
-    })
-    this.energyTimerText.setOrigin(1, 0)
-    this.energyTimerText.setDepth(10)
-    this.updateEnergyTimer()
-
-    // ============================================
-    // TITLE (depth 10 to ensure visibility over background)
-    // ============================================
-
+    // Title
     const title = this.add.text(width / 2, 55, 'ARROW GAME', {
-      fontSize: '32px',
+      fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold',
       stroke: '#000000',
@@ -169,12 +95,10 @@ export default class MainMenuScene extends Phaser.Scene {
     title.setOrigin(0.5)
     title.setDepth(10)
 
-    // ============================================
-    // HIGHSCORE DISPLAY
-    // ============================================
+    // High score
     const highScore = saveManager.getStatistics().highestScore
     if (highScore > 0) {
-      const highScoreText = this.add.text(width / 2, 78, `Best: ${highScore.toLocaleString()}`, {
+      const highScoreText = this.add.text(width / 2, 80, `Best: ${highScore.toLocaleString()}`, {
         fontSize: '14px',
         color: '#FFD700',
         stroke: '#000000',
@@ -184,809 +108,169 @@ export default class MainMenuScene extends Phaser.Scene {
       highScoreText.setDepth(10)
     }
 
-    // ============================================
-    // CHAPTER SELECTION (using ChapterSelectPanel)
-    // ============================================
-
-    this.chapterPanel = new ChapterSelectPanel({
-      scene: this,
-      x: width / 2,
-      y: 110,
-      width: width,
+    // Settings button (top right)
+    const settingsBtn = this.add.text(width - 15, 55, '⚙️', {
+      fontSize: '24px',
     })
-    this.chapterPanel.setDepth(10)
-
-    // ============================================
-    // DIFFICULTY SELECTION (using DifficultyPanel)
-    // ============================================
-
-    this.difficultyPanel = new DifficultyPanel({
-      scene: this,
-      x: width / 2,
-      y: 190,
-      game: this.game,
-    })
-    this.difficultyPanel.setDepth(10)
-
-    // ============================================
-    // PLAY BUTTONS (Center - two buttons side by side)
-    // ============================================
-
-    const buttonY = 265
-
-    // PLAY button (left)
-    const playButton = this.add.text(width / 2 - 60, buttonY, 'PLAY', {
-      fontSize: '22px',
-      color: '#ffffff',
-      backgroundColor: '#4a9eff',
-      padding: { x: 28, y: 12 },
-    })
-    playButton.setOrigin(0.5)
-    playButton.setInteractive({ useHandCursor: true })
-    playButton.setDepth(10)
-
-    // Apply enhanced button effects
-    applyButtonEffects(this, playButton, {
-      scaleOnHover: 1.08,
-      scaleOnPress: 0.95,
-    })
-
-    playButton.on('pointerover', () => {
-      playButton.setStyle({ backgroundColor: '#6bb6ff' })
-    })
-
-    playButton.on('pointerout', () => {
-      playButton.setStyle({ backgroundColor: '#4a9eff' })
-    })
-
-    playButton.on('pointerdown', () => {
-      audioManager.resume()
-      // Check and spend energy before starting
-      if (!this.trySpendEnergy()) {
-        return
-      }
-      audioManager.playGameStart()
-      // Disable special modes for normal play
-      this.game.registry.set('isEndlessMode', false)
-      this.game.registry.set('isDailyChallengeMode', false)
-      // Use fade transition when starting game
-      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
-      this.scene.launch('UIScene')
-    })
-
-    // ENDLESS button (right)
-    const endlessButton = this.add.text(width / 2 + 60, buttonY, 'ENDLESS', {
-      fontSize: '22px',
-      color: '#ffffff',
-      backgroundColor: '#ff6b35',
-      padding: { x: 16, y: 12 },
-    })
-    endlessButton.setOrigin(0.5)
-    endlessButton.setInteractive({ useHandCursor: true })
-    endlessButton.setDepth(10)
-
-    // Apply enhanced button effects
-    applyButtonEffects(this, endlessButton, {
-      scaleOnHover: 1.08,
-      scaleOnPress: 0.95,
-    })
-
-    endlessButton.on('pointerover', () => {
-      endlessButton.setStyle({ backgroundColor: '#ff8855' })
-    })
-
-    endlessButton.on('pointerout', () => {
-      endlessButton.setStyle({ backgroundColor: '#ff6b35' })
-    })
-
-    endlessButton.on('pointerdown', () => {
-      audioManager.resume()
-      // Check and spend energy before starting
-      if (!this.trySpendEnergy()) {
-        return
-      }
-      audioManager.playGameStart()
-      // Enable endless mode, disable daily challenge mode
-      this.game.registry.set('isEndlessMode', true)
-      this.game.registry.set('isDailyChallengeMode', false)
-      // Use fade transition when starting game
-      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
-      this.scene.launch('UIScene')
-    })
-
-    // DAILY CHALLENGE button (below play buttons)
-    const dailyCompleted = saveManager.isDailyChallengeCompleted()
-    const dailyStats = saveManager.getDailyChallengeStats()
-    const dailyChallengeColor = dailyCompleted ? '#4a6a4a' : '#00ddff'
-    const dailyChallengeHoverColor = dailyCompleted ? '#5a7a5a' : '#44eeff'
-    const dailyLabel = dailyCompleted ? `DAILY ✓ (Wave ${dailyStats.bestWave})` : 'DAILY CHALLENGE'
-
-    const dailyChallengeButton = this.add.text(width / 2, 305, dailyLabel, {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: dailyChallengeColor,
-      padding: { x: 20, y: 8 },
-    })
-    dailyChallengeButton.setOrigin(0.5)
-    dailyChallengeButton.setInteractive({ useHandCursor: true })
-    dailyChallengeButton.setDepth(10)
-
-    // Apply enhanced button effects
-    applyButtonEffects(this, dailyChallengeButton, {
-      scaleOnHover: 1.05,
-      scaleOnPress: 0.95,
-    })
-
-    dailyChallengeButton.on('pointerover', () => {
-      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeHoverColor })
-    })
-
-    dailyChallengeButton.on('pointerout', () => {
-      dailyChallengeButton.setStyle({ backgroundColor: dailyChallengeColor })
-    })
-
-    dailyChallengeButton.on('pointerdown', () => {
-      audioManager.resume()
-      // Check and spend energy before starting
-      if (!this.trySpendEnergy()) {
-        return
-      }
-      audioManager.playGameStart()
-      // Enable daily challenge mode (uses endless mechanics with fixed daily seed)
-      this.game.registry.set('isDailyChallengeMode', true)
-      this.game.registry.set('isEndlessMode', false) // Will be set to true in GameScene
-      // Use fade transition when starting game
-      transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
-      this.scene.launch('UIScene')
-    })
-
-    // ============================================
-    // MENU BUTTONS (Two rows for better layout)
-    // ============================================
-
-    const menuY = 340
-    const menuButtonConfigs = [
-      { label: 'Heroes', scene: 'HeroesScene' },
-      { label: 'Equip', scene: 'EquipmentScene' },
-      { label: 'Talents', scene: 'TalentsScene' },
-      { label: 'Guide', scene: 'EncyclopediaScene' },
-    ]
-    const menuBtnWidth = 80
-    const menuGap = 8
-    const buttonsPerRow = 4
-    const totalRowWidth = buttonsPerRow * menuBtnWidth + (buttonsPerRow - 1) * menuGap
-    const menuStartX = (width - totalRowWidth) / 2 + menuBtnWidth / 2
-    this.menuButtons = []
-
-    menuButtonConfigs.forEach((btn, index) => {
-      const col = index % buttonsPerRow
-      const xPos = menuStartX + col * (menuBtnWidth + menuGap)
-      const button = this.add.text(xPos, menuY, btn.label, {
-        fontSize: '13px',
-        color: '#ffffff',
-        backgroundColor: '#6b8e23',
-        padding: { x: 12, y: 10 },
-      })
-      button.setOrigin(0.5)
-      button.setInteractive({ useHandCursor: true })
-      button.setDepth(10)
-
-      // Apply enhanced button effects
-      applyButtonEffects(this, button, {
-        scaleOnHover: 1.1,
-        scaleOnPress: 0.9,
-      })
-
-      button.on('pointerover', () => {
-        button.setStyle({ backgroundColor: '#7fa32f' })
-      })
-
-      button.on('pointerout', () => {
-        button.setStyle({ backgroundColor: '#6b8e23' })
-      })
-
-      button.on('pointerdown', () => {
-        audioManager.playMenuSelect()
-        // Use slide transition for sub-menus
-        transitionToScene(this, btn.scene, TransitionType.FADE, DURATION.FAST)
-      })
-
-      this.menuButtons.push(button)
-    })
-
-    // Stagger animate menu buttons entrance
-    staggerIn(this, this.menuButtons, 'up', DURATION.FAST, 50)
-
-    // ============================================
-    // DAILY REWARD & CHESTS BUTTONS (Below menu buttons)
-    // ============================================
-
-    const dailyY = menuY + 55
-    const buttonGapX = 10
-
-    // Chests button (left side)
-    const chestsButton = this.add.text(width / 2 - 75 - buttonGapX / 2, dailyY, 'Chests', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#6b4423',
-      padding: { x: 25, y: 10 },
-    })
-    chestsButton.setOrigin(0.5)
-    chestsButton.setInteractive({ useHandCursor: true })
-    chestsButton.setDepth(10)
-
-    chestsButton.on('pointerover', () => {
-      chestsButton.setStyle({ backgroundColor: '#7d5530' })
-    })
-
-    chestsButton.on('pointerout', () => {
-      chestsButton.setStyle({ backgroundColor: '#6b4423' })
-    })
-
-    chestsButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      transitionToScene(this, 'ChestScene', TransitionType.FADE, DURATION.FAST)
-    })
-
-    applyButtonEffects(this, chestsButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
-
-    // Notification badge for Chests button (if player has chests)
-    const totalChests = chestManager.getTotalChests()
-    if (totalChests > 0) {
-      const chestBadgeX = chestsButton.x + chestsButton.width / 2 + 5
-      const chestBadgeY = dailyY - chestsButton.height / 2
-
-      // Red circle badge with count
-      const chestBadge = this.add.circle(chestBadgeX, chestBadgeY, 10, 0xff4444)
-      chestBadge.setDepth(11)
-
-      // Badge count text
-      const chestBadgeCount = this.add.text(chestBadgeX, chestBadgeY, `${totalChests}`, {
-        fontSize: '10px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      chestBadgeCount.setOrigin(0.5)
-      chestBadgeCount.setDepth(12)
-
-      // Pulse animation on badge
-      this.tweens.add({
-        targets: chestBadge,
-        scale: { from: 1, to: 1.2 },
-        duration: 500,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      })
-    }
-    const canClaimDaily = dailyRewardManager.canClaimToday()
-
-    // Daily Rewards button (right side)
-    const dailyButton = this.add.text(width / 2 + 75 + buttonGapX / 2, dailyY, 'Daily', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#8b4513',
-      padding: { x: 20, y: 10 },
-    })
-    dailyButton.setOrigin(0.5)
-    dailyButton.setInteractive({ useHandCursor: true })
-    dailyButton.setDepth(10)
-
-    dailyButton.on('pointerover', () => {
-      dailyButton.setStyle({ backgroundColor: '#a0522d' })
-    })
-
-    dailyButton.on('pointerout', () => {
-      dailyButton.setStyle({ backgroundColor: '#8b4513' })
-    })
-
-    dailyButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      transitionToScene(this, 'DailyRewardScene', TransitionType.FADE, DURATION.FAST)
-    })
-
-    // Apply button effects to daily button
-    applyButtonEffects(this, dailyButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
-
-    // Notification badge (if reward available)
-    if (canClaimDaily) {
-      const badgeX = dailyButton.x + dailyButton.width / 2 + 5
-      const badgeY = dailyButton.y - dailyButton.height / 2
-
-      // Red circle badge
-      const badge = this.add.circle(badgeX, badgeY, 8, 0xff4444)
-      badge.setDepth(11)
-
-      // Exclamation mark
-      const exclamation = this.add.text(badgeX, badgeY, '!', {
-        fontSize: '12px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      exclamation.setOrigin(0.5)
-      exclamation.setDepth(12)
-
-      // Pulse animation on badge
-      this.tweens.add({
-        targets: badge,
-        scale: { from: 1, to: 1.2 },
-        duration: 500,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      })
-    }
-
-    // ============================================
-    // ACHIEVEMENTS BUTTON (Below daily rewards)
-    // ============================================
-
-    const achieveY = dailyY + 45
-    const unclaimedCount = achievementManager.getUnclaimedRewardsCount()
-
-    const achieveButton = this.add.text(width / 2, achieveY, 'Achievements', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#4a4a8a',
-      padding: { x: 20, y: 10 },
-    })
-    achieveButton.setOrigin(0.5)
-    achieveButton.setInteractive({ useHandCursor: true })
-    achieveButton.setDepth(10)
-
-    achieveButton.on('pointerover', () => {
-      achieveButton.setStyle({ backgroundColor: '#5a5a9a' })
-    })
-
-    achieveButton.on('pointerout', () => {
-      achieveButton.setStyle({ backgroundColor: '#4a4a8a' })
-    })
-
-    achieveButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      transitionToScene(this, 'AchievementsScene', TransitionType.FADE, DURATION.FAST)
-    })
-
-    // Apply button effects to achievements button
-    applyButtonEffects(this, achieveButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
-
-    // Notification badge (if unclaimed rewards)
-    if (unclaimedCount > 0) {
-      const achieveBadgeX = achieveButton.x + achieveButton.width / 2 + 5
-      const achieveBadgeY = achieveButton.y - achieveButton.height / 2
-
-      // Red circle badge with count
-      const achieveBadge = this.add.circle(achieveBadgeX, achieveBadgeY, 10, 0xff4444)
-      achieveBadge.setDepth(11)
-
-      // Badge count text
-      const badgeCount = this.add.text(achieveBadgeX, achieveBadgeY, `${unclaimedCount}`, {
-        fontSize: '10px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      badgeCount.setOrigin(0.5)
-      badgeCount.setDepth(12)
-
-      // Pulse animation on badge
-      this.tweens.add({
-        targets: achieveBadge,
-        scale: { from: 1, to: 1.2 },
-        duration: 500,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      })
-    }
-
-    // ============================================
-    // SHOP BUTTON (Below achievements)
-    // ============================================
-
-    const shopY = achieveY + 45
-
-    const shopButton = this.add.text(width / 2, shopY, 'Shop', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#9932cc',
-      padding: { x: 20, y: 10 },
-    })
-    shopButton.setOrigin(0.5)
-    shopButton.setInteractive({ useHandCursor: true })
-    shopButton.setDepth(10)
-
-    shopButton.on('pointerover', () => {
-      shopButton.setStyle({ backgroundColor: '#ba55d3' })
-    })
-
-    shopButton.on('pointerout', () => {
-      shopButton.setStyle({ backgroundColor: '#9932cc' })
-    })
-
-    shopButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      transitionToScene(this, 'ShopScene', TransitionType.FADE, DURATION.FAST)
-    })
-
-    // Apply button effects to shop button
-    applyButtonEffects(this, shopButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
-
-    // ============================================
-    // SETTINGS BUTTON (Below shop)
-    // ============================================
-
-    const settingsY = shopY + 45
-
-    const settingsButton = this.add.text(width / 2, settingsY, 'Settings', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#555555',
-      padding: { x: 20, y: 10 },
-    })
-    settingsButton.setOrigin(0.5)
-    settingsButton.setInteractive({ useHandCursor: true })
-    settingsButton.setDepth(10)
-
-    settingsButton.on('pointerover', () => {
-      settingsButton.setStyle({ backgroundColor: '#777777' })
-    })
-
-    settingsButton.on('pointerout', () => {
-      settingsButton.setStyle({ backgroundColor: '#555555' })
-    })
-
-    settingsButton.on('pointerdown', () => {
+    settingsBtn.setOrigin(1, 0.5)
+    settingsBtn.setInteractive({ useHandCursor: true })
+    settingsBtn.setDepth(10)
+
+    settingsBtn.on('pointerdown', () => {
       audioManager.playMenuSelect()
       transitionToScene(this, 'SettingsScene', TransitionType.FADE, DURATION.FAST)
     })
+  }
 
-    // Apply button effects to settings button
-    applyButtonEffects(this, settingsButton, { scaleOnHover: 1.05, scaleOnPress: 0.95 })
+  private createPlaySection(width: number) {
+    createPlaySection({
+      scene: this,
+      x: width / 2,
+      y: 130,
+      width,
+      onPlay: (mode: GameMode) => {
+        if (!this.trySpendEnergy()) return
 
-    // Instructions (bottom)
-    const instructionsText = this.add.text(width / 2, height - 30, 'Move to dodge • Stop to shoot', {
-      fontSize: '12px',
-      color: '#aaaaaa',
+        // Set game mode
+        this.game.registry.set('isEndlessMode', mode === 'endless' || mode === 'daily')
+        this.game.registry.set('isDailyChallengeMode', mode === 'daily')
+
+        transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+        this.scene.launch('UIScene')
+      },
+      depth: 10,
+    })
+  }
+
+  private createBottomNavBar() {
+    const chestCount = chestManager.getTotalChests()
+    const moreBadge = this.getMoreBadgeCount()
+
+    this.bottomNavBar = createBottomNavBar({
+      scene: this,
+      activeId: 'home',
+      items: [
+        { id: 'home', icon: '🏠', label: 'Home' },
+        { id: 'gear', icon: '⚔️', label: 'Gear', scene: 'EquipmentScene' },
+        { id: 'rewards', icon: '🎁', label: 'Rewards', scene: 'ChestScene', badge: chestCount },
+        { id: 'shop', icon: '🛒', label: 'Shop', scene: 'ShopScene' },
+        {
+          id: 'more',
+          icon: '•••',
+          label: 'More',
+          badge: moreBadge,
+          onClick: () => this.moreDrawer?.show(),
+        },
+      ],
+      depth: 50,
+    })
+  }
+
+  private createMoreDrawer() {
+    const dailyBadge = dailyRewardManager.canClaimToday() ? 1 : 0
+    const achieveBadge = achievementManager.getUnclaimedRewardsCount()
+
+    this.moreDrawer = createMoreDrawer({
+      scene: this,
+      items: [
+        { id: 'heroes', icon: '🦸', label: 'Heroes', scene: 'HeroesScene' },
+        { id: 'talents', icon: '⭐', label: 'Talents', scene: 'TalentsScene' },
+        { id: 'daily', icon: '📅', label: 'Daily Rewards', scene: 'DailyRewardScene', badge: dailyBadge },
+        { id: 'achievements', icon: '🏆', label: 'Achievements', scene: 'AchievementsScene', badge: achieveBadge },
+        { id: 'guide', icon: '📖', label: 'Encyclopedia', scene: 'EncyclopediaScene' },
+      ],
+    })
+  }
+
+  private createFooter(width: number, height: number) {
+    const navBarHeight = this.bottomNavBar?.getHeight() ?? 60
+    const instructionsText = this.add.text(width / 2, height - navBarHeight - 15, 'Move to dodge • Stop to shoot', {
+      fontSize: '11px',
+      color: '#666666',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 1,
     })
     instructionsText.setOrigin(0.5)
     instructionsText.setDepth(10)
   }
 
-  update() {
-    // Update energy timer every frame
-    this.updateEnergyTimer()
+  private getMoreBadgeCount(): number {
+    const daily = dailyRewardManager.canClaimToday() ? 1 : 0
+    const achieve = achievementManager.getUnclaimedRewardsCount()
+    return daily + achieve
   }
 
-  private updateEnergyTimer() {
-    if (!this.energyTimerText) return
-
-    const currentEnergy = currencyManager.get('energy')
-    const maxEnergy = currencyManager.getMaxEnergy()
-
-    if (currentEnergy >= maxEnergy) {
-      this.energyTimerText.setText('')
-      return
-    }
-
-    const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
-    this.energyTimerText.setText(`Next: ${timeString}`)
-  }
-
-  /**
-   * Attempt to start a game run by spending energy
-   * @returns true if energy was spent and game can start, false otherwise
-   */
   private trySpendEnergy(): boolean {
     const currentEnergy = currencyManager.get('energy')
     if (currentEnergy <= 0) {
-      this.showNoEnergyMessage()
+      showNoEnergyModal({
+        scene: this,
+        onWatchAd: () => {
+          showMockAdPopup({ scene: this })
+        },
+      })
       return false
     }
-
     currencyManager.spendEnergy(1)
     return true
   }
 
-  /**
-   * Show a "No Energy" message with option to watch ad for energy
-   */
-  private showNoEnergyMessage(): void {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
+  private setupDebugMode(_width: number, height: number) {
+    if (!this.game.registry.get('debug')) return
 
-    // Create semi-transparent overlay
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
-    overlay.setDepth(100)
+    this.add
+      .text(10, height - 20, 'DEBUG MODE ACTIVE', {
+        fontSize: '10px',
+        color: '#ff0000',
+        fontStyle: 'bold',
+      })
+      .setDepth(100)
 
-    // Create message container (larger to fit watch ad button)
-    const messageBox = this.add.rectangle(width / 2, height / 2, 280, 180, 0x222222, 1)
-    messageBox.setStrokeStyle(2, 0xff4444)
-    messageBox.setDepth(101)
+    const btn = document.createElement('button')
+    btn.innerText = 'DEBUG: UNLOCK ALL'
+    btn.style.cssText = `
+      position: absolute; top: 50px; left: 10px; z-index: 10000;
+      background-color: #cc0000; color: white; border: none;
+      padding: 10px; font-weight: bold; cursor: pointer; border-radius: 5px;
+    `
 
-    // No energy icon and title
-    const title = this.add.text(width / 2, height / 2 - 60, '⚡ No Energy!', {
-      fontSize: '22px',
-      color: '#ff4444',
-      fontStyle: 'bold',
-    })
-    title.setOrigin(0.5)
-    title.setDepth(102)
-
-    // Description text
-    const timeString = currencyManager.getFormattedTimeUntilNextEnergy()
-    const desc = this.add.text(width / 2, height / 2 - 30, `Next energy in: ${timeString}`, {
-      fontSize: '14px',
-      color: '#cccccc',
-    })
-    desc.setOrigin(0.5)
-    desc.setDepth(102)
-
-    // Watch Ad button
-    const watchAdBg = this.add.rectangle(width / 2, height / 2 + 10, 200, 40, 0x4a9eff, 1)
-    watchAdBg.setStrokeStyle(2, 0x6bb6ff)
-    watchAdBg.setDepth(102)
-    watchAdBg.setInteractive({ useHandCursor: true })
-
-    const watchAdText = this.add.text(width / 2, height / 2 + 10, '📺 Watch Ad for +1 Energy', {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    })
-    watchAdText.setOrigin(0.5)
-    watchAdText.setDepth(103)
-
-    // Hover effects for button
-    watchAdBg.on('pointerover', () => {
-      watchAdBg.setFillStyle(0x6bb6ff)
-    })
-    watchAdBg.on('pointerout', () => {
-      watchAdBg.setFillStyle(0x4a9eff)
-    })
-
-    // Click to show mock ad
-    watchAdBg.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      // Destroy current modal
-      overlay.destroy()
-      messageBox.destroy()
-      title.destroy()
-      desc.destroy()
-      watchAdBg.destroy()
-      watchAdText.destroy()
-      dismissText.destroy()
-      // Show mock ad
-      this.showMockAdPopup()
-    })
-
-    // Tap to dismiss text
-    const dismissText = this.add.text(width / 2, height / 2 + 60, 'Tap outside to dismiss', {
-      fontSize: '12px',
-      color: '#888888',
-    })
-    dismissText.setOrigin(0.5)
-    dismissText.setDepth(102)
-
-    // Make overlay interactive to dismiss (but not the message box area)
-    overlay.setInteractive()
-    overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Only dismiss if clicked outside the message box
-      const boxBounds = messageBox.getBounds()
-      if (!boxBounds.contains(pointer.x, pointer.y)) {
-        overlay.destroy()
-        messageBox.destroy()
-        title.destroy()
-        desc.destroy()
-        watchAdBg.destroy()
-        watchAdText.destroy()
-        dismissText.destroy()
+    btn.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      for (let i = 1; i <= 5; i++) {
+        chapterManager.forceUnlockChapter(i as ChapterId)
       }
-    })
-  }
+      themeManager.unlock('vaporwave')
+      heroManager.forceUnlock('helix')
+      heroManager.forceUnlock('meowgik')
+      equipmentManager.createEquipment(WeaponType.DEATH_SCYTHE, Rarity.LEGENDARY, 70)
+      equipmentManager.createEquipment(ArmorType.GOLDEN_CHESTPLATE, Rarity.LEGENDARY, 70)
+      equipmentManager.createEquipment(RingType.LION_RING, Rarity.LEGENDARY, 70)
+      equipmentManager.createEquipment(SpiritType.LASER_BAT, Rarity.LEGENDARY, 70)
+      this.scene.restart()
+    }
 
-  /**
-   * Show a mock ad popup with a cat image
-   * Gives +1 energy after "watching"
-   */
-  private showMockAdPopup(): void {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
-
-    // Create overlay
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9)
-    overlay.setDepth(200)
-
-    // Ad container
-    const adBox = this.add.rectangle(width / 2, height / 2, 300, 400, 0xffffff, 1)
-    adBox.setStrokeStyle(3, 0x333333)
-    adBox.setDepth(201)
-
-    // "AD" label in top corner
-    const adLabel = this.add.text(width / 2 - 130, height / 2 - 180, 'AD', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#ffaa00',
-      padding: { x: 6, y: 2 },
-    })
-    adLabel.setDepth(202)
-
-    // Cat image placeholder (using graphics to draw a cute cat face)
-    const catGraphics = this.add.graphics()
-    catGraphics.setDepth(202)
-
-    const catX = width / 2
-    const catY = height / 2 - 40
-
-    // Cat face (circle)
-    catGraphics.fillStyle(0xffcc66)
-    catGraphics.fillCircle(catX, catY, 80)
-
-    // Cat ears
-    catGraphics.fillStyle(0xffcc66)
-    catGraphics.fillTriangle(catX - 70, catY - 50, catX - 40, catY - 90, catX - 20, catY - 50)
-    catGraphics.fillTriangle(catX + 70, catY - 50, catX + 40, catY - 90, catX + 20, catY - 50)
-
-    // Inner ears
-    catGraphics.fillStyle(0xffaa88)
-    catGraphics.fillTriangle(catX - 60, catY - 55, catX - 45, catY - 80, catX - 30, catY - 55)
-    catGraphics.fillTriangle(catX + 60, catY - 55, catX + 45, catY - 80, catX + 30, catY - 55)
-
-    // Eyes
-    catGraphics.fillStyle(0x333333)
-    catGraphics.fillCircle(catX - 30, catY - 10, 15)
-    catGraphics.fillCircle(catX + 30, catY - 10, 15)
-
-    // Eye highlights
-    catGraphics.fillStyle(0xffffff)
-    catGraphics.fillCircle(catX - 35, catY - 15, 5)
-    catGraphics.fillCircle(catX + 25, catY - 15, 5)
-
-    // Nose
-    catGraphics.fillStyle(0xff8888)
-    catGraphics.fillTriangle(catX, catY + 15, catX - 10, catY + 5, catX + 10, catY + 5)
-
-    // Mouth - vertical line from nose
-    catGraphics.lineStyle(3, 0x333333)
-    catGraphics.beginPath()
-    catGraphics.moveTo(catX, catY + 15)
-    catGraphics.lineTo(catX, catY + 25)
-    catGraphics.strokePath()
-
-    // Mouth - smile arc (using arc for the curved smile)
-    catGraphics.beginPath()
-    catGraphics.arc(catX, catY + 25, 20, 0.2, Math.PI - 0.2, false)
-    catGraphics.strokePath()
-
-    // Whiskers
-    catGraphics.lineStyle(2, 0x333333)
-    catGraphics.beginPath()
-    // Left whiskers
-    catGraphics.moveTo(catX - 40, catY + 10)
-    catGraphics.lineTo(catX - 80, catY)
-    catGraphics.moveTo(catX - 40, catY + 20)
-    catGraphics.lineTo(catX - 80, catY + 20)
-    catGraphics.moveTo(catX - 40, catY + 30)
-    catGraphics.lineTo(catX - 80, catY + 40)
-    // Right whiskers
-    catGraphics.moveTo(catX + 40, catY + 10)
-    catGraphics.lineTo(catX + 80, catY)
-    catGraphics.moveTo(catX + 40, catY + 20)
-    catGraphics.lineTo(catX + 80, catY + 20)
-    catGraphics.moveTo(catX + 40, catY + 30)
-    catGraphics.lineTo(catX + 80, catY + 40)
-    catGraphics.strokePath()
-
-    // Ad text
-    const adTitle = this.add.text(width / 2, height / 2 + 90, 'Cute Cat Wants to Help!', {
-      fontSize: '18px',
-      color: '#333333',
-      fontStyle: 'bold',
-    })
-    adTitle.setOrigin(0.5)
-    adTitle.setDepth(202)
-
-    const adDesc = this.add.text(width / 2, height / 2 + 115, 'Watch this adorable cat for energy', {
-      fontSize: '12px',
-      color: '#666666',
-    })
-    adDesc.setOrigin(0.5)
-    adDesc.setDepth(202)
-
-    // Progress bar for "watching" the ad
-    const progressBg = this.add.rectangle(width / 2, height / 2 + 150, 200, 20, 0xdddddd)
-    progressBg.setDepth(202)
-
-    const progressBar = this.add.rectangle(width / 2 - 100, height / 2 + 150, 0, 18, 0x4a9eff)
-    progressBar.setOrigin(0, 0.5)
-    progressBar.setDepth(203)
-
-    const progressText = this.add.text(width / 2, height / 2 + 150, 'Loading...', {
-      fontSize: '12px',
-      color: '#333333',
-    })
-    progressText.setOrigin(0.5)
-    progressText.setDepth(204)
-
-    // Animate progress bar over 3 seconds
-    this.tweens.add({
-      targets: progressBar,
-      width: 200,
-      duration: 3000,
-      ease: 'Linear',
-      onUpdate: () => {
-        const progress = Math.floor((progressBar.width / 200) * 100)
-        progressText.setText(`${progress}%`)
-      },
-      onComplete: () => {
-        progressText.setText('Complete!')
-
-        // Give energy reward
-        currencyManager.add('energy', 1)
-        audioManager.playLevelUp()
-
-        // Show reward message
-        const rewardText = this.add.text(width / 2, height / 2 + 180, '+1 Energy Received!', {
-          fontSize: '16px',
-          color: '#00cc00',
-          fontStyle: 'bold',
-        })
-        rewardText.setOrigin(0.5)
-        rewardText.setDepth(202)
-
-        // Close button
-        const closeBg = this.add.rectangle(width / 2, height / 2 + 220, 120, 36, 0x4a9eff)
-        closeBg.setStrokeStyle(2, 0x6bb6ff)
-        closeBg.setDepth(202)
-        closeBg.setInteractive({ useHandCursor: true })
-
-        const closeText = this.add.text(width / 2, height / 2 + 220, 'Close', {
-          fontSize: '16px',
-          color: '#ffffff',
-          fontStyle: 'bold',
-        })
-        closeText.setOrigin(0.5)
-        closeText.setDepth(203)
-
-        closeBg.on('pointerover', () => closeBg.setFillStyle(0x6bb6ff))
-        closeBg.on('pointerout', () => closeBg.setFillStyle(0x4a9eff))
-        closeBg.on('pointerdown', () => {
-          audioManager.playMenuSelect()
-          overlay.destroy()
-          adBox.destroy()
-          adLabel.destroy()
-          catGraphics.destroy()
-          adTitle.destroy()
-          adDesc.destroy()
-          progressBg.destroy()
-          progressBar.destroy()
-          progressText.destroy()
-          rewardText.destroy()
-          closeBg.destroy()
-          closeText.destroy()
-        })
-      },
-    })
+    document.body.appendChild(btn)
+    this.events.once('shutdown', () => btn.parentNode?.removeChild(btn))
   }
 
   private createTorches(width: number) {
-    // Title Y position (matches title in create())
-    const titleY = 60
-    const torchOffsetX = 80 // Distance from center to each torch
+    const titleY = 55
+    const torchOffsetX = 100
 
-    // Create left torch - small size
-    this.leftTorch = this.add.image(width / 2 - torchOffsetX, titleY, 'torch')
-    this.leftTorch.setDisplaySize(16, 16)
-    this.leftTorch.setDepth(1)
+    // Left torch
+    const leftTorch = this.add.image(width / 2 - torchOffsetX, titleY, 'torch')
+    leftTorch.setDisplaySize(16, 16)
+    leftTorch.setDepth(1)
 
-    // Create right torch - small size
-    this.rightTorch = this.add.image(width / 2 + torchOffsetX, titleY, 'torch')
-    this.rightTorch.setDisplaySize(16, 16)
-    this.rightTorch.setDepth(1)
+    // Right torch
+    const rightTorch = this.add.image(width / 2 + torchOffsetX, titleY, 'torch')
+    rightTorch.setDisplaySize(16, 16)
+    rightTorch.setDepth(1)
 
-    // Animate left torch - subtle flickering effect (slower)
+    // Flicker animations
     this.tweens.add({
-      targets: this.leftTorch,
+      targets: [leftTorch, rightTorch],
       scaleX: { from: 0.98, to: 1.02 },
       scaleY: { from: 0.98, to: 1.02 },
       duration: 400,
@@ -996,7 +280,7 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     this.tweens.add({
-      targets: this.leftTorch,
+      targets: [leftTorch, rightTorch],
       alpha: { from: 0.9, to: 1.0 },
       duration: 600,
       yoyo: true,
@@ -1004,42 +288,18 @@ export default class MainMenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     })
 
-    // Animate right torch - slightly different timing for natural look
-    this.tweens.add({
-      targets: this.rightTorch,
-      scaleX: { from: 0.98, to: 1.02 },
-      scaleY: { from: 0.98, to: 1.02 },
-      duration: 450,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      delay: 100,
-    })
-
-    this.tweens.add({
-      targets: this.rightTorch,
-      alpha: { from: 0.9, to: 1.0 },
-      duration: 550,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      delay: 80,
-    })
-
-    // Add ember particles rising from torches
+    // Ember particles
     this.createEmberParticles(width, titleY, torchOffsetX)
   }
 
   private createEmberParticles(width: number, titleY: number, torchOffsetX: number) {
-    // Create a simple ember particle texture
     const graphics = this.add.graphics()
     graphics.fillStyle(0xff6600, 1)
     graphics.fillCircle(1, 1, 1)
     graphics.generateTexture('ember', 2, 2)
     graphics.destroy()
 
-    // Create ember emitter for left torch - smaller and less frequent
-    const leftEmitter = this.add.particles(width / 2 - torchOffsetX, titleY - 5, 'ember', {
+    const emitterConfig = {
       speed: { min: 8, max: 20 },
       angle: { min: 250, max: 290 },
       scale: { start: 0.4, end: 0 },
@@ -1049,21 +309,12 @@ export default class MainMenuScene extends Phaser.Scene {
       quantity: 1,
       blendMode: Phaser.BlendModes.ADD,
       tint: [0xff6600, 0xff8800, 0xffaa00],
-    })
+    }
+
+    const leftEmitter = this.add.particles(width / 2 - torchOffsetX, titleY - 5, 'ember', emitterConfig)
     leftEmitter.setDepth(2)
 
-    // Create ember emitter for right torch
-    const rightEmitter = this.add.particles(width / 2 + torchOffsetX, titleY - 5, 'ember', {
-      speed: { min: 8, max: 20 },
-      angle: { min: 250, max: 290 },
-      scale: { start: 0.4, end: 0 },
-      alpha: { start: 0.8, end: 0 },
-      lifespan: { min: 400, max: 800 },
-      frequency: 400,
-      quantity: 1,
-      blendMode: Phaser.BlendModes.ADD,
-      tint: [0xff6600, 0xff8800, 0xffaa00],
-    })
+    const rightEmitter = this.add.particles(width / 2 + torchOffsetX, titleY - 5, 'ember', emitterConfig)
     rightEmitter.setDepth(2)
   }
 }
