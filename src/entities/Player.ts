@@ -213,6 +213,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addPoisonShot()
   }
 
+  addBleed() {
+    this.stats?.addBleed()
+  }
+
   addLightningChain() {
     this.stats?.addLightningChain()
   }
@@ -346,6 +350,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getPoisonDamage(): number {
     return this.stats?.getPoisonDamage() ?? 0
+  }
+
+  getBleedDamagePercent(): number {
+    return this.stats?.getBleedDamagePercent() ?? 0
+  }
+
+  getBleedDamage(): number {
+    return this.stats?.getBleedDamage() ?? 0
   }
 
   getLightningChainCount(): number {

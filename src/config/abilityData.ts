@@ -203,6 +203,13 @@ export const ABILITIES: AbilityData[] = [
     iconKey: 'abilityFireSpread',
     maxLevel: 1, // Non-stacking ability
   },
+  {
+    id: 'bleed',
+    name: 'Bleed',
+    description: '10% DOT, 2x if moving',
+    color: 0xcc0000,
+    iconKey: 'abilityBleed',
+  },
 ]
 
 /**

@@ -53,6 +53,7 @@ export class PlayerStats {
   private poisonDamagePercent: number = 0  // Percentage of weapon damage as poison DOT per second
   private poisonMaxStacks: number = 5  // Maximum poison stacks
   private lightningChainCount: number = 0  // Number of enemies lightning chains to
+  private bleedDamagePercent: number = 0  // Percentage of weapon damage as bleed DOT (2x when moving)
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
   private damageAuraLevel: number = 0  // AOE damage aura around player
@@ -311,6 +312,19 @@ export class PlayerStats {
     return this.poisonMaxStacks
   }
 
+  getBleedDamagePercent(): number {
+    return this.bleedDamagePercent
+  }
+
+  /**
+   * Calculate bleed damage amount based on current weapon damage
+   * Bleed does 10% weapon damage per tick (2x when enemy is moving)
+   */
+  getBleedDamage(): number {
+    if (this.bleedDamagePercent === 0) return 0
+    return Math.floor(this.getDamage() * this.bleedDamagePercent)
+  }
+
   getLightningChainCount(): number {
     return this.lightningChainCount
   }
@@ -558,6 +572,14 @@ export class PlayerStats {
   }
 
   /**
+   * Add Bleed ability (10% DOT, deals 2x damage when enemy is moving)
+   * Stacking: Additive bleed damage per level
+   */
+  addBleed(): void {
+    this.bleedDamagePercent += 0.10  // +10% weapon damage per tick
+  }
+
+  /**
    * Add Lightning Chain ability (chains to 2 additional enemies per level)
    * Stacking: Each level adds +2 chain targets
    */
@@ -742,6 +764,7 @@ export class PlayerStats {
     // Reset new V1 abilities
     this.freezeChance = 0
     this.poisonDamagePercent = 0
+    this.bleedDamagePercent = 0
     this.lightningChainCount = 0
     this.diagonalArrows = 0
     this.rearArrows = 0
@@ -782,6 +805,7 @@ export class PlayerStats {
     critDamageMultiplier: number
     freezeChance: number
     poisonDamagePercent: number
+    bleedDamagePercent: number
     lightningChainCount: number
     diagonalArrows: number
     rearArrows: number
@@ -815,6 +839,7 @@ export class PlayerStats {
       critDamageMultiplier: this.critDamageMultiplier,
       freezeChance: this.freezeChance,
       poisonDamagePercent: this.poisonDamagePercent,
+      bleedDamagePercent: this.bleedDamagePercent,
       lightningChainCount: this.lightningChainCount,
       diagonalArrows: this.diagonalArrows,
       rearArrows: this.rearArrows,

@@ -130,6 +130,9 @@ export class AbilitySystem {
       case 'fire_spread':
         this.player.addFireSpread()
         break
+      case 'bleed':
+        this.player.addBleed()
+        break
     }
 
     this.abilitiesGained++
