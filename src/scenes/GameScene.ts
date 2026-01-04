@@ -11,15 +11,12 @@ import {
   SpawnerEnemy,
 } from '../entities/enemies'
 import Boss from '../entities/Boss'
-import Bullet from '../entities/Bullet'
 import { InputSystem } from './game/InputSystem'
 import { AbilitySystem } from './game/AbilitySystem'
-// TODO: Integrate CombatSystem to further reduce GameScene complexity
-// import { CombatSystem } from './game/CombatSystem'
+import { CombatSystem } from './game/CombatSystem'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import SpiritCatPool from '../systems/SpiritCatPool'
-import SpiritCat from '../entities/SpiritCat'
 import { getSpiritCatConfig, type SpiritCatConfig } from '../config/heroData'
 import BombPool from '../systems/BombPool'
 import GoldPool from '../systems/GoldPool'
@@ -56,8 +53,7 @@ export default class GameScene extends Phaser.Scene {
   private player!: Player
   private inputSystem!: InputSystem
   private abilitySystem!: AbilitySystem
-  // TODO: Integrate CombatSystem to further reduce GameScene complexity
-  // private combatSystem!: CombatSystem
+  private combatSystem!: CombatSystem
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -518,6 +514,40 @@ export default class GameScene extends Phaser.Scene {
     this.inputSystem = new InputSystem({
       scene: this,
       joystickContainer: gameContainer ?? undefined,
+    })
+
+    // Initialize combat system (handles collisions and damage calculations)
+    this.combatSystem = new CombatSystem({
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      boss: this.boss,
+      screenShake: this.screenShake,
+      particles: this.particles,
+      damageNumberPool: this.damageNumberPool,
+      talentBonuses: this.talentBonuses,
+      difficultyConfig: this.difficultyConfig,
+      bonusXPMultiplier: this.bonusXPMultiplier,
+      eventHandlers: {
+        onEnemyKilled: (enemy, isBoss) => this.handleCombatEnemyKilled(enemy, isBoss),
+        onPlayerDamaged: (damage) => this.handleCombatPlayerDamaged(damage),
+        onPlayerDeath: () => this.handleCombatPlayerDeath(),
+        onBossHealthUpdate: (health, maxHealth) => {
+          this.scene.get('UIScene').events.emit('updateBossHealth', health, maxHealth)
+        },
+        onBossKilled: () => {
+          this.boss = null
+          this.scene.get('UIScene').events.emit('hideBossHealth')
+        },
+        onLevelUp: () => this.handleLevelUp(),
+        onXPGained: (xp) => {
+          const leveledUp = this.player.addXP(xp)
+          this.updateXPUI()
+          if (leveledUp) {
+            this.handleLevelUp()
+          }
+        },
+      },
     })
 
     // Debug keyboard controls
@@ -1013,6 +1043,7 @@ export default class GameScene extends Phaser.Scene {
     // Create the appropriate boss using the factory
     const newBoss = createBoss(this, bossX, bossY, bossType, this.enemyBulletPool, bossOptions)
     this.boss = newBoss as Boss // Type assertion for compatibility
+    this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = bossType // Store for kill tracking
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
@@ -1059,6 +1090,7 @@ export default class GameScene extends Phaser.Scene {
     // Create the mini-boss using the factory
     const newMiniBoss = createBoss(this, bossX, bossY, miniBossType, this.enemyBulletPool, miniBossOptions)
     this.boss = newMiniBoss as Boss // Type assertion for compatibility
+    this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1207,197 +1239,18 @@ export default class GameScene extends Phaser.Scene {
    * Handle bomb explosion damage to player
    */
   private handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
-    if (this.isGameOver || this.isLevelingUp) return
-
-    // Check if player is within explosion radius
-    const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
-    if (distanceToPlayer <= radius) {
-      // Try to damage player (respects invincibility and dodge)
-      const damageResult = this.player.takeDamage(damage)
-
-      // Check if attack was dodged
-      if (damageResult.dodged) {
-        this.damageNumberPool.showDodge(this.player.x, this.player.y)
-        return
-      }
-
-      // Check if damage was taken (invincibility check)
-      if (!damageResult.damaged) return
-
-      audioManager.playPlayerHit()
-
-      // Update UI
-      this.updatePlayerHealthUI(this.player)
-
-      // Check for death
-      if (this.player.getHealth() <= 0) {
-        this.triggerGameOver()
-        return
-      }
-
-      // Flash player when hit
-      this.showHitFlash(this.player)
-
-      // Knockback from explosion center
-      const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y)
-      const knockbackForce = 200
-      this.player.setVelocity(
-        Math.cos(angle) * knockbackForce,
-        Math.sin(angle) * knockbackForce
-      )
-
-      console.log(`Player hit by bomb explosion! Health: ${this.player.getHealth()}`)
-    }
+    // Delegate to CombatSystem
+    this.combatSystem.handleBombExplosion(x, y, radius, damage)
+    // Check Iron Will talent (bonus HP when low health)
+    this.checkIronWillStatus()
   }
 
   private bulletHitEnemy(
     bullet: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver || this.isTransitioning) return
-
-    const bulletSprite = bullet as Bullet
-    const enemySprite = enemy as Enemy
-
-    // Skip if bullet has already hit this enemy (prevents duplicate collisions during piercing)
-    if (bulletSprite.hasHitEnemy(enemy)) {
-      return
-    }
-
-    // Calculate damage based on bullet properties
-    let damage = this.player.getDamage()
-
-    // Check for critical hit - crit damage numbers are displayed via DamageNumberPool.showEnemyDamage(isCrit: true)
-    if (bulletSprite.isCriticalHit()) {
-      damage = this.player.getDamageWithCrit(true)
-    }
-
-    // Apply piercing damage reduction if bullet has hit enemies before
-    const hitCount = bulletSprite.getHitCount()
-    if (hitCount > 0 && bulletSprite.getMaxPierces() > 0) {
-      damage = this.player.getPiercingDamage(hitCount)
-    }
-
-    // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
-
-    // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, bulletSprite.isCriticalHit())
-
-    // Visual effects for hit
-    if (bulletSprite.isCriticalHit()) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
-    } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
-      this.screenShake.onEnemyHit()
-    }
-
-    // Apply fire DOT if bullet has fire damage
-    const fireDamage = bulletSprite.getFireDamage()
-    if (fireDamage > 0 && !killed) {
-      enemySprite.applyFireDamage(fireDamage, 2000) // 2 second burn
-      this.particles.emitFire(enemySprite.x, enemySprite.y)
-    }
-
-    // Apply freeze if bullet has freeze chance and rolls successfully
-    if (!killed && bulletSprite.rollFreeze()) {
-      enemySprite.applyFreeze()
-    }
-
-    // Apply poison DOT if bullet has poison damage
-    const poisonDamage = bulletSprite.getPoisonDamage()
-    if (poisonDamage > 0 && !killed) {
-      enemySprite.applyPoisonDamage(poisonDamage)
-    }
-
-    // Handle lightning chain if bullet has lightning ability
-    const lightningChainCount = bulletSprite.getLightningChainCount()
-    if (lightningChainCount > 0 && !killed) {
-      this.applyLightningChain(enemySprite, damage * 0.5, lightningChainCount)
-    }
-
-    // Check if bullet should be deactivated or continue (piercing/ricochet)
-    const shouldDeactivate = bulletSprite.onHit(enemy)
-
-    // Handle ricochet - find nearest enemy and redirect
-    if (!shouldDeactivate && bulletSprite.getBounceCount() < bulletSprite.getMaxBounces()) {
-      const nearestEnemy = this.findNearestEnemyExcluding(bulletSprite.x, bulletSprite.y, enemySprite)
-      if (nearestEnemy) {
-        bulletSprite.redirectTo(nearestEnemy.x, nearestEnemy.y)
-      } else {
-        // No target for ricochet, deactivate
-        bulletSprite.setActive(false)
-        bulletSprite.setVisible(false)
-      }
-    } else if (shouldDeactivate) {
-      // Deactivate bullet
-      bulletSprite.setActive(false)
-      bulletSprite.setVisible(false)
-    }
-    // else: bullet continues (piercing)
-
-    // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
-    if (isBoss && !killed) {
-      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit() // Haptic feedback for hitting boss
-    }
-
-    if (killed) {
-      // Track kill
-      this.enemiesKilled++
-      this.recordKill(enemySprite, !!isBoss)
-
-      // Bloodthirst: Heal on kill
-      const bloodthirstHeal = this.player.getBloodthirstHeal()
-      if (bloodthirstHeal > 0) {
-        this.player.heal(bloodthirstHeal)
-        this.updatePlayerHealthUI(this.player)
-      }
-
-      // Death particles and screen shake
-      if (isBoss) {
-        this.particles.emitBossDeath(enemySprite.x, enemySprite.y)
-        this.screenShake.onBossDeath()
-      } else {
-        this.particles.emitDeath(enemySprite.x, enemySprite.y)
-        this.screenShake.onExplosion()
-        hapticManager.light() // Haptic feedback for enemy death
-      }
-
-      // Spawn gold drop at enemy position
-      this.spawnDrops(enemySprite)
-
-      // Add XP to player (boss gives 10 XP), apply equipment XP bonus
-      const baseXpGain = isBoss ? 10 : 1
-      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
-      const leveledUp = this.player.addXP(xpGain)
-      this.updateXPUI()
-
-      // Accumulate hero XP (boss gives 25 hero XP)
-      this.heroXPEarned += isBoss ? 25 : 1
-
-      if (leveledUp) {
-        this.handleLevelUp()
-      }
-
-      // Clear boss reference if boss was killed
-      if (isBoss) {
-        this.boss = null
-        this.scene.get('UIScene').events.emit('hideBossHealth')
-      }
-
-      // Remove enemy from group and destroy
-      enemySprite.destroy()
-
-      // Invalidate nearest enemy cache since enemies changed
-      this.invalidateNearestEnemyCache()
-
-      // Check if room is cleared
-      this.checkRoomCleared()
-    }
+    // Delegate to CombatSystem
+    this.combatSystem.bulletHitEnemy(bullet, enemy)
   }
 
   private updateXPUI() {
@@ -1467,6 +1320,46 @@ export default class GameScene extends Phaser.Scene {
       this.healthPool.spawn(enemy.x, enemy.y, 20)
       console.log('Health potion spawned!')
     }
+  }
+
+  /**
+   * Combat event handler: Called when an enemy is killed by CombatSystem
+   */
+  private handleCombatEnemyKilled(enemy: Enemy, isBoss: boolean): void {
+    // Track kill
+    this.enemiesKilled++
+    this.recordKill(enemy, isBoss)
+
+    // Bloodthirst healing is handled by CombatSystem
+
+    // Spawn gold drop at enemy position
+    this.spawnDrops(enemy)
+
+    // Accumulate hero XP (boss gives 25 hero XP)
+    this.heroXPEarned += isBoss ? 25 : 1
+
+    // Remove enemy from group and destroy
+    enemy.destroy()
+
+    // Invalidate nearest enemy cache since enemies changed
+    this.invalidateNearestEnemyCache()
+
+    // Check if room is cleared
+    this.checkRoomCleared()
+  }
+
+  /**
+   * Combat event handler: Called when player takes damage
+   */
+  private handleCombatPlayerDamaged(_damage: number): void {
+    this.updatePlayerHealthUI(this.player)
+  }
+
+  /**
+   * Combat event handler: Called when player dies
+   */
+  private handleCombatPlayerDeath(): void {
+    this.triggerGameOver()
   }
 
   private handleLevelUp() {
@@ -1607,44 +1500,10 @@ export default class GameScene extends Phaser.Scene {
    */
   private bulletHitWall(
     bullet: Phaser.GameObjects.GameObject,
-    _wall: Phaser.GameObjects.GameObject
+    wall: Phaser.GameObjects.GameObject
   ) {
-    const bulletSprite = bullet as Bullet
-    if (!bulletSprite.active) return
-
-    // Through wall ability - bullets pass through walls
-    if (bulletSprite.isThroughWallEnabled()) {
-      return // Don't deactivate, bullet continues
-    }
-
-    // Bouncy wall ability - bullets bounce off walls
-    if (bulletSprite.getMaxWallBounces() > 0 && bulletSprite.getWallBounceCount() < bulletSprite.getMaxWallBounces()) {
-      // The bounce is handled in Bullet.update() when it hits screen edges
-      // For physical walls, we need to reflect the velocity
-      const body = bulletSprite.body as Phaser.Physics.Arcade.Body
-
-      // Determine which side was hit and reflect velocity
-      // Simple approach: reflect velocity based on current direction
-      const vx = body.velocity.x
-      const vy = body.velocity.y
-
-      // Check if hitting more horizontally or vertically
-      if (Math.abs(vx) > Math.abs(vy)) {
-        body.velocity.x = -vx
-      } else {
-        body.velocity.y = -vy
-      }
-
-      // Update bullet rotation to match new direction
-      bulletSprite.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
-
-      // Manually increment wall bounce count (since screen edge detection won't trigger)
-      // Note: This is a simplified approach; actual bounce is tracked in Bullet class
-      return // Don't deactivate
-    }
-
-    // Normal bullets are destroyed on wall contact
-    bulletSprite.deactivate()
+    // Delegate to CombatSystem
+    this.combatSystem.bulletHitWall(bullet, wall)
   }
 
   /**
@@ -1652,161 +1511,30 @@ export default class GameScene extends Phaser.Scene {
    */
   private enemyBulletHitWall(
     bullet: Phaser.GameObjects.GameObject,
-    _wall: Phaser.GameObjects.GameObject
+    wall: Phaser.GameObjects.GameObject
   ) {
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
-    if (!bulletSprite.active) return
-
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
+    // Delegate to CombatSystem
+    this.combatSystem.enemyBulletHitWall(bullet, wall)
   }
 
   private enemyBulletHitPlayer(
     player: Phaser.GameObjects.GameObject,
     bullet: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver || this.isLevelingUp) return
-
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
-    const playerSprite = player as Player
-
-    // Skip if bullet is already inactive (prevents multiple damage from same bullet)
-    if (!bulletSprite.active) return
-
-    // Deactivate bullet regardless of invincibility
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
-
-    // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
-    const baseBulletDamage = 30 // Increased by 200%
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
-    const bulletDamage = Math.round(
-      baseBulletDamage *
-      this.difficultyConfig.enemyDamageMultiplier *
-      chapterDef.scaling.enemyDamageMultiplier *
-      damageReduction
-    )
-
-    // Try to damage player (respects invincibility and dodge)
-    const damageResult = playerSprite.takeDamage(bulletDamage)
-
-    // Check if attack was dodged
-    if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
-    }
-
-    // Check if damage was taken (invincibility check)
-    if (!damageResult.damaged) return
-
-    // Show damage number
-    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, bulletDamage)
-
-    audioManager.playPlayerHit()
-    hapticManager.heavy() // Haptic feedback for taking damage
-
-    // Screen shake on player damage
-    if (bulletDamage >= 15) {
-      this.screenShake.onPlayerHeavyDamage()
-    } else {
-      this.screenShake.onPlayerDamage()
-    }
-
-    // Update UI
-    this.updatePlayerHealthUI(playerSprite)
-
+    // Delegate to CombatSystem
+    this.combatSystem.enemyBulletHitPlayer(player, bullet)
     // Check Iron Will talent (bonus HP when low health)
     this.checkIronWillStatus()
-
-    // Check for death
-    if (playerSprite.getHealth() <= 0) {
-      this.screenShake.onPlayerDeath()
-      this.triggerGameOver()
-      return
-    }
-
-    // Flash player when hit
-    this.showHitFlash(playerSprite)
-
-    console.log(`Player hit by bullet! Health: ${playerSprite.getHealth()}`)
   }
 
   private enemyHitPlayer(
     player: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ) {
-    if (this.isGameOver || this.isLevelingUp) return
-
-    const playerSprite = player as Player
-    const enemySprite = enemy as Enemy
-
-    // Check melee attack cooldown - enemies can only hit once per cooldown period
-    const currentTime = this.time.now
-    if (!enemySprite.canMeleeAttack(currentTime)) {
-      return
-    }
-
-    // Record this attack to start cooldown
-    enemySprite.recordMeleeAttack(currentTime)
-
-    // Get enemy damage (scaled by difficulty) and apply talent damage reduction
-    const baseDamage = enemySprite.getDamage()
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
-    const damage = Math.round(baseDamage * damageReduction)
-
-    // Try to damage player (respects invincibility and dodge)
-    const damageResult = playerSprite.takeDamage(damage)
-
-    // Check if attack was dodged
-    if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
-    }
-
-    // Check if damage was taken (invincibility check)
-    if (!damageResult.damaged) return
-
-    // Show damage number
-    this.damageNumberPool.showPlayerDamage(playerSprite.x, playerSprite.y, damage)
-
-    audioManager.playPlayerHit()
-    hapticManager.heavy() // Haptic feedback for taking damage
-
-    // Screen shake on player damage
-    this.screenShake.onPlayerDamage()
-
-    // Update UI
-    this.updatePlayerHealthUI(playerSprite)
-
+    // Delegate to CombatSystem
+    this.combatSystem.enemyHitPlayer(player, enemy)
     // Check Iron Will talent (bonus HP when low health)
     this.checkIronWillStatus()
-
-    // Check for death
-    if (playerSprite.getHealth() <= 0) {
-      this.screenShake.onPlayerDeath()
-      this.triggerGameOver()
-      return
-    }
-
-    // Flash player when hit
-    this.showHitFlash(playerSprite)
-
-    // Push player back slightly
-    const angle = Phaser.Math.Angle.Between(
-      enemySprite.x,
-      enemySprite.y,
-      playerSprite.x,
-      playerSprite.y
-    )
-    const knockbackForce = 150
-    playerSprite.setVelocity(
-      Math.cos(angle) * knockbackForce,
-      Math.sin(angle) * knockbackForce
-    )
-
-    console.log(`Player hit by enemy! Health: ${playerSprite.getHealth()}`)
   }
 
   private updatePlayerHealthUI(player: Player) {
@@ -1966,19 +1694,6 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.fadeIn(300, 0, 0, 0)
 
       console.log('Level reset complete! Starting room 1 with', this.abilitySystem.getTotalAbilitiesGained(), 'abilities')
-    })
-  }
-
-  private showHitFlash(player: Player) {
-    // Brief red flash when hit
-    player.setTint(0xff0000)
-    player.setAlpha(0.7)
-
-    this.time.delayedCall(100, () => {
-      if (player.active) {
-        player.clearTint()
-        player.setAlpha(1)
-      }
     })
   }
 
@@ -2220,93 +1935,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Find nearest enemy to a position, excluding a specific enemy
-   * Used for ricochet targeting
-   */
-  private findNearestEnemyExcluding(x: number, y: number, exclude: Enemy): Enemy | null {
-    let nearestEnemy: Enemy | null = null
-    let nearestDistance = Infinity
-
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-
-      // Skip the excluded enemy or inactive enemies
-      if (e === exclude || !e.active) return
-
-      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
-
-      if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearestEnemy = e
-      }
-    })
-
-    return nearestEnemy
-  }
-
-  /**
-   * Apply lightning chain damage to nearby enemies
-   * @param source The enemy that was hit
-   * @param damage Damage per chain hit (50% of original)
-   * @param chainCount Number of enemies to chain to
-   */
-  private applyLightningChain(source: Enemy, damage: number, chainCount: number): void {
-    const maxChainDistance = 150 // Max distance for lightning to jump
-
-    // Find nearby enemies excluding the source
-    const nearbyEnemies: Enemy[] = []
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (e === source || !e.active) return
-
-      const distance = Phaser.Math.Distance.Between(source.x, source.y, e.x, e.y)
-      if (distance <= maxChainDistance) {
-        nearbyEnemies.push(e)
-      }
-    })
-
-    // Sort by distance and take only chainCount enemies
-    nearbyEnemies.sort((a, b) => {
-      const distA = Phaser.Math.Distance.Between(source.x, source.y, a.x, a.y)
-      const distB = Phaser.Math.Distance.Between(source.x, source.y, b.x, b.y)
-      return distA - distB
-    })
-
-    const targets = nearbyEnemies.slice(0, chainCount)
-
-    // Apply damage to each target
-    targets.forEach((target) => {
-      // Guard against destroyed enemies (can happen if enemy was killed by another source)
-      if (!target.active || !target.scene) return
-
-      const killed = target.takeDamage(Math.floor(damage))
-
-      if (killed) {
-        this.enemiesKilled++
-        const isBoss = this.boss && target === (this.boss as unknown as Enemy)
-        this.recordKill(target, !!isBoss)
-        this.spawnDrops(target)
-
-        // Bloodthirst heal on kill
-        const bloodthirstHeal = this.player.getBloodthirstHeal()
-        if (bloodthirstHeal > 0) {
-          this.player.heal(bloodthirstHeal)
-          this.updatePlayerHealthUI(this.player)
-        }
-
-        // Clear boss reference if boss was killed
-        if (isBoss) {
-          this.boss = null
-          this.scene.get('UIScene').events.emit('hideBossHealth')
-        }
-
-        target.destroy()
-        this.checkRoomCleared()
-      }
-    })
-  }
-
-  /**
    * Update the damage aura visual effect around the player
    * Shows a pulsing circle when damage aura ability is active
    */
@@ -2474,96 +2102,8 @@ export default class GameScene extends Phaser.Scene {
     cat: Phaser.GameObjects.GameObject,
     enemy: Phaser.GameObjects.GameObject
   ): void {
-    if (this.isGameOver || this.isTransitioning) return
-
-    const spiritCat = cat as SpiritCat
-    const enemySprite = enemy as Enemy
-
-    if (!spiritCat.active || !enemySprite.active) return
-
-    // Get damage and check crit
-    const damage = spiritCat.getDamage()
-    const isCrit = spiritCat.isCriticalHit()
-
-    // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
-
-    // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, isCrit)
-
-    // Visual effects
-    if (isCrit) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
-    } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
-    }
-
-    // Deactivate cat on hit
-    spiritCat.deactivate()
-
-    // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
-    if (isBoss && !killed) {
-      this.scene.get('UIScene').events.emit('updateBossHealth', this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit()
-    }
-
-    if (killed) {
-      this.handleEnemyKilledBySpiritCat(enemySprite, isBoss ?? false)
-    }
-  }
-
-  /**
-   * Handle enemy death from spirit cat
-   */
-  private handleEnemyKilledBySpiritCat(enemy: Enemy, isBoss: boolean): void {
-    this.enemiesKilled++
-    this.recordKill(enemy, isBoss)
-
-    // Bloodthirst: Heal on kill (if player has ability)
-    const bloodthirstHeal = this.player.getBloodthirstHeal()
-    if (bloodthirstHeal > 0) {
-      this.player.heal(bloodthirstHeal)
-      this.updatePlayerHealthUI(this.player)
-    }
-
-    // Death particles
-    if (isBoss) {
-      this.particles.emitBossDeath(enemy.x, enemy.y)
-      this.screenShake.onBossDeath()
-    } else {
-      this.particles.emitDeath(enemy.x, enemy.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-    }
-
-    // Spawn drops
-    this.spawnDrops(enemy)
-
-    // Add XP with equipment XP bonus
-    const baseXpGain = isBoss ? 10 : 1
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier)
-    const leveledUp = this.player.addXP(xpGain)
-    this.updateXPUI()
-
-    // Accumulate hero XP (boss gives 25 hero XP)
-    this.heroXPEarned += isBoss ? 25 : 1
-
-    if (leveledUp) {
-      this.handleLevelUp()
-    }
-
-    // Clear boss reference
-    if (isBoss) {
-      this.boss = null
-      this.scene.get('UIScene').events.emit('hideBossHealth')
-    }
-
-    enemy.destroy()
-    this.invalidateNearestEnemyCache()
-    this.checkRoomCleared()
+    // Delegate to CombatSystem
+    this.combatSystem.spiritCatHitEnemy(cat, enemy)
   }
 
   private shootAtEnemy(enemy: Enemy) {
@@ -2756,6 +2296,9 @@ export default class GameScene extends Phaser.Scene {
   update(time: number, delta: number) {
     // Skip update if game is over
     if (this.isGameOver) return
+
+    // Sync game state to CombatSystem
+    this.combatSystem.setGameState(this.isGameOver, this.isLevelingUp, this.isTransitioning)
 
     // Update performance monitor
     performanceMonitor.update(delta)
