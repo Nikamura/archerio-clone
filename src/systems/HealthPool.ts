@@ -71,7 +71,7 @@ export default class HealthPool extends Phaser.Physics.Arcade.Group {
       const text = this._poolScene.add.text(0, 0, '', {
         fontSize: '14px',
         fontStyle: 'bold',
-        color: '#ff4444',
+        color: '#44ff44',
         stroke: '#000000',
         strokeThickness: 2,
       })
