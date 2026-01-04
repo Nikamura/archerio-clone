@@ -552,6 +552,9 @@ export default class LevelUpScene extends Phaser.Scene {
     if (this.isSelecting) return
     this.isSelecting = true
 
+    // Track ability selection in Sentry metrics
+    const currentLevel = (this.abilityLevels[abilityId] ?? 0) + 1
+    errorReporting.trackAbilityAcquired(abilityId, currentLevel)
     errorReporting.addBreadcrumb('game', `Selected ability: ${abilityId}`)
 
     if (this.selectionTimer) {
