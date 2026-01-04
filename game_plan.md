@@ -1,8 +1,8 @@
-# Arrow Game: Complete Development Plan
+# Aura Archer: Complete Development Plan
 
 This roguelike shooter succeeds through a deceptively simple core mechanic: **stop to shoot, move to dodge**. This creates a fundamental tension between offense and defense that drives the entire game experience. This plan structures development into three fully playable versions, each complete and polished before moving forward.
 
-## The core loop that makes Arrow Game work
+## The core loop that makes Aura Archer work
 
 The game's brilliance lies in splitting control: the player handles movement via virtual joystick while the game handles aiming and shooting automatically. When the player releases the joystick to stop moving, their character auto-fires at the nearest enemy. This creates **100+ micro-decisions per minute**—every moment of stillness is a calculated risk. According to design analyses, this mechanic achieves "the right amount of control and agency" while remaining "truly hyper-casual."
 

@@ -9,7 +9,7 @@ import {
   getAllThemeIds,
 } from '../config/themeData'
 
-const THEME_STORAGE_KEY = 'arrow_game_theme_data'
+const THEME_STORAGE_KEY = 'aura_archer_theme_data'
 
 export interface ThemeSaveData {
   unlockedThemes: ThemeId[]

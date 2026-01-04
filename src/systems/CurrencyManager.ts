@@ -78,7 +78,7 @@ const DEFAULT_CURRENCIES: CurrencyState = {
 };
 
 /** LocalStorage key for currency data persistence */
-const CURRENCY_STORAGE_KEY = 'arrow_game_currency_data';
+const CURRENCY_STORAGE_KEY = 'aura_archer_currency_data';
 
 // ============================================
 // CurrencyManager Class

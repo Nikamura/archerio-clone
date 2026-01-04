@@ -76,7 +76,7 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     // Title
-    const title = this.add.text(width / 2, 55, 'ARROW GAME', {
+    const title = this.add.text(width / 2, 55, 'AURA ARCHER', {
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold',

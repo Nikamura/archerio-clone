@@ -46,7 +46,7 @@ import { currencyManager } from './CurrencyManager'
 // ============================================
 
 /** localStorage key for equipment data persistence */
-const EQUIPMENT_STORAGE_KEY = 'arrow_game_equipment_data'
+const EQUIPMENT_STORAGE_KEY = 'aura_archer_equipment_data'
 
 // ============================================
 // Event Types

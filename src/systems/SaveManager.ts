@@ -200,7 +200,7 @@ export interface SaveData {
 // ============================================
 
 const CURRENT_SAVE_VERSION = 1
-const STORAGE_KEY = 'arrow_game_save_data'
+const STORAGE_KEY = 'aura_archer_save_data'
 
 /**
  * Get default hero data

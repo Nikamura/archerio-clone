@@ -1,6 +1,6 @@
 {
-  "name": "Arrow Game",
-  "short_name": "Arrow Game",
+  "name": "Aura Archer",
+  "short_name": "Aura Archer",
   "description": "A roguelike shooter web game",
   "start_url": "/",
   "display": "standalone",

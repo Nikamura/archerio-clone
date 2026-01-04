@@ -37,7 +37,7 @@ import {
 // Constants
 // ============================================
 
-const HERO_STORAGE_KEY = 'arrow_game_hero_data'
+const HERO_STORAGE_KEY = 'aura_archer_hero_data'
 
 // ============================================
 // HeroManager Class

@@ -1,7 +1,7 @@
 {
-  "name": "arrow-game",
+  "name": "aura-archer",
   "version": "0.1.0",
-  "description": "Arrow Game - roguelike shooter web game",
+  "description": "Aura Archer - roguelike shooter web game",
   "type": "module",
   "scripts": {
     "dev": "vite",

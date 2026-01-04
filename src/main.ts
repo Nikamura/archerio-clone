@@ -1,3 +1,9 @@
+// Run storage migration FIRST before any other imports
+// This ensures old "arrow_game_*" data is migrated to "aura_archer_*" keys
+// before any managers initialize and try to load from the new keys
+import { migrateStorage } from './systems/StorageMigration'
+migrateStorage()
+
 import Phaser from 'phaser'
 import BootScene from './scenes/BootScene'
 import PreloaderScene from './scenes/PreloaderScene'

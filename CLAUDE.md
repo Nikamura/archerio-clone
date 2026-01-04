@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Arrow Game is a roguelike shooter web game built with Phaser 3. The core mechanic is **stop to shoot, move to dodge**: the player auto-fires when stationary and stops firing when moving, creating constant micro-decisions between offense and defense.
+Aura Archer is a roguelike shooter web game built with Phaser 3. The core mechanic is **stop to shoot, move to dodge**: the player auto-fires when stationary and stops firing when moving, creating constant micro-decisions between offense and defense.
 
 ## Development Commands
 
@@ -240,14 +240,17 @@ addItem(item: Item): void {
 ```
 
 **localStorage Keys** (defined as constants):
-- `arrow_game_save_data` - SaveManager
-- `arrow_game_currency_data` - CurrencyManager
-- `arrow_game_equipment_data` - EquipmentManager
-- `arrow_game_talent_data` - TalentManager
-- `arrow_game_chest_data` - ChestManager
-- `arrow_game_daily_rewards` - DailyRewardManager
-- `arrow_game_achievements` - AchievementManager
-- `arrow_game_theme_data` - ThemeManager
+- `aura_archer_save_data` - SaveManager
+- `aura_archer_currency_data` - CurrencyManager
+- `aura_archer_equipment_data` - EquipmentManager
+- `aura_archer_talent_data` - TalentManager
+- `aura_archer_chest_data` - ChestManager
+- `aura_archer_daily_rewards` - DailyRewardManager
+- `aura_archer_achievements` - AchievementManager
+- `aura_archer_theme_data` - ThemeManager
+- `aura_archer_hero_data` - HeroManager
+- `aura_archer_chapter_data` - ChapterManager
+- `aura_archer_encyclopedia_data` - EncyclopediaManager
 
 ## Mobile Conventions
 

@@ -17,7 +17,7 @@ import { chapterManager } from './ChapterManager'
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'arrow_game_encyclopedia_data'
+const STORAGE_KEY = 'aura_archer_encyclopedia_data'
 
 // ============================================
 // Type Definitions

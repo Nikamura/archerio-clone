@@ -87,7 +87,7 @@ export type TalentEventCallback = (data: TalentEventData) => void
 // ============================================
 
 /** localStorage key for talent data persistence */
-const TALENT_STORAGE_KEY = 'arrow_game_talent_data'
+const TALENT_STORAGE_KEY = 'aura_archer_talent_data'
 
 /** Base cost for lottery spin in gold */
 const BASE_SPIN_COST = 500

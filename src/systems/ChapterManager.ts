@@ -125,7 +125,7 @@ export type ChapterEventCallback = (data: ChapterEventData) => void
 
 /** Default starting chapter */
 const DEFAULT_CHAPTER: ChapterId = 1
-const CHAPTER_STORAGE_KEY = 'arrow_game_chapter_data'
+const CHAPTER_STORAGE_KEY = 'aura_archer_chapter_data'
 
 // ============================================
 // ChapterManager Class

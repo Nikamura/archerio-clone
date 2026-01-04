@@ -21,7 +21,7 @@ export default class PreloaderScene extends Phaser.Scene {
     this.createFloatingParticles(width, height)
 
     // Game title with glow effect
-    const titleShadow = this.add.text(width / 2 + 2, height / 3 + 2, 'ARROW GAME', {
+    const titleShadow = this.add.text(width / 2 + 2, height / 3 + 2, 'AURA ARCHER', {
       fontSize: '36px',
       fontFamily: 'Arial Black, Arial, sans-serif',
       color: '#000000',
@@ -29,7 +29,7 @@ export default class PreloaderScene extends Phaser.Scene {
     titleShadow.setOrigin(0.5)
     titleShadow.setAlpha(0.5)
 
-    const title = this.add.text(width / 2, height / 3, 'ARROW GAME', {
+    const title = this.add.text(width / 2, height / 3, 'AURA ARCHER', {
       fontSize: '36px',
       fontFamily: 'Arial Black, Arial, sans-serif',
       color: '#ffffff',

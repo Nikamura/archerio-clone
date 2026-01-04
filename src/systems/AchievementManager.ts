@@ -53,7 +53,7 @@ export type AchievementEventCallback = (data: AchievementEventData) => void
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'arrow_game_achievements'
+const STORAGE_KEY = 'aura_archer_achievements'
 
 // ============================================
 // AchievementManager Class

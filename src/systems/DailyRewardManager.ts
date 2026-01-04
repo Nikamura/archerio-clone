@@ -54,7 +54,7 @@ export interface DailyRewardEventData {
 // ============================================
 
 /** LocalStorage key for daily reward data */
-const DAILY_REWARD_STORAGE_KEY = 'arrow_game_daily_rewards'
+const DAILY_REWARD_STORAGE_KEY = 'aura_archer_daily_rewards'
 
 /** Maximum hours allowed between claims before streak resets (48 hours) */
 const STREAK_TIMEOUT_HOURS = 48
