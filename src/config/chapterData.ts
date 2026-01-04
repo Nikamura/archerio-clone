@@ -75,6 +75,20 @@ export interface ChapterTheme {
 }
 
 /**
+ * Elemental resistance configuration for a chapter
+ * Values < 1.0 = resistant (take less damage), e.g., 0.5 = 50% damage reduction
+ * Values > 1.0 = vulnerable (take more damage), e.g., 1.5 = 50% more damage
+ */
+export interface ElementalResistances {
+  /** Fire damage multiplier (for DOT effects) */
+  fire: number
+  /** Cold/freeze resistance (affects freeze duration and ice damage) */
+  cold: number
+  /** Bleed resistance (affects bleed DOT damage) */
+  bleed: number
+}
+
+/**
  * Difficulty scaling for a chapter
  */
 export interface ChapterScaling {
@@ -90,6 +104,8 @@ export interface ChapterScaling {
   bossDamageMultiplier: number
   /** XP gain multiplier for kills (base = 1.0) - harder chapters reward more XP */
   xpMultiplier: number
+  /** Elemental resistances for enemies in this chapter */
+  elementalResistances: ElementalResistances
 }
 
 /**
@@ -269,6 +285,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 1.0,
       bossDamageMultiplier: 1.0,
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
+      // Chapter 1: Neutral resistances (tutorial chapter)
+      elementalResistances: {
+        fire: 1.0,
+        cold: 1.0,
+        bleed: 1.0,
+      },
     },
     // Chapter 1: Standard enemy behavior (tutorial chapter)
     enemyModifiers: {
@@ -315,6 +337,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 3.0,
       bossDamageMultiplier: 1.3,
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
+      // Chapter 2: Forest - vulnerable to fire (burns easily)
+      elementalResistances: {
+        fire: 1.3, // 30% more fire damage (dry wood burns well)
+        cold: 1.0, // Normal cold resistance
+        bleed: 1.0, // Normal bleed resistance
+      },
     },
     // Chapter 2: Forest theme - ranged focus, agile melee
     enemyModifiers: {
@@ -374,6 +402,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 8.0,
       bossDamageMultiplier: 1.6,
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
+      // Chapter 3: Frozen Caves - resistant to cold, weak to fire
+      elementalResistances: {
+        fire: 1.5, // 50% more fire damage (ice melts!)
+        cold: 0.5, // 50% reduced cold damage (already frozen)
+        bleed: 1.0, // Normal bleed resistance
+      },
     },
     // Chapter 3: Ice theme - slow but powerful, chargers are deadly
     enemyModifiers: {
@@ -438,6 +472,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 20.0,
       bossDamageMultiplier: 2.0,
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
+      // Chapter 4: Volcanic - resistant to fire, weak to cold
+      elementalResistances: {
+        fire: 0.5, // 50% reduced fire damage (fire creatures resist fire)
+        cold: 1.5, // 50% more cold damage (fire hates ice!)
+        bleed: 1.2, // Slightly weak to bleed (hot blood flows faster)
+      },
     },
     // Chapter 4: Fire theme - fast and aggressive, support enemies are key targets
     enemyModifiers: {
@@ -519,6 +559,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       bossHpMultiplier: 45.0, // Increased for balance (was 40x)
       bossDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
+      // Chapter 5: Shadow Realm - balanced resistances (shadow creatures)
+      elementalResistances: {
+        fire: 0.9, // Slight fire resistance (darkness resists light)
+        cold: 0.9, // Slight cold resistance (void creatures)
+        bleed: 0.8, // Shadow creatures don't bleed as much
+      },
     },
     // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
     enemyModifiers: {
@@ -908,4 +954,13 @@ export function getRandomMiniBossForChapter(chapterId: ChapterId, rng?: { random
  */
 export function getMiniBossPoolForChapter(chapterId: ChapterId): BossType[] {
   return [...CHAPTER_DEFINITIONS[chapterId].miniBossPool]
+}
+
+/**
+ * Get elemental resistances for a chapter
+ * @param chapterId The chapter to get resistances for
+ * @returns ElementalResistances object with fire, cold, and bleed multipliers
+ */
+export function getChapterElementalResistances(chapterId: ChapterId): ElementalResistances {
+  return { ...CHAPTER_DEFINITIONS[chapterId].scaling.elementalResistances }
 }

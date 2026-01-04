@@ -275,6 +275,23 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     return this.statusEffects.getPoisonStacks()
   }
 
+  /**
+   * Apply bleed DOT effect - deals more damage when enemy is moving
+   * @param damage Base damage per tick
+   * @param duration Duration in ms (default 3000ms)
+   */
+  applyBleedDamage(damage: number, duration: number = 3000): void {
+    this.statusEffects.applyBleed(damage, this.scene.time.now, duration)
+    this.updateEffectTint()
+  }
+
+  /**
+   * Check if enemy is currently bleeding
+   */
+  isBleeding(): boolean {
+    return this.statusEffects.isBleeding()
+  }
+
   resetHealth() {
     this.health = this.maxHealth
     // Reset all status effects
@@ -333,7 +350,11 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @returns true if enemy died from status effect damage
    */
   private updateStatusEffects(time: number): boolean {
-    const result = this.statusEffects.update(time)
+    // Check if enemy is moving (for bleed damage bonus)
+    const body = this.body as Phaser.Physics.Arcade.Body
+    const isMoving = body ? (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) : false
+
+    const result = this.statusEffects.update(time, isMoving)
 
     // Apply DOT damage if any
     if (result.damage > 0) {
