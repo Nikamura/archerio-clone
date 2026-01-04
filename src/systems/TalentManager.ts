@@ -194,10 +194,21 @@ export class TalentManager {
   }
 
   /**
-   * Check if player can spin (has spins remaining)
+   * Check if all talents are at max level
+   */
+  areAllTalentsMaxed(): boolean {
+    const allTalents = Object.values(TALENTS)
+    return allTalents.every((talent) => {
+      const currentLevel = this.getTalentLevel(talent.id)
+      return currentLevel >= talent.maxLevel
+    })
+  }
+
+  /**
+   * Check if player can spin (has spins remaining and talents to upgrade)
    */
   canSpin(): boolean {
-    return this.getSpinsRemaining() > 0
+    return this.getSpinsRemaining() > 0 && !this.areAllTalentsMaxed()
   }
 
   /**
@@ -209,8 +220,18 @@ export class TalentManager {
   spin(goldBalance: number, spendGold: (amount: number) => boolean): SpinResult {
     this.updateDailyState()
 
+    // Check if all talents are maxed
+    if (this.areAllTalentsMaxed()) {
+      const result: SpinResult = {
+        success: false,
+        error: 'All talents are at max level',
+      }
+      this.emit('spinFailed', { type: 'spinFailed', error: result.error })
+      return result
+    }
+
     // Check daily limit
-    if (!this.canSpin()) {
+    if (this.getSpinsRemaining() <= 0) {
       const result: SpinResult = {
         success: false,
         error: 'Daily spin limit reached',

@@ -114,12 +114,12 @@ describe('PlayerStats', () => {
       expect(stats.getLevel()).toBe(2)
     })
 
-    it('subsequent levels require 10 XP', () => {
+    it('subsequent levels require exponentially more XP', () => {
       stats.addXP(3) // Level 2
       expect(stats.getLevel()).toBe(2)
-      expect(stats.getXPToLevelUp()).toBe(10)
+      expect(stats.getXPToLevelUp()).toBe(5)  // Level 2→3 requires 5 XP
 
-      stats.addXP(9)
+      stats.addXP(4)
       expect(stats.getLevel()).toBe(2) // Not yet
       stats.addXP(1)
       expect(stats.getLevel()).toBe(3) // Now level 3
@@ -162,11 +162,29 @@ describe('PlayerStats', () => {
       expect(stats.getXPPercentage()).toBeCloseTo(1/3)  // 1/3 of 3 XP needed
     })
 
-    it('can use custom XP threshold for levels 2+', () => {
-      const customStats = new PlayerStats({ xpToLevelUp: 5 })
+    it('uses exponential scaling for XP requirements', () => {
+      const stats = new PlayerStats()
+      // Level 1→2: 3 XP
+      stats.addXP(3)
+      expect(stats.getLevel()).toBe(2)
+      // Level 2→3: 5 XP (baseXP * 1.5^0 = 5 * 1 = 5)
+      stats.addXP(4)
+      expect(stats.getLevel()).toBe(2)
+      stats.addXP(1)
+      expect(stats.getLevel()).toBe(3)
+      // Level 3→4: 8 XP (baseXP * 1.5^1 = 5 * 1.5 = 7.5 → 8)
+      stats.addXP(7)
+      expect(stats.getLevel()).toBe(3)
+      stats.addXP(1)
+      expect(stats.getLevel()).toBe(4)
+    })
+
+    it('can use custom base XP for exponential scaling', () => {
+      const customStats = new PlayerStats({ xpToLevelUp: 10 })
       customStats.addXP(3) // Level 2 (first level always 3)
       expect(customStats.getLevel()).toBe(2)
-      customStats.addXP(4)
+      // Level 2→3: 10 XP (custom base * 1.5^0 = 10)
+      customStats.addXP(9)
       expect(customStats.getLevel()).toBe(2)
       customStats.addXP(1)
       expect(customStats.getLevel()).toBe(3)

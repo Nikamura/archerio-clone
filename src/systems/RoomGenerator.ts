@@ -434,6 +434,22 @@ export class RoomGenerator {
       if (distToSpawn < minSpawnDistance) return false
     }
 
+    // Check wall overlap - enemies shouldn't spawn inside walls
+    if (layout.walls) {
+      const wallMargin = 0.05 // Extra margin around walls for spawning
+      for (const wall of layout.walls) {
+        const wallLeft = wall.x - wall.width / 2 - wallMargin
+        const wallRight = wall.x + wall.width / 2 + wallMargin
+        const wallTop = wall.y - wall.height / 2 - wallMargin
+        const wallBottom = wall.y + wall.height / 2 + wallMargin
+
+        if (normX >= wallLeft && normX <= wallRight &&
+            normY >= wallTop && normY <= wallBottom) {
+          return false
+        }
+      }
+    }
+
     return true
   }
 

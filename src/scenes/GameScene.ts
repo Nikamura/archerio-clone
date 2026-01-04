@@ -45,7 +45,7 @@ import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 import WallGroup from '../systems/WallGroup'
 import { SeededRandom } from '../systems/SeededRandom'
-import { ABILITIES } from './LevelUpScene'
+import { ABILITIES, type AbilityData } from './LevelUpScene'
 import { errorReporting } from '../systems/ErrorReportingManager'
 
 export default class GameScene extends Phaser.Scene {
@@ -490,6 +490,9 @@ export default class GameScene extends Phaser.Scene {
     // Wall collisions - player and enemies collide with walls
     this.physics.add.collider(this.player, this.wallGroup)
     this.physics.add.collider(this.enemies, this.wallGroup)
+
+    // Enemy-enemy collision - prevents enemies from stacking on each other
+    this.physics.add.collider(this.enemies, this.enemies)
 
     // Bullets hit walls - bounce or pass through based on abilities
     this.physics.add.overlap(
@@ -1433,8 +1436,37 @@ export default class GameScene extends Phaser.Scene {
       this.scene.stop('LevelUpScene')
     }
     
+    // Build ability levels record from ability system
+    const abilityLevels: Record<string, number> = {}
+    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
+      abilityLevels[ability.id] = ability.level
+    }
+
     this.scene.launch('LevelUpScene', {
       playerLevel: this.player.getLevel(),
+      abilityLevels,
+      hasExtraLife: this.player.hasExtraLife(),
+    })
+  }
+
+  /**
+   * Get available abilities (not at max level)
+   */
+  private getAvailableAbilities(): AbilityData[] {
+    return ABILITIES.filter((ability) => {
+      const currentLevel = this.abilitySystem.getAbilityLevel(ability.id)
+
+      // Special case for extra_life: only available if player doesn't have one
+      if (ability.id === 'extra_life') {
+        return !this.player.hasExtraLife()
+      }
+
+      // Check max level for other abilities
+      if (ability.maxLevel !== undefined) {
+        return currentLevel < ability.maxLevel
+      }
+
+      return true
     })
   }
 
@@ -1445,28 +1477,43 @@ export default class GameScene extends Phaser.Scene {
   private handleAutoLevelUp() {
     const isDoubleBonus = Math.random() < 0.05 // 5% chance for double ability
 
+    // Get abilities that aren't maxed
+    const availableAbilities = this.getAvailableAbilities()
+
+    if (availableAbilities.length === 0) {
+      console.log('GameScene: No available abilities for auto level up')
+      this.isLevelingUp = false
+      return
+    }
+
     // Select first ability
-    const randomIndex1 = Math.floor(Math.random() * ABILITIES.length)
-    const selectedAbility1 = ABILITIES[randomIndex1]
+    const randomIndex1 = Math.floor(Math.random() * availableAbilities.length)
+    const selectedAbility1 = availableAbilities[randomIndex1]
 
     // Apply the first ability
     this.applyAbility(selectedAbility1.id)
 
-    if (isDoubleBonus) {
-      // Select a DIFFERENT second ability
-      let randomIndex2 = Math.floor(Math.random() * ABILITIES.length)
-      while (randomIndex2 === randomIndex1) {
-        randomIndex2 = Math.floor(Math.random() * ABILITIES.length)
+    if (isDoubleBonus && availableAbilities.length > 1) {
+      // Get updated available abilities after first selection
+      const availableAbilitiesAfterFirst = this.getAvailableAbilities()
+        .filter((a) => a.id !== selectedAbility1.id)
+
+      if (availableAbilitiesAfterFirst.length > 0) {
+        const randomIndex2 = Math.floor(Math.random() * availableAbilitiesAfterFirst.length)
+        const selectedAbility2 = availableAbilitiesAfterFirst[randomIndex2]
+
+        console.log('GameScene: Auto level up DOUBLE BONUS:', selectedAbility1.id, '+', selectedAbility2.id)
+
+        // Apply the second ability
+        this.applyAbility(selectedAbility2.id)
+
+        // Notify UIScene to show the double bonus notification
+        this.scene.get('UIScene').events.emit('showAutoLevelUpDouble', selectedAbility1, selectedAbility2)
+      } else {
+        // Only one ability was available, just show single
+        console.log('GameScene: Auto level up selected:', selectedAbility1.id)
+        this.scene.get('UIScene').events.emit('showAutoLevelUp', selectedAbility1)
       }
-      const selectedAbility2 = ABILITIES[randomIndex2]
-
-      console.log('GameScene: Auto level up DOUBLE BONUS:', selectedAbility1.id, '+', selectedAbility2.id)
-
-      // Apply the second ability
-      this.applyAbility(selectedAbility2.id)
-
-      // Notify UIScene to show the double bonus notification
-      this.scene.get('UIScene').events.emit('showAutoLevelUpDouble', selectedAbility1, selectedAbility2)
     } else {
       console.log('GameScene: Auto level up selected:', selectedAbility1.id)
 
@@ -2107,8 +2154,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private shootAtEnemy(enemy: Enemy) {
-    // Don't shoot during level up, transitions, tutorial, or game over
-    if (this.isLevelingUp || this.isTransitioning || this.showingTutorial || this.isGameOver) {
+    // Don't shoot during transitions, tutorial, or game over
+    // Note: isLevelingUp is NOT checked here - player should be able to shoot after selecting ability
+    // isLevelingUp is only used to provide brief immunity from damage, not block shooting
+    if (this.isTransitioning || this.showingTutorial || this.isGameOver) {
       return
     }
 

@@ -619,8 +619,8 @@ export default class ChestScene extends Phaser.Scene {
     for (let i = 0; i < count; i++) {
       chestManager.removeChest(chestType)
       const rarity = rollChestRarity(chestType)
+      // generateRandomEquipment already adds to inventory via createEquipment
       const equipment = equipmentManager.generateRandomEquipment(rarity)
-      equipmentManager.addToInventory(equipment)
       items.push(equipment)
     }
 
