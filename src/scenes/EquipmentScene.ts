@@ -293,9 +293,9 @@ export default class EquipmentScene extends Phaser.Scene {
     levelText.setName('levelText')
     container.add(levelText)
 
-    // Make interactive - use pointerdown to detect clicks
+    // Make interactive - use pointerup to properly detect scrolling vs clicking
     bg.setInteractive({ useHandCursor: true })
-    bg.on('pointerdown', () => {
+    bg.on('pointerup', () => {
       // Only trigger click if we weren't scrolling
       if (!this.scrollContainer?.isDragScrolling()) {
         this.onInventorySlotClick(index)
