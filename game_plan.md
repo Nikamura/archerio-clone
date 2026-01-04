@@ -365,15 +365,17 @@ Visual test screenshots are saved to `test/screenshots/`
 11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
 12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
-14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
+14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health. Likely causes: VoidLordBoss `isPhaseShifting` flag stuck, or exponential scaling (`2^wave`) causing issues
 15. ✅ **Duplicate item attributes not combined** - Fixed: ChestScene now uses getCombinedItemStats() to merge base stats and perk stats
 16. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
 17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
 18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
 19. **Selling items too cheap** - Sell price is very low compared to upgrade costs, making selling feel unrewarding
+20. **Spreader enemies stuck in walls** - Spreader enemies can still spawn inside walls and become unkillable
 
 **BALANCE:**
 1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness
+2. **Chapter 5 too difficult** - Even with legendary level 70 gear, chapter 5 feels too hard. Need to rebalance enemy stats/spawns
 
 **UPCOMING FEATURES:**
 1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
