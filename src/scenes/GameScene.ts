@@ -171,6 +171,18 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off('skipRun', this.handleSkipRun, this)
     })
 
+    // Listen for pause event
+    this.game.events.on('pauseRequested', this.handlePause, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('pauseRequested', this.handlePause, this)
+    })
+
+    // Listen for quit from pause event
+    this.game.events.on('quitFromPause', this.handleQuitFromPause, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('quitFromPause', this.handleQuitFromPause, this)
+    })
+
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
     const handleVisibilityChange = () => {
@@ -518,6 +530,11 @@ export default class GameScene extends Phaser.Scene {
       scene: this,
       joystickContainer: gameContainer ?? undefined,
     })
+
+    // NOTE: Previously blocked joystick creation on walls, but this caused UX issues
+    // where players couldn't create joystick when accidentally tapping wall areas.
+    // Player movement is already constrained by physics collision with walls,
+    // so allowing joystick creation anywhere is fine.
 
     // Initialize combat system (handles collisions and damage calculations)
     this.combatSystem = new CombatSystem({
@@ -1279,6 +1296,26 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Calculate health potion heal value based on player stats and difficulty
+   * - Scales with player's max health (10% of max HP)
+   * - Reduced slightly on higher difficulties (more enemy damage = less healing)
+   * - Clamped between 15 and 100 HP
+   */
+  private calculateHealthPotionValue(): number {
+    // Base: 10% of player's max health
+    const maxHealth = this.player.getMaxHealth()
+    const baseHeal = Math.round(maxHealth * 0.1)
+
+    // Scale down slightly on harder difficulties (enemyDamage is higher)
+    // Normal difficulty has enemyDamage around 1.0, hard has 1.5+
+    const difficultyMod = Math.max(0.6, 1.0 / this.difficultyConfig.enemyDamageMultiplier)
+    const scaledHeal = Math.round(baseHeal * difficultyMod)
+
+    // Clamp between min 15 and max 100 HP
+    return Math.min(100, Math.max(15, scaledHeal))
+  }
+
+  /**
    * Convert BossType to BossId for kill tracking
    * Handles aliases like 'treant' -> 'tree_guardian' and 'frost_giant' -> 'ice_golem'
    */
@@ -1318,10 +1355,11 @@ export default class GameScene extends Phaser.Scene {
       console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
     }
 
-    // 5% chance to drop health potion (heals 20 HP)
+    // 5% chance to drop health potion (scales with difficulty)
     if (Math.random() < 0.05) {
-      this.healthPool.spawn(enemy.x, enemy.y, 20)
-      console.log('Health potion spawned!')
+      const healValue = this.calculateHealthPotionValue()
+      this.healthPool.spawn(enemy.x, enemy.y, healValue)
+      console.log(`Health potion spawned: ${healValue} HP`)
     }
   }
 
@@ -1890,6 +1928,32 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
+  /**
+   * Handle pause request - pause game and show pause menu
+   */
+  private handlePause(): void {
+    if (this.isGameOver) return
+
+    console.log('GameScene: Pausing game')
+
+    // Pause this scene (freezes physics, tweens, timers)
+    this.scene.pause('GameScene')
+
+    // Launch pause scene overlay
+    this.scene.launch('PauseScene')
+  }
+
+  /**
+   * Handle quit from pause menu - end run and return to main menu
+   */
+  private handleQuitFromPause(): void {
+    // Resume scene first so we can properly shut it down
+    this.scene.resume('GameScene')
+
+    // Use skip run logic to properly end the run
+    this.handleSkipRun()
+  }
+
   private findNearestEnemy(): Enemy | null {
     let nearestEnemy: Enemy | null = null
     let nearestDistance = Infinity
@@ -2280,6 +2344,7 @@ export default class GameScene extends Phaser.Scene {
     // Play shoot sound (once per attack, not per projectile)
     audioManager.playShoot()
     hapticManager.medium() // Haptic feedback for shooting
+    this.player.playShootAnimation(angle) // Visual feedback for shooting
     this.lastShotTime = this.time.now
   }
 

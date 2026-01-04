@@ -12,8 +12,10 @@ import Phaser from 'phaser'
 import { ChestType, CHEST_CONFIGS, CHEST_ORDER, rollChestRarity } from '../data/chestData'
 import { chestManager } from '../systems/ChestManager'
 import { equipmentManager } from '../systems/EquipmentManager'
-import { Equipment, Rarity, RARITY_CONFIGS } from '../systems/Equipment'
+import { Equipment, Rarity, RARITY_CONFIGS, EquipmentStats, PerkId } from '../systems/Equipment'
+import { PERKS } from '../config/equipmentData'
 import { audioManager } from '../systems/AudioManager'
+import { PlayerStats } from '../systems/PlayerStats'
 import * as UIAnimations from '../systems/UIAnimations'
 import { createBackButton } from '../ui/components/BackButton'
 
@@ -480,26 +482,29 @@ export default class ChestScene extends Phaser.Scene {
       .setOrigin(0.5)
     this.revealContainer.add(rarityText)
 
-    // Stats section
+    // Stats section - combine base stats and perk stats to avoid duplicate entries
     const statsStartY = rarityY + 45
     let statsOffset = 0
-    const statsEntries = Object.entries(equipment.baseStats)
+    const combinedStats = this.getCombinedItemStats(equipment)
+    const statsEntries = Object.entries(combinedStats).filter(
+      ([_, value]) => value !== undefined && value !== 0
+    )
 
     statsEntries.forEach(([stat, value]) => {
-      if (value !== undefined && value !== 0) {
-        const statName = this.formatStatName(stat)
-        const statText = this.add
-          .text(0, statsStartY + statsOffset, `${statName}: +${this.formatStatValue(value)}`, {
-            fontSize: '15px',
-            color: '#88ff88',
-          })
-          .setOrigin(0.5)
-        this.revealContainer?.add(statText)
-        statsOffset += 24
-      }
+      const statName = this.formatStatName(stat)
+      const numValue = value as number
+      const sign = numValue >= 0 ? '+' : ''
+      const statText = this.add
+        .text(0, statsStartY + statsOffset, `${statName}: ${sign}${this.formatStatValue(numValue, stat)}`, {
+          fontSize: '15px',
+          color: numValue >= 0 ? '#88ff88' : '#ff6666',
+        })
+        .setOrigin(0.5)
+      this.revealContainer?.add(statText)
+      statsOffset += 24
     })
 
-    // Perks section (if any)
+    // Show perk names for reference (they're already included in combined stats)
     if (equipment.perks.length > 0) {
       const perksY = statsStartY + statsOffset + 15
 
@@ -865,10 +870,69 @@ export default class ChestScene extends Phaser.Scene {
       .replace('Percent', '%')
   }
 
-  private formatStatValue(value: number): string {
+  private formatStatValue(value: number, statKey?: string): string {
+    // Percentage stats are stored as decimals (e.g., 0.15 = 15%)
+    const percentageStats = new Set([
+      'attackSpeedPercent',
+      'attackDamagePercent',
+      'maxHealthPercent',
+      'damageReductionPercent',
+      'critChance',
+      'critDamage',
+      'dodgeChance',
+      'bonusXPPercent',
+      'goldBonusPercent',
+      'projectileSpeedPercent',
+    ])
+
+    let displayValue = value
+    let isCapped = false
+
+    // Dodge chance is capped at MAX_DODGE_CHANCE (3%)
+    if (statKey === 'dodgeChance' && value > PlayerStats.MAX_DODGE_CHANCE) {
+      displayValue = PlayerStats.MAX_DODGE_CHANCE
+      isCapped = true
+    }
+
+    if (statKey && percentageStats.has(statKey)) {
+      displayValue = displayValue * 100 // Convert 0.15 to 15
+    }
+
     // Round to 1 decimal place, but show as integer if whole number
-    const rounded = Math.round(value * 10) / 10
-    return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
+    const rounded = Math.round(displayValue * 10) / 10
+    const valueStr = Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
+    return isCapped ? `${valueStr} (max)` : valueStr
+  }
+
+  /**
+   * Combines item's base stats with all perk stats into a single object.
+   * This ensures duplicate attributes are combined into single values.
+   */
+  private getCombinedItemStats(item: Equipment): EquipmentStats {
+    const combined: EquipmentStats = {}
+
+    // Add base stats
+    for (const [key, value] of Object.entries(item.baseStats)) {
+      if (value !== undefined && value !== 0) {
+        const statKey = key as keyof EquipmentStats
+        combined[statKey] = (combined[statKey] ?? 0) + value
+      }
+    }
+
+    // Add perk stats
+    for (const perkId of item.perks) {
+      const perk = PERKS[perkId as PerkId]
+      if (perk?.stats) {
+        for (const [key, value] of Object.entries(perk.stats)) {
+          if (value !== undefined && value !== 0) {
+            const statKey = key as keyof EquipmentStats
+            combined[statKey] = (combined[statKey] ?? 0) + value
+          }
+        }
+      }
+    }
+
+    return combined
   }
 
   private formatPerkName(perk: string): string {

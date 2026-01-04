@@ -7,6 +7,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   private stats: PlayerStats
   private isMoving: boolean = false
   private hitboxRadius: number = 16
+  private isPlayingShootAnim: boolean = false
 
   constructor(
     scene: Phaser.Scene,
@@ -404,5 +405,58 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   // Get underlying stats for debugging
   getStats(): PlayerStats {
     return this.stats
+  }
+
+  // ============================================
+  // Shooting Animation
+  // ============================================
+
+  /**
+   * Play a brief shooting animation (scale pulse + slight recoil)
+   * Called by GameScene when the player fires
+   */
+  playShootAnimation(angle: number): void {
+    // Prevent overlapping animations
+    if (this.isPlayingShootAnim || !this.scene) return
+    this.isPlayingShootAnim = true
+
+    // Calculate slight recoil offset (opposite to shooting direction)
+    const recoilDistance = 3
+    const recoilX = -Math.cos(angle) * recoilDistance
+    const recoilY = -Math.sin(angle) * recoilDistance
+    const originalX = this.x
+    const originalY = this.y
+
+    // Quick scale-up "draw" effect
+    this.scene.tweens.add({
+      targets: this,
+      scaleX: 1.15,
+      scaleY: 0.9, // Squash horizontally for bow-draw effect
+      duration: 50,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        // Release: snap back with slight overshoot
+        this.scene.tweens.add({
+          targets: this,
+          scaleX: 1.0,
+          scaleY: 1.0,
+          duration: 100,
+          ease: 'Back.easeOut',
+          onComplete: () => {
+            this.isPlayingShootAnim = false
+          },
+        })
+      },
+    })
+
+    // Recoil movement (separate tween for position)
+    this.scene.tweens.add({
+      targets: this,
+      x: originalX + recoilX,
+      y: originalY + recoilY,
+      duration: 50,
+      ease: 'Quad.easeOut',
+      yoyo: true,
+    })
   }
 }

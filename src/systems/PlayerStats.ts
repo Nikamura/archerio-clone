@@ -25,6 +25,9 @@ export class PlayerStats {
   // Attack speed cap: Maximum 10 attacks per second (with 500ms base fire rate, this means max attack speed of 5.0)
   private static readonly MAX_ATTACK_SPEED = 5.0
 
+  // Dodge cap: Maximum 3% dodge chance (nerfed from 5%)
+  public static readonly MAX_DODGE_CHANCE = 0.03
+
   // Ability counters (linear stacking)
   private extraProjectiles: number = 0
   private multishotCount: number = 0
@@ -43,7 +46,7 @@ export class PlayerStats {
   private critDamageMultiplier: number = 1.5  // Base crit multiplier (150%)
 
   // Dodge
-  private dodgeChance: number = 0  // 0-1 (e.g., 0.1 = 10%), capped at 5%
+  private dodgeChance: number = 0  // 0-1 (e.g., 0.1 = 10%), capped at 3%
 
   // New V1 abilities
   private freezeChance: number = 0  // 0-1 (e.g., 0.15 = 15%)
@@ -275,7 +278,7 @@ export class PlayerStats {
   }
 
   setDodgeChance(chance: number): void {
-    this.dodgeChance = Math.min(0.05, Math.max(0, chance))  // Cap at 5%
+    this.dodgeChance = Math.min(0.03, Math.max(0, chance))  // Cap at 3% (nerfed from 5%)
   }
 
   // New V1 ability getters
@@ -590,11 +593,11 @@ export class PlayerStats {
   }
 
   /**
-   * Add Dodge Master ability (+1.5% dodge chance per level)
-   * Stacking: Additive (capped at 5%)
+   * Add Dodge Master ability (+1% dodge chance per level)
+   * Stacking: Additive (capped at 3%, nerfed from 1.5%)
    */
   addDodgeMaster(): void {
-    this.dodgeChance = Math.min(0.05, this.dodgeChance + 0.015)
+    this.dodgeChance = Math.min(0.03, this.dodgeChance + 0.01)
   }
 
   /**

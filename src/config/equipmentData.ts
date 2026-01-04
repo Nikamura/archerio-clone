@@ -126,16 +126,16 @@ export const PERKS: Record<PerkId, Perk> = {
   },
   [PerkId.DODGE_SMALL]: {
     id: PerkId.DODGE_SMALL,
-    name: 'Dodge +3%',
-    description: 'Adds 3% chance to dodge attacks',
-    stats: { dodgeChance: 0.03 },
+    name: 'Dodge +1%',
+    description: 'Adds 1% chance to dodge attacks',
+    stats: { dodgeChance: 0.01 },
     rarity: Rarity.GREAT,
   },
   [PerkId.DODGE_MEDIUM]: {
     id: PerkId.DODGE_MEDIUM,
-    name: 'Dodge +6%',
-    description: 'Adds 6% chance to dodge attacks',
-    stats: { dodgeChance: 0.06 },
+    name: 'Dodge +2%',
+    description: 'Adds 2% chance to dodge attacks',
+    stats: { dodgeChance: 0.02 },
     rarity: Rarity.EPIC,
   },
 
@@ -294,7 +294,7 @@ export const ARMOR_DATA: Record<ArmorType, BaseEquipmentData> = {
     slot: 'armor',
     baseStats: {
       maxHealth: 75,
-      dodgeChance: 0.05,
+      dodgeChance: 0.02,
     },
   },
   [ArmorType.PHANTOM_CLOAK]: {
@@ -303,7 +303,7 @@ export const ARMOR_DATA: Record<ArmorType, BaseEquipmentData> = {
     slot: 'armor',
     baseStats: {
       maxHealth: 50,
-      dodgeChance: 0.1,
+      dodgeChance: 0.03,
     },
   },
   [ArmorType.GOLDEN_CHESTPLATE]: {
@@ -350,7 +350,7 @@ export const RING_DATA: Record<RingType, BaseEquipmentData> = {
     description: 'Increases dodge chance',
     slot: 'ring',
     baseStats: {
-      dodgeChance: 0.05,
+      dodgeChance: 0.02,
     },
   },
   [RingType.LION_RING]: {
@@ -478,14 +478,23 @@ export function calculateTotalUpgradeCost(
 
 /**
  * Calculate sell price for an item
- * Price = base price + (level - 1) * 10 * rarity multiplier
- * Higher level items sell for more gold
+ * Returns approximately 30% of the total gold invested in upgrades
+ * This makes selling feel rewarding while still encouraging keeping upgraded items
  */
 export function calculateSellPrice(rarity: Rarity, level: number): number {
   const basePrice = BASE_SELL_PRICES[rarity]
-  const rarityMultiplier = RARITY_CONFIGS[rarity].statMultiplier
-  const levelBonus = (level - 1) * 10 * rarityMultiplier
-  return Math.floor(basePrice + levelBonus)
+
+  // If level 1, just return base price
+  if (level <= 1) {
+    return basePrice
+  }
+
+  // Calculate total upgrade cost to reach this level
+  const totalUpgradeCost = calculateTotalUpgradeCost(rarity, 1, level)
+
+  // Return base price + 30% of invested upgrade gold
+  const sellbackPercent = 0.3
+  return Math.floor(basePrice + totalUpgradeCost.gold * sellbackPercent)
 }
 
 // ============================================
@@ -523,12 +532,16 @@ export function applyRarityMultiplier(stats: EquipmentStats, rarity: Rarity): Eq
   }
 
   // Percentage stats scale slightly (half rate)
+  // IMPORTANT: Negative stats (penalties) don't scale - they define weapon characteristics
   const percentMultiplier = 1 + (config.statMultiplier - 1) * 0.5
   if (stats.attackDamagePercent !== undefined) {
-    result.attackDamagePercent = stats.attackDamagePercent * percentMultiplier
+    result.attackDamagePercent =
+      stats.attackDamagePercent > 0 ? stats.attackDamagePercent * percentMultiplier : stats.attackDamagePercent
   }
   if (stats.attackSpeedPercent !== undefined) {
-    result.attackSpeedPercent = stats.attackSpeedPercent * percentMultiplier
+    // Negative attack speed (slow weapons) stays constant as a defining trait
+    result.attackSpeedPercent =
+      stats.attackSpeedPercent > 0 ? stats.attackSpeedPercent * percentMultiplier : stats.attackSpeedPercent
   }
   if (stats.maxHealthPercent !== undefined) {
     result.maxHealthPercent = stats.maxHealthPercent * percentMultiplier
@@ -593,9 +606,12 @@ export function calculateEquipmentStats(
   for (const [key, value] of Object.entries(rarityScaled)) {
     if (value !== undefined) {
       const statKey = key as keyof EquipmentStats
-      const scaledValue = value * levelMultiplier
+      const isPercentageStat = percentageStats.has(key)
+      // Negative percentage stats (penalties) don't scale with level - they're defining traits
+      const shouldScale = !isPercentageStat || value > 0
+      const scaledValue = shouldScale ? value * levelMultiplier : value
       // Only floor flat stats, keep percentage stats as decimals
-      result[statKey] = percentageStats.has(key) ? scaledValue : Math.floor(scaledValue)
+      result[statKey] = isPercentageStat ? scaledValue : Math.floor(scaledValue)
     }
   }
 

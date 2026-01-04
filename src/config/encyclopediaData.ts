@@ -27,6 +27,7 @@ import {
   Rarity,
   RARITY_CONFIGS,
 } from '../systems/Equipment'
+import { PlayerStats } from '../systems/PlayerStats'
 
 // ============================================
 // Encyclopedia Category Types
@@ -229,7 +230,11 @@ function formatEquipmentStats(data: BaseEquipmentData): string {
   if (stats.maxHealth) parts.push(`${stats.maxHealth} HP`)
   if (stats.maxHealthPercent) parts.push(`+${Math.round(stats.maxHealthPercent * 100)}% HP`)
   if (stats.damageReductionPercent) parts.push(`${Math.round(stats.damageReductionPercent * 100)}% DR`)
-  if (stats.dodgeChance) parts.push(`${Math.round(stats.dodgeChance * 100)}% Dodge`)
+  if (stats.dodgeChance) {
+    const cappedDodge = Math.min(stats.dodgeChance, PlayerStats.MAX_DODGE_CHANCE)
+    const isCapped = stats.dodgeChance > PlayerStats.MAX_DODGE_CHANCE
+    parts.push(`${Math.round(cappedDodge * 100)}% Dodge${isCapped ? ' (max)' : ''}`)
+  }
   if (stats.bonusXPPercent) parts.push(`+${Math.round(stats.bonusXPPercent * 100)}% XP`)
   if (stats.goldBonusPercent) parts.push(`+${Math.round(stats.goldBonusPercent * 100)}% Gold`)
   if (stats.attackDamagePercent) parts.push(`+${Math.round(stats.attackDamagePercent * 100)}% ATK`)

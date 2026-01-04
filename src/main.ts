@@ -15,6 +15,7 @@ import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
 import LevelUpScene from './scenes/LevelUpScene'
+import PauseScene from './scenes/PauseScene'
 import { errorToast } from './systems/ErrorToast'
 
 // Initialize error toast for debugging on mobile
@@ -34,7 +35,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, SettingsScene, EncyclopediaScene, GameScene, UIScene, GameOverScene, LevelUpScene],
+  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, SettingsScene, EncyclopediaScene, GameScene, UIScene, GameOverScene, LevelUpScene, PauseScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

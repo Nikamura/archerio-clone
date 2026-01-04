@@ -365,12 +365,20 @@ Visual test screenshots are saved to `test/screenshots/`
 11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
 12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
-14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
-15. **Duplicate item attributes not combined** - Equipment displays same attribute multiple times (e.g., "Dodge 5%, Dodge 1%") instead of combining into single value ("Dodge 6%")
-16. **Joystick not working when created on wall** - Joystick fails to respond when player taps on a wall area to create it
+14. ✅ **Endless mode bosses unkillable at 50% HP** - Fixed: VoidLordBoss.ts line 89 incorrectly set `isPhaseShifting = false` instead of `true` when entering phase shift, causing invincibility race condition
+15. ✅ **Duplicate item attributes not combined** - Fixed: ChestScene now uses getCombinedItemStats() to merge base stats and perk stats
+16. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
+17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
+18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
+19. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
+20. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
+21. ✅ **Lightning ability doesn't attack surrounding minions** - Fixed: Increased chain range from 150px to 250px, added visual lightning line effect, ensured minions are properly initialized with setActive(true)
+22. ✅ **Inventory sort buttons trigger item popups when scrolled** - Fixed: Set depth=100 on sort buttons to render above scroll container
+23. ✅ **IceGolemBoss createIceSpike crash (ARROW-GAME-12)** - Fixed: Added guard for destroyed scene/boss in delayedCall callback
 
 **BALANCE:**
-1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness
+1. ✅ **Nerf Dodge** - Fixed: Cap reduced from 5% to 3% (MAX_DODGE_CHANCE)
+2. ✅ **Chapter 5 too difficult** - Fixed: Reduced enemy HP from 50x to 30x, boss HP from 60x to 40x, nerfed healer/spawner modifiers
 
 **UPCOMING FEATURES:**
 1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
@@ -380,12 +388,13 @@ Visual test screenshots are saved to `test/screenshots/`
 5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
 6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
 7. ✅ **Theme-specific enemy sprites** - 30 themed sprites (10 enemies × 3 themes: Vaporwave, LOTR, Stranger Things), encyclopedia shows themed sprites
-8. **Pause feature for long runs** - Pause button in HUD, PauseScene overlay with resume/settings/quit options, game state preservation
-9. **Equipment comparison in inventory** - Show upgrade indicators on items better than equipped gear, item popup displays stat comparison vs currently equipped item
-10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
-11. **Inventory sorting and filtering** - Sort by rarity, level, slot type, or stat value; filter by equipment slot or rarity tier
-12. **Health potion scaling** - Health potions should scale healing amount based on difficulty level, current chapter, and hero level
-13. **Theme-specific monster names** - Monsters should have unique names in encyclopedia based on active theme for immersion (e.g., Stranger Things: "Demodog", "Demoarcher"; LOTR: "Azog the Defiler", "Orc Archer"; Vaporwave: stylized names)
+8. ✅ **Pause feature for long runs** - Already implemented: Pause button in gear menu, PauseScene overlay with resume/quit options, game state preservation via scene.pause()
+9. ✅ **Equipment comparison in inventory** - Already implemented: Green up-arrow on items better than equipped, stat comparison with +/- indicators in detail popup
+10. ✅ **Hero stats summary screen** - Added STATS button in HeroesScene showing total combined stats with breakdown by source (H:Hero, E:Equipment, T:Talents, +%:Percentage bonuses)
+11. ✅ **Inventory sorting** - Added sort buttons (★ rarity, Lv level, ⚔ slot type) above inventory grid, defaults to rarity sort
+12. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
+13. ✅ **Theme-specific monster names** - Added themed enemy names to encyclopedia: Vaporwave (GLITCH.exe, N30N_4RCH3R), LOTR (Goblin, Orc Archer), Stranger Things (Demodog, Demogorgon Scout)
+14. ✅ **Animated hero shooting** - Added scale pulse + recoil animation when player shoots (squash/stretch effect with slight positional kickback)
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 

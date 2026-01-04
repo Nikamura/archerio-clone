@@ -14,6 +14,8 @@ import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
 
 export default class SpreaderEnemy extends RangedEnemy {
+  private hasValidatedPosition: boolean = false
+
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -35,6 +37,12 @@ export default class SpreaderEnemy extends RangedEnemy {
   update(time: number, _delta: number, playerX: number, playerY: number): boolean {
     if (!this.active || !this.body) {
       return false
+    }
+
+    // On first update with wall group, validate position and push out of walls
+    if (!this.hasValidatedPosition && this.wallGroup) {
+      this.hasValidatedPosition = true
+      this.pushOutOfWalls()
     }
 
     // Update fire DOT from parent class
@@ -69,5 +77,49 @@ export default class SpreaderEnemy extends RangedEnemy {
 
     const baseSpeed = 150
     this.fireSpread(directions, baseSpeed)
+  }
+
+  /**
+   * Push enemy out of walls if it spawned inside one.
+   * Searches in cardinal directions for a valid position.
+   */
+  private pushOutOfWalls(): void {
+    if (!this.isPositionBlockedByWall(this.x, this.y)) {
+      return // Not inside a wall, nothing to do
+    }
+
+    console.log(`SpreaderEnemy: Spawned inside wall at (${this.x}, ${this.y}), finding valid position`)
+
+    // Try to find a valid position by stepping in each direction
+    const stepSize = 20
+    const maxSteps = 10
+    const directions = [
+      { dx: 1, dy: 0 }, // Right
+      { dx: -1, dy: 0 }, // Left
+      { dx: 0, dy: 1 }, // Down
+      { dx: 0, dy: -1 }, // Up
+      { dx: 1, dy: 1 }, // Diagonal
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: -1 },
+    ]
+
+    for (const dir of directions) {
+      for (let step = 1; step <= maxSteps; step++) {
+        const testX = this.x + dir.dx * stepSize * step
+        const testY = this.y + dir.dy * stepSize * step
+
+        // Check bounds
+        if (testX < 30 || testX > 345 || testY < 30 || testY > 637) continue
+
+        if (!this.isPositionBlockedByWall(testX, testY)) {
+          console.log(`SpreaderEnemy: Moved to valid position (${testX}, ${testY})`)
+          this.setPosition(testX, testY)
+          return
+        }
+      }
+    }
+
+    console.warn('SpreaderEnemy: Could not find valid position, may be stuck in wall')
   }
 }
