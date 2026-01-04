@@ -649,27 +649,36 @@ export default class EquipmentScene extends Phaser.Scene {
 
     statsEntries.forEach(([stat, value]) => {
       const statName = this.formatStatName(stat)
-      const baseText = `${statName}: +${this.formatStatValue(value as number)}`
+      const numValue = value as number
+      // Use correct sign based on actual value (negative stats like attackSpeedPercent can be negative)
+      const sign = numValue >= 0 ? '+' : ''
+      const baseText = `${statName}: ${sign}${this.formatStatValue(numValue, stat)}`
 
       // Add comparison indicator for inventory items
       let displayText = baseText
-      let textColor = '#88ff88'
+      // Color based on whether the stat value is positive (green) or negative (red)
+      let textColor = numValue >= 0 ? '#88ff88' : '#ff6666'
 
       if (comparison && comparison.differences[stat] !== undefined) {
         const diff = comparison.differences[stat]
         if (diff > 0) {
           // This item is better
-          displayText = `${baseText}  ▲${this.formatStatValue(diff)}`
+          displayText = `${baseText}  ▲${this.formatStatValue(diff, stat)}`
           textColor = '#44ff44'
         } else if (diff < 0) {
           // This item is worse
-          displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(diff))}`
+          displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(diff), stat)}`
           textColor = '#ff6666'
         }
       } else if (comparison && equippedItem) {
-        // Stat exists on this item but not on equipped - it's a bonus
-        displayText = `${baseText}  ▲${this.formatStatValue(value as number)}`
-        textColor = '#44ff44'
+        // Stat exists on this item but not on equipped - it's a change
+        if (numValue >= 0) {
+          displayText = `${baseText}  ▲${this.formatStatValue(numValue, stat)}`
+          textColor = '#44ff44'
+        } else {
+          displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(numValue), stat)}`
+          textColor = '#ff6666'
+        }
       }
 
       const statText = this.add
@@ -688,10 +697,13 @@ export default class EquipmentScene extends Phaser.Scene {
       for (const [stat, value] of Object.entries(equippedStats)) {
         if (value && value !== 0 && !combinedStats[stat as keyof EquipmentStats]) {
           const statName = this.formatStatName(stat)
+          // If losing a positive stat, show as loss (red). If losing a negative stat, show as gain (green)
+          const isPositiveStat = value > 0
           const lostText = this.add
-            .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: -${this.formatStatValue(value as number)}  ▼`, {
+            .text(-panelWidth / 2 + 30, statsY + yOffset,
+              `${statName}: ${isPositiveStat ? '-' : '+'}${this.formatStatValue(Math.abs(value as number), stat)}  ${isPositiveStat ? '▼' : '▲'}`, {
               fontSize: '14px',
-              color: '#ff6666',
+              color: isPositiveStat ? '#ff6666' : '#44ff44',
             })
             .setOrigin(0, 0)
           this.detailPanel?.add(lostText)
@@ -831,9 +843,28 @@ export default class EquipmentScene extends Phaser.Scene {
       .replace('Percent', '%')
   }
 
-  private formatStatValue(value: number): string {
+  private formatStatValue(value: number, statKey?: string): string {
+    // Percentage stats are stored as decimals (e.g., 0.15 = 15%)
+    const percentageStats = new Set([
+      'attackSpeedPercent',
+      'attackDamagePercent',
+      'maxHealthPercent',
+      'damageReductionPercent',
+      'critChance',
+      'critDamage',
+      'dodgeChance',
+      'bonusXPPercent',
+      'goldBonusPercent',
+      'projectileSpeedPercent',
+    ])
+
+    let displayValue = value
+    if (statKey && percentageStats.has(statKey)) {
+      displayValue = value * 100 // Convert 0.15 to 15
+    }
+
     // Round to 1 decimal place, but show as integer if whole number
-    const rounded = Math.round(value * 10) / 10
+    const rounded = Math.round(displayValue * 10) / 10
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
   }
 
