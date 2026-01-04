@@ -269,6 +269,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addChainsawOrbit()
   }
 
+  addShatter() {
+    this.stats?.addShatter()
+  }
+
+  addFireSpread() {
+    this.stats?.addFireSpread()
+  }
+
   // Iron Will talent support (bonus HP when low health)
   addMaxHealthBonus(amount: number) {
     this.stats?.addMaxHealthBonus(amount)
@@ -408,6 +416,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getChainsawOrbitDamage(): number {
     return this.stats?.getChainsawOrbitDamage() ?? 0
+  }
+
+  // Conditional damage ability getters
+  getShatterLevel(): number {
+    return this.stats?.getShatterLevel() ?? 0
+  }
+
+  getShatterDamageMultiplier(): number {
+    return this.stats?.getShatterDamageMultiplier() ?? 1.0
+  }
+
+  hasFireSpread(): boolean {
+    return this.stats?.hasFireSpread() ?? false
   }
 
   // Reset run-based stats

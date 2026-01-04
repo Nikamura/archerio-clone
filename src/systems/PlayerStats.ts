@@ -70,6 +70,10 @@ export class PlayerStats {
   // Orbital abilities
   private chainsawOrbitLevel: number = 0  // Number of chainsaws orbiting player
 
+  // Conditional damage abilities (synergy mechanics)
+  private shatterLevel: number = 0  // +50% damage per level to frozen enemies
+  private fireSpreadEnabled: boolean = false  // Burning enemies spread fire on death
+
   constructor(options?: {
     maxHealth?: number
     baseDamage?: number
@@ -407,6 +411,31 @@ export class PlayerStats {
     return Math.floor(this.getDamage() * 0.5)
   }
 
+  // Conditional damage ability getters
+
+  /**
+   * Get shatter level (bonus damage to frozen enemies)
+   */
+  getShatterLevel(): number {
+    return this.shatterLevel
+  }
+
+  /**
+   * Get shatter damage multiplier (+50% per level to frozen enemies)
+   * Returns 1.0 if no shatter, 1.5 for level 1, 2.0 for level 2, etc.
+   */
+  getShatterDamageMultiplier(): number {
+    if (this.shatterLevel <= 0) return 1.0
+    return 1.0 + (this.shatterLevel * 0.5)
+  }
+
+  /**
+   * Check if fire spread is enabled
+   */
+  hasFireSpread(): boolean {
+    return this.fireSpreadEnabled
+  }
+
   /**
    * Roll for freeze effect
    * @returns true if this hit should freeze the enemy
@@ -648,6 +677,22 @@ export class PlayerStats {
     this.chainsawOrbitLevel++
   }
 
+  /**
+   * Add Shatter ability (+50% damage to frozen enemies per level)
+   * Stacking: Each level adds +50% bonus damage to frozen enemies
+   */
+  addShatter(): void {
+    this.shatterLevel++
+  }
+
+  /**
+   * Add Fire Spread ability (burning enemies spread fire on death)
+   * Non-stacking: Only need one level
+   */
+  addFireSpread(): void {
+    this.fireSpreadEnabled = true
+  }
+
   // ============================================
   // Iron Will (Epic Talent) - Bonus HP when low health
   // ============================================
@@ -711,6 +756,9 @@ export class PlayerStats {
     this.giantLevel = 0
     // Reset orbital abilities
     this.chainsawOrbitLevel = 0
+    // Reset conditional damage abilities
+    this.shatterLevel = 0
+    this.fireSpreadEnabled = false
   }
 
   /**
@@ -746,6 +794,8 @@ export class PlayerStats {
     throughWallEnabled: boolean
     giantLevel: number
     chainsawOrbitLevel: number
+    shatterLevel: number
+    fireSpreadEnabled: boolean
   } {
     return {
       health: this.health,
@@ -777,6 +827,8 @@ export class PlayerStats {
       throughWallEnabled: this.throughWallEnabled,
       giantLevel: this.giantLevel,
       chainsawOrbitLevel: this.chainsawOrbitLevel,
+      shatterLevel: this.shatterLevel,
+      fireSpreadEnabled: this.fireSpreadEnabled,
     }
   }
 }

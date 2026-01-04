@@ -187,6 +187,22 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc4400,
     iconKey: 'abilityChainsawOrbit',
   },
+  // Conditional damage abilities (synergy mechanics)
+  {
+    id: 'shatter',
+    name: 'Shatter',
+    description: '+50% dmg to frozen enemies',
+    color: 0x99ddff,
+    iconKey: 'abilityShatter',
+  },
+  {
+    id: 'fire_spread',
+    name: 'Fire Spread',
+    description: 'Burning enemies spread fire on death',
+    color: 0xff4400,
+    iconKey: 'abilityFireSpread',
+    maxLevel: 1, // Non-stacking ability
+  },
 ]
 
 /**

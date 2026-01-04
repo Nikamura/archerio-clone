@@ -122,6 +122,14 @@ export class AbilitySystem {
       case 'chainsaw_orbit':
         this.player.addChainsawOrbit()
         break
+
+      // Conditional damage abilities (synergy mechanics)
+      case 'shatter':
+        this.player.addShatter()
+        break
+      case 'fire_spread':
+        this.player.addFireSpread()
+        break
     }
 
     this.abilitiesGained++
