@@ -178,12 +178,13 @@ export default class LevelUpScene extends Phaser.Scene {
         return !this.hasExtraLife
       }
 
-      // Check max level for other abilities
-      if (ability.maxLevel !== undefined) {
-        return currentLevel < ability.maxLevel
+      // Check max level for ALL abilities with a defined maxLevel
+      // This prevents one-time abilities (like through_wall) from being offered again
+      if (ability.maxLevel !== undefined && currentLevel >= ability.maxLevel) {
+        return false
       }
 
-      // No max level, always available
+      // No max level or below max level, available
       return true
     })
 
