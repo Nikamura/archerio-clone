@@ -491,6 +491,9 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.wallGroup)
     this.physics.add.collider(this.enemies, this.wallGroup)
 
+    // Enemy-enemy collision - prevents enemies from stacking on each other
+    this.physics.add.collider(this.enemies, this.enemies)
+
     // Bullets hit walls - bounce or pass through based on abilities
     this.physics.add.overlap(
       this.bulletPool,
