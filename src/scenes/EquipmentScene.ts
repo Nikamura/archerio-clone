@@ -22,6 +22,7 @@ import { audioManager } from '../systems/AudioManager'
 import * as UIAnimations from '../systems/UIAnimations'
 import { createBackButton } from '../ui/components/BackButton'
 import { ScrollContainer } from '../ui/components/ScrollContainer'
+import { PlayerStats } from '../systems/PlayerStats'
 
 // Slot display names
 const SLOT_NAMES: Record<EquipmentSlotType, string> = {
@@ -860,13 +861,22 @@ export default class EquipmentScene extends Phaser.Scene {
     ])
 
     let displayValue = value
+    let isCapped = false
+
+    // Dodge chance is capped at MAX_DODGE_CHANCE (3%)
+    if (statKey === 'dodgeChance' && value > PlayerStats.MAX_DODGE_CHANCE) {
+      displayValue = PlayerStats.MAX_DODGE_CHANCE
+      isCapped = true
+    }
+
     if (statKey && percentageStats.has(statKey)) {
-      displayValue = value * 100 // Convert 0.15 to 15
+      displayValue = displayValue * 100 // Convert 0.15 to 15
     }
 
     // Round to 1 decimal place, but show as integer if whole number
     const rounded = Math.round(displayValue * 10) / 10
-    return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
+    const valueStr = Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1)
+    return isCapped ? `${valueStr} (max)` : valueStr
   }
 
   /**
