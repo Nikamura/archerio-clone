@@ -108,40 +108,40 @@ describe('PlayerStats', () => {
       expect(stats.getXP()).toBe(2)
     })
 
-    it('first level up requires only 3 XP', () => {
-      const leveledUp = stats.addXP(3)
+    it('first level up requires 6 XP', () => {
+      const leveledUp = stats.addXP(6)
       expect(leveledUp).toBe(true)
       expect(stats.getLevel()).toBe(2)
     })
 
     it('subsequent levels require exponentially more XP', () => {
-      stats.addXP(3) // Level 2
+      stats.addXP(6) // Level 2
       expect(stats.getLevel()).toBe(2)
-      expect(stats.getXPToLevelUp()).toBe(5)  // Level 2→3 requires 5 XP
+      expect(stats.getXPToLevelUp()).toBe(10)  // Level 2→3 requires 10 XP (baseXP * 1.4^0)
 
-      stats.addXP(4)
+      stats.addXP(9)
       expect(stats.getLevel()).toBe(2) // Not yet
       stats.addXP(1)
       expect(stats.getLevel()).toBe(3) // Now level 3
     })
 
     it('XP resets to 0 after level up', () => {
-      stats.addXP(3)
+      stats.addXP(6)
       expect(stats.getXP()).toBe(0)
     })
 
     it('returns false when not leveling up', () => {
-      const leveledUp = stats.addXP(2)
+      const leveledUp = stats.addXP(5)
       expect(leveledUp).toBe(false)
       expect(stats.getLevel()).toBe(1)
     })
 
     it('multiple kills accumulate before level up', () => {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 5; i++) {
         const leveledUp = stats.addXP(1)
         expect(leveledUp).toBe(false)
       }
-      expect(stats.getXP()).toBe(2)
+      expect(stats.getXP()).toBe(5)
       expect(stats.getLevel()).toBe(1)
 
       const finalKill = stats.addXP(1)
@@ -150,41 +150,41 @@ describe('PlayerStats', () => {
     })
 
     it('can level up multiple times', () => {
-      stats.addXP(3)  // Level 2 (first level needs only 3)
+      stats.addXP(6)  // Level 2 (first level needs 6)
       stats.addXP(10) // Level 3
-      stats.addXP(10) // Level 4
+      stats.addXP(14) // Level 4
       expect(stats.getLevel()).toBe(4)
     })
 
     it('getXPPercentage returns correct value', () => {
       expect(stats.getXPPercentage()).toBe(0)
-      stats.addXP(1)
-      expect(stats.getXPPercentage()).toBeCloseTo(1/3)  // 1/3 of 3 XP needed
+      stats.addXP(2)
+      expect(stats.getXPPercentage()).toBeCloseTo(2/6)  // 2/6 of 6 XP needed
     })
 
     it('uses exponential scaling for XP requirements', () => {
       const stats = new PlayerStats()
-      // Level 1→2: 3 XP
-      stats.addXP(3)
+      // Level 1→2: 6 XP
+      stats.addXP(6)
       expect(stats.getLevel()).toBe(2)
-      // Level 2→3: 5 XP (baseXP * 1.5^0 = 5 * 1 = 5)
-      stats.addXP(4)
+      // Level 2→3: 10 XP (baseXP * 1.4^0 = 10 * 1 = 10)
+      stats.addXP(9)
       expect(stats.getLevel()).toBe(2)
       stats.addXP(1)
       expect(stats.getLevel()).toBe(3)
-      // Level 3→4: 8 XP (baseXP * 1.5^1 = 5 * 1.5 = 7.5 → 8)
-      stats.addXP(7)
+      // Level 3→4: 14 XP (baseXP * 1.4^1 = 10 * 1.4 = 14)
+      stats.addXP(13)
       expect(stats.getLevel()).toBe(3)
       stats.addXP(1)
       expect(stats.getLevel()).toBe(4)
     })
 
     it('can use custom base XP for exponential scaling', () => {
-      const customStats = new PlayerStats({ xpToLevelUp: 10 })
-      customStats.addXP(3) // Level 2 (first level always 3)
+      const customStats = new PlayerStats({ xpToLevelUp: 20 })
+      customStats.addXP(6) // Level 2 (first level always 6)
       expect(customStats.getLevel()).toBe(2)
-      // Level 2→3: 10 XP (custom base * 1.5^0 = 10)
-      customStats.addXP(9)
+      // Level 2→3: 20 XP (custom base * 1.4^0 = 20)
+      customStats.addXP(19)
       expect(customStats.getLevel()).toBe(2)
       customStats.addXP(1)
       expect(customStats.getLevel()).toBe(3)
@@ -646,7 +646,7 @@ describe('PlayerStats', () => {
       expect(snapshot.maxHealth).toBe(100)
       expect(snapshot.level).toBe(1)
       expect(snapshot.xp).toBe(2)
-      expect(snapshot.xpToLevelUp).toBe(3)  // First level requires only 3 XP
+      expect(snapshot.xpToLevelUp).toBe(6)  // First level requires 6 XP
       expect(snapshot.extraProjectiles).toBe(1)
       expect(snapshot.multishotCount).toBe(0)
       expect(snapshot.piercingLevel).toBe(1)

@@ -25,7 +25,7 @@ import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getXpMultiplierForChapter, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getXpMultiplierForChapter, getRoomProgressionScaling, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { BossId, getBossDefinition } from '../config/bossData'
 import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
@@ -1104,10 +1104,13 @@ export default class GameScene extends Phaser.Scene {
           // Apply endless mode difficulty multiplier
           const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
 
-          // Combine difficulty config with chapter modifiers and chapter scaling
+          // Apply progressive room scaling (enemies get stronger in later rooms)
+          const roomScaling = getRoomProgressionScaling(this.currentRoom)
+
+          // Combine difficulty config with chapter modifiers, chapter scaling, and room progression
           const enemyOptions = {
-            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier * endlessMult,
-            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier * endlessMult,
+            healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier * endlessMult * roomScaling.hpMultiplier,
+            damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier * endlessMult * roomScaling.damageMultiplier,
             speedMultiplier: (chapterModifiers.speedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.5), // Speed scales less aggressively
             attackCooldownMultiplier: (chapterModifiers.attackCooldownMultiplier ?? 1) / (1 + (endlessMult - 1) * 0.3), // Faster attacks
             projectileSpeedMultiplier: (chapterModifiers.projectileSpeedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.3),
@@ -1145,9 +1148,11 @@ export default class GameScene extends Phaser.Scene {
     const chapterDef = getChapterDefinition(selectedChapter)
     // Apply endless mode difficulty multiplier to boss
     const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
+    // Apply progressive room scaling (room 20 boss is tougher than earlier enemies)
+    const roomScaling = getRoomProgressionScaling(this.currentRoom)
     const bossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult,
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult * roomScaling.hpMultiplier,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult * roomScaling.damageMultiplier,
     }
 
     // Create the appropriate boss using the factory
@@ -1200,9 +1205,11 @@ export default class GameScene extends Phaser.Scene {
     // Mini-boss has reduced stats compared to final boss (50% health, 60% damage)
     const chapterDef = getChapterDefinition(selectedChapter)
     const endlessMult = this.isEndlessMode ? this.endlessDifficultyMultiplier : 1.0
+    // Apply progressive room scaling (room 10 mini-boss)
+    const roomScaling = getRoomProgressionScaling(this.currentRoom)
     const miniBossOptions = {
-      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult * 0.5,
-      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult * 0.6,
+      healthMultiplier: this.difficultyConfig.bossHealthMultiplier * chapterDef.scaling.bossHpMultiplier * endlessMult * roomScaling.hpMultiplier * 0.5,
+      damageMultiplier: this.difficultyConfig.bossDamageMultiplier * chapterDef.scaling.bossDamageMultiplier * endlessMult * roomScaling.damageMultiplier * 0.6,
     }
 
     // Create the mini-boss using the factory
