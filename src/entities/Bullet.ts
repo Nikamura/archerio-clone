@@ -21,6 +21,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private maxWallBounces: number = 0 // Maximum number of wall bounces
   private wallBounceCount: number = 0 // Current wall bounce count
   private throughWallEnabled: boolean = false // Arrows pass through walls
+  private bleedDamage: number = 0 // Bleed DOT damage (deals more to moving enemies)
 
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
@@ -59,6 +60,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     lightningChainCount?: number
     maxWallBounces?: number
     throughWall?: boolean
+    bleedDamage?: number
     projectileSprite?: string
     projectileSizeMultiplier?: number
   }) {
@@ -85,6 +87,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.maxWallBounces = options?.maxWallBounces ?? 0
     this.wallBounceCount = 0
     this.throughWallEnabled = options?.throughWall ?? false
+    this.bleedDamage = options?.bleedDamage ?? 0
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -114,6 +117,9 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       this.setScale(sizeMultiplier)
     } else if (this.lightningChainCount > 0) {
       this.setTint(0x9966ff) // Purple tint for lightning
+      this.setScale(sizeMultiplier)
+    } else if (this.bleedDamage > 0) {
+      this.setTint(0xcc0000) // Dark red tint for bleed
       this.setScale(sizeMultiplier)
     } else {
       this.clearTint()
@@ -298,6 +304,10 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   isThroughWallEnabled(): boolean {
     return this.throughWallEnabled
+  }
+
+  getBleedDamage(): number {
+    return this.bleedDamage
   }
 
   getSpawnTime(): number {

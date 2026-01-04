@@ -53,6 +53,7 @@ export class PlayerStats {
   private poisonDamagePercent: number = 0  // Percentage of weapon damage as poison DOT per second
   private poisonMaxStacks: number = 5  // Maximum poison stacks
   private lightningChainCount: number = 0  // Number of enemies lightning chains to
+  private bleedDamagePercent: number = 0  // Percentage of weapon damage as bleed DOT (2x when moving)
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
   private damageAuraLevel: number = 0  // AOE damage aura around player
@@ -70,9 +71,9 @@ export class PlayerStats {
   // Orbital abilities
   private chainsawOrbitLevel: number = 0  // Number of chainsaws orbiting player
 
-  // Conditional damage abilities (synergy mechanics)
-  private shatterLevel: number = 0  // +50% damage per level to frozen enemies
-  private fireSpreadEnabled: boolean = false  // Burning enemies spread fire on death
+  // Note: Shatter and Fire Spread are now passive effects:
+  // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
+  // - Fire Spread: Fire Damage enables fire spread on death automatically
 
   constructor(options?: {
     maxHealth?: number
@@ -311,6 +312,19 @@ export class PlayerStats {
     return this.poisonMaxStacks
   }
 
+  getBleedDamagePercent(): number {
+    return this.bleedDamagePercent
+  }
+
+  /**
+   * Calculate bleed damage amount based on current weapon damage
+   * Bleed does 10% weapon damage per tick (2x when enemy is moving)
+   */
+  getBleedDamage(): number {
+    if (this.bleedDamagePercent === 0) return 0
+    return Math.floor(this.getDamage() * this.bleedDamagePercent)
+  }
+
   getLightningChainCount(): number {
     return this.lightningChainCount
   }
@@ -412,29 +426,31 @@ export class PlayerStats {
     return Math.floor(this.getDamage() * 0.5)
   }
 
-  // Conditional damage ability getters
+  // Conditional damage ability getters (now passive effects)
 
   /**
    * Get shatter level (bonus damage to frozen enemies)
+   * Now returns 1 if player has Ice Shot, 0 otherwise (passive effect)
    */
   getShatterLevel(): number {
-    return this.shatterLevel
+    return this.freezeChance > 0 ? 1 : 0
   }
 
   /**
-   * Get shatter damage multiplier (+50% per level to frozen enemies)
-   * Returns 1.0 if no shatter, 1.5 for level 1, 2.0 for level 2, etc.
+   * Get shatter damage multiplier (+50% to frozen enemies)
+   * Automatically enabled when player has Ice Shot ability
    */
   getShatterDamageMultiplier(): number {
-    if (this.shatterLevel <= 0) return 1.0
-    return 1.0 + (this.shatterLevel * 0.5)
+    if (this.freezeChance <= 0) return 1.0
+    return 1.5  // +50% damage to frozen enemies
   }
 
   /**
    * Check if fire spread is enabled
+   * Automatically enabled when player has Fire Damage ability
    */
   hasFireSpread(): boolean {
-    return this.fireSpreadEnabled
+    return this.fireDamagePercent > 0
   }
 
   /**
@@ -558,6 +574,14 @@ export class PlayerStats {
   }
 
   /**
+   * Add Bleed ability (10% DOT, deals 2x damage when enemy is moving)
+   * Stacking: Additive bleed damage per level
+   */
+  addBleed(): void {
+    this.bleedDamagePercent += 0.10  // +10% weapon damage per tick
+  }
+
+  /**
    * Add Lightning Chain ability (chains to 2 additional enemies per level)
    * Stacking: Each level adds +2 chain targets
    */
@@ -678,21 +702,9 @@ export class PlayerStats {
     this.chainsawOrbitLevel++
   }
 
-  /**
-   * Add Shatter ability (+50% damage to frozen enemies per level)
-   * Stacking: Each level adds +50% bonus damage to frozen enemies
-   */
-  addShatter(): void {
-    this.shatterLevel++
-  }
-
-  /**
-   * Add Fire Spread ability (burning enemies spread fire on death)
-   * Non-stacking: Only need one level
-   */
-  addFireSpread(): void {
-    this.fireSpreadEnabled = true
-  }
+  // Note: addShatter() and addFireSpread() removed - these are now passive effects:
+  // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
+  // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
 
   // ============================================
   // Iron Will (Epic Talent) - Bonus HP when low health
@@ -742,6 +754,7 @@ export class PlayerStats {
     // Reset new V1 abilities
     this.freezeChance = 0
     this.poisonDamagePercent = 0
+    this.bleedDamagePercent = 0
     this.lightningChainCount = 0
     this.diagonalArrows = 0
     this.rearArrows = 0
@@ -757,9 +770,7 @@ export class PlayerStats {
     this.giantLevel = 0
     // Reset orbital abilities
     this.chainsawOrbitLevel = 0
-    // Reset conditional damage abilities
-    this.shatterLevel = 0
-    this.fireSpreadEnabled = false
+    // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
   /**
@@ -782,6 +793,7 @@ export class PlayerStats {
     critDamageMultiplier: number
     freezeChance: number
     poisonDamagePercent: number
+    bleedDamagePercent: number
     lightningChainCount: number
     diagonalArrows: number
     rearArrows: number
@@ -795,8 +807,8 @@ export class PlayerStats {
     throughWallEnabled: boolean
     giantLevel: number
     chainsawOrbitLevel: number
-    shatterLevel: number
-    fireSpreadEnabled: boolean
+    hasFireSpread: boolean
+    hasShatter: boolean
   } {
     return {
       health: this.health,
@@ -815,6 +827,7 @@ export class PlayerStats {
       critDamageMultiplier: this.critDamageMultiplier,
       freezeChance: this.freezeChance,
       poisonDamagePercent: this.poisonDamagePercent,
+      bleedDamagePercent: this.bleedDamagePercent,
       lightningChainCount: this.lightningChainCount,
       diagonalArrows: this.diagonalArrows,
       rearArrows: this.rearArrows,
@@ -828,8 +841,8 @@ export class PlayerStats {
       throughWallEnabled: this.throughWallEnabled,
       giantLevel: this.giantLevel,
       chainsawOrbitLevel: this.chainsawOrbitLevel,
-      shatterLevel: this.shatterLevel,
-      fireSpreadEnabled: this.fireSpreadEnabled,
+      hasFireSpread: this.hasFireSpread(),
+      hasShatter: this.getShatterLevel() > 0,
     }
   }
 }

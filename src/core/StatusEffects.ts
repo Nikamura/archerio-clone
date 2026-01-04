@@ -5,7 +5,7 @@
  * Extracted from Enemy.ts to allow reuse across all enemy types.
  */
 
-export type StatusEffectType = 'fire' | 'freeze' | 'poison'
+export type StatusEffectType = 'fire' | 'freeze' | 'poison' | 'bleed'
 
 export interface FireEffect {
   damage: number
@@ -29,16 +29,31 @@ export interface PoisonEffect {
   duration: number
 }
 
+/**
+ * Bleed effect - deals more damage when enemy is moving
+ */
+export interface BleedEffect {
+  damage: number
+  ticks: number
+  tickInterval: number
+  lastTick: number
+  duration: number
+  /** Damage multiplier when enemy is moving (e.g., 2.0 = double damage) */
+  movingMultiplier: number
+}
+
 export interface StatusEffectTint {
   frozen: number
   burning: number
   poisoned: number
+  bleeding: number
 }
 
 const DEFAULT_TINTS: StatusEffectTint = {
   frozen: 0x66ccff, // Blue tint for frozen
   burning: 0xff4400, // Orange tint for burning
   poisoned: 0x66ff66, // Green tint for poisoned
+  bleeding: 0xcc0000, // Dark red tint for bleeding
 }
 
 /**
@@ -80,6 +95,16 @@ export class StatusEffectSystem {
     duration: 4000,
   }
 
+  // Bleed DOT - more damage when moving
+  private bleed: BleedEffect = {
+    damage: 0,
+    ticks: 0,
+    tickInterval: 500,
+    lastTick: 0,
+    duration: 3000,
+    movingMultiplier: 2.0, // Double damage when moving
+  }
+
   private tints: StatusEffectTint = { ...DEFAULT_TINTS }
 
   constructor(options?: {
@@ -88,6 +113,8 @@ export class StatusEffectSystem {
     poisonDuration?: number
     fireTickInterval?: number
     poisonTickInterval?: number
+    bleedTickInterval?: number
+    bleedMovingMultiplier?: number
     tints?: Partial<StatusEffectTint>
   }) {
     if (options?.freezeDuration) this.freeze.duration = options.freezeDuration
@@ -95,6 +122,8 @@ export class StatusEffectSystem {
     if (options?.poisonDuration) this.poison.duration = options.poisonDuration
     if (options?.fireTickInterval) this.fire.tickInterval = options.fireTickInterval
     if (options?.poisonTickInterval) this.poison.tickInterval = options.poisonTickInterval
+    if (options?.bleedTickInterval) this.bleed.tickInterval = options.bleedTickInterval
+    if (options?.bleedMovingMultiplier) this.bleed.movingMultiplier = options.bleedMovingMultiplier
     if (options?.tints) this.tints = { ...DEFAULT_TINTS, ...options.tints }
   }
 
@@ -141,6 +170,21 @@ export class StatusEffectSystem {
   }
 
   /**
+   * Apply bleed DOT effect - deals more damage when target is moving
+   * @param damage Base damage per tick
+   * @param currentTime Current game time
+   * @param duration Duration in ms (default 3000ms)
+   */
+  applyBleed(damage: number, currentTime: number, duration: number = 3000): void {
+    if (damage <= 0) return
+
+    this.bleed.damage = damage
+    this.bleed.duration = duration
+    this.bleed.ticks = Math.ceil(duration / this.bleed.tickInterval)
+    this.bleed.lastTick = currentTime
+  }
+
+  /**
    * Check if entity is frozen
    */
   isFrozen(): boolean {
@@ -162,6 +206,20 @@ export class StatusEffectSystem {
   }
 
   /**
+   * Check if bleed is active
+   */
+  isBleeding(): boolean {
+    return this.bleed.ticks > 0
+  }
+
+  /**
+   * Get the bleed damage multiplier for moving targets
+   */
+  getBleedMovingMultiplier(): number {
+    return this.bleed.movingMultiplier
+  }
+
+  /**
    * Get fire damage per tick (for fire spread mechanic)
    */
   getFireDamagePerTick(): number {
@@ -178,9 +236,10 @@ export class StatusEffectSystem {
   /**
    * Update all status effects
    * @param currentTime Current game time
+   * @param isMoving Whether the entity is currently moving (for bleed bonus)
    * @returns Update result with damage and state info
    */
-  update(currentTime: number): StatusEffectUpdateResult {
+  update(currentTime: number, isMoving: boolean = false): StatusEffectUpdateResult {
     let damage = 0
     let effectsChanged = false
 
@@ -218,6 +277,26 @@ export class StatusEffectSystem {
       }
     }
 
+    // Update bleed DOT - deals more damage when moving
+    if (
+      this.bleed.ticks > 0 &&
+      currentTime - this.bleed.lastTick >= this.bleed.tickInterval
+    ) {
+      this.bleed.ticks--
+      this.bleed.lastTick = currentTime
+
+      // Apply movement multiplier if target is moving
+      const bleedDamage = isMoving
+        ? this.bleed.damage * this.bleed.movingMultiplier
+        : this.bleed.damage
+      damage += bleedDamage
+
+      if (this.bleed.ticks === 0) {
+        this.bleed.damage = 0
+        effectsChanged = true
+      }
+    }
+
     return {
       damage,
       isFrozen: this._isFrozen,
@@ -227,7 +306,7 @@ export class StatusEffectSystem {
 
   /**
    * Get the current tint color based on active effects
-   * Priority: Frozen > Burning > Poisoned > null
+   * Priority: Frozen > Burning > Bleeding > Poisoned > null
    */
   getTint(): number | null {
     if (this._isFrozen) {
@@ -235,6 +314,9 @@ export class StatusEffectSystem {
     }
     if (this.fire.ticks > 0) {
       return this.tints.burning
+    }
+    if (this.bleed.ticks > 0) {
+      return this.tints.bleeding
     }
     if (this.poison.stacks > 0) {
       return this.tints.poisoned
@@ -246,7 +328,7 @@ export class StatusEffectSystem {
    * Check if any effect is active
    */
   hasActiveEffect(): boolean {
-    return this._isFrozen || this.fire.ticks > 0 || this.poison.stacks > 0
+    return this._isFrozen || this.fire.ticks > 0 || this.poison.stacks > 0 || this.bleed.ticks > 0
   }
 
   /**
@@ -265,6 +347,10 @@ export class StatusEffectSystem {
       this.poison.damage = 0
       this.poison.stacks = 0
       this.poison.ticks = 0
+    }
+    if (!type || type === 'bleed') {
+      this.bleed.damage = 0
+      this.bleed.ticks = 0
     }
   }
 

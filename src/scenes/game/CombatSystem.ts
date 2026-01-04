@@ -12,7 +12,7 @@ import type DamageNumberPool from '../../systems/DamageNumberPool'
 import type { TalentBonuses } from '../../config/talentData'
 import type { DifficultyConfig } from '../../config/difficulty'
 import { chapterManager } from '../../systems/ChapterManager'
-import { getChapterDefinition, getXpMultiplierForChapter, type ChapterId } from '../../config/chapterData'
+import { getChapterDefinition, getXpMultiplierForChapter, getChapterElementalResistances, type ChapterId } from '../../config/chapterData'
 
 /**
  * Damage result from player taking damage
@@ -208,22 +208,38 @@ export class CombatSystem {
   ): void {
     if (killed) return
 
-    // Apply fire DOT
+    // Get chapter elemental resistances
+    const chapterId = chapterManager.getSelectedChapter() as ChapterId
+    const resistances = getChapterElementalResistances(chapterId)
+
+    // Apply fire DOT (affected by fire resistance)
     const fireDamage = bullet.getFireDamage()
     if (fireDamage > 0) {
-      enemy.applyFireDamage(fireDamage, 2000) // 2 second burn
+      const adjustedFireDamage = Math.round(fireDamage * resistances.fire)
+      enemy.applyFireDamage(adjustedFireDamage, 2000) // 2 second burn
       this.particles.emitFire(enemy.x, enemy.y)
     }
 
-    // Apply freeze
+    // Apply freeze (cold resistance affects freeze chance)
     if (bullet.rollFreeze()) {
-      enemy.applyFreeze()
+      // Cold resistance reduces freeze chance - if resistance is 0.5, freeze has 50% chance to apply
+      // If resistance is 1.5, freeze always applies (vulnerability doesn't increase freeze chance)
+      if (resistances.cold >= 1.0 || Math.random() < resistances.cold) {
+        enemy.applyFreeze()
+      }
     }
 
     // Apply poison DOT
     const poisonDamage = bullet.getPoisonDamage()
     if (poisonDamage > 0) {
       enemy.applyPoisonDamage(poisonDamage)
+    }
+
+    // Apply bleed DOT (affected by bleed resistance)
+    const bleedDamage = bullet.getBleedDamage()
+    if (bleedDamage > 0) {
+      const adjustedBleedDamage = Math.round(bleedDamage * resistances.bleed)
+      enemy.applyBleedDamage(adjustedBleedDamage, 3000) // 3 second bleed
     }
 
     // Handle lightning chain

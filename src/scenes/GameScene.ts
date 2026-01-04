@@ -2951,6 +2951,7 @@ export default class GameScene extends Phaser.Scene {
       // New V1 ability options
       freezeChance: this.player.getFreezeChance(),
       poisonDamage: this.player.getPoisonDamage(),
+      bleedDamage: this.player.getBleedDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
       maxWallBounces: this.player.getWallBounces(),
       throughWall: this.player.isThroughWallEnabled(),
