@@ -15,6 +15,7 @@ import { encyclopediaManager } from '../systems/EncyclopediaManager'
 import { saveManager } from '../systems/SaveManager'
 import * as UIAnimations from '../systems/UIAnimations'
 import { createBackButton, createBackButtonFooter } from '../ui/components/BackButton'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
 import {
   EncyclopediaCategory,
   CATEGORY_TABS,
@@ -87,20 +88,13 @@ export default class EncyclopediaScene extends Phaser.Scene {
   private tabDragStartScroll = 0
   private tabDragDistance = 0
 
-  // Scrolling
-  private contentContainer: Phaser.GameObjects.Container | null = null
-  private scrollOffset = 0
-  private maxScroll = 0
+  // Scrolling - uses ScrollContainer component
+  private scrollContainer?: ScrollContainer
   private contentStartY = 0
   private visibleHeight = 0
-  private scrollIndicator: Phaser.GameObjects.Container | null = null
 
-  // Touch scroll state
-  private isDragging = false
-  private dragStartY = 0
-  private dragStartScroll = 0
-  private dragDistance = 0
-  private readonly DRAG_THRESHOLD = 10
+  // Tab drag threshold (tabs have their own horizontal scroll logic)
+  private readonly TAB_DRAG_THRESHOLD = 10
 
   // Entry cards
   private entryCards: EntryCard[] = []
@@ -212,7 +206,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
       if (!this.isTabDragging || this.tabMaxScroll <= 0) return
       const deltaX = this.tabDragStartX - pointer.x
       this.tabDragDistance = Math.abs(deltaX)
-      if (this.tabDragDistance >= this.DRAG_THRESHOLD) {
+      if (this.tabDragDistance >= this.TAB_DRAG_THRESHOLD) {
         this.tabScrollOffset = Phaser.Math.Clamp(this.tabDragStartScroll + deltaX, 0, this.tabMaxScroll)
         this.updateTabScroll()
       }
@@ -293,7 +287,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true })
     bg.on('pointerup', () => {
       // Only trigger click if we weren't dragging
-      if (this.tabDragDistance < this.DRAG_THRESHOLD) {
+      if (this.tabDragDistance < this.TAB_DRAG_THRESHOLD) {
         audioManager.playMenuSelect()
         this.switchToCategory(category)
       }
@@ -338,148 +332,20 @@ export default class EncyclopediaScene extends Phaser.Scene {
     this.contentStartY = 105
     this.visibleHeight = height - this.contentStartY - 60
 
-    // Mask for scrolling
-    const maskGraphics = this.make.graphics({})
-    maskGraphics.fillStyle(0xffffff)
-    maskGraphics.fillRect(
-      this.CONTENT_PADDING,
-      this.contentStartY,
-      width - this.CONTENT_PADDING * 2,
-      this.visibleHeight
-    )
-    const mask = maskGraphics.createGeometryMask()
-
-    // Content container
-    this.contentContainer = this.add.container(0, this.contentStartY)
-    this.contentContainer.setMask(mask)
-    this.contentContainer.setDepth(1)
-
-    // Scroll input - wheel for desktop
-    this.input.on(
-      'wheel',
-      (
-        _pointer: Phaser.Input.Pointer,
-        _gameObjects: Phaser.GameObjects.GameObject[],
-        _deltaX: number,
-        deltaY: number
-      ) => {
-        if (this.maxScroll <= 0 || this.detailPanel) return
-        this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY, 0, this.maxScroll)
-        this.updateContentScroll()
-      }
-    )
-
-    // Touch scrolling
-    this.setupTouchScrolling()
-  }
-
-  private setupTouchScrolling(): void {
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.detailPanel) return
-      if (pointer.y >= this.contentStartY && pointer.y <= this.contentStartY + this.visibleHeight) {
-        this.isDragging = true
-        this.dragStartY = pointer.y
-        this.dragStartScroll = this.scrollOffset
-        this.dragDistance = 0
-      }
+    // Create scroll container - handles mask, touch/wheel scrolling, and scroll indicator
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      width: width,
+      bounds: { top: this.contentStartY, bottom: this.contentStartY + this.visibleHeight },
     })
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isDragging || this.maxScroll <= 0) return
-      const deltaY = this.dragStartY - pointer.y
-      this.dragDistance = Math.abs(deltaY)
-      if (this.dragDistance >= this.DRAG_THRESHOLD) {
-        this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
-        this.updateContentScroll()
-      }
-    })
-
-    this.input.on('pointerup', () => {
-      this.isDragging = false
-    })
-  }
-
-  private updateContentScroll(): void {
-    if (this.contentContainer) {
-      this.contentContainer.y = this.contentStartY - this.scrollOffset
-    }
-    this.updateScrollIndicator()
-    this.updateEntryCardInteractivity()
-  }
-
-  private updateEntryCardInteractivity(): void {
-    if (!this.contentContainer || !this.scene || !this.sys?.isActive()) return
-
-    const maskTop = this.contentStartY
-    const maskBottom = this.contentStartY + this.visibleHeight
-
-    this.entryCards.forEach((card) => {
-      if (!card.background || !card.background.scene) return
-
-      const containerY = this.contentContainer!.y
-      const cardWorldY = containerY + card.container.y
-
-      // Check if the card's CENTER is within the visible mask area
-      // Using center-based check prevents items just outside the mask from catching clicks
-      const isVisible = cardWorldY >= maskTop && cardWorldY <= maskBottom
-
-      if (isVisible) {
-        if (!card.background.input?.enabled) {
-          card.background.setInteractive({ useHandCursor: true })
-        }
-      } else {
-        if (card.background.input?.enabled) {
-          card.background.disableInteractive()
-        }
-      }
-    })
-  }
-
-  private createScrollIndicator(): void {
-    if (this.scrollIndicator) {
-      this.scrollIndicator.destroy()
-      this.scrollIndicator = null
-    }
-
-    if (this.maxScroll <= 0) return
-
-    const { width } = this.cameras.main
-    const indicatorX = width - 12
-    const indicatorHeight = this.visibleHeight - 20
-    const indicatorY = this.contentStartY + 10
-
-    this.scrollIndicator = this.add.container(indicatorX, indicatorY)
-    this.scrollIndicator.setDepth(10)
-
-    // Track
-    const track = this.add.rectangle(0, indicatorHeight / 2, 4, indicatorHeight, 0x333355, 0.5)
-    this.scrollIndicator.add(track)
-
-    // Thumb
-    const thumbHeight = Math.max(30, (this.visibleHeight / (this.visibleHeight + this.maxScroll)) * indicatorHeight)
-    const thumb = this.add.rectangle(0, thumbHeight / 2, 4, thumbHeight, 0x666688, 1)
-    thumb.setName('thumb')
-    this.scrollIndicator.add(thumb)
-  }
-
-  private updateScrollIndicator(): void {
-    if (!this.scrollIndicator || this.maxScroll <= 0) return
-
-    const thumb = this.scrollIndicator.getByName('thumb') as Phaser.GameObjects.Rectangle
-    if (!thumb) return
-
-    const indicatorHeight = this.visibleHeight - 20
-    const thumbHeight = thumb.height
-    const scrollRatio = this.scrollOffset / this.maxScroll
-    const thumbY = thumbHeight / 2 + scrollRatio * (indicatorHeight - thumbHeight)
-    thumb.y = thumbY
   }
 
   private switchToCategory(category: EncyclopediaCategory): void {
     if (category === this.activeCategory) return
     this.activeCategory = category
     this.updateTabHighlights()
-    this.scrollOffset = 0
+    // Reset scroll position when switching categories
+    this.scrollContainer?.scrollTo(0)
     this.scrollTabToCategory(category)
     this.renderCategory(category)
   }
@@ -515,14 +381,12 @@ export default class EncyclopediaScene extends Phaser.Scene {
     this.entryCards.forEach((card) => card.container.destroy())
     this.entryCards = []
 
-    if (this.scrollIndicator) {
-      this.scrollIndicator.destroy()
-      this.scrollIndicator = null
-    }
+    // Clear scroll container content
+    this.scrollContainer?.clear()
 
     const { width } = this.cameras.main
     const cardWidth = width - this.CONTENT_PADDING * 2 - 10
-    let currentY = this.ENTRY_HEIGHT / 2 + 5
+    let currentY = this.contentStartY + this.ENTRY_HEIGHT / 2 + 5
 
     // Get entries based on category
     const entries = this.getEntriesForCategory(category)
@@ -538,16 +402,13 @@ export default class EncyclopediaScene extends Phaser.Scene {
         isLocked
       )
       this.entryCards.push(card)
+      this.scrollContainer?.add(card.container)
       currentY += this.ENTRY_HEIGHT + this.ENTRY_GAP
     })
 
-    // Calculate scroll
-    const contentHeight = currentY + 10
-    this.maxScroll = Math.max(0, contentHeight - this.visibleHeight)
-
-    // Create scroll indicator
-    this.createScrollIndicator()
-    this.updateContentScroll()
+    // Calculate and set content height for scrolling
+    const contentHeight = entries.length * (this.ENTRY_HEIGHT + this.ENTRY_GAP) + 15
+    this.scrollContainer?.setContentHeight(contentHeight)
   }
 
   private getEntriesForCategory(category: EncyclopediaCategory): AnyEntry[] {
@@ -596,9 +457,6 @@ export default class EncyclopediaScene extends Phaser.Scene {
     isLocked: boolean
   ): EntryCard {
     const container = this.add.container(x, y)
-    if (this.contentContainer) {
-      this.contentContainer.add(container)
-    }
 
     // Background
     const bgColor = isLocked ? 0x1a1a2a : 0x2d2d44
@@ -698,8 +556,9 @@ export default class EncyclopediaScene extends Phaser.Scene {
     // Interaction
     bg.setInteractive({ useHandCursor: !isLocked })
     if (!isLocked) {
-      bg.on('pointerup', () => {
-        if (this.dragDistance < this.DRAG_THRESHOLD) {
+      bg.on('pointerdown', () => {
+        // Only trigger click if we weren't scrolling
+        if (!this.scrollContainer?.isDragScrolling()) {
           this.showDetailPanel(category, entry)
         }
       })

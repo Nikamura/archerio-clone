@@ -12,7 +12,10 @@ import {
 } from '../entities/enemies'
 import Boss from '../entities/Boss'
 import Bullet from '../entities/Bullet'
-import Joystick from '../ui/Joystick'
+import { InputSystem } from './game/InputSystem'
+import { AbilitySystem } from './game/AbilitySystem'
+// TODO: Integrate CombatSystem to further reduce GameScene complexity
+// import { CombatSystem } from './game/CombatSystem'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import SpiritCatPool from '../systems/SpiritCatPool'
@@ -51,18 +54,10 @@ import { errorReporting } from '../systems/ErrorReportingManager'
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
   private player!: Player
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasdKeys!: {
-    W: Phaser.Input.Keyboard.Key
-    A: Phaser.Input.Keyboard.Key
-    S: Phaser.Input.Keyboard.Key
-    D: Phaser.Input.Keyboard.Key
-  }
-  private joystick!: Joystick
-  private joystickAngle: number = 0
-  private joystickForce: number = 0
-  private lastJoystickMoveTime: number = 0 // Track when joystick last received input
-  private readonly JOYSTICK_STUCK_TIMEOUT = 500 // ms - if no input for this long, force reset (must be high enough to account for mobile touch event delays)
+  private inputSystem!: InputSystem
+  private abilitySystem!: AbilitySystem
+  // TODO: Integrate CombatSystem to further reduce GameScene complexity
+  // private combatSystem!: CombatSystem
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -93,10 +88,8 @@ export default class GameScene extends Phaser.Scene {
   private boss: Boss | null = null
   private currentBossType: BossType | null = null // For kill tracking
   private runStartTime: number = 0
-  private abilitiesGained: number = 0
   private goldEarned: number = 0 // Track gold earned this run
   private heroXPEarned: number = 0 // Track hero XP earned this run
-  private acquiredAbilities: Map<string, number> = new Map() // Track abilities with levels
 
   // Endless mode
   private isEndlessMode: boolean = false
@@ -230,10 +223,8 @@ export default class GameScene extends Phaser.Scene {
     this.doorText = null
     this.isTransitioning = false
     this.runStartTime = Date.now()
-    this.abilitiesGained = 0
     this.goldEarned = 0
     this.heroXPEarned = 0
-    this.acquiredAbilities = new Map()
 
     // Update error reporting context
     const selectedHero = heroManager.getSelectedHeroId()
@@ -367,6 +358,19 @@ export default class GameScene extends Phaser.Scene {
     this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier) // Apply difficulty gold scaling
     this.healthPool = new HealthPool(this)
     this.damageNumberPool = new DamageNumberPool(this)
+
+    // Initialize ability system
+    this.abilitySystem = new AbilitySystem(this.player, {
+      onAbilitiesUpdated: (abilities) => {
+        this.scene.get('UIScene').events.emit('updateAbilities', abilities)
+      },
+      onHealthUpdated: (current, max) => {
+        this.scene.get('UIScene').events.emit('updateHealth', current, max)
+      },
+      onGiantLevelChanged: () => {
+        this.updatePlayerHitboxForGiant()
+      },
+    })
 
     // Initialize spirit cat system if playing as Meowgik
     if (selectedHeroId === 'meowgik') {
@@ -509,39 +513,18 @@ export default class GameScene extends Phaser.Scene {
       this
     )
 
-    // Keyboard controls for desktop testing (arrow keys + WASD)
-    this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasdKeys = {
-      W: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      A: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    }
+    // Initialize input system (handles keyboard + virtual joystick)
+    const gameContainer = this.game.canvas.parentElement
+    this.inputSystem = new InputSystem({
+      scene: this,
+      joystickContainer: gameContainer ?? undefined,
+    })
 
     // Debug keyboard controls
     if (this.game.registry.get('debug')) {
       const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
       nKey.on('down', () => {
         this.debugSkipLevel()
-      })
-    }
-
-    // Create virtual joystick
-    this.joystick = new Joystick(this)
-    const gameContainer = this.game.canvas.parentElement
-    if (gameContainer) {
-      this.joystick.create(gameContainer)
-
-      // Set joystick callbacks
-      this.joystick.setOnMove((angle: number, force: number) => {
-        this.joystickAngle = angle
-        this.joystickForce = force
-        this.lastJoystickMoveTime = this.time.now // Track when we last received input
-      })
-
-      this.joystick.setOnEnd(() => {
-        this.joystickForce = 0
-        this.lastJoystickMoveTime = 0 // Clear timestamp on end
       })
     }
 
@@ -1157,9 +1140,9 @@ export default class GameScene extends Phaser.Scene {
       this.difficultyConfig.goldMultiplier
     )
 
-    // Clean up joystick
-    if (this.joystick) {
-      this.joystick.destroy()
+    // Clean up input system
+    if (this.inputSystem) {
+      this.inputSystem.destroy()
     }
 
     // Calculate play time
@@ -1176,7 +1159,7 @@ export default class GameScene extends Phaser.Scene {
         enemiesKilled: this.enemiesKilled,
         isVictory: true,
         playTimeMs,
-        abilitiesGained: this.abilitiesGained,
+        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
@@ -1520,11 +1503,9 @@ export default class GameScene extends Phaser.Scene {
     // Pause game physics
     this.physics.pause()
 
-    // Hide joystick so it doesn't block the UI (hide() now calls resetJoystickState internally)
-    if (this.joystick) {
-      console.log('GameScene: hiding joystick')
-      this.joystick.hide()
-    }
+    // Hide joystick so it doesn't block the UI
+    console.log('GameScene: hiding joystick')
+    this.inputSystem.hide()
 
     // Clean up any existing listeners to prevent multiple applications
     this.game.events.off('abilitySelected')
@@ -1538,9 +1519,7 @@ export default class GameScene extends Phaser.Scene {
         // Ensure joystick state is reset before resuming
         this.resetJoystickState()
         this.physics.resume()
-        if (this.joystick) {
-          this.joystick.show()
-        }
+        this.inputSystem.show()
         // Add brief immunity period (1 second) after level up to allow dodging
         this.time.delayedCall(1000, () => {
           this.isLevelingUp = false
@@ -1549,9 +1528,7 @@ export default class GameScene extends Phaser.Scene {
         console.error('GameScene: Error applying ability:', error)
         this.resetJoystickState() // Reset even on error
         this.physics.resume() // Resume anyway to prevent soft-lock
-        if (this.joystick) {
-          this.joystick.show()
-        }
+        this.inputSystem.show()
         this.isLevelingUp = false // Reset flag on error too
       }
     })
@@ -1611,102 +1588,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private applyAbility(abilityId: string) {
-    switch (abilityId) {
-      // Original 8 abilities
-      case 'front_arrow':
-        this.player.addFrontArrow()
-        break
-      case 'multishot':
-        this.player.addMultishot()
-        break
-      case 'attack_speed':
-        this.player.addAttackSpeedBoost(0.25) // +25%
-        break
-      case 'attack_boost':
-        this.player.addDamageBoost(0.30) // +30%
-        break
-      case 'piercing':
-        this.player.addPiercing()
-        break
-      case 'ricochet':
-        this.player.addRicochet()
-        break
-      case 'fire_damage':
-        this.player.addFireDamage()
-        break
-      case 'crit_boost':
-        this.player.addCritBoost()
-        break
-      // New V1 abilities
-      case 'ice_shot':
-        this.player.addIceShot()
-        break
-      case 'poison_shot':
-        this.player.addPoisonShot()
-        break
-      case 'lightning_chain':
-        this.player.addLightningChain()
-        break
-      case 'diagonal_arrows':
-        this.player.addDiagonalArrows()
-        break
-      case 'rear_arrow':
-        this.player.addRearArrow()
-        break
-      case 'damage_aura':
-        this.player.addDamageAura()
-        break
-      case 'bloodthirst':
-        this.player.addBloodthirst()
-        break
-      case 'rage':
-        this.player.addRage()
-        break
-      case 'speed_boost':
-        this.player.addSpeedBoost()
-        break
-      case 'max_health':
-        this.player.addMaxHealthBoost()
-        break
-      case 'bouncy_wall':
-        this.player.addWallBounce()
-        break
-      case 'dodge_master':
-        this.player.addDodgeMaster()
-        break
-      // Devil abilities
-      case 'extra_life':
-        this.player.addExtraLife()
-        break
-      case 'through_wall':
-        this.player.addThroughWall()
-        break
-      case 'giant':
-        this.player.addGiant()
-        // Also increase player hitbox size
-        this.updatePlayerHitboxForGiant()
-        break
-    }
-    this.abilitiesGained++
-
-    // Track ability with its level
-    const currentLevel = this.acquiredAbilities.get(abilityId) || 0
-    this.acquiredAbilities.set(abilityId, currentLevel + 1)
-
-    // Notify UIScene about ability update
-    this.scene.get('UIScene').events.emit('updateAbilities', this.getAcquiredAbilitiesArray())
-
-    // Update health UI (abilities like max_health change max HP)
-    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
-
-    console.log(`Applied ability: ${abilityId} (level: ${currentLevel + 1}, total: ${this.abilitiesGained})`)
+    // Delegate to AbilitySystem
+    this.abilitySystem.applyAbility(abilityId)
   }
 
   /**
    * Convert acquired abilities map to array for passing to other scenes
    */
   private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
-    return Array.from(this.acquiredAbilities.entries()).map(([id, level]) => ({ id, level }))
+    return this.abilitySystem.getAcquiredAbilitiesArray()
   }
 
   /**
@@ -2075,7 +1965,7 @@ export default class GameScene extends Phaser.Scene {
       // Fade back in
       this.cameras.main.fadeIn(300, 0, 0, 0)
 
-      console.log('Level reset complete! Starting room 1 with', this.abilitiesGained, 'abilities')
+      console.log('Level reset complete! Starting room 1 with', this.abilitySystem.getTotalAbilitiesGained(), 'abilities')
     })
   }
 
@@ -2131,9 +2021,9 @@ export default class GameScene extends Phaser.Scene {
     // Flash player red and fade out
     this.player.setTint(0xff0000)
 
-    // Clean up joystick
-    if (this.joystick) {
-      this.joystick.destroy()
+    // Clean up input system
+    if (this.inputSystem) {
+      this.inputSystem.destroy()
     }
 
     // Calculate play time
@@ -2160,7 +2050,7 @@ export default class GameScene extends Phaser.Scene {
         enemiesKilled: this.enemiesKilled,
         isVictory: false,
         playTimeMs,
-        abilitiesGained: this.abilitiesGained,
+        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
@@ -2192,9 +2082,9 @@ export default class GameScene extends Phaser.Scene {
     // Stop player movement
     this.player.setVelocity(0, 0)
 
-    // Clean up joystick
-    if (this.joystick) {
-      this.joystick.destroy()
+    // Clean up input system
+    if (this.inputSystem) {
+      this.inputSystem.destroy()
     }
 
     // Calculate play time
@@ -2221,7 +2111,7 @@ export default class GameScene extends Phaser.Scene {
         enemiesKilled: this.enemiesKilled,
         isVictory: false,
         playTimeMs,
-        abilitiesGained: this.abilitiesGained,
+        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
@@ -2872,52 +2762,18 @@ export default class GameScene extends Phaser.Scene {
 
 
     if (this.player) {
-      // Safety check: Detect stuck joystick state during intense gameplay
-      // If joystickForce is non-zero but we haven't received input in a while,
-      // the joystick 'end' event was likely missed - force reset
-      // BUT only if no pointer is currently pressed (otherwise the user is still holding)
-      if (this.joystickForce > 0 && this.lastJoystickMoveTime > 0) {
-        const timeSinceLastInput = time - this.lastJoystickMoveTime
-        const anyPointerDown = this.input.pointer1?.isDown || this.input.pointer2?.isDown
-        if (timeSinceLastInput > this.JOYSTICK_STUCK_TIMEOUT && !anyPointerDown) {
-          // Joystick appears stuck - reset it
-          this.joystickForce = 0
-          this.lastJoystickMoveTime = 0
-        }
-      }
+      // Get input from InputSystem (handles keyboard + joystick, stuck state detection)
+      const input = this.inputSystem.update()
 
       // Cache player position for this frame - avoids repeated property access
       const playerX = this.player.x
       const playerY = this.player.y
 
+      // Calculate velocity from normalized input (-1 to 1)
       const baseVelocity = 400
       const maxVelocity = baseVelocity * this.player.getMovementSpeedMultiplier()
-      let vx = 0
-      let vy = 0
-
-      // Check for active movement input BEFORE calculating velocity
-      // This determines intent to move, separate from actual velocity
-      const hasMovementInput = this.joystickForce > 0 ||
-        this.cursors?.left?.isDown || this.cursors?.right?.isDown ||
-        this.cursors?.up?.isDown || this.cursors?.down?.isDown ||
-        this.wasdKeys?.A?.isDown || this.wasdKeys?.D?.isDown ||
-        this.wasdKeys?.W?.isDown || this.wasdKeys?.S?.isDown
-
-      // Virtual joystick has priority
-      if (this.joystickForce > 0) {
-        // Convert angle and force to velocity
-        // nipplejs uses mathematical angles (counter-clockwise from right)
-        // Screen Y-axis is inverted (positive = down), so negate sin
-        vx = Math.cos(this.joystickAngle) * this.joystickForce * maxVelocity
-        vy = -Math.sin(this.joystickAngle) * this.joystickForce * maxVelocity
-      }
-      // Fallback to keyboard controls for desktop testing (arrows + WASD)
-      else if (this.cursors || this.wasdKeys) {
-        if (this.cursors?.left?.isDown || this.wasdKeys?.A?.isDown) vx = -maxVelocity
-        if (this.cursors?.right?.isDown || this.wasdKeys?.D?.isDown) vx = maxVelocity
-        if (this.cursors?.up?.isDown || this.wasdKeys?.W?.isDown) vy = -maxVelocity
-        if (this.cursors?.down?.isDown || this.wasdKeys?.S?.isDown) vy = maxVelocity
-      }
+      const vx = input.velocityX * maxVelocity
+      const vy = input.velocityY * maxVelocity
 
       this.player.setVelocity(vx, vy)
 
@@ -2927,9 +2783,9 @@ export default class GameScene extends Phaser.Scene {
       // CORE MECHANIC: Auto-fire when player is stationary
       // Player shoots when they have no active movement input AND velocity is low
       // Using both checks ensures shooting works correctly:
-      // - hasMovementInput: Immediate response to input release (no frame delay)
+      // - input.isShooting: Immediate response to input release (no frame delay)
       // - isPlayerMoving: Accounts for momentum/sliding before shooting
-      if (!hasMovementInput && !this.player.isPlayerMoving()) {
+      if (input.isShooting && !this.player.isPlayerMoving()) {
         if (time - this.lastShotTime > this.getEffectiveFireRate()) {
           const nearestEnemy = this.getCachedNearestEnemy()
           if (nearestEnemy) {
@@ -3007,13 +2863,10 @@ export default class GameScene extends Phaser.Scene {
    */
   private resetJoystickState() {
     console.log('GameScene: Resetting joystick state')
-    this.joystickForce = 0
-    this.joystickAngle = 0
-    this.lastJoystickMoveTime = 0 // Clear the timestamp
 
-    // Also reset the joystick UI if it exists
-    if (this.joystick) {
-      this.joystick.reset()
+    // Reset input system (handles joystick reset internally)
+    if (this.inputSystem) {
+      this.inputSystem.reset()
     }
 
     // Stop player movement immediately
@@ -3026,10 +2879,10 @@ export default class GameScene extends Phaser.Scene {
     // Stop all delayed calls to prevent callbacks on destroyed objects
     this.time.removeAllEvents()
 
-    // Clean up joystick when scene shuts down
-    if (this.joystick) {
-      this.joystick.destroy()
-      this.joystick = null!
+    // Clean up input system when scene shuts down
+    if (this.inputSystem) {
+      this.inputSystem.destroy()
+      this.inputSystem = null!
     }
 
     // Clean up particles

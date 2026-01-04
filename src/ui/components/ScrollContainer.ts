@@ -85,6 +85,14 @@ export class ScrollContainer {
   }
 
   /**
+   * Remove all children from the scroll container (does not destroy them)
+   * Note: Children should be destroyed separately if needed
+   */
+  clear(): void {
+    this.container.removeAll()
+  }
+
+  /**
    * Set the total content height for scroll calculations
    */
   setContentHeight(height: number): void {
