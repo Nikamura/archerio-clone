@@ -213,6 +213,20 @@ export default class AbilityPriorityScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
     container.add(descText)
 
+    // One-time indicator for abilities with maxLevel: 1
+    if (ability.maxLevel === 1) {
+      const oneTimeBadge = this.add
+        .text(width / 2 - 70, 0, '1x', {
+          fontSize: '10px',
+          color: '#ffaa00',
+          fontStyle: 'bold',
+          backgroundColor: '#3a3a4e',
+          padding: { x: 4, y: 2 },
+        })
+        .setOrigin(0.5)
+      container.add(oneTimeBadge)
+    }
+
     // Priority number (right side)
     const priorityText = this.add
       .text(width / 2 - 25, 0, `#${index + 1}`, {

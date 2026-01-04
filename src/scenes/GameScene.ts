@@ -1729,9 +1729,10 @@ export default class GameScene extends Phaser.Scene {
         return !this.player.hasExtraLife()
       }
 
-      // Check max level for other abilities
-      if (ability.maxLevel !== undefined) {
-        return currentLevel < ability.maxLevel
+      // Check max level for ALL abilities with a defined maxLevel
+      // This prevents one-time abilities (like through_wall) from being offered again
+      if (ability.maxLevel !== undefined && currentLevel >= ability.maxLevel) {
+        return false
       }
 
       return true
