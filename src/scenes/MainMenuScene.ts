@@ -108,17 +108,20 @@ export default class MainMenuScene extends Phaser.Scene {
       y: 115,
       width,
       onPlay: (mode: GameMode) => {
-        if (!this.trySpendEnergy()) return
-
-        // Set game mode
-        this.game.registry.set('isEndlessMode', mode === 'endless' || mode === 'daily')
-        this.game.registry.set('isDailyChallengeMode', mode === 'daily')
-
-        transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
-        this.scene.launch('UIScene')
+        if (!this.trySpendEnergy(mode)) return
+        this.startGame(mode)
       },
       depth: 10,
     })
+  }
+
+  private startGame(mode: GameMode) {
+    // Set game mode
+    this.game.registry.set('isEndlessMode', mode === 'endless' || mode === 'daily')
+    this.game.registry.set('isDailyChallengeMode', mode === 'daily')
+
+    transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
+    this.scene.launch('UIScene')
   }
 
   private createNavigationGrid(width: number, height: number) {
@@ -168,13 +171,21 @@ export default class MainMenuScene extends Phaser.Scene {
     instructionsText.setDepth(10)
   }
 
-  private trySpendEnergy(): boolean {
+  private trySpendEnergy(mode: GameMode): boolean {
     const currentEnergy = currencyManager.get('energy')
     if (currentEnergy <= 0) {
       showNoEnergyModal({
         scene: this,
         onWatchAd: () => {
-          showMockAdPopup({ scene: this })
+          showMockAdPopup({
+            scene: this,
+            buttonText: 'Play Now',
+            onComplete: () => {
+              // Ad gave us +1 energy, spend it and start game
+              currencyManager.spendEnergy(1)
+              this.startGame(mode)
+            },
+          })
         },
       })
       return false
