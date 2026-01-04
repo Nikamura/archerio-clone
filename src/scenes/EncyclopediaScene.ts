@@ -28,6 +28,7 @@ import {
   getAllPerkEntries,
   getAllAchievementEntries,
   getAllChestEntries,
+  getAllGuideEntries,
   EquipmentEncyclopediaEntry,
   EnemyEncyclopediaEntry,
   BossEncyclopediaEntry,
@@ -37,6 +38,7 @@ import {
   PerkEncyclopediaEntry,
   AchievementEncyclopediaEntry,
   ChestEncyclopediaEntry,
+  GuideEncyclopediaEntry,
 } from '../config/encyclopediaData'
 import { Rarity, RARITY_CONFIGS } from '../systems/Equipment'
 import { getEnemySpriteKey, getThemedEnemyName } from '../config/themeData'
@@ -56,6 +58,7 @@ type AnyEntry =
   | PerkEncyclopediaEntry
   | AchievementEncyclopediaEntry
   | ChestEncyclopediaEntry
+  | GuideEncyclopediaEntry
 
 interface EntryCard {
   container: Phaser.GameObjects.Container
@@ -78,7 +81,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
   private readonly CONTENT_PADDING = 15
 
   // State
-  private activeCategory: EncyclopediaCategory = 'equipment'
+  private activeCategory: EncyclopediaCategory = 'guides'
   private tabContainer: Phaser.GameObjects.Container | null = null
   private tabButtons: Map<EncyclopediaCategory, Phaser.GameObjects.Container> = new Map()
 
@@ -415,6 +418,8 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
   private getEntriesForCategory(category: EncyclopediaCategory): AnyEntry[] {
     switch (category) {
+      case 'guides':
+        return getAllGuideEntries()
       case 'equipment':
         return getAllEquipmentEntries()
       case 'enemies':
@@ -577,6 +582,10 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
   private getIconColorForEntry(category: EncyclopediaCategory, entry: AnyEntry): number {
     switch (category) {
+      case 'guides': {
+        const gu = entry as GuideEncyclopediaEntry
+        return gu.color
+      }
       case 'equipment': {
         const eq = entry as EquipmentEncyclopediaEntry
         if (eq.slot === 'weapon') return 0xff6644
@@ -615,6 +624,10 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
   private getIconTextForEntry(category: EncyclopediaCategory, entry: AnyEntry): string {
     switch (category) {
+      case 'guides': {
+        const gu = entry as GuideEncyclopediaEntry
+        return gu.icon
+      }
       case 'equipment': {
         const eq = entry as EquipmentEncyclopediaEntry
         if (eq.slot === 'weapon') return 'W'
@@ -683,6 +696,10 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
   private getEntrySubtitle(category: EncyclopediaCategory, entry: AnyEntry): string {
     switch (category) {
+      case 'guides': {
+        const gu = entry as GuideEncyclopediaEntry
+        return gu.description
+      }
       case 'equipment': {
         const eq = entry as EquipmentEncyclopediaEntry
         return eq.statSummary
@@ -804,6 +821,16 @@ export default class EncyclopediaScene extends Phaser.Scene {
     let y = startY
 
     switch (category) {
+      case 'guides': {
+        const gu = entry as GuideEncyclopediaEntry
+        this.addDetailLine(gu.description, y, '#aaaacc')
+        y += 30
+        gu.details.forEach((detail) => {
+          this.addDetailLine(`• ${detail}`, y, '#ffffff')
+          y += 22
+        })
+        break
+      }
       case 'equipment': {
         const eq = entry as EquipmentEncyclopediaEntry
         this.addDetailLine(`Slot: ${eq.slot.toUpperCase()}`, y)
