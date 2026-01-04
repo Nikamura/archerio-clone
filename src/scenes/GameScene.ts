@@ -83,6 +83,7 @@ export default class GameScene extends Phaser.Scene {
   private showingTutorial: boolean = false // Tutorial overlay is visible
   private boss: Boss | null = null
   private currentBossType: BossType | null = null // For kill tracking
+  private bossSpawnTime: number = 0 // Track when boss was spawned for kill time metrics
   private runStartTime: number = 0
   private goldEarned: number = 0 // Track gold earned this run
   private heroXPEarned: number = 0 // Track hero XP earned this run
@@ -243,6 +244,13 @@ export default class GameScene extends Phaser.Scene {
       chapter: chapterManager.getSelectedChapter(),
       hero: selectedHero,
     })
+
+    // Track game start in Sentry metrics
+    const gameMode = this.isDailyChallengeMode ? 'daily' : this.isEndlessMode ? 'endless' : 'normal'
+    errorReporting.trackGameStart(gameMode, chapterManager.getSelectedChapter(), this.difficultyConfig.label)
+    if (selectedHero) {
+      errorReporting.trackHeroUsed(selectedHero)
+    }
 
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -1065,6 +1073,7 @@ export default class GameScene extends Phaser.Scene {
     this.boss = newBoss as Boss // Type assertion for compatibility
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = bossType // Store for kill tracking
+    this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1111,6 +1120,8 @@ export default class GameScene extends Phaser.Scene {
     const newMiniBoss = createBoss(this, bossX, bossY, miniBossType, this.enemyBulletPool, miniBossOptions)
     this.boss = newMiniBoss as Boss // Type assertion for compatibility
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
+    this.currentBossType = miniBossType // Store for kill tracking
+    this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1337,9 +1348,14 @@ export default class GameScene extends Phaser.Scene {
     if (isBoss && this.currentBossType) {
       const bossId = this.normalizeBossType(this.currentBossType)
       saveManager.recordBossKill(bossId)
+
+      // Track boss kill in Sentry metrics
+      const timeToKillMs = Date.now() - this.bossSpawnTime
+      errorReporting.trackBossKill(bossId, timeToKillMs, chapterManager.getSelectedChapter())
     } else {
       const enemyType = enemy.getEnemyType()
       saveManager.recordEnemyKill(enemyType)
+      errorReporting.trackEnemyKill(enemyType)
     }
   }
 

@@ -186,6 +186,7 @@ export default class GameOverScene extends Phaser.Scene {
     const selectedChapter = chapterManager.getSelectedChapter()
     const isVictory = this.stats.isVictory === true
     const stars = this.stats.completionResult?.stars ?? 0
+    const score = this.scoreBreakdown?.total ?? 0
 
     saveManager.recordRun({
       kills: this.stats.enemiesKilled,
@@ -194,10 +195,35 @@ export default class GameOverScene extends Phaser.Scene {
       bossDefeated: isVictory,
       abilitiesGained: this.stats.abilitiesGained ?? 0,
       victory: isVictory,
-      score: this.scoreBreakdown?.total ?? 0,
+      score,
       isEndlessMode: this.isEndlessMode,
       endlessWave: this.endlessWave,
     })
+
+    // Track run completion metrics in Sentry
+    errorReporting.trackRunCompleted({
+      roomsCleared: this.stats.roomsCleared,
+      enemiesKilled: this.stats.enemiesKilled,
+      playTimeMs: this.stats.playTimeMs ?? 0,
+      score,
+      isVictory,
+      isEndlessMode: this.isEndlessMode,
+      endlessWave: this.endlessWave,
+      isDailyChallenge: this.isDailyChallengeMode,
+      chapterId: selectedChapter,
+      difficulty: this.stats.difficulty,
+      abilitiesGained: this.stats.abilitiesGained,
+    })
+
+    // Track high scores
+    if (this.isNewHighScore && this.scoreBreakdown) {
+      const previousHighScore = saveManager.getStatistics().highestScore - score // Approximate previous
+      errorReporting.trackNewHighScore(score, Math.max(0, previousHighScore), 'normal')
+    }
+    if (this.isNewEndlessHighScore) {
+      const previousHighWave = saveManager.getStatistics().endlessHighWave ?? 0
+      errorReporting.trackNewHighScore(this.endlessWave, previousHighWave, 'endless')
+    }
 
     // Update chapter progress in SaveManager for persistence (only for normal mode)
     if (!this.isEndlessMode) {
