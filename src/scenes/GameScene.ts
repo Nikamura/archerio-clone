@@ -2344,6 +2344,7 @@ export default class GameScene extends Phaser.Scene {
     // Play shoot sound (once per attack, not per projectile)
     audioManager.playShoot()
     hapticManager.medium() // Haptic feedback for shooting
+    this.player.playShootAnimation(angle) // Visual feedback for shooting
     this.lastShotTime = this.time.now
   }
 

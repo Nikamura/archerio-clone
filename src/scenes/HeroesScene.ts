@@ -427,6 +427,13 @@ export default class HeroesScene extends Phaser.Scene {
     }).setOrigin(0.5)
     this.statsPanel.add(title)
 
+    // Subtitle explaining base stats
+    const subtitle = this.add.text(0, -panelHeight / 2 + 40, 'Base stats before chapter/weapon modifiers', {
+      fontSize: '10px',
+      color: '#888888',
+    }).setOrigin(0.5)
+    this.statsPanel.add(subtitle)
+
     // Get stats from all sources
     const heroStats = heroManager.getSelectedHeroStats()
     const equipStats = equipmentManager.getEquippedStats()
@@ -435,7 +442,7 @@ export default class HeroesScene extends Phaser.Scene {
     // Equipment stat multiplier from talents
     const equipMultiplier = 1 + (talentBonuses.percentEquipmentStats / 100)
 
-    let y = -panelHeight / 2 + 55
+    let y = -panelHeight / 2 + 60
 
     // Section: Attack
     y = this.addStatSection(y, panelWidth, 'ATTACK', [
