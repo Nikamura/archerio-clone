@@ -155,6 +155,11 @@ export class CombatSystem {
       damage = this.player.getPiercingDamage(hitCount)
     }
 
+    // Shatter: bonus damage to frozen enemies
+    if (enemySprite.isEnemyFrozen() && this.player.getShatterLevel() > 0) {
+      damage = Math.floor(damage * this.player.getShatterDamageMultiplier())
+    }
+
     // Damage enemy
     const killed = enemySprite.takeDamage(damage)
     audioManager.playHit()
@@ -577,6 +582,11 @@ export class CombatSystem {
    * Handle common enemy killed logic
    */
   private handleEnemyKilled(enemy: Enemy, isBoss: boolean): void {
+    // Fire Spread: Spread fire to nearby enemies if dying enemy was on fire
+    if (this.player.hasFireSpread() && enemy.isOnFire()) {
+      this.spreadFireOnDeath(enemy)
+    }
+
     // Death particles and screen shake
     if (isBoss) {
       this.particles.emitBossDeath(enemy.x, enemy.y)
@@ -738,6 +748,30 @@ export class CombatSystem {
     })
 
     return nearest
+  }
+
+  /**
+   * Spread fire to nearby enemies when a burning enemy dies
+   */
+  private spreadFireOnDeath(dyingEnemy: Enemy): void {
+    const spreadRadius = 100 // Radius to spread fire
+    const spreadDuration = 3000 // Duration of spread fire (3 seconds)
+    const fireDamage = dyingEnemy.getFireDamagePerTick()
+
+    // Find and ignite all nearby enemies
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy
+      if (e === dyingEnemy || !e.active) return
+
+      const distance = Phaser.Math.Distance.Between(dyingEnemy.x, dyingEnemy.y, e.x, e.y)
+      if (distance <= spreadRadius) {
+        // Apply fire to nearby enemy
+        e.applyFireDamage(fireDamage, spreadDuration)
+
+        // Visual feedback - fire particle effect
+        this.particles.emitFire(e.x, e.y)
+      }
+    })
   }
 
   /**

@@ -246,6 +246,20 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Check if enemy is currently on fire (burning)
+   */
+  isOnFire(): boolean {
+    return this.statusEffects.isOnFire()
+  }
+
+  /**
+   * Get the fire damage per tick (for fire spread mechanic)
+   */
+  getFireDamagePerTick(): number {
+    return this.statusEffects.getFireDamagePerTick()
+  }
+
+  /**
    * Apply poison DOT effect - stacks up to 5 times
    * @param damage Base damage per tick per stack
    */

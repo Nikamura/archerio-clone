@@ -162,6 +162,13 @@ export class StatusEffectSystem {
   }
 
   /**
+   * Get fire damage per tick (for fire spread mechanic)
+   */
+  getFireDamagePerTick(): number {
+    return this.fire.damage
+  }
+
+  /**
    * Get current poison stacks
    */
   getPoisonStacks(): number {
