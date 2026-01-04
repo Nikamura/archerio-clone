@@ -352,18 +352,19 @@ Visual test screenshots are saved to `test/screenshots/`
   - Critical hits: Roll chance, damage multipliers, combination with other abilities
 
 **OPEN BUGS:**
-1. 🔴 **Talent spin wastes gold when all talents maxed** - TalentManager allows spinning even when all talents are at max level
-2. 🔴 **Single bullet hits multiple enemies without piercing** - Bullet damages multiple close enemies without piercing ability
-3. 🔴 **Extra life can stack beyond intended limit** - Should be capped at 1 level; can only level again after used
-4. 🔴 **Leveling too fast** - XP requirements should scale exponentially between levels
-5. 🔴 **Stationary enemies stuck in walls** - Spawners/spreaders can spawn inside walls, unkillable
+1. ✅ **Talent spin wastes gold when all talents maxed** - Fixed: TalentManager now checks areAllTalentsMaxed()
+2. ✅ **Single bullet hits multiple enemies without piercing** - Fixed: markEnemyAsHit() and immediate deactivation
+3. ✅ **Extra life can stack beyond intended limit** - Fixed: maxLevel property on abilities
+4. ✅ **Leveling too fast** - Fixed: XP now scales exponentially (baseXP * 1.5^(level-2))
+5. ✅ **Stationary enemies stuck in walls** - Fixed: isValidSpawnPosition checks wall overlap
 6. 🔴 **Wall textures not tileable** - Need seamless textures; thin walls show cut textures
-7. 🔴 **Fusion popup shows wrong items** - Shows first fused item instead of all results
-8. 🔴 **No damage aura visual indicator** - Players can't see aura range or active state
-9. 🔴 **Chest gives double items** - Shows 1 item but adds 2 to inventory
+7. ✅ **Fusion popup shows wrong items** - Fixed: showFusionResultsPopup() displays all items in grid
+8. ✅ **Damage aura visual indicator** - Already implemented: pulsing orange circle shows range
+9. ✅ **Chest gives double items** - Fixed: removed duplicate addToInventory call in openAllChests
 10. 🔴 **LOTR theme backgrounds not optimized** - Need size optimization
-11. 🔴 Inventory items are not visible after playing a game and opening chests, opening Equipment shows no items, but you can click on empty squares and popup opens and after refresh it's working.
-12. 🔴 **Enemies can overlap and hide each other** - Multiple enemies can stack on the same position making them invisible
+11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
+12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
+13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 
 **UPCOMING FEATURES:**
 1. 🟡 **Shop theme preview images** - Show actual theme images instead of colors
