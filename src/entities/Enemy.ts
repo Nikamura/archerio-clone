@@ -504,6 +504,48 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Calculate flee velocity that respects world bounds
+   * Adjusts the flee direction to avoid getting stuck at screen edges
+   * @param fleeAngle The angle to flee (away from threat)
+   * @param speed The flee speed
+   * @returns Velocity components that avoid boundary issues
+   */
+  protected calculateBoundsAwareFleeVelocity(
+    fleeAngle: number,
+    speed: number
+  ): { vx: number; vy: number } {
+    const worldBounds = this.scene.physics.world.bounds
+    const margin = 25 // Distance from edge to start adjusting
+
+    // Calculate intended velocity
+    let vx = Math.cos(fleeAngle) * speed
+    let vy = Math.sin(fleeAngle) * speed
+
+    // Check proximity to each boundary and adjust velocity
+    const nearLeft = this.x < worldBounds.left + margin
+    const nearRight = this.x > worldBounds.right - margin
+    const nearTop = this.y < worldBounds.top + margin
+    const nearBottom = this.y > worldBounds.bottom - margin
+
+    // If moving toward a nearby boundary, zero out that velocity component
+    // This causes the enemy to slide along the boundary instead of getting stuck
+    if (nearLeft && vx < 0) {
+      vx = 0
+    }
+    if (nearRight && vx > 0) {
+      vx = 0
+    }
+    if (nearTop && vy < 0) {
+      vy = 0
+    }
+    if (nearBottom && vy > 0) {
+      vy = 0
+    }
+
+    return { vx, vy }
+  }
+
+  /**
    * Calculate movement with wall avoidance
    * Returns velocity components for wall-aware movement
    */

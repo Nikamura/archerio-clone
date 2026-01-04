@@ -121,9 +121,10 @@ export default class HealerEnemy extends Enemy {
     const speed = 70 // Medium speed
 
     if (distanceToPlayer < this.preferredDistanceFromPlayer - 30) {
-      // Too close - run away from player
-      const angle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
-      this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
+      // Too close - run away from player using bounds-aware flee
+      const fleeAngle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+      const fleeVelocity = this.calculateBoundsAwareFleeVelocity(fleeAngle, speed)
+      this.setVelocity(fleeVelocity.vx, fleeVelocity.vy)
     } else if (distanceToPlayer > this.preferredDistanceFromPlayer + 50) {
       // Too far - move closer with wall avoidance
       if (this.wallGroup) {

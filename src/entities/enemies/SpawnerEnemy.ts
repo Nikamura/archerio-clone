@@ -277,14 +277,15 @@ export default class SpawnerEnemy extends Enemy {
     const distanceToPlayer = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY)
 
     if (distanceToPlayer < this.preferredDistance - 30) {
-      // Too close to player - retreat slowly
-      const angle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+      // Too close to player - retreat slowly using bounds-aware flee
+      const fleeAngle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+      const fleeVelocity = this.calculateBoundsAwareFleeVelocity(fleeAngle, this.retreatSpeed)
 
-      // Use wall avoidance if available
-      if (this.wallGroup) {
-        // Calculate a target point in the retreat direction
-        const retreatTargetX = this.x + Math.cos(angle) * 100
-        const retreatTargetY = this.y + Math.sin(angle) * 100
+      // Use wall avoidance if available and not blocked by bounds
+      if (this.wallGroup && (fleeVelocity.vx !== 0 || fleeVelocity.vy !== 0)) {
+        // Calculate a target point in the flee direction
+        const retreatTargetX = this.x + fleeVelocity.vx * 2
+        const retreatTargetY = this.y + fleeVelocity.vy * 2
         const movement = this.calculateMovementWithWallAvoidance(
           retreatTargetX,
           retreatTargetY,
@@ -293,10 +294,7 @@ export default class SpawnerEnemy extends Enemy {
         )
         this.setVelocity(movement.vx, movement.vy)
       } else {
-        this.setVelocity(
-          Math.cos(angle) * this.retreatSpeed,
-          Math.sin(angle) * this.retreatSpeed
-        )
+        this.setVelocity(fleeVelocity.vx, fleeVelocity.vy)
       }
     } else if (distanceToPlayer > this.preferredDistance + 80) {
       // Too far from player - slowly approach to stay in the fight
