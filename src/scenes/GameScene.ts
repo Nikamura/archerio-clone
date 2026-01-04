@@ -531,11 +531,10 @@ export default class GameScene extends Phaser.Scene {
       joystickContainer: gameContainer ?? undefined,
     })
 
-    // Wire up wall collision check for joystick
-    // Prevents joystick from being created when tapping on walls
-    this.inputSystem.setBlockedAtPointCallback((x, y) => {
-      return this.wallGroup.containsPoint(x, y)
-    })
+    // NOTE: Previously blocked joystick creation on walls, but this caused UX issues
+    // where players couldn't create joystick when accidentally tapping wall areas.
+    // Player movement is already constrained by physics collision with walls,
+    // so allowing joystick creation anywhere is fine.
 
     // Initialize combat system (handles collisions and damage calculations)
     this.combatSystem = new CombatSystem({

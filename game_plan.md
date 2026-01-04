@@ -367,7 +367,7 @@ Visual test screenshots are saved to `test/screenshots/`
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
 15. ✅ **Duplicate item attributes not combined** - Fixed: ChestScene now uses getCombinedItemStats() to merge base stats and perk stats
-16. **Joystick not working when created on wall** - Joystick fails to respond when player taps on a wall area to create it
+16. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
 17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
 18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
 19. **Selling items too cheap** - Sell price is very low compared to upgrade costs, making selling feel unrewarding
