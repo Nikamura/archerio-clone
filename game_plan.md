@@ -372,6 +372,7 @@ Visual test screenshots are saved to `test/screenshots/`
 4. 🟡 **Remove seed system from UI** - Remove from GameOverScene and MainMenuScene
 5. 🟡 **Energy refill via ads** - Mock popup with cat image, gives +1 energy
 6. 🟡 **Add favicon** - Add game favicon for browser tab
+7. 🟡 **Theme-specific enemy sprites** - Each theme should have unique enemy/boss art (e.g., Upside Down: demogorgons; Middle-Earth: goblins, orcs, Gollum)
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
