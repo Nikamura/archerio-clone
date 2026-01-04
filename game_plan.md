@@ -393,7 +393,7 @@ Visual test screenshots are saved to `test/screenshots/`
 10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
 11. ✅ **Inventory sorting** - Added sort buttons (★ rarity, Lv level, ⚔ slot type) above inventory grid, defaults to rarity sort
 12. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
-13. **Theme-specific monster names** - Monsters should have unique names in encyclopedia based on active theme for immersion (e.g., Stranger Things: "Demodog", "Demoarcher"; LOTR: "Azog the Defiler", "Orc Archer"; Vaporwave: stylized names)
+13. ✅ **Theme-specific monster names** - Added themed enemy names to encyclopedia: Vaporwave (GLITCH.exe, N30N_4RCH3R), LOTR (Goblin, Orc Archer), Stranger Things (Demodog, Demogorgon Scout)
 14. **Animated hero shooting** - Player heroes should have shooting animation when auto-firing (bow draw, staff swing, etc.)
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.

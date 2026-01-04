@@ -29,6 +29,9 @@ export interface ThemeColors {
   chapterColors: Record<number, number>
 }
 
+// Enemy types for themed names
+type EnemyNameType = 'melee' | 'ranged' | 'spreader' | 'bomber' | 'tank' | 'charger' | 'healer' | 'spawner'
+
 export interface ThemeAssets {
   // Per-hero sprites
   atreusSprite: string
@@ -60,6 +63,8 @@ export interface ThemeAssets {
   enemyBurrower: string
   enemyTank: string
   enemyMinion: string
+  // Theme-specific enemy names for encyclopedia
+  enemyNames?: Partial<Record<EnemyNameType, string>>
 }
 
 export interface ThemeDefinition {
@@ -185,6 +190,17 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       enemyBurrower: 'vaporwave_enemyBurrower',
       enemyTank: 'vaporwave_enemyTank',
       enemyMinion: 'vaporwave_enemyMinion',
+      // Vaporwave-styled enemy names
+      enemyNames: {
+        melee: 'GLITCH.exe',
+        ranged: 'N30N_4RCH3R',
+        spreader: 'P1X3L_BURST',
+        bomber: 'SYNTH.BOMB',
+        tank: 'R3TR0_T4NK',
+        charger: 'TURBO.RUN',
+        healer: 'GRID_H34L',
+        spawner: 'PORTAL.NODE',
+      },
     },
   },
   lotr: {
@@ -247,6 +263,17 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       enemyBurrower: 'lotr_enemyBurrower',
       enemyTank: 'lotr_enemyTank',
       enemyMinion: 'lotr_enemyMinion',
+      // Middle-Earth enemy names
+      enemyNames: {
+        melee: 'Goblin',
+        ranged: 'Orc Archer',
+        spreader: 'Uruk-hai',
+        bomber: 'Orc Sapper',
+        tank: 'Cave Troll',
+        charger: 'Warg Rider',
+        healer: 'Orc Shaman',
+        spawner: 'Goblin Pit',
+      },
     },
   },
   strangerThings: {
@@ -309,6 +336,17 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       enemyBurrower: 'st_enemyBurrower',
       enemyTank: 'st_enemyTank',
       enemyMinion: 'st_enemyMinion',
+      // Stranger Things enemy names
+      enemyNames: {
+        melee: 'Demodog',
+        ranged: 'Demogorgon Scout',
+        spreader: 'Mind Flayer Spawn',
+        bomber: 'Flayed Host',
+        tank: 'Demogorgon',
+        charger: 'Demodog Alpha',
+        healer: 'Upside Down Parasite',
+        spawner: 'Gate Rift',
+      },
     },
   },
 }
@@ -374,4 +412,26 @@ export function getHeroSpriteKey(
     default:
       return assets.atreusSprite
   }
+}
+
+// Default enemy names (used when no themed name exists)
+const DEFAULT_ENEMY_NAMES: Record<string, string> = {
+  melee: 'Slime',
+  ranged: 'Skeleton Archer',
+  spreader: 'Spreader',
+  bomber: 'Bomber',
+  tank: 'Tank',
+  charger: 'Charger',
+  healer: 'Healer',
+  spawner: 'Spawner',
+}
+
+// Get themed enemy name, falling back to default if not available
+export function getThemedEnemyName(
+  enemyType: string,
+  assets: ThemeAssets
+): string {
+  return assets.enemyNames?.[enemyType as keyof typeof assets.enemyNames]
+    ?? DEFAULT_ENEMY_NAMES[enemyType]
+    ?? enemyType
 }

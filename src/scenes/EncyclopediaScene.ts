@@ -39,7 +39,7 @@ import {
   ChestEncyclopediaEntry,
 } from '../config/encyclopediaData'
 import { Rarity, RARITY_CONFIGS } from '../systems/Equipment'
-import { getEnemySpriteKey } from '../config/themeData'
+import { getEnemySpriteKey, getThemedEnemyName } from '../config/themeData'
 import { themeManager } from '../systems/ThemeManager'
 
 // ============================================
@@ -535,7 +535,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
     } else {
       // Entry name
       const nameText = this.add
-        .text(textX, -12, this.getEntryName(entry), {
+        .text(textX, -12, this.getEntryName(category, entry), {
           fontSize: '14px',
           color: '#ffffff',
           fontStyle: 'bold',
@@ -672,7 +672,12 @@ export default class EncyclopediaScene extends Phaser.Scene {
     }
   }
 
-  private getEntryName(entry: AnyEntry): string {
+  private getEntryName(category: EncyclopediaCategory, entry: AnyEntry): string {
+    // Use themed names for enemies
+    if (category === 'enemies') {
+      const enemyEntry = entry as EnemyEncyclopediaEntry
+      return getThemedEnemyName(enemyEntry.id, themeManager.getAssets())
+    }
     return entry.name
   }
 
@@ -763,7 +768,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
 
     // Title
     const title = this.add
-      .text(0, -panelHeight / 2 + 25, entry.name, {
+      .text(0, -panelHeight / 2 + 25, this.getEntryName(category, entry), {
         fontSize: '20px',
         color: '#ffffff',
         fontStyle: 'bold',
