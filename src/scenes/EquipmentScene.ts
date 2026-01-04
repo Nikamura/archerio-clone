@@ -317,7 +317,7 @@ export default class EquipmentScene extends Phaser.Scene {
         color: isActive ? '#4a9eff' : '#666666',
         backgroundColor: isActive ? '#1a2a3e' : undefined,
         padding: { x: 6, y: 2 },
-      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true })
+      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true }).setDepth(100) // Above scroll container
 
       btn.on('pointerover', () => {
         if (this.currentSort !== option.key) {
@@ -341,7 +341,7 @@ export default class EquipmentScene extends Phaser.Scene {
     this.add.text(xPos, y, 'Sort:', {
       fontSize: '11px',
       color: '#555555',
-    }).setOrigin(1, 0.5)
+    }).setOrigin(1, 0.5).setDepth(100) // Above scroll container
   }
 
   private setSort(sort: SortOption): void {
