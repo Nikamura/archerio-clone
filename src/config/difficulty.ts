@@ -109,27 +109,27 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     color: '#ff0000',
   },
   [DifficultyLevel.INSANITY]: {
-    // Player nerfs (same as hard)
-    playerMaxHealth: 80,
-    playerDamage: 9,
-    playerAttackSpeed: 0.9,
+    // Player nerfs (harder than hard mode)
+    playerMaxHealth: 70, // -30% health (was 80)
+    playerDamage: 8, // -20% damage (was 9)
+    playerAttackSpeed: 0.85, // -15% attack speed (was 0.9)
 
-    // Enemy buffs (harder than hard mode, plus +10 extra enemies)
-    enemyHealthMultiplier: 1.4,
-    enemyDamageMultiplier: 1.5, // +50% damage (vs hard's +30%)
-    enemySpawnMultiplier: 1.3,
-    extraEnemyCount: 10, // +10 monsters compared to hard
+    // Enemy buffs (significantly harder than hard mode)
+    enemyHealthMultiplier: 1.8, // +80% HP (was 1.4)
+    enemyDamageMultiplier: 1.75, // +75% damage (was 1.5)
+    enemySpawnMultiplier: 1.5, // +50% spawn rate (was 1.3)
+    extraEnemyCount: 15, // +15 monsters per room (was 10)
 
-    // Boss buffs (harder than hard mode)
-    bossHealthMultiplier: 1.5,
-    bossDamageMultiplier: 1.5, // +50% damage (vs hard's +30%)
+    // Boss buffs (significantly harder than hard mode)
+    bossHealthMultiplier: 2.0, // +100% HP (was 1.5)
+    bossDamageMultiplier: 1.75, // +75% damage (was 1.5)
 
     // Reward - highest gold for insanity mode
-    goldMultiplier: 2.0, // +100% gold
+    goldMultiplier: 2.5, // +150% gold (was 2.0)
 
     // Display
     label: 'INSANITY',
-    description: 'Pure chaos - 10 extra monsters per room',
+    description: 'True chaos - 15 extra monsters, 80% tougher enemies',
     color: '#ff00ff',
   },
 }

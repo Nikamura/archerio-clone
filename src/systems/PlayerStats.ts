@@ -82,7 +82,7 @@ export class PlayerStats {
     this.health = this.maxHealth
     this.baseDamage = options?.baseDamage ?? 10
     this.baseAttackSpeed = options?.baseAttackSpeed ?? 1.0
-    this.baseXpToLevelUp = options?.xpToLevelUp ?? 5  // Base XP for exponential scaling
+    this.baseXpToLevelUp = options?.xpToLevelUp ?? 10  // Base XP for exponential scaling (increased for balance)
     this.critChance = options?.critChance ?? 0
     this.critDamageMultiplier = options?.critDamage ?? 1.5
   }
@@ -90,25 +90,26 @@ export class PlayerStats {
   /**
    * Get XP required to level up from current level
    * Uses exponential scaling to make later levels harder:
-   * - Level 1→2: 3 XP (quick intro to abilities)
-   * - Level 2+: baseXP * 1.25^(level-2), where baseXP defaults to 5
+   * - Level 1→2: 6 XP (first level-up requires some effort)
+   * - Level 2+: baseXP * 1.4^(level-2), where baseXP defaults to 10
    *
-   * With default baseXP of 5:
-   * - Level 2→3: 5 XP
-   * - Level 3→4: 6 XP
-   * - Level 4→5: 8 XP
-   * - Level 5→6: 10 XP
-   * - Level 6→7: 12 XP
-   * - Level 7→8: 15 XP
+   * With default baseXP of 10:
+   * - Level 2→3: 10 XP
+   * - Level 3→4: 14 XP
+   * - Level 4→5: 20 XP
+   * - Level 5→6: 27 XP
+   * - Level 6→7: 38 XP
+   * - Level 7→8: 54 XP
    *
-   * Formula: baseXpToLevelUp * (1.25 ^ (level - 2)) for level >= 2
+   * This steeper curve ensures players don't snowball in later rooms.
+   * Formula: baseXpToLevelUp * (1.4 ^ (level - 2)) for level >= 2
    */
   private getXpRequiredForCurrentLevel(): number {
     if (this.level === 1) {
-      return 3  // Fast first level-up
+      return 6  // First level-up requires effort
     }
-    // Exponential scaling: base XP * 1.25^(level-2)
-    const multiplier = Math.pow(1.25, this.level - 2)
+    // Steeper exponential scaling: base XP * 1.4^(level-2)
+    const multiplier = Math.pow(1.4, this.level - 2)
     return Math.round(this.baseXpToLevelUp * multiplier)
   }
 

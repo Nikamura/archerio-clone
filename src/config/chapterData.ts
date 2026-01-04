@@ -268,7 +268,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 0,
       bossHpMultiplier: 1.0,
       bossDamageMultiplier: 1.0,
-      xpMultiplier: 1.0, // Base XP
+      xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
     },
     // Chapter 1: Standard enemy behavior (tutorial chapter)
     enemyModifiers: {
@@ -314,7 +314,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 1,
       bossHpMultiplier: 3.0,
       bossDamageMultiplier: 1.3,
-      xpMultiplier: 1.5, // +50% XP for harder enemies
+      xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
     },
     // Chapter 2: Forest theme - ranged focus, agile melee
     enemyModifiers: {
@@ -373,7 +373,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 2,
       bossHpMultiplier: 8.0,
       bossDamageMultiplier: 1.6,
-      xpMultiplier: 2.0, // +100% XP for tougher enemies
+      xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
     },
     // Chapter 3: Ice theme - slow but powerful, chargers are deadly
     enemyModifiers: {
@@ -437,7 +437,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       extraEnemiesPerRoom: 3,
       bossHpMultiplier: 20.0,
       bossDamageMultiplier: 2.0,
-      xpMultiplier: 2.5, // +150% XP for dangerous enemies
+      xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
     },
     // Chapter 4: Fire theme - fast and aggressive, support enemies are key targets
     enemyModifiers: {
@@ -513,12 +513,12 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     miniBossType: 'spawner', // Fallback
     miniBossPool: ['nightmare', 'void_lord'], // Non-main bosses as mini-bosses
     scaling: {
-      enemyHpMultiplier: 30.0, // Rebalanced: 30x (was 50x, jump from Ch4's 18x was too steep)
-      enemyDamageMultiplier: 2.2, // Rebalanced: 2.2x (was 2.5x)
-      extraEnemiesPerRoom: 3, // Rebalanced: 3 (was 4)
-      bossHpMultiplier: 40.0, // Rebalanced: 40x (was 60x)
-      bossDamageMultiplier: 2.2, // Rebalanced: 2.2x (was 2.5x)
-      xpMultiplier: 3.0, // +200% XP for ultimate challenge
+      enemyHpMultiplier: 35.0, // Increased for balance (was 30x)
+      enemyDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
+      extraEnemiesPerRoom: 4, // More enemies for challenge
+      bossHpMultiplier: 45.0, // Increased for balance (was 40x)
+      bossDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
+      xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
     },
     // Chapter 5: Shadow Realm - CHAOS! All enemies at maximum danger
     enemyModifiers: {
@@ -691,6 +691,33 @@ export function getBossDamageForChapter(
  */
 export function getXpMultiplierForChapter(chapterId: ChapterId): number {
   return CHAPTER_DEFINITIONS[chapterId].scaling.xpMultiplier
+}
+
+/**
+ * Get progressive room scaling multiplier
+ * Enemies get stronger as you progress through rooms to prevent late-game snowballing.
+ *
+ * Scaling: +3% HP and +2% damage per room after room 5
+ * - Rooms 1-5: 1.0x (no scaling)
+ * - Room 10: 1.15x HP, 1.10x damage
+ * - Room 15: 1.30x HP, 1.20x damage
+ * - Room 20: 1.45x HP, 1.30x damage
+ *
+ * This ensures early rooms remain approachable while later rooms
+ * present a real challenge even with good ability builds.
+ */
+export function getRoomProgressionScaling(roomNumber: number): { hpMultiplier: number; damageMultiplier: number } {
+  // No scaling for early rooms (tutorial period)
+  if (roomNumber <= 5) {
+    return { hpMultiplier: 1.0, damageMultiplier: 1.0 }
+  }
+
+  // Progressive scaling after room 5
+  const roomsAfterThreshold = roomNumber - 5
+  const hpMultiplier = 1.0 + (roomsAfterThreshold * 0.03)  // +3% per room
+  const damageMultiplier = 1.0 + (roomsAfterThreshold * 0.02)  // +2% per room
+
+  return { hpMultiplier, damageMultiplier }
 }
 
 /**
