@@ -367,12 +367,12 @@ Visual test screenshots are saved to `test/screenshots/`
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 
 **UPCOMING FEATURES:**
-1. 🟡 **Shop theme preview images** - Show actual theme images instead of colors
-2. 🟡 **Max attack speed cap** - Cap at 10 attacks per second
+1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
+2. ✅ **Max attack speed cap** - Cap at 10 attacks per second (MAX_ATTACK_SPEED = 5.0 in PlayerStats)
 3. 🟡 **Regenerate skill icons** - Add 1px black border, no whitespace/white background
-4. 🟡 **Remove seed system from UI** - Remove from GameOverScene and MainMenuScene
-5. 🟡 **Energy refill via ads** - Mock popup with cat image, gives +1 energy
-6. 🟡 **Add favicon** - Add game favicon for browser tab
+4. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
+5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
+6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
 7. 🟡 **Theme-specific enemy sprites** - Each theme should have unique enemy/boss art (e.g., Upside Down: demogorgons; Middle-Earth: goblins, orcs, Gollum)
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
