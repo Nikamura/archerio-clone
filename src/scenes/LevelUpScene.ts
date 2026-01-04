@@ -9,6 +9,7 @@ export interface AbilityData {
   description: string
   color: number
   iconKey: string
+  maxLevel?: number  // Maximum level for this ability (undefined = unlimited stacking)
 }
 
 export const ABILITIES: AbilityData[] = [
@@ -161,6 +162,7 @@ export const ABILITIES: AbilityData[] = [
     description: 'Revive once at 30% HP',
     color: 0xff3366,
     iconKey: 'abilityExtraLife',
+    maxLevel: 1,  // Can only have 1 extra life at a time
   },
   {
     id: 'through_wall',
@@ -168,6 +170,7 @@ export const ABILITIES: AbilityData[] = [
     description: 'Arrows pass through walls',
     color: 0x9933ff,
     iconKey: 'abilityThroughWall',
+    maxLevel: 1,  // Non-stacking ability
   },
   {
     id: 'giant',
@@ -180,6 +183,8 @@ export const ABILITIES: AbilityData[] = [
 
 export interface LevelUpData {
   playerLevel: number
+  abilityLevels?: Record<string, number>  // Current level of each ability
+  hasExtraLife?: boolean  // Whether player currently has an extra life available
 }
 
 const SELECTION_TIME_MS = 5000 // 5 seconds to choose
@@ -192,18 +197,22 @@ export default class LevelUpScene extends Phaser.Scene {
   private progressBar?: Phaser.GameObjects.Graphics
   private timerText?: Phaser.GameObjects.Text
   private isSelecting: boolean = false
+  private abilityLevels: Record<string, number> = {}
+  private hasExtraLife: boolean = false
 
   constructor() {
     super({ key: 'LevelUpScene' })
   }
 
-  init(_data: LevelUpData) {
+  init(data: LevelUpData) {
     this.abilityCards = []
     this.selectedAbilities = []
     this.selectionTimer = undefined
     this.progressBar = undefined
     this.timerText = undefined
     this.isSelecting = false
+    this.abilityLevels = data.abilityLevels ?? {}
+    this.hasExtraLife = data.hasExtraLife ?? false
   }
 
   create() {
@@ -306,7 +315,26 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   private selectRandomAbilities(count: number): AbilityData[] {
-    const shuffled = [...ABILITIES].sort(() => Math.random() - 0.5)
+    // Filter out abilities that have reached their max level
+    const availableAbilities = ABILITIES.filter((ability) => {
+      const currentLevel = this.abilityLevels[ability.id] ?? 0
+
+      // Special case for extra_life: only show if player doesn't have one
+      // (can only level up extra_life again after it's been used)
+      if (ability.id === 'extra_life') {
+        return !this.hasExtraLife
+      }
+
+      // Check max level for other abilities
+      if (ability.maxLevel !== undefined) {
+        return currentLevel < ability.maxLevel
+      }
+
+      // No max level, always available
+      return true
+    })
+
+    const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, count)
   }
 
