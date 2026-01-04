@@ -413,6 +413,9 @@ export class CombatSystem {
     audioManager.playPlayerHit()
     this.eventHandlers.onPlayerDamaged(damage)
 
+    // Flash screen red to indicate damage
+    this.showScreenDamageFlash()
+
     // Check for death
     if (this.player.getHealth() <= 0) {
       this.eventHandlers.onPlayerDeath()
@@ -624,6 +627,9 @@ export class CombatSystem {
       this.screenShake.onPlayerDamage()
     }
 
+    // Flash screen red to indicate damage
+    this.showScreenDamageFlash()
+
     // Notify handler
     this.eventHandlers.onPlayerDamaged(damage)
 
@@ -662,6 +668,31 @@ export class CombatSystem {
         sprite.clearTint()
         sprite.setAlpha(1)
       }
+    })
+  }
+
+  /**
+   * Flash the screen red when player takes damage
+   */
+  showScreenDamageFlash(): void {
+    const camera = this.scene.cameras.main
+    const flashOverlay = this.scene.add.rectangle(
+      camera.width / 2,
+      camera.height / 2,
+      camera.width,
+      camera.height,
+      0xff0000,
+      0.3
+    )
+    flashOverlay.setScrollFactor(0)
+    flashOverlay.setDepth(1000)
+
+    this.scene.tweens.add({
+      targets: flashOverlay,
+      alpha: 0,
+      duration: 200,
+      ease: 'Quad.easeOut',
+      onComplete: () => flashOverlay.destroy(),
     })
   }
 
