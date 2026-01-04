@@ -366,6 +366,10 @@ Visual test screenshots are saved to `test/screenshots/`
 12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
+15. **Duplicate item attributes not combined** - Equipment displays same attribute multiple times (e.g., "Dodge 5%, Dodge 1%") instead of combining into single value ("Dodge 6%")
+
+**BALANCE:**
+1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness
 
 **UPCOMING FEATURES:**
 1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
@@ -379,6 +383,8 @@ Visual test screenshots are saved to `test/screenshots/`
 9. **Equipment comparison in inventory** - Show upgrade indicators on items better than equipped gear, item popup displays stat comparison vs currently equipped item
 10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
 11. **Inventory sorting and filtering** - Sort by rarity, level, slot type, or stat value; filter by equipment slot or rarity tier
+12. **Health potion scaling** - Health potions should scale healing amount based on difficulty level, current chapter, and hero level
+13. **Theme-specific monster names** - Monsters should have unique names in encyclopedia based on active theme for immersion (e.g., Stranger Things: "Demodog", "Demoarcher"; LOTR: "Azog the Defiler", "Orc Archer"; Vaporwave: stylized names)
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
