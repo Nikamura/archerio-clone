@@ -18,6 +18,8 @@ import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
 import * as UIAnimations from '../systems/UIAnimations'
+import { createBackButton } from '../ui/components/BackButton'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
 
 // Slot display names
 const SLOT_NAMES: Record<EquipmentSlotType, string> = {
@@ -64,20 +66,8 @@ export default class EquipmentScene extends Phaser.Scene {
   private itemFusedHandler: (() => void) | null = null
   private itemSoldHandler: (() => void) | null = null
 
-  // Scroll state for inventory
-  private inventoryContainer: Phaser.GameObjects.Container | null = null
-  private scrollOffset = 0
-  private maxScroll = 0
-  private inventoryStartY = 0
-  private visibleHeight = 0
-  private scrollIndicator: Phaser.GameObjects.Container | null = null
-
-  // Touch scroll state
-  private isDragging = false
-  private dragStartY = 0
-  private dragStartScroll = 0
-  private dragDistance = 0
-  private readonly DRAG_THRESHOLD = 10 // Pixels before considering it a drag
+  // Scroll container for inventory
+  private scrollContainer?: ScrollContainer
 
   constructor() {
     super({ key: 'EquipmentScene' })
@@ -220,8 +210,7 @@ export default class EquipmentScene extends Phaser.Scene {
   private createInventory(): void {
     const { width, height } = this.cameras.main
     const inventoryY = 230
-    this.inventoryStartY = inventoryY
-    this.visibleHeight = height - inventoryY - 120 // Leave room for buttons
+    const visibleHeight = height - inventoryY - 120 // Leave room for buttons
 
     // Section label
     this.add
@@ -231,24 +220,12 @@ export default class EquipmentScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    // Create scrollable container
+    // Calculate layout
     const totalWidth =
       this.INVENTORY_COLS * this.INVENTORY_SLOT_SIZE + (this.INVENTORY_COLS - 1) * 8
     const startX = (width - totalWidth) / 2 + this.INVENTORY_SLOT_SIZE / 2
 
-    // Mask for scrolling
-    const maskGraphics = this.make.graphics({})
-    maskGraphics.fillStyle(0xffffff)
-    maskGraphics.fillRect(20, inventoryY, width - 40, this.visibleHeight)
-    const mask = maskGraphics.createGeometryMask()
-
-    // Container positioned at the inventory area start
-    // Use lower depth than equipped slots to prevent scroll-overlap click issues
-    this.inventoryContainer = this.add.container(0, inventoryY)
-    this.inventoryContainer.setDepth(1)
-    this.inventoryContainer.setMask(mask)
-
-    // Create inventory slots - positions relative to container (which is at inventoryY)
+    // Create inventory slots - positions relative to scrollable area
     const inventory = equipmentManager.getInventory()
     const totalSlots = Math.max(this.INVENTORY_COLS * this.INVENTORY_ROWS, inventory.length + 8)
     const rows = Math.ceil(totalSlots / this.INVENTORY_COLS)
@@ -256,42 +233,32 @@ export default class EquipmentScene extends Phaser.Scene {
     // Start first row at half slot size to ensure it's fully visible within the mask
     const firstRowOffset = this.INVENTORY_SLOT_SIZE / 2 + 5
 
+    // Calculate content height for scroll container
+    const contentHeight = firstRowOffset + rows * (this.INVENTORY_SLOT_SIZE + 8)
+
+    // Create scroll container
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      width: width,
+      bounds: { top: inventoryY, bottom: inventoryY + visibleHeight },
+    })
+    this.scrollContainer.setContentHeight(contentHeight)
+
+    // Create inventory slots inside scroll container
     for (let i = 0; i < totalSlots; i++) {
       const col = i % this.INVENTORY_COLS
       const row = Math.floor(i / this.INVENTORY_COLS)
       const x = startX + col * (this.INVENTORY_SLOT_SIZE + 8)
-      const y = firstRowOffset + row * (this.INVENTORY_SLOT_SIZE + 8) // Relative to container
+      const y = inventoryY + firstRowOffset + row * (this.INVENTORY_SLOT_SIZE + 8)
 
       const slotData = this.createInventorySlot(x, y, i)
       this.inventorySlots.push(slotData)
+      this.scrollContainer.add(slotData.container)
     }
-
-    // Calculate max scroll - account for the firstRowOffset at start
-    const contentHeight = firstRowOffset + rows * (this.INVENTORY_SLOT_SIZE + 8)
-    this.maxScroll = Math.max(0, contentHeight - this.visibleHeight)
-
-    // Create scroll indicator
-    this.createScrollIndicator()
-
-    // Setup scroll input - wheel for desktop
-    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
-      if (this.maxScroll <= 0) return
-      this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + deltaY, 0, this.maxScroll)
-      this.updateInventoryScroll()
-    })
-
-    // Setup touch/drag scrolling for mobile
-    this.setupTouchScrolling()
-
-    // Initial interactivity update - disable items outside visible area
-    this.updateInventorySlotInteractivity()
   }
 
   private createInventorySlot(x: number, y: number, index: number): InventorySlot {
     const container = this.add.container(x, y)
-    if (this.inventoryContainer) {
-      this.inventoryContainer.add(container)
-    }
 
     // Background
     const bg = this.add.rectangle(0, 0, this.INVENTORY_SLOT_SIZE, this.INVENTORY_SLOT_SIZE, 0x252540, 1)
@@ -316,11 +283,11 @@ export default class EquipmentScene extends Phaser.Scene {
     levelText.setName('levelText')
     container.add(levelText)
 
-    // Make interactive - use pointerup to differentiate from scroll gestures
+    // Make interactive - use pointerdown to detect clicks
     bg.setInteractive({ useHandCursor: true })
-    bg.on('pointerup', () => {
-      // Only trigger click if we weren't scrolling (drag distance below threshold)
-      if (this.dragDistance < this.DRAG_THRESHOLD) {
+    bg.on('pointerdown', () => {
+      // Only trigger click if we weren't scrolling
+      if (!this.scrollContainer?.isDragScrolling()) {
         this.onInventorySlotClick(index)
       }
     })
@@ -339,128 +306,6 @@ export default class EquipmentScene extends Phaser.Scene {
       background: bg,
       item: null,
     }
-  }
-
-  private updateInventoryScroll(): void {
-    if (this.inventoryContainer) {
-      this.inventoryContainer.y = this.inventoryStartY - this.scrollOffset
-    }
-    this.updateScrollIndicator()
-    this.updateInventorySlotInteractivity()
-  }
-
-  /**
-   * Enable/disable input on inventory slots based on whether they're visible in the masked area.
-   * This prevents invisible (scrolled-out) items from capturing clicks meant for other UI elements.
-   */
-  private updateInventorySlotInteractivity(): void {
-    // Guard against scene not being active or inventory container not ready
-    if (!this.inventoryContainer || !this.scene || !this.sys?.isActive()) return
-
-    const maskTop = this.inventoryStartY
-    const maskBottom = this.inventoryStartY + this.visibleHeight
-
-    this.inventorySlots.forEach((slot) => {
-      // Skip if background was destroyed
-      if (!slot.background || !slot.background.scene) return
-
-      // Calculate the slot's world Y position
-      // The slot's local Y is relative to the container, which is positioned at (inventoryStartY - scrollOffset)
-      const containerY = this.inventoryContainer!.y
-      const slotWorldY = containerY + slot.container.y
-
-      // Check if the slot's CENTER is within the visible mask area
-      // Using center-based check prevents items just outside the mask from catching clicks
-      const isVisible = slotWorldY >= maskTop && slotWorldY <= maskBottom
-
-      // Enable or disable interactivity based on visibility
-      if (isVisible) {
-        if (!slot.background.input?.enabled) {
-          slot.background.setInteractive({ useHandCursor: true })
-        }
-      } else {
-        if (slot.background.input?.enabled) {
-          slot.background.disableInteractive()
-        }
-      }
-    })
-  }
-
-  private createScrollIndicator(): void {
-    if (this.maxScroll <= 0) return
-
-    const { width } = this.cameras.main
-    const indicatorX = width - 15
-    const indicatorHeight = this.visibleHeight - 20
-    const indicatorY = this.inventoryStartY + 10
-
-    this.scrollIndicator = this.add.container(indicatorX, indicatorY)
-
-    // Track background
-    const track = this.add.rectangle(0, indicatorHeight / 2, 6, indicatorHeight, 0x333355, 0.5)
-    track.setStrokeStyle(1, 0x444466)
-    this.scrollIndicator.add(track)
-
-    // Thumb (scrollbar handle)
-    const thumbHeight = Math.max(30, (this.visibleHeight / (this.visibleHeight + this.maxScroll)) * indicatorHeight)
-    const thumb = this.add.rectangle(0, thumbHeight / 2, 6, thumbHeight, 0x6666aa)
-    thumb.setName('thumb')
-    this.scrollIndicator.add(thumb)
-  }
-
-  private updateScrollIndicator(): void {
-    if (!this.scrollIndicator || this.maxScroll <= 0) return
-
-    const thumb = this.scrollIndicator.getByName('thumb') as Phaser.GameObjects.Rectangle
-    if (!thumb) return
-
-    const indicatorHeight = this.visibleHeight - 20
-    const thumbHeight = thumb.height
-    const scrollRatio = this.scrollOffset / this.maxScroll
-    const thumbY = thumbHeight / 2 + scrollRatio * (indicatorHeight - thumbHeight)
-    thumb.y = thumbY
-  }
-
-  private setupTouchScrolling(): void {
-    // Track pointer events at the scene level for scrolling
-    // This allows click events to still pass through to inventory items
-
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Check if pointer is within the inventory area
-      const inInventoryArea =
-        pointer.y >= this.inventoryStartY &&
-        pointer.y <= this.inventoryStartY + this.visibleHeight
-
-      if (inInventoryArea && this.maxScroll > 0) {
-        this.isDragging = true
-        this.dragStartY = pointer.y
-        this.dragStartScroll = this.scrollOffset
-        this.dragDistance = 0
-      }
-    })
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isDragging || this.maxScroll <= 0) return
-
-      const deltaY = this.dragStartY - pointer.y
-      this.dragDistance = Math.abs(deltaY)
-
-      // Only scroll after exceeding the drag threshold
-      if (this.dragDistance > this.DRAG_THRESHOLD) {
-        this.scrollOffset = Phaser.Math.Clamp(this.dragStartScroll + deltaY, 0, this.maxScroll)
-        this.updateInventoryScroll()
-      }
-    })
-
-    this.input.on('pointerup', () => {
-      this.isDragging = false
-      this.dragDistance = 0
-    })
-
-    this.input.on('pointerupoutside', () => {
-      this.isDragging = false
-      this.dragDistance = 0
-    })
   }
 
   private createGoldDisplay(): void {
@@ -509,24 +354,22 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private createBackButton(): void {
-    const { width, height } = this.cameras.main
+    const { height } = this.cameras.main
 
-    const backButton = this.add
-      .text(width / 2, height - 40, 'BACK', {
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#444455',
-        padding: { x: 40, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20) // Above inventory container (depth 1) and equipped slots (depth 10)
-
-    backButton.setInteractive({ useHandCursor: true })
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+    const container = createBackButton({
+      scene: this,
+      y: height - 40,
+      targetScene: 'MainMenuScene',
+      text: 'BACK',
+      depth: 20, // Above inventory container (depth 1) and equipped slots (depth 10)
+      backgroundColor: 0x444455,
+      hoverColor: 0x555566,
+      fontSize: '18px',
     })
-    UIAnimations.applyButtonEffects(this, backButton)
+
+    // Apply button effects to the text child
+    const textChild = container.first as Phaser.GameObjects.Text
+    UIAnimations.applyButtonEffects(this, textChild)
   }
 
   private setupEventListeners(): void {

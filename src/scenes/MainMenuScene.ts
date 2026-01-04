@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { DifficultyLevel, DIFFICULTY_CONFIGS, setDifficulty, getCurrentDifficulty } from '../config/difficulty'
+import '../config/difficulty'
 import { ChapterId } from '../config/chapterData'
 import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
@@ -20,13 +20,15 @@ import {
   staggerIn,
   DURATION,
 } from '../systems/UIAnimations'
+import { ChapterSelectPanel } from './menus/ChapterSelectPanel'
+import { DifficultyPanel } from './menus/DifficultyPanel'
 
 export default class MainMenuScene extends Phaser.Scene {
-  private selectedDifficulty: DifficultyLevel = DifficultyLevel.NORMAL
   private energyTimerText?: Phaser.GameObjects.Text
   private leftTorch?: Phaser.GameObjects.Image
   private rightTorch?: Phaser.GameObjects.Image
-  private chapterButtons: Phaser.GameObjects.Container[] = []
+  private chapterPanel?: ChapterSelectPanel
+  private difficultyPanel?: DifficultyPanel
   private menuButtons: Phaser.GameObjects.Text[] = []
   private customSeed: string = '' // Custom seed for seeded runs
 
@@ -52,9 +54,6 @@ export default class MainMenuScene extends Phaser.Scene {
     // ANIMATED TORCHES
     // ============================================
     this.createTorches(width)
-
-    // Get saved difficulty or default to NORMAL
-    this.selectedDifficulty = getCurrentDifficulty(this.game)
 
     // Debug: Unlock all chapters button
     if (this.game.registry.get('debug')) {
@@ -187,75 +186,28 @@ export default class MainMenuScene extends Phaser.Scene {
     }
 
     // ============================================
-    // CHAPTER SELECTION
+    // CHAPTER SELECTION (using ChapterSelectPanel)
     // ============================================
 
-    this.createChapterSelection(width)
-
-    // ============================================
-    // DIFFICULTY SELECTION (Horizontal)
-    // ============================================
-
-    const difficultyLabel = this.add.text(width / 2, 175, 'DIFFICULTY', {
-      fontSize: '14px',
-      color: '#aaaaaa',
-      stroke: '#000000',
-      strokeThickness: 2,
+    this.chapterPanel = new ChapterSelectPanel({
+      scene: this,
+      x: width / 2,
+      y: 110,
+      width: width,
     })
-    difficultyLabel.setOrigin(0.5)
-    difficultyLabel.setDepth(10)
+    this.chapterPanel.setDepth(10)
 
-    // Horizontal difficulty buttons
-    const difficulties = [DifficultyLevel.EASY, DifficultyLevel.NORMAL, DifficultyLevel.HARD, DifficultyLevel.INSANITY]
-    const buttonWidth = 80
-    const totalWidth = buttonWidth * 4 + 30
-    const startX = (width - totalWidth) / 2 + buttonWidth / 2
+    // ============================================
+    // DIFFICULTY SELECTION (using DifficultyPanel)
+    // ============================================
 
-    difficulties.forEach((difficulty, index) => {
-      const config = DIFFICULTY_CONFIGS[difficulty]
-      const xPos = startX + index * (buttonWidth + 10)
-
-      const button = this.add.text(xPos, 200, config.label, {
-        fontSize: '14px',
-        color: '#ffffff',
-        backgroundColor: difficulty === this.selectedDifficulty ? config.color : '#444444',
-        padding: { x: 12, y: 8 },
-      })
-      button.setOrigin(0.5)
-      button.setInteractive({ useHandCursor: true })
-      button.setData('difficulty', difficulty)
-      button.setDepth(10)
-
-      button.on('pointerover', () => {
-        if (this.selectedDifficulty !== difficulty) {
-          button.setStyle({ backgroundColor: '#666666' })
-        }
-      })
-
-      button.on('pointerout', () => {
-        if (this.selectedDifficulty !== difficulty) {
-          button.setStyle({ backgroundColor: '#444444' })
-        }
-      })
-
-      button.on('pointerdown', () => {
-        audioManager.resume()
-        audioManager.playMenuSelect()
-        this.selectedDifficulty = difficulty
-        setDifficulty(this.game, difficulty)
-        saveManager.setDifficulty(difficulty)
-
-        this.children.list.forEach((child) => {
-          if (child instanceof Phaser.GameObjects.Text && child.getData('difficulty')) {
-            const childDifficulty = child.getData('difficulty') as DifficultyLevel
-            const childConfig = DIFFICULTY_CONFIGS[childDifficulty]
-            child.setStyle({
-              backgroundColor: childDifficulty === difficulty ? childConfig.color : '#444444',
-            })
-          }
-        })
-      })
+    this.difficultyPanel = new DifficultyPanel({
+      scene: this,
+      x: width / 2,
+      y: 190,
+      game: this.game,
     })
+    this.difficultyPanel.setDepth(10)
 
     // ============================================
     // PLAY BUTTONS (Center - two buttons side by side)
@@ -734,146 +686,6 @@ export default class MainMenuScene extends Phaser.Scene {
   update() {
     // Update energy timer every frame
     this.updateEnergyTimer()
-  }
-
-  private createChapterSelection(width: number) {
-    const selectedChapterId = chapterManager.getSelectedChapter()
-    const unlockedChapters = chapterManager.getUnlockedChapters()
-    console.log('MainMenuScene: Creating chapter selection. Unlocked chapters:', unlockedChapters)
-
-    // Chapter selection label
-    const chapterLabel = this.add.text(width / 2, 88, 'SELECT CHAPTER', {
-      fontSize: '12px',
-      color: '#aaaaaa',
-      stroke: '#000000',
-      strokeThickness: 2,
-    })
-    chapterLabel.setOrigin(0.5)
-    chapterLabel.setDepth(10)
-
-    // Create chapter buttons (5 chapters)
-    const chapterIds: ChapterId[] = [1, 2, 3, 4, 5]
-    const chapterBtnSize = 60
-    const chapterGap = 8
-    const totalChapterWidth = chapterIds.length * chapterBtnSize + (chapterIds.length - 1) * chapterGap
-    const chapterStartX = (width - totalChapterWidth) / 2 + chapterBtnSize / 2
-    const chapterY = 130
-
-    this.chapterButtons = []
-
-    // Theme colors for each chapter
-    const chapterColors: Record<ChapterId, number> = {
-      1: 0x4a4a4a, // Dark Dungeon - gray stone
-      2: 0x2d5a27, // Forest Ruins - green
-      3: 0x4a8ab5, // Frozen Caves - ice blue
-      4: 0x8b2500, // Volcanic Depths - red/orange
-      5: 0x3d1a5c, // Shadow Realm - purple
-    }
-
-    chapterIds.forEach((chapterId, index) => {
-      const isUnlocked = unlockedChapters.includes(chapterId)
-      const isSelected = chapterId === selectedChapterId
-      const xPos = chapterStartX + index * (chapterBtnSize + chapterGap)
-
-      // Pre-compute colors once
-      const themeColor = chapterColors[chapterId]
-      const hoverColor = Phaser.Display.Color.ValueToColor(themeColor).lighten(30).color
-
-      // Create container for chapter button
-      const container = this.add.container(xPos, chapterY)
-      container.setDepth(10)
-
-      // Background with chapter theme color
-      const bgColor = isSelected ? 0x4a9eff : (isUnlocked ? themeColor : 0x222222)
-      const bg = this.add.rectangle(0, 0, chapterBtnSize, chapterBtnSize, bgColor, 1)
-      bg.setStrokeStyle(3, isSelected ? 0xffffff : (isUnlocked ? 0xaaaaaa : 0x444444))
-
-      // Chapter icon (if loaded) or fallback to number
-      const iconKey = `chapterIcon${chapterId}`
-      let icon: Phaser.GameObjects.Image | null = null
-
-      if (this.textures.exists(iconKey)) {
-        icon = this.add.image(0, 0, iconKey)
-        icon.setDisplaySize(chapterBtnSize - 8, chapterBtnSize - 8)
-        if (!isUnlocked) {
-          icon.setTint(0x444444)
-        }
-        container.add(icon)
-      }
-
-      // Chapter number overlay (always visible)
-      const numText = this.add.text(0, 0, `${chapterId}`, {
-        fontSize: '28px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      })
-      numText.setOrigin(0.5)
-      if (!isUnlocked) {
-        numText.setAlpha(0.4)
-      }
-
-      // Lock overlay for locked chapters
-      if (!isUnlocked) {
-        const lockOverlay = this.add.rectangle(0, 0, chapterBtnSize, chapterBtnSize, 0x000000, 0.6)
-        const lockIcon = this.add.text(0, 0, '🔒', {
-          fontSize: '24px',
-        })
-        lockIcon.setOrigin(0.5)
-        container.add([lockOverlay, lockIcon])
-      }
-
-      container.add([bg, numText])
-      if (icon) {
-        container.sendToBack(icon)
-      }
-      container.sendToBack(bg)
-
-      // Make interactive if unlocked - use the bg rectangle directly for cleaner hit detection
-      if (isUnlocked) {
-        bg.setInteractive({ useHandCursor: true })
-
-        bg.on('pointerover', () => {
-          if (chapterId !== chapterManager.getSelectedChapter()) {
-            bg.setFillStyle(hoverColor)
-          }
-        })
-
-        bg.on('pointerout', () => {
-          if (chapterId !== chapterManager.getSelectedChapter()) {
-            bg.setFillStyle(themeColor)
-          }
-        })
-
-        bg.on('pointerdown', () => {
-          audioManager.playMenuSelect()
-          chapterManager.selectChapter(chapterId)
-          this.updateChapterButtons()
-        })
-      }
-
-      // Store reference
-      container.setData('chapterId', chapterId)
-      container.setData('bg', bg)
-      container.setData('themeColor', themeColor)
-      container.setData('hoverColor', hoverColor)
-      this.chapterButtons.push(container)
-    })
-  }
-
-  private updateChapterButtons() {
-    const selectedChapterId = chapterManager.getSelectedChapter()
-
-    this.chapterButtons.forEach((container) => {
-      const chapterId = container.getData('chapterId') as ChapterId
-      const bg = container.getData('bg') as Phaser.GameObjects.Rectangle
-      const themeColor = container.getData('themeColor') as number
-      const isSelected = chapterId === selectedChapterId
-
-      bg.setFillStyle(isSelected ? 0x4a9eff : themeColor)
-      bg.setStrokeStyle(3, isSelected ? 0xffffff : 0xaaaaaa)
-    })
   }
 
   private updateEnergyTimer() {

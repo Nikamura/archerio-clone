@@ -1,6 +1,17 @@
+/**
+ * BomberEnemy - Throws explosive bombs at the player
+ *
+ * Behavior:
+ * - Maintains preferred distance from player (not too close, not too far)
+ * - Wind-up animation before throwing
+ * - Uses BombPool for AOE explosive projectiles
+ *
+ * Note: Uses BombPool instead of EnemyBulletPool, so doesn't extend RangedEnemy
+ */
+
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from './Enemy'
-import BombPool from '../systems/BombPool'
+import Enemy, { EnemyOptions } from '../Enemy'
+import BombPool from '../../systems/BombPool'
 
 export default class BomberEnemy extends Enemy {
   private lastThrowTime: number = 0
@@ -117,13 +128,7 @@ export default class BomberEnemy extends Enemy {
     }
 
     // Ensure enemy stays within world bounds
-    const body = this.body as Phaser.Physics.Arcade.Body
-    if (body) {
-      const margin = 16 // Half of bomber size (32x32)
-      const worldBounds = this.scene.physics.world.bounds
-      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
-      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
-    }
+    this.clampToWorldBounds(16)
 
     return false
   }
@@ -145,5 +150,17 @@ export default class BomberEnemy extends Enemy {
       150,
       this.onBombExplode
     )
+  }
+
+  /**
+   * Clamp position to world bounds
+   */
+  private clampToWorldBounds(margin: number): void {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const worldBounds = this.scene.physics.world.bounds
+      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
+      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
+    }
   }
 }

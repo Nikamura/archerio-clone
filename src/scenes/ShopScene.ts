@@ -3,6 +3,8 @@ import { themeManager } from '../systems/ThemeManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
 import { type ThemeId, THEME_DEFINITIONS } from '../config/themeData'
+import { createBackButton } from '../ui/components/BackButton'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
 
 /**
  * ShopScene - Displays theme selection and unlock interface
@@ -10,12 +12,7 @@ import { type ThemeId, THEME_DEFINITIONS } from '../config/themeData'
 export default class ShopScene extends Phaser.Scene {
   private themeCards: Phaser.GameObjects.Container[] = []
   private goldText?: Phaser.GameObjects.Text
-  private scrollContainer?: Phaser.GameObjects.Container
-  private scrollY = 0
-  private maxScroll = 0
-  private isDragging = false
-  private dragStartY = 0
-  private dragStartScrollY = 0
+  private scrollContainer?: ScrollContainer
 
   constructor() {
     super({ key: 'ShopScene' })
@@ -25,8 +22,6 @@ export default class ShopScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Restore scroll state if provided, otherwise reset
-    this.scrollY = data?.scrollY ?? 0
     this.themeCards = []
 
     // Dark semi-transparent background
@@ -38,14 +33,13 @@ export default class ShopScene extends Phaser.Scene {
     // Theme cards (scrollable)
     this.createScrollableThemeCards(width, height)
 
+    // Restore scroll position if provided
+    if (data?.scrollY && this.scrollContainer) {
+      this.scrollContainer.scrollTo(data.scrollY)
+    }
+
     // Back button (fixed)
     this.createBackButton(width, height)
-
-    // Setup scroll input
-    this.setupScrollInput(width, height)
-
-    // Apply restored scroll position
-    this.updateScrollPosition()
   }
 
   private createHeader(width: number): void {
@@ -93,21 +87,17 @@ export default class ShopScene extends Phaser.Scene {
     // Scroll area bounds
     const scrollAreaTop = startY
     const scrollAreaBottom = height - 80 // Leave room for back button
-    const scrollAreaHeight = scrollAreaBottom - scrollAreaTop
 
-    // Create scroll container
-    this.scrollContainer = this.add.container(0, 0)
-
-    // Create mask for scroll area
-    const maskGraphics = this.make.graphics({ x: 0, y: 0 })
-    maskGraphics.fillStyle(0xffffff)
-    maskGraphics.fillRect(0, scrollAreaTop, width, scrollAreaHeight)
-    const mask = maskGraphics.createGeometryMask()
-    this.scrollContainer.setMask(mask)
+    // Create scroll container using reusable component
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      width: width,
+      bounds: { top: scrollAreaTop, bottom: scrollAreaBottom },
+    })
 
     // Calculate total content height
-    const totalContentHeight = themeStates.length * (cardHeight + cardSpacing)
-    this.maxScroll = Math.max(0, totalContentHeight - scrollAreaHeight + 20)
+    const totalContentHeight = themeStates.length * (cardHeight + cardSpacing) + 20
+    this.scrollContainer.setContentHeight(totalContentHeight)
 
     // Create theme cards inside scroll container
     themeStates.forEach((state, index) => {
@@ -116,49 +106,6 @@ export default class ShopScene extends Phaser.Scene {
       this.scrollContainer!.add(card)
       this.themeCards.push(card)
     })
-  }
-
-  private setupScrollInput(_width: number, height: number): void {
-    const scrollAreaTop = 120
-    const scrollAreaBottom = height - 80
-
-    // Mouse wheel scrolling (works without blocking buttons)
-    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
-      this.scrollY = Phaser.Math.Clamp(this.scrollY + deltaY * 0.5, 0, this.maxScroll)
-      this.updateScrollPosition()
-    })
-
-    // Touch/drag scrolling using scene-level input (doesn't block buttons)
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Only start drag if in scroll area
-      if (pointer.y >= scrollAreaTop && pointer.y <= scrollAreaBottom) {
-        this.isDragging = true
-        this.dragStartY = pointer.y
-        this.dragStartScrollY = this.scrollY
-      }
-    })
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDragging) {
-        const deltaY = this.dragStartY - pointer.y
-        this.scrollY = Phaser.Math.Clamp(this.dragStartScrollY + deltaY, 0, this.maxScroll)
-        this.updateScrollPosition()
-      }
-    })
-
-    this.input.on('pointerup', () => {
-      this.isDragging = false
-    })
-
-    this.input.on('pointerupoutside', () => {
-      this.isDragging = false
-    })
-  }
-
-  private updateScrollPosition(): void {
-    if (this.scrollContainer) {
-      this.scrollContainer.y = -this.scrollY
-    }
   }
 
   private createThemeCard(
@@ -332,6 +279,8 @@ export default class ShopScene extends Phaser.Scene {
     })
 
     bg.on('pointerdown', () => {
+      // Don't process click if user was scrolling
+      if (this.scrollContainer?.isDragScrolling()) return
       audioManager.playMenuSelect()
       onClick()
     })
@@ -344,7 +293,8 @@ export default class ShopScene extends Phaser.Scene {
     if (success) {
       audioManager.playAbilitySelect()
       // Refresh the scene to show updated selection, preserving scroll position
-      this.scene.restart({ scrollY: this.scrollY })
+      const scrollY = this.scrollContainer?.getScrollY() ?? 0
+      this.scene.restart({ scrollY })
     }
   }
 
@@ -366,32 +316,20 @@ export default class ShopScene extends Phaser.Scene {
     if (success) {
       audioManager.playLevelUp() // Use level up sound for unlock
       // Refresh the scene, preserving scroll position
-      this.scene.restart({ scrollY: this.scrollY })
+      const scrollY = this.scrollContainer?.getScrollY() ?? 0
+      this.scene.restart({ scrollY })
     }
   }
 
-  private createBackButton(width: number, height: number): void {
-    const backBtn = this.add
-      .text(width / 2, height - 50, 'BACK', {
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#555555',
-        padding: { x: 40, y: 12 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-
-    backBtn.on('pointerover', () => {
-      backBtn.setStyle({ backgroundColor: '#666666' })
-    })
-
-    backBtn.on('pointerout', () => {
-      backBtn.setStyle({ backgroundColor: '#555555' })
-    })
-
-    backBtn.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+  private createBackButton(_width: number, height: number): void {
+    createBackButton({
+      scene: this,
+      y: height - 50,
+      targetScene: 'MainMenuScene',
+      text: 'BACK',
+      backgroundColor: 0x555555,
+      hoverColor: 0x666666,
+      fontSize: '18px',
     })
   }
 }

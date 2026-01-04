@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from './Enemy'
-import EnemyBulletPool from '../systems/EnemyBulletPool'
+import Enemy, { EnemyOptions } from '../Enemy'
+import EnemyBulletPool from '../../systems/EnemyBulletPool'
 
 export default class TankEnemy extends Enemy {
   private lastShotTime: number = 0

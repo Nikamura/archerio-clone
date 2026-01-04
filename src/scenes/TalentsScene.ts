@@ -9,6 +9,8 @@ import {
   TALENTS,
   TIER_NAMES,
 } from '../config/talentData'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
+import { createBackButton } from '../ui/components/BackButton'
 
 /**
  * TalentsScene - UI for the talent lottery system
@@ -18,6 +20,8 @@ import {
  * - Display of all talents with their current levels
  * - Total bonus display at bottom
  * - Spin animation with visual feedback
+ *
+ * Refactored to use reusable UI components from src/ui/components
  */
 export default class TalentsScene extends Phaser.Scene {
   // UI Elements
@@ -28,14 +32,9 @@ export default class TalentsScene extends Phaser.Scene {
   private talentCards: Map<TalentId, Phaser.GameObjects.Container> = new Map()
   private bonusTexts: Phaser.GameObjects.Text[] = []
 
-  // Scroll container for talent grid
-  private scrollContainer?: Phaser.GameObjects.Container
-  private scrollMask?: Phaser.GameObjects.Graphics
-  private scrollBounds = { top: 140, bottom: 557, contentHeight: 0 }
-  private scrollY = 0
-  private isDragging = false
-  private dragStartY = 0
-  private scrollStartY = 0
+  // Scroll container (using reusable component)
+  private scrollContainer?: ScrollContainer
+  private scrollBounds = { top: 140, bottom: 557 }
 
   // Animation state
   private isSpinning: boolean = false
@@ -70,8 +69,13 @@ export default class TalentsScene extends Phaser.Scene {
     // Bonus display at bottom
     this.createBonusDisplay(width, height)
 
-    // Back button
-    this.createBackButton(width, height)
+    // Back button using reusable component
+    createBackButton({
+      scene: this,
+      x: width / 2,
+      y: height - 25,
+      targetScene: 'MainMenuScene',
+    })
 
     // Initial update
     this.updateUI()
@@ -161,20 +165,12 @@ export default class TalentsScene extends Phaser.Scene {
     const cardWidth = width - 30
     const cardX = width / 2
 
-    // Create the scroll container - all talent content goes inside this
-    this.scrollContainer = this.add.container(0, 0)
-
-    // Create mask for the scrollable area
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-    this.scrollMask = this.add.graphics()
-    this.scrollMask.fillStyle(0xffffff)
-    this.scrollMask.fillRect(0, this.scrollBounds.top, width, scrollAreaHeight)
-    // Hide the mask graphics so it doesn't show as white block
-    this.scrollMask.setVisible(false)
-
-    // Apply mask to scroll container
-    const mask = this.scrollMask.createGeometryMask()
-    this.scrollContainer.setMask(mask)
+    // Create scroll container using reusable component
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      width,
+      bounds: this.scrollBounds,
+    })
 
     // Group talents by tier for display
     const talentsByTier: Record<TalentTier, Talent[]> = {
@@ -222,68 +218,9 @@ export default class TalentsScene extends Phaser.Scene {
       currentY += 5 // Extra spacing between tiers
     })
 
-    // Calculate total content height
-    this.scrollBounds.contentHeight = currentY - this.scrollBounds.top + 10
-
-    // Setup scroll input
-    this.setupScrollInput(width)
-  }
-
-  private setupScrollInput(width: number) {
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-
-    // Create an invisible interactive zone for the scroll area
-    const scrollZone = this.add.zone(
-      width / 2,
-      this.scrollBounds.top + scrollAreaHeight / 2,
-      width,
-      scrollAreaHeight
-    )
-    scrollZone.setInteractive()
-
-    // Mouse wheel scrolling
-    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
-      this.scrollContent(deltaY * 0.5)
-    })
-
-    // Touch/mouse drag scrolling
-    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDragging = true
-      this.dragStartY = pointer.y
-      this.scrollStartY = this.scrollY
-    })
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDragging) {
-        const deltaY = this.dragStartY - pointer.y
-        this.setScrollPosition(this.scrollStartY + deltaY)
-      }
-    })
-
-    this.input.on('pointerup', () => {
-      this.isDragging = false
-    })
-
-    this.input.on('pointerupoutside', () => {
-      this.isDragging = false
-    })
-  }
-
-  private scrollContent(deltaY: number) {
-    this.setScrollPosition(this.scrollY + deltaY)
-  }
-
-  private setScrollPosition(newY: number) {
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-    const maxScroll = Math.max(0, this.scrollBounds.contentHeight - scrollAreaHeight)
-
-    // Clamp scroll position
-    this.scrollY = Phaser.Math.Clamp(newY, 0, maxScroll)
-
-    // Apply scroll position to container
-    if (this.scrollContainer) {
-      this.scrollContainer.y = -this.scrollY
-    }
+    // Set content height for scroll calculations
+    const contentHeight = currentY - this.scrollBounds.top + 10
+    this.scrollContainer.setContentHeight(contentHeight)
   }
 
   private createTalentCard(
@@ -387,31 +324,6 @@ export default class TalentsScene extends Phaser.Scene {
         .setOrigin(0, 0.5)
 
       this.bonusTexts.push(text)
-    })
-  }
-
-  private createBackButton(width: number, height: number) {
-    const backButton = this.add
-      .text(width / 2, height - 25, '< BACK', {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#444444',
-        padding: { x: 20, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-
-    backButton.on('pointerover', () => {
-      backButton.setStyle({ backgroundColor: '#666666' })
-    })
-
-    backButton.on('pointerout', () => {
-      backButton.setStyle({ backgroundColor: '#444444' })
-    })
-
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
     })
   }
 

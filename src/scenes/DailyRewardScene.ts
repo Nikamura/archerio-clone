@@ -6,6 +6,7 @@ import {
   DailyReward,
   Reward,
 } from '../systems/DailyRewardManager'
+import { createBackButton } from '../ui/components/BackButton'
 
 /**
  * DailyRewardScene - UI for the 7-day daily reward calendar
@@ -351,28 +352,11 @@ export default class DailyRewardScene extends Phaser.Scene {
       .setOrigin(0.5)
   }
 
-  private createBackButton(width: number, height: number) {
-    const backButton = this.add
-      .text(width / 2, height - 50, '< BACK', {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#444444',
-        padding: { x: 20, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-
-    backButton.on('pointerover', () => {
-      backButton.setStyle({ backgroundColor: '#666666' })
-    })
-
-    backButton.on('pointerout', () => {
-      backButton.setStyle({ backgroundColor: '#444444' })
-    })
-
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+  private createBackButton(_width: number, height: number) {
+    createBackButton({
+      scene: this,
+      y: height - 50,
+      targetScene: 'MainMenuScene',
     })
   }
 

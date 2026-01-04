@@ -288,184 +288,39 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 [x] 60 FPS on desktop (tested via Puppeteer)
 ```
 
-**CURRENT STATUS (2026-01-01):**
-- ✅ Basic project structure with TypeScript + Vite
-- ✅ Core "stop to shoot, move to dodge" mechanic working
-- ✅ Virtual joystick controls (mobile ready, Y-axis fixed) + WASD/arrow keyboard controls
-- ✅ Nine enemy types: Melee, Ranged Shooter, Spreader, Charger, Bomber, Tank, Burrower, Healer, Spawner
-- ✅ Auto-aim targeting nearest enemy
-- ✅ Enemy bullet system with collision
-- ✅ Player damage system (enemy melee + bullets)
-- ✅ Real-time health bar UI updates
-- ✅ Portrait mode (375x667) optimized for mobile
-- ✅ Precise hitbox collision detection
-- ✅ Puppeteer automated testing with screenshots
-- ✅ Game over screen with death detection, kill tracking, and restart
-- ✅ Room system with 10 rooms, door transitions, and victory screen
-- ✅ Room progression with scaling difficulty
-- ✅ **XP/Leveling system** - Level up every 10 kills with XP bar UI
-- ✅ **Ability selection modal** - LevelUpScene with 3 random ability cards (using Container for proper click handling)
-- ✅ **22 abilities implemented** - All MVP abilities + V1 abilities + devil abilities complete:
-  - Front Arrow (+1 projectile, -25% damage per level)
-  - Multishot (side arrows at 45°, -15% attack speed per level)
-  - Attack Speed (+25% multiplicative)
-  - Attack Boost (+30% damage multiplicative)
-  - Piercing Shot (arrows pass through enemies, -33% damage per enemy)
-  - Ricochet (arrows bounce 3x between enemies per level)
-  - Fire Damage (+18% DOT over 2 seconds, additive stacking)
-  - Crit Boost (+10% crit chance additive, +40% crit damage multiplicative)
-  - **New V1 Abilities (2026-01-01):**
-  - Ice Shot (15% freeze chance per level, 1.5s freeze duration, blue tint)
-  - Poison Shot (5% DOT per second for 4s, stacks up to 5x, green tint)
-  - Lightning Chain (chains to 2 nearby enemies per level, 50% damage, 150px range)
-  - Diagonal Arrows (+2 arrows at 30° angles per level, 80% damage)
-  - Rear Arrow (+1 backwards arrow per level, 70% damage)
-  - Damage Aura (10 DPS in 80px radius around player, visual aura ring)
-  - Bloodthirst (+2 HP heal per kill per level, red flash visual)
-  - Rage (+5% damage per 10% missing HP per level, scales dynamically)
-  - Speed Boost (+15% movement speed per level, multiplicative)
-  - Vitality (+10% max HP per level, heals gained amount)
-  - **New Abilities (2026-01-03):**
-  - Bouncy Wall (+2 wall bounces per level, arrows reflect off screen edges)
-  - Dodge Master (+15% dodge chance per level, capped at 75%)
-  - **Devil Abilities (2026-01-03):** High-risk/high-reward abilities
-  - Extra Life (revive once at 30% HP per level, golden flash on revive)
-  - Through Wall (arrows wrap around screen edges instead of disappearing)
-  - Giant (+40% damage per level, +10-15% hitbox size per level)
-- ✅ **Ability stacking** - Multiple selections of same ability compound effects correctly
-- ✅ **Boss fight** - Room 10 boss with 3 attack patterns:
-  - Spread Shot: 8 projectiles in circular pattern (2 waves)
-  - Barrage: Telegraph for 0.8s, then fire 3 fast projectiles at player
-  - Charge: Wind up with visual warning, then dash at player
-  - 200 HP (10 XP reward), boss health bar UI at bottom of screen
-- ✅ **Simplified ability selection** - Large vertically-stacked buttons for reliable touch input
-- ✅ **Advanced ability effects** (2026-01-01):
-  - Piercing: Bullets track hit count, pass through enemies if piercingLevel > 0
-  - Ricochet: Bullets redirect to nearest enemy after hit, up to maxBounces times
-  - Fire DOT: Enemies burn with orange tint, tick damage every 500ms for 2 seconds
-  - Critical hits: Yellow tinted bullets deal increased damage (visual feedback)
-  - All effects work with Front Arrow, Multishot, Diagonal, and Rear Arrow projectiles
-  - **New V1 Ability Effects (2026-01-01):**
-  - Freeze: Enemies can't move or attack for 1.5s, blue tint visual, effect priority system
-  - Poison DOT: Stacking damage (up to 5 stacks), 1 tick/second for 4s, green tint visual
-  - Lightning Chain: Damages 2 nearby enemies per level at 50% damage, 150px max range
-  - Diagonal/Rear Arrows: Additional projectiles at fixed angles with damage reduction
-  - Wall Bounce: Bullets reflect off walls up to N times, maintaining full damage
-  - Bloodthirst: Heals player on any kill (bullet, fire, poison, or lightning chain)
-  - Rage: Dynamic damage scaling based on current missing HP percentage
-- ✅ **Enemy health bars** - Small health bars appear above enemies when damaged (hidden at full HP)
-  - Color changes: green (>50%) → yellow (25-50%) → red (<25%)
-  - Follows enemy movement, auto-hides when enemy dies or resets
-- ✅ **New enemy types** (2026-01-01):
-  - **Charger**: Fast dash attack enemy with telegraph
-    - Normal speed until charging, then very fast (350 speed)
-    - Wind-up phase (0.7s): Shakes, flashes red/cyan, shows direction line
-    - Charge phase (0.6s): Dashes toward player position, leaves trail
-    - Stunned phase (0.8s): Briefly stunned after charge (wobble effect)
-    - 2.5x contact damage during charge, normal otherwise
-    - Appears in mid-early rooms (room 3+)
-  - **Bomber**: AOE bomb-throwing enemy
-    - Medium speed, maintains 120-220px distance from player
-    - Throws bombs that land and explode after 1.5s fuse time
-    - Warning circle shows explosion radius (60px) before detonation
-    - Explosion animation with expanding circle
-    - Player knockback on hit
-    - Appears in mid-late rooms (room 5+)
-  - **Tank**: Slow, heavily armored 8-way spread shooter
-    - Very slow movement (30 speed), 3x normal health
-    - Larger sprite (48x48 vs normal 32x32)
-    - Charge-up attack (0.8s): Purple-to-red tint with pulse
-    - Fires 8 projectiles in all directions simultaneously
-    - Higher contact damage (1.5x normal)
-    - Appears in late rooms (room 7+)
-  - **Burrower**: Burrows underground (alpha 0.3, no collision), surfaces near player to attack
-    - Fires 6-projectile spread attack on surfacing
-    - Invulnerable while burrowed, dust particles when burrowing/surfacing
-    - Appears in mid-rooms (room 3+)
-  - **Healer**: Low health support enemy that stays away from player
-    - Heals 10 HP to all enemies within 150px range every 3 seconds
-    - Green healing aura visual, particles on heal
-    - Priority target for players
-  - **Spawner**: Stationary high-health enemy that creates minions
-    - Spawns up to 3 weak minion enemies every 4 seconds
-    - Purple spawn aura, visual pulse on spawn
-    - When spawner dies, all its minions die too
-    - Minions: 30% HP, 50% damage, fast movement
-    - Appears in late rooms (room 6+)
-  - Enemy group integration for healing and spawning mechanics
-  - BombPool and BombProjectile for bomber AOE attacks
-- ✅ **Difficulty selection** (2026-01-01):
-  - Three difficulty modes: Easy, Normal, Hard
-  - Easy: +50% player HP, +20% damage/speed, -30% enemy HP, -25% enemy damage, -20% spawns
-  - Hard: -20% player HP, -10% damage/speed, +40% enemy HP, +30% enemy damage, +30% spawns
-  - Difficulty persists across runs (saved in game registry)
-- ✅ **Audio system** (2026-01-01):
-  - Web Audio API synthesis - no external audio files needed
-  - All sounds generated at runtime using oscillators
-  - Sounds: shoot, hit, player_hit, level_up, ability_select, room_clear, death, victory, menu_select, game_start
-  - Integrated into all game events: shooting, damage, level-up, room completion, game over
-- ✅ **Haptic feedback system** (2026-01-01):
-  - HapticManager (src/systems/HapticManager.ts) using Web Vibration API
-  - Graceful fallback for unsupported browsers
-  - Vibration patterns for game events:
-    - `light` (10ms): collecting gold/items, enemy death
-    - `medium` (25ms): shooting arrows
-    - `heavy` (50ms): taking damage
-    - `bossHit` (40ms): hitting the boss
-    - `death` ([100, 50, 100]ms): player death
-    - `levelUp` ([50, 30, 50, 30, 100]ms): level up celebration
-  - Toggleable via `hapticManager.enabled` property
-  - iOS Safari requires user interaction first (joystick touch satisfies this)
-- ✅ ESLint + TypeScript build passing
-- ✅ 92 unit tests passing with high coverage
-- ✅ **Seeded runs system** (2026-01-01):
-  - `src/systems/SeededRandom.ts`: Deterministic PRNG using Mulberry32 algorithm
-    - `random()` - Returns 0-1 like Math.random()
-    - `randomInt(min, max)` - Integer in range [min, max]
-    - `pick(array)` / `weightedPick(items, weights)` - Array selection
-    - `getSeedString()` - Base-36 encoded seed for display/sharing
-    - `parseSeed(input)` - Parse user seed input to number
-  - RoomGenerator integration:
-    - All randomness uses seeded RNG (layout selection, enemy combos, spawn positions)
-    - `setRng(SeededRandom)` to inject seed at run start
-    - Room layouts can include `walls` array for physical obstacles
-  - **Wall System (2026-01-03):**
-    - `Wall` entity: Static physics body (Rectangle) that blocks player, enemies, and bullets
-    - `WallGroup`: Manages wall creation/destruction per room, themed by chapter color
-    - Room layouts define walls via normalized coordinates (0-1): `{ x, y, width, height }`
-    - Player/enemy collision: Physics collider pushes entities away from walls
-    - Bullet/wall collision:
-      - Normal bullets: Destroyed on wall contact
-      - Bouncy Wall ability: Bullets reflect off walls (velocity reversed)
-      - Through Wall ability: Bullets pass through walls unaffected
-    - **Layouts with walls (12 total):**
-      - `maze_lite`: Cover Points, Scattered Pockets (cover walls, barriers)
-      - `gauntlet`: Side Runners, Forward March (corridor walls, barriers)
-      - `split_arena`: Left-Right Split, Top-Bottom Split (dividing walls)
-      - `corner_rooms`: Four Corners, Corners Plus Center (pillars, obstacles)
-      - `ambush`: Pincer Attack (corridor trap walls)
-      - `open_arena`: Circular Siege (center pillar)
-    - ✅ **Themed wall textures** (2026-01-03):
-      - Chapter 1 (Dark Dungeon): `wall_dungeon.png` - Stone brick walls with moss
-      - Chapter 2 (Forest Ruins): `wall_forest.png` - Wooden logs and overgrown stones
-      - Chapter 3 (Frozen Caves): `wall_ice.png` - Ice crystals and frozen rock
-      - Chapter 4 (Volcanic Depths): `wall_lava.png` - Lava rock with glowing cracks
-      - Chapter 5 (Shadow Realm): `wall_shadow.png` - Dark energy pillars with purple glow
-      - Vaporwave theme (per-chapter): `wall_vaporwave_*.png` - Neon synthwave variants
-      - Wall entity uses TileSprite for repeating textures
-      - WallGroup.setTexture(chapterId) + setTheme(themeName) for purchasable themes
-  - Boss selection uses seeded RNG via `getRandomBossForChapter(chapterId, rng)`
-  - MainMenuScene:
-    - "Enter Seed" button below PLAY opens modal dialog
-    - Custom seed persists via `game.registry` to GameScene
-    - Shows current seed if set (cyan color)
-  - GameOverScene:
-    - Seed displayed with copy-to-clipboard functionality
-    - "Tap to copy" hint, green flash on copy
-    - Uses Clipboard API with fallback
-  - Same seed = same enemy types, positions, boss selection
-  - Players can share seeds to challenge friends to identical runs
-- 🚧 Dev server running at http://localhost:3000/
+**CURRENT STATUS (2026-01-04):**
+
+**Core Systems:**
+- TypeScript + Vite + Phaser 3 with Arcade Physics
+- Portrait mode (375x667) optimized for mobile
+- Virtual joystick + WASD/arrow keyboard controls
+- Auto-aim targeting nearest enemy
+- 92 unit tests, ESLint passing
+
+**Combat & Enemies:**
+- 9 enemy types: Melee, Ranged Shooter, Spreader, Charger, Bomber, Tank, Burrower, Healer, Spawner
+- Enemy health bars with color transitions (green → yellow → red)
+- Mini-boss at room 10, final boss at room 20 (3 attack patterns each)
+- Difficulty selection: Easy/Normal/Hard with stat modifiers
+
+**Abilities (22 total):**
+- Core: Front Arrow, Multishot, Attack Speed, Attack Boost, Piercing, Ricochet, Fire DOT, Crit
+- Elemental: Ice Shot (freeze), Poison Shot (stacking DOT), Lightning Chain
+- Arrow mods: Diagonal, Rear, Bouncy Wall, Through Wall
+- Utility: Damage Aura, Bloodthirst, Rage, Speed Boost, Vitality, Dodge Master
+- Devil: Extra Life, Giant
+
+**Level Systems:**
+- 20 rooms per chapter with door transitions (mini-boss at 10, boss at 20)
+- XP/leveling with ability selection modal
+- Wall system with 12 layout variations and themed textures
+- Seeded runs for reproducible gameplay
+
+**Polish:**
+- Audio (Web Audio API synthesis, 10 sound effects)
+- Haptic feedback (6 vibration patterns)
+- Gold drops with magnetic collection
+- End-of-run rewards with chest system
 
 **TESTING:**
 
@@ -496,182 +351,26 @@ Visual test screenshots are saved to `test/screenshots/`
   - Fire DOT: Calculated based on current weapon damage
   - Critical hits: Roll chance, damage multipliers, combination with other abilities
 
-**KNOWN BUGS:**
-1. ✅ **Map too large** - FIXED: Changed from 800x600 to 375x667 (portrait mode, iPhone SE size)
-2. ✅ **Enemy hitbox too large** - FIXED: Reduced enemy collision circle from 15px to 10px, bullets set to 4-5px radius
-3. ✅ **Player hitpoints not decreasing** - FIXED: Added player-enemy collision (5 damage), enemy bullets now damage player (10 damage), UI health bar updates in real-time
-4. ✅ **No game over when player dies** - FIXED: Added GameOverScene with death screen, kill tracking, and "Try Again" button to restart
-5. ✅ **Player dies too fast** - FIXED: Added 500ms invincibility period after taking damage with visual flashing effect
-6. ✅ **Room complete screen shows UI clutter** - FIXED (2026-01-03): Changed HUD fade alpha from 0.3 to 0 when room is cleared, so health bar and other HUD elements are fully hidden when the ENTER door prompt appears
-7. ✅ **Ability selection not working** - FIXED: Two issues resolved:
-   - Phaser Containers require explicit hit area geometry (not just `setSize()` + `setInteractive()`)
-   - Used `new Phaser.Geom.Rectangle(-width/2, -height/2, width, height)` as hit area (offset because container origin is center)
-   - Added `this.input.enabled = true` and `this.scene.bringToTop()` to ensure input is captured when launched over GameScene
-8. ✅ **Joystick Y-axis inverted** - FIXED: Joystick uses mathematical angles (counter-clockwise), but screen Y-axis is inverted. Added negation to sin component for correct movement direction.
-9. ✅ **AI-generated sprites too large** - FIXED (2026-01-01):
-   - AI image generation created 1024x1024+ sprites instead of 32-64px
-   - Resized all sprites using ImageMagick: player (64x64), bullets (32x32)
-   - Adjusted display sizes: Player (64px), bullets (24px), enemy bullets (24px)
-   - Backed up originals to `public/assets/sprites/originals/`
-   - **LESSON**: Always specify exact pixel dimensions when using `pnpm run generate-sprite`
-10. ✅ **Bullets passing through enemies (hitbox misalignment)** - FIXED (2026-01-01):
-   - Issue: `setCircle()` positions hitbox at top-left corner by default, not sprite center
-   - Also: Physics body used original texture size, not display size after `setDisplaySize()`
-   - Fixed all entities (Bullet, EnemyBullet, Enemy, Player, Boss):
-     - Added `body.setSize(displaySize, displaySize)` to sync body with display size
-     - Calculated proper offset: `offset = (displaySize - radius * 2) / 2`
-     - Used `body.setCircle(radius, offset, offset)` for centered hitboxes
-   - Made enemy hitbox dynamic using `enemy.displayWidth` to handle varying sizes (30px melee/ranged, 36px spreader)
-   - **LESSON**: Always center circular hitboxes with offset when using sprites
-11. ✅ **Enemies leaving screen bounds** - FIXED (2026-01-01):
-   - Issue: Enemies could move outside the visible game area (375x667)
-   - Root cause: Physics world bounds were never explicitly set
-   - Fixed by adding `this.physics.world.setBounds(0, 0, width, height)` in GameScene.create()
-   - Added extra safety: All enemy update() methods now clamp positions to world bounds
-   - Applied to: Enemy, RangedShooterEnemy, SpreaderEnemy, Boss
-   - Bounds checking accounts for enemy size (15px margin for regular, 18px for spreader, 32px for boss)
-   - **LESSON**: Always set physics world bounds explicitly, even if they match game size
-12. ✅ **"Try Again" button not working in GameOverScene** - FIXED (2026-01-01):
-   - Issue: Clicking "Try Again" button after death did not restart the game
-   - Root cause: Calling `this.scene.stop('GameOverScene')` first prevented subsequent scene transitions from executing
-   - When a scene stops itself, Phaser immediately halts execution of the current method
-   - Fixed by reordering scene transitions in `restartGame()`:
-     - First: Stop GameScene and UIScene
-     - Then: Start GameScene and launch UIScene
-     - Last: Stop GameOverScene (after all transitions complete)
-   - **LESSON**: Always stop the current scene LAST when performing scene transitions from within that scene
-13. ✅ **TalentsScene content overflow (not scrollable)** - FIXED (2026-01-01):
-   - Issue: 9 talent cards with tier headers exceed the 667px screen height, content hidden below bonus panel
-   - Root cause: Talent grid was created without scroll functionality
-   - Fixed by implementing scrollable container:
-     - Created scroll container with geometry mask (viewport: y=140 to y=557, ~417px visible area)
-     - Talent cards and tier headers added to scroll container
-     - Mouse wheel scrolling: `input.on('wheel')` with 0.5x scroll speed
-     - Touch drag scrolling: Zone-based pointer tracking with drag start/move/end handlers
-     - Scroll position clamped to content bounds (0 to maxScroll)
-   - Fixed elements remain in place: header, spin button, bonus panel, back button
-   - **LESSON**: For Phaser 3 scrollable content, use Container + GeometryMask + pointer/wheel input handlers
-14. ✅ **Equipment and talents lost on page refresh** - FIXED (2026-01-01):
-   - Issue: Equipment inventory, equipped items, and unlocked talents were not persisting across page refreshes
-   - Root cause: EquipmentManager and TalentManager had `toSaveData()`/`fromSaveData()` methods but:
-     - No localStorage key was defined for either manager
-     - No auto-save was triggered when data changed
-     - No data was loaded on game boot (managers started with empty state)
-   - Fixed by adding localStorage persistence directly to each manager:
-     - Added `EQUIPMENT_STORAGE_KEY = 'arrow_game_equipment_data'` and `TALENT_STORAGE_KEY = 'arrow_game_talent_data'`
-     - Added `saveToStorage()` method that calls `toSaveData()` and writes to localStorage
-     - Added `loadFromStorage()` method that reads localStorage and calls `fromSaveData()` on construction
-     - Added `saveToStorage()` calls after all mutating operations:
-       - EquipmentManager: addToInventory, removeFromInventory, equip, unequip, upgrade, clear
-       - TalentManager: spin (lottery state + talent upgrades), reset, forceUnlock
-   - **LESSON**: For singleton managers with save/load methods, always add auto-save on mutation and auto-load on construction
-15. ✅ **EquipmentScene scroll position affects equipped item clicks** - FIXED (2026-01-03): Set equipped slots to higher depth (10) than inventory container (1) to ensure equipped items are always clickable above scrolled inventory content.
-16. ✅ **EquipmentScene inventory first row cut off** - FIXED (2026-01-03): Changed first row offset from y=10 to y=SLOT_SIZE/2+5 (35px) to ensure the first row is fully visible within the mask area. Updated maxScroll calculation to account for new offset.
-17. ✅ **Removed items/perks cause errors on load** - FIXED (2026-01-03):
-   - Removed scythe_mage from spirit types list (was already removed from SpiritType enum)
-   - Added perk validation in fromSaveData() to filter out non-existent perks
-   - Unknown equipment types already skip with a warning
-   - Unknown perks now skip with a warning instead of causing errors
-18. ✅ **Player sprite rotates with movement direction** - FIXED (2026-01-03): Removed rotation logic in Player.update() that was causing player sprite to rotate 360° based on movement velocity. Player sprite now remains static/upright.
-19. ✅ **EquipmentScene item popup opens behind inventory** - FIXED (2026-01-03): Set detailPanel depth to 100 in showDetailPanel() to ensure it renders above inventory container (depth 1) and equipped slots (depth 10).
-20. ✅ **Invisible inventory items blocking UI clicks** - FIXED (2026-01-03): Added `updateInventorySlotInteractivity()` method that enables/disables input on inventory slots based on whether they're within the visible masked area. This prevents scrolled-out items from capturing clicks meant for UI elements like the Back button. Includes proper safety guards for scene lifecycle.
-21. ✅ **Damage numbers setting doesn't work** - FIXED (2026-01-03): Added settings check in DamageNumberPool.show() to respect showDamageNumbers setting
-22. ✅ **Graphics quality settings don't work** - NOT A BUG: Settings work correctly, applied on next game start (affects particle pool initialization)
-23. ✅ **Speed boost icon becomes very large on hover** - FIXED (2026-01-03): Changed hover tween to use relative scale (iconBaseScaleX * 1.1) instead of absolute scale, preserving setDisplaySize proportions
-24. ✅ **Player spawn position inconsistent** - FIXED (2026-01-03): Changed resetLevel() to spawn player at center (height/2) matching initial spawn position
-25. ✅ **Dead enemy bullets can still kill after level complete** - FIXED (2026-01-03): Clear enemy bullet pool in checkRoomCleared() when all enemies are dead
-26. ✅ **No immunity period after level up** - FIXED (2026-01-03): Added isLevelingUp flag that blocks damage during selection, clears enemy bullets on level up, and provides 1 second immunity after selection
-27. ✅ **Meowgik cat damage doesn't scale** - FIXED (2026-01-03): Changed cat damage to use player.getDamage() * 0.3 instead of static heroStats.attack, now scales with equipment, talents, abilities
-28. ✅ **Fast shooting causes shorter bullet range** - FIXED (2026-01-03): Increased bullet pool from 1000 to 2000, added 500ms minimum lifetime before recycling to prevent visible bullet pop-in
-29. ✅ **Shooting sound plays during pause/level up/tutorial** - FIXED (2026-01-03): Added guards in shootAtEnemy() to prevent shooting during isLevelingUp, isTransitioning, showingTutorial, or isGameOver states
-30. ✅ **Can get hit during level up popup** - FIXED (2026-01-03): Fixed by isLevelingUp flag in bug #26 fix - all damage handlers now check this flag
-31. ✅ **Vaporwave theme needs per-chapter wall textures** - FIXED (2026-01-03): Generated 5 vaporwave wall variants (dungeon, forest, ice, lava, shadow), WallGroup now supports setTheme() for purchasable themes with per-chapter textures
-32. ✅ **Number rounding for items** - FIXED (2026-01-03): Added formatStatValue() helper to round numbers to 1 decimal place in EquipmentScene, ChestScene, and TalentsScene
+**OPEN BUGS:**
+1. 🔴 **Talent spin wastes gold when all talents maxed** - TalentManager allows spinning even when all talents are at max level
+2. 🔴 **Single bullet hits multiple enemies without piercing** - Bullet damages multiple close enemies without piercing ability
+3. 🔴 **Extra life can stack beyond intended limit** - Should be capped at 1 level; can only level again after used
+4. 🔴 **Leveling too fast** - XP requirements should scale exponentially between levels
+5. 🔴 **Stationary enemies stuck in walls** - Spawners/spreaders can spawn inside walls, unkillable
+6. 🔴 **Wall textures not tileable** - Need seamless textures; thin walls show cut textures
+7. 🔴 **Fusion popup shows wrong items** - Shows first fused item instead of all results
+8. 🔴 **No damage aura visual indicator** - Players can't see aura range or active state
+9. 🔴 **Chest gives double items** - Shows 1 item but adds 2 to inventory
+10. 🔴 **LOTR theme backgrounds not optimized** - Need size optimization
+11. 🔴 Inventory items are not visible after playing a game and opening chests, opening Equipment shows no items, but you can click on empty squares and popup opens and after refresh it's working.
 
-**NEXT PRIORITIES:**
-1. ✅ ~~Add 4 more abilities (Piercing Shot, Ricochet, Fire Damage, Crit Boost)~~ - DONE
-2. ✅ ~~Add boss fight for room 10 with 3 attack patterns~~ - DONE (spread, barrage, charge attacks)
-3. ✅ ~~Implement gameplay effects for new abilities~~ - DONE (2026-01-01):
-   - ✅ Piercing: Bullets pass through enemies with damage reduction (-33% per hit)
-   - ✅ Ricochet: Bullets bounce to nearest enemy (3 bounces per level)
-   - ✅ Fire Damage: Apply DOT effect (18% weapon damage over 2 seconds, burns with orange tint)
-   - ✅ Crit: Roll for crit on each bullet (visual: yellow tint + larger), damage multiplier applied
-4. ✅ ~~**Balance pass needed**~~ - ADDRESSED (2026-01-01):
-   - Added difficulty selection (Easy/Normal/Hard)
-   - Hard mode: +50% boss HP, +30% boss damage, +40% enemy HP, +30% enemy damage
-   - Easy mode: -40% boss HP, -25% boss damage, -30% enemy HP for beginners
-5. ✅ ~~Add basic audio (shoot, hit, level-up, death sounds)~~ - DONE (2026-01-01):
-   - Created AudioManager class using Web Audio API synthesis
-   - Sounds: shoot, hit, player_hit, level_up, ability_select, room_clear, death, victory, menu_select, game_start
-   - No external audio files needed - all sounds generated at runtime
-6. ✅ ~~**Generate game assets using AI image generation**~~ - DONE (2026-01-01):
-   - All sprites regenerated with proper sizes:
-     - Player (archer.png): 64x64
-     - Enemies (melee_slime, ranged_skeleton, spreader_eye): 64x64
-     - Boss (demon): 128x128
-     - Projectiles (player_arrow, enemy_fireball): 32x32
-     - Door portal: 64x64
-     - 8 Ability icons: 48x48 each
-     - Dungeon background: 375x667
-7. ✅ **Polish ability UI with animations and feedback** - DONE (2026-01-03):
-   - LevelUpScene has comprehensive animations:
-     - Staggered card entrance animations with bounce effect
-     - Particle effects around title using emitters
-     - Pulsing glow animations on ability cards
-     - Progress bar timer with color transitions (yellow → orange → red)
-     - Selection animation: unselected cards slide out, selected scales up and fades
-     - Hover effects: scale, color change, icon enlargement
-   - Missing speed_boost ability icon generated and added to preloader
-8. ✅ **Gold drop system** - DONE (2026-01-01):
-   - `src/entities/GoldPickup.ts`: Gold coin entity with spawn/collection animation
-   - `src/systems/GoldPool.ts`: Object pool for 50 gold pickups with floating text
-   - Gold drops from all enemy types (bullet kills and fire DOT deaths)
-   - Drop amounts: Melee (5-10), Ranged (8-15), Spreader (10-20), Boss (100-200)
-   - Visual features: upward arc spawn animation, idle float/pulse, magnetic pull when near player
-   - Auto-collect within 50px, magnetic pull starts at 80px
-   - Floating "+X" gold text on collection
-   - Gold persists to SaveManager and CurrencyManager
-   - Gold earned displayed on GameOverScene results screen
-9. ✅ **End-of-run rewards screen** - DONE (2026-01-01):
-   - Enhanced GameOverScene with detailed rewards display
-   - Shows: Rooms cleared, Enemies killed, Gold earned
-   - Chest reward system based on performance:
-     - Base: 1 wooden chest per run
-     - 5+ rooms cleared: +1 wooden chest
-     - 30+ enemies killed: +1 wooden chest
-     - Victory (all 10 rooms): +1 silver chest
-     - Boss defeated: +1 silver chest
-     - Maximum 4 chests per run
-   - New files:
-     - `src/data/chestData.ts`: Chest types, drop rates, reward calculation
-     - `src/systems/ChestManager.ts`: Chest inventory with localStorage persistence
-   - Chest types with rarity drop rates:
-     - Wooden: 70% common, 25% great, 5% rare
-     - Silver: 40% common, 40% great, 15% rare, 5% epic
-     - Golden: 20% great, 50% rare, 25% epic, 5% legendary
-   - Rewards collected when pressing CONTINUE button
-   - Gold and chests added to CurrencyManager/ChestManager
-10. ✅ **Chest opening UI** - DONE (2026-01-01):
-   - `src/scenes/ChestScene.ts`: Full chest opening experience
-   - Access via "Chests" button on MainMenuScene
-   - Features:
-     - Display owned chests (wooden/silver/golden) with counts
-     - Tap chest to open with animation:
-       - Chest shake/wobble effect
-       - Flash and particle burst on open
-       - Equipment card flies out with scale animation
-     - Equipment reveal card shows:
-       - Rarity-colored border (gray/green/blue/purple/gold)
-       - Equipment name, slot icon, stats
-       - Perks listed if any
-       - EQUIP and CLOSE buttons
-     - Uses `rollChestRarity()` from chestData.ts for weighted random
-     - Uses `equipmentManager.generateRandomEquipment()` for item creation
-     - Items automatically added to inventory
-   - Integration:
-     - ChestScene added to main.ts scene list
-     - "Chests" button added to MainMenuScene menu row
-     - ChestManager.removeChest() called when opening
+**UPCOMING FEATURES:**
+1. 🟡 **Shop theme preview images** - Show actual theme images instead of colors
+2. 🟡 **Max attack speed cap** - Cap at 10 attacks per second
+3. 🟡 **Regenerate skill icons** - Add 1px black border, no whitespace/white background
+4. 🟡 **Remove seed system from UI** - Remove from GameOverScene and MainMenuScene
+5. 🟡 **Energy refill via ads** - Mock popup with cat image, gives +1 energy
+6. 🟡 **Add favicon** - Add game favicon for browser tab
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
@@ -761,376 +460,40 @@ Visual test screenshots are saved to `test/screenshots/`
 - Particle effects for abilities and deaths (IMPLEMENTED: ParticleManager system)
 - Visual telegraph for all enemy attacks (IMPLEMENTED: Boss AOE danger zones)
 
-### V1 technical additions
+### V1 Implementation Summary
 
-```
-[x] Equipment data model and inventory system (2026-01-01)
-    - Equipment.ts: Complete type system (EquipmentSlot, Rarity, WeaponType, ArmorType, RingType, SpiritType)
-    - 5 rarity tiers: Common (gray, L20), Great (green, L30), Rare (blue, L40), Epic (purple, L50), Legendary (gold, L70)
-    - 4 weapon types: Brave Bow (balanced), Saw Blade (+40% speed, -20% dmg), Staff (homing), Death Scythe (+45% dmg, knockback)
-    - 19 perks system: Attack, Speed, Crit, Health, Defense, Utility perks with rarity gating
-    - equipmentData.ts: Base stats for all equipment types, upgrade cost calculations
-    - EquipmentManager.ts: Singleton manager with inventory + equipped slots
-      - Inventory management: add/remove/find items
-      - Equip/unequip with slot validation
-      - Upgrade system with level caps and cost calculations
-      - Fusion system: 3 same-type/rarity items -> 1 higher rarity
-      - Combined stats calculation from equipped items + perks
-      - Event emitter: INVENTORY_CHANGED, EQUIPPED_CHANGED, ITEM_UPGRADED, ITEM_FUSED, STATS_CHANGED
-      - Save/load integration: toSaveData()/fromSaveData()
-[x] Fusion mechanic with UI
-    - Fusion logic implemented in EquipmentManager
-    - findFusionCandidates(): Find groups of 3+ same type/rarity items
-    - fuse(): Combine 3 items -> 1 higher rarity with averaged level
-    - EquipmentScene (src/scenes/EquipmentScene.ts): Full equipment UI (2026-01-01)
-      - 4 equipped slots at top (weapon, armor, ring, spirit) with rarity borders
-      - Scrollable inventory grid (4x4) showing unequipped items
-      - Item detail panel with stats, perks, level, and rarity display
-      - Equip/Unequip buttons with audio feedback
-      - Upgrade button with gold cost (uses CurrencyManager)
-      - Fusion button (auto-fuses first available group of 3 same type/rarity)
-      - Rarity colors: Common=#888888, Great=#00AA00, Rare=#0066FF, Epic=#AA00FF, Legendary=#FFD700
-      - Back button returns to MainMenuScene
-      - MainMenuScene "Equip" button navigates to EquipmentScene
-[x] Chest opening UI (2026-01-01)
-    - ChestScene (src/scenes/ChestScene.ts): Full chest opening experience
-    - Displays owned chests (wooden/silver/golden) with tap-to-open
-    - Opening animation: shake, flash, particle burst, equipment card reveal
-    - Equipment reveal card with rarity border, stats, perks, EQUIP/CLOSE buttons
-    - Uses rollChestRarity() for weighted random and generateRandomEquipment() for item creation
-    - Accessible via "Chests" button on MainMenuScene (4-button menu row)
-[x] Hero unlock and selection system (2026-01-01)
-    - HeroesScene (src/scenes/HeroesScene.ts): Full hero selection UI
-    - 3 heroes: Atreus (free), Helix (5000 gold), Meowgik (10000 gold)
-    - Hero cards display: name, level, passive ability, stats (ATK, HP, SPD, CRIT)
-    - Unlock heroes with gold via CurrencyManager
-    - Select unlocked heroes via SaveManager
-    - Visual feedback: selected hero highlighted, locked heroes dimmed
-    - Audio integration: menu sounds for selection/unlock
-    - MainMenuScene "Heroes" button navigates to HeroesScene
-    - **Hero icons** (2026-01-01): Unique 48x48 pixel art icons for each hero
-      - hero_atreus.png: Archer portrait
-      - hero_helix.png: Warrior with red rage aura
-      - hero_meowgik.png: Wizard with cat familiar
-      - Icons loaded in PreloaderScene, displayed in HeroesScene hero cards
-      - Locked heroes show grayscale tinted icons
-[x] Currency management and persistence (localStorage → IndexedDB)
-    - CurrencyManager (src/systems/CurrencyManager.ts): gold, gems, scrolls, energy
-    - Event-driven updates for UI integration
-    - Gold drop calculations per enemy type
-    - Save/load integration hooks (toSaveData/fromSaveData)
-    - **Default starting currencies** (2026-01-01): New players start with 1000 gold and 50 gems
-      - Defined in SaveManager.createDefaultSaveData()
-      - Only applies to new saves (existing progress not affected)
-      - Allows new players to unlock Helix hero (5000 gold) after a few runs
-[x] Talent lottery system (2026-01-01)
-    - talentData.ts: Complete talent configuration system
-      - TalentTier enum: COMMON (50%), RARE (35%), EPIC (15%)
-      - TalentId enum: 9 talents across 3 tiers
-      - Talent interface with effectType, effectPerLevel, maxLevel
-    - Common talents (50% drop rate):
-      - HP Boost: +100 max HP per level (max 10)
-      - Attack Boost: +25 attack per level (max 10)
-      - Defense: +5% damage reduction per level (max 5)
-    - Rare talents (35% drop rate):
-      - Attack Speed: +1% attack speed per level (max 10)
-      - Heal on Level-Up: +50 HP when leveling per level (max 5)
-      - Critical Master: +2% crit chance per level (max 5)
-    - Epic talents (15% drop rate):
-      - Equipment Bonus: +3% equipment stats per level (max 5)
-      - Glory: Start runs with 1 random ability per level (max 3)
-      - Iron Will: +30% HP when below 30% per level (max 3)
-    - TalentManager.ts: Singleton manager for lottery system
-      - Lottery mechanics: spin(), getSpinCost(), getSpinsRemaining()
-      - Escalating costs: 500 base + 250 per spin today
-      - Daily spin limit: 42 spins per day (resets at midnight)
-      - Talent stacking: Same talent can be rolled multiple times
-      - calculateTotalBonuses(): Returns combined stats from all unlocked talents
-      - Event system: talentUnlocked, talentUpgraded, spinFailed, dailyLimitReached
-      - Save/load integration: toSaveData()/fromSaveData()
-    - TalentsScene (src/scenes/TalentsScene.ts): Full talent lottery UI (2026-01-01)
-      - Spin button with cost display and daily limit counter
-      - Talent grid showing all 9 talents organized by tier (Common/Rare/Epic)
-      - Tier colors: Common=#888888, Rare=#0066FF, Epic=#AA00FF
-      - Talent cards show name, level (Lv.X/max), description, and current bonus
-      - Spin animation with symbol cycling effect
-      - Result popup shows talent tier, name, new level, and bonus gained
-      - Total bonuses panel at bottom (HP, Attack, Dmg Reduction, Atk Speed, Crit, Equip Bonus)
-      - Audio integration for spin and result sounds
-      - MainMenuScene "Talents" button navigates to TalentsScene
-[x] Chapter progression with unlock gates (2026-01-01)
-    - chapterData.ts: Complete chapter configuration system
-      - ChapterId type: 1-5 with full type safety
-      - 5 chapters: Dark Dungeon, Forest Ruins, Frozen Caves, Volcanic Depths, Shadow Realm
-      - Room layout: 20 rooms per chapter (16 combat, 2 angel, 1 miniboss, 1 boss)
-      - Enemy pools: Progressive unlocks (melee/ranged/spreader -> all 9 types)
-      - Chapter themes: backgroundKey, floorKey, primaryColor, accentColor, musicKey
-      - Difficulty scaling per chapter: HP +20%, damage +15%, +1 enemy per chapter
-      - Boss scaling: +50% HP per chapter
-      - Star thresholds: 1 star (complete), 2 stars (>50% HP), 3 stars (no deaths)
-      - Star reward multipliers: 1.0x, 1.5x, 2.0x
-      - First-time completion bonus: 2.0x rewards
-    - ChapterManager.ts: Singleton manager for chapter progression
-      - Chapter selection: selectChapter(), getSelectedChapter()
-      - Unlock gates: isChapterUnlocked(), getUnlockedChapters()
-      - Run management: startChapter(), getCurrentRun(), advanceRoom(), clearRoom()
-      - Progress tracking: getChapterProgress(), isChapterCompleted(), getBestStars()
-      - Completion: completeChapter() with star calculation and rewards
-      - Enemy pool: getEnemyPoolForChapter(), getCurrentEnemyPool()
-      - Scaling access: getChapterScaling() for difficulty multipliers
-      - Event system: chapterStarted, chapterCompleted, chapterFailed, roomEntered, roomCleared, chapterUnlocked, starRatingAchieved
-      - Save/load integration: toSaveData()/fromSaveData()
-[x] Energy system with timer (2026-01-01)
-    - Max 20 energy, regenerates 1 per 12 minutes (720000ms)
-    - Timestamp-based regeneration on load - persists across page refreshes
-    - CurrencyManager now saves/loads from localStorage (`arrow_game_currency_data` key)
-    - lastEnergyUpdate timestamp preserved for accurate offline regeneration
-    - getTimeUntilNextEnergy() and getFormattedTimeUntilNextEnergy() for UI display
-    - Timer continues from correct position after page refresh
-[x] 5 chapter environments with unique backgrounds (2026-01-01)
-    - Generated 5 unique AI backgrounds for each chapter (375x667 portrait resolution)
-    - Chapter 1: Dark Dungeon - dark stone dungeon with torches and cobwebs
-    - Chapter 2: Forest Ruins - overgrown ruins with vines and moss
-    - Chapter 3: Frozen Caves - ice cave with blue crystals and frost
-    - Chapter 4: Volcanic Depths - lava cave with red rocks and magma
-    - Chapter 5: Shadow Realm - dark void with purple energy swirls
-    - Backgrounds loaded in PreloaderScene: chapter1Bg, chapter2Bg, chapter3Bg, chapter4Bg, chapter5Bg
-    - GameScene dynamically selects background based on selected chapter from ChapterManager
-    - chapterData.ts updated with correct backgroundKey values for each chapter theme
-[x] Chest reward system (2026-01-01)
-    - chestData.ts: Chest types (wooden/silver/golden), drop rates, reward calculation
-    - ChestManager.ts: Singleton manager with inventory persistence
-    - End-of-run rewards based on performance (rooms, kills, boss, victory)
-    - GameOverScene enhanced with rewards display and chest icons
-    - Integration with CurrencyManager for gold collection
-[x] Chest opening UI with equipment drops
-[x] Unique enemy sets per chapter (2026-01-01)
-    - Added `EnemyChapterModifiers` interface to chapterData.ts:
-      - `speedMultiplier`: Movement speed modifier
-      - `attackCooldownMultiplier`: Attack frequency modifier (lower = faster)
-      - `projectileSpeedMultiplier`: Bullet/projectile speed modifier
-      - `spawnWeight`: Enemy selection weight modifier
-      - `abilityIntensityMultiplier`: Special ability intensity (heal amount, spawn rate)
-    - Each chapter has unique modifiers creating distinct gameplay feel:
-      - **Chapter 1 (Dark Dungeon)**: Standard enemies, more melee spawns
-      - **Chapter 2 (Forest Ruins)**: Agile melee (+15% speed), faster ranged projectiles (+20%), dangerous bombers
-      - **Chapter 3 (Frozen Caves)**: Slow but deadly theme - enemies slowed but chargers slide faster (+30%), tanks even tankier
-      - **Chapter 4 (Volcanic Depths)**: Fast and aggressive - all enemies attack faster, healers/spawners more potent
-      - **Chapter 5 (Shadow Realm)**: CHAOS - maximum danger with very fast attacks, extreme ability intensity
-    - RoomGenerator uses chapter-specific spawn weights for enemy selection
-    - GameScene passes chapter modifiers to all enemy constructors
-    - All enemy classes updated to use modifiers:
-      - Enemy (base): speedMultiplier for movement
-      - RangedShooterEnemy: attackCooldownMultiplier, projectileSpeedMultiplier
-      - SpreaderEnemy: attackCooldownMultiplier, projectileSpeedMultiplier
-      - BomberEnemy: attackCooldownMultiplier, speedMultiplier
-      - TankEnemy: attackCooldownMultiplier, projectileSpeedMultiplier, speedMultiplier
-      - ChargerEnemy: attackCooldownMultiplier, speedMultiplier (affects charge speed)
-      - HealerEnemy: attackCooldownMultiplier, abilityIntensityMultiplier (heal amount)
-      - SpawnerEnemy: attackCooldownMultiplier, abilityIntensityMultiplier (max minions)
-[x] 15 boss encounters (3 per chapter x 5 chapters) (2026-01-01)
-    - Created BaseBoss abstract class for shared boss functionality:
-      - Health management with damage multipliers
-      - Attack cycling with phase transitions
-      - Visual telegraph effects (lines, circles)
-      - Projectile firing helpers (spread, aimed shots)
-    - Created BossFactory for centralized boss instantiation:
-      - createBoss(scene, x, y, bossType, bulletPool, options)
-      - getBossDisplaySize(bossType) and getBossHitboxRadius(bossType)
-    - Chapter 1 - Dark Dungeon bosses: Boss (original demon boss)
-    - Chapter 2 - Forest Ruins bosses (all 3 complete):
-      - TreeGuardianBoss: Vine whip (line damage), root trap (area denial), leaf storm (spiral projectiles)
-      - WildBoarBoss: Fast charge, ground stomp (radial shockwave), summon minions
-      - ForestSpiritBoss: Teleport (disappear/reappear), homing orbs, mirror images (decoys)
-    - Chapter 3 - Frozen Caves bosses (all 3 complete):
-      - IceGolemBoss: Ice breath (cone AOE/slow), ice spikes (ground pound), shield reflect
-      - FrostWyrmBoss: Dive attack (off-screen), ice barrage, freezing roar (1sec freeze)
-      - CrystalGuardianBoss: Laser beam (sweep), crystal turrets (spawn/fire), crystal shatter (fragment damage)
-    - Chapter 4 - Volcanic Depths bosses:
-      - LavaGolemBoss: Lava pools (DOT zones), meteor shower, fire wave
-      - MagmaWyrmBoss: Burrow/emerge attack, fire breath sweep, segment trail
-      - InfernoDemonBoss: Flame pillars, teleport dash, enrage at 30% HP
-    - Chapter 5 - Shadow Realm bosses:
-      - VoidLordBoss: Darkness zones (DOT), shadow tentacles, phase shift (invulnerable)
-      - NightmareBoss: Screen distortion, clone multiplication, fear pulse
-      - FinalBoss: Multi-phase (fire 100-70%, shadow 70-40%, combined 40-0%), minion summoning
-    - Chapter-specific boss pools in chapterData.ts with random selection
-    - GameScene.spawnBoss() updated to use BossFactory with chapter scaling
-[x] Save/load system for all progression (2026-01-01)
-    - SaveManager (src/systems/SaveManager.ts): Complete persistence system
-    - Version migration support for future updates (migrateData function)
-    - Hero system: unlock/select heroes, hero levels, experience tracking
-    - Equipment system: inventory management, equip/unequip, rarity tiers
-    - Currencies: gold, gems, scrolls with spend/add methods
-    - Talents: talent points, upgrade system with max levels
-    - Chapter progress: highest room, completion status, star ratings
-    - Player statistics: runs, kills, deaths, playtime, bosses defeated, etc.
-    - Settings persistence: difficulty, audio, language
-    - Auto-save on key events (markDirty triggers save)
-    - 55 unit tests with full coverage
-    - Integrated with BootScene (loads on game start)
-    - Integrated with GameOverScene (records run stats)
-    - Integrated with MainMenuScene (persists difficulty changes)
-[x] MainMenuScene UI for V1 progression systems (2026-01-01)
-    - Currency display (top): Gold, Gems, Energy with regen timer
-    - Player stats: Current hero name, total runs, total kills
-    - Chapter indicator: Shows selected chapter
-    - Menu buttons: Heroes, Equipment, Talents (placeholder functionality)
-    - Energy timer: Updates every frame with "Next: MM:SS" countdown
-    - Green color scheme for progression buttons (#6b8e23)
-    - Mobile-optimized layout for 375x667 portrait resolution
-[x] MainMenuScene visual polish (2026-01-01)
-    - Dark dungeon stone wall background (menu_bg.png at 375x667)
-    - Animated torches flanking the title with flickering effects:
-      - Scale tween (0.95 to 1.05) with different timings per torch
-      - Alpha tween (0.8-0.85 to 1.0) for flame brightness variation
-    - Ember particles rising from torches using ADD blend mode
-    - All UI elements have depth (10) with black stroke for visibility
-    - Assets loaded in PreloaderScene: menuBg, torch
-[x] Daily reward calendar (2026-01-01)
-    - DailyRewardManager.ts: Complete 7-day reward cycle system
-      - Track consecutive login days (1-7 cycle)
-      - 48-hour streak timeout - resets to day 1 if missed
-      - Reward tiers: Day 1 (100 gold), Day 2 (200 gold), Day 3 (10 gems),
-        Day 4 (500 gold), Day 5 (20 gems), Day 6 (1000 gold), Day 7 (50 gems + full energy)
-      - canClaimToday(), claimReward(), getCurrentDay(), getTimeUntilNextClaim()
-      - Event emitter: rewardClaimed, streakReset, cycleCompleted
-      - LocalStorage persistence with save/load integration
-    - DailyRewardScene.ts: Calendar UI with 7-day horizontal grid
-      - Day cards show reward icon, amount, claim status (checkmark/waiting)
-      - Current day highlighted with pulsing border animation
-      - Claim button with particle burst effect on reward claim
-      - Timer showing time until next claim
-      - Popup animation displaying claimed rewards
-    - MainMenuScene integration:
-      - "Daily Rewards" button (brown #8b4513 color)
-      - Red notification badge with pulsing animation when reward available
-    - Registered DailyRewardScene in main.ts scene list
-[x] Achievement tracking (2026-01-01)
-    - achievementData.ts: Complete achievement configuration system
-      - AchievementId enum: 7 achievements with tiered progression
-      - Achievement interface with tiers, requirements, and rewards
-      - TIER_NAMES: Bronze/Silver/Gold/Platinum with corresponding colors
-      - Achievements track player statistics: kills, runs, bosses, playtime, heroes, equipment, talents
-    - Achievements with tiered rewards:
-      - First Blood: Kill 1/10/100/1000 enemies (10/50/200/500 gold)
-      - Survivor: Complete 1/5/25/100 runs (5/20/50/100 gems)
-      - Boss Slayer: Defeat 1/5/25/50 bosses (20/100/500/1000 gold)
-      - Dedicated: Play 10/50/100/500 minutes (10/50/100/200 gems)
-      - Hero Collector: Unlock 1/2/3 heroes (50/100/200 gems)
-      - Gear Up: Equip items in 1/2/3/4 slots (50/100/200/500 gold)
-      - Talent Scout: Unlock 3/6/9 talents (20/50/100 gems)
-    - AchievementManager.ts: Singleton manager for achievement tracking
-      - Progress tracking: getProgress(), getAllProgress()
-      - Reward system: claimReward(), claimAllRewards(), getUnclaimedRewards()
-      - Statistics integration: reads from SaveManager for live stat tracking
-      - checkAchievements(): Called after stat changes to detect new completions
-      - Event system: achievementUnlocked, rewardClaimed, progressUpdated
-      - LocalStorage persistence with save/load integration
-    - AchievementsScene.ts: Full achievement UI
-      - Scrollable achievement list with progress bars
-      - Tier indicators showing bronze/silver/gold/platinum status
-      - Claim buttons for each unclaimed tier with pulse animation
-      - "Claim All" button when multiple rewards available
-      - Total earned display (gold and gems)
-      - Back button returns to MainMenuScene
-    - MainMenuScene integration:
-      - "Achievements" button (purple #4a4a8a color)
-      - Red notification badge with count when unclaimed rewards available
-      - Pulsing animation on badge for visibility
-    - GameOverScene integration:
-      - achievementManager.checkAchievements() called after run stats recorded
-      - Ensures achievements update immediately after each run
-[x] Visual effects polish (2026-01-01)
-    - ScreenShake system (`src/systems/ScreenShake.ts`):
-      - Centralized camera shake management using Phaser's camera.shake()
-      - Configurable intensity presets: TINY, SMALL, MEDIUM, LARGE, EXTREME
-      - Duration presets: SHORT (100ms), MEDIUM (200ms), LONG (350ms), EXTENDED (500ms)
-      - Event-specific methods:
-        - onPlayerDamage(): Small shake when player takes damage
-        - onPlayerHeavyDamage(): Medium shake for heavy hits
-        - onPlayerDeath(): Large shake on death
-        - onBossAttack(): Medium shake for boss attacks
-        - onBossCharge(): Medium shake when boss charges
-        - onBossDeath(): Large extended shake on boss defeat
-        - onExplosion(): Medium shake for enemy death explosions
-        - onEnemyHit(): Tiny shake for bullet impacts
-        - onCriticalHit(): Small shake for crits
-      - Shake interruption control (force parameter)
-      - Enable/disable toggle for accessibility
-    - ParticleManager system (`src/systems/ParticleManager.ts`):
-      - Centralized particle effect management using Phaser's particle emitter
-      - Auto-generated 16x16 circular particle texture
-      - Particle effect types with unique configurations:
-        - death: Red enemy explosion (12 particles, gravity)
-        - bossDeath: Large red/orange explosion (40 particles, 2 waves)
-        - hit: Yellow/orange impact sparks (6 particles)
-        - crit: Bright yellow burst with ADD blend (10 particles)
-        - fire: Rising orange flames with ADD blend (4 particles)
-        - ice: Blue crystalline scatter (8 particles)
-        - levelUp: Colorful celebration burst (30 particles, ADD blend)
-        - goldCollect: Golden sparkles (5 particles)
-        - heal: Green rising particles (10 particles, ADD blend)
-      - Each effect has tuned speed, scale, lifespan, alpha, tint, and gravity
-      - Automatic emitter cleanup after particle lifespan
-      - Factory function createParticleManager() for easy instantiation
-    - Boss telegraph improvements:
-      - Spread attack danger zone: Red pulsing circle with direction lines
-      - Charge attack: Growing red line from boss to target player
-      - Barrage attack: Existing telegraph lines with pulsing alpha
-    - GameScene integration:
-      - Bullet hits trigger hit/crit particles + screen shake
-      - Fire DOT application shows fire particles
-      - Enemy deaths trigger death particles + explosion shake
-      - Boss death triggers large explosion particles + extended shake
-      - Player damage triggers screen shake (scaled by damage amount)
-      - Player death triggers death shake
-      - Level up triggers celebration particles
-      - Gold collection triggers gold sparkle particles
-      - Health pickup triggers heal particles
-      - Fire DOT kills show death + fire particles
-    - Files created:
-      - `src/systems/ScreenShake.ts`: Camera shake system
-      - `src/systems/ParticleManager.ts`: Particle effects system
-[x] Expanded procedural generation (more room templates, enemy combinations) (2026-01-01)
-    - Added 6 new room layouts: Circular Siege, Advancing Wave, Staggered Lines, Crossfire, Defensive Perimeter, Central Nexus
-    - Total: 22 room templates (was 16)
-    - Added 5 new enemy combinations:
-      - Heavy Hitters (tank duo + charger support, room 7+)
-      - Elite Guard (ultimate formation with all enemy types, room 10+)
-      - Fire Support (bomber + ranged combo, room 4+)
-      - Coordinated Strike (charger + spreader chaos, room 5+)
-      - Guardian Formation (healer with escorts, room 6+)
-      - Artillery Line (tank frontline with bomber barrage, room 7+)
-    - Total: 20 enemy combinations (was 14)
-    - Updated chapter tacticComboNames to include new combos
-[x] Performance optimization pass (target 50+ entities at 60 FPS) (2026-01-01)
-    - Cached nearest enemy calculation (recalculates every 3 frames instead of every frame)
-    - Added `getCachedNearestEnemy()` with validation and auto-invalidation
-    - Cache invalidation on enemy death (bullet kills and DOT kills)
-    - Optimized health bar updates:
-      - Only redraws when health value changes
-      - Position-only updates when enemy moves (skips if position unchanged)
-      - Tracks `lastHealthBarValue`, `lastHealthBarX`, `lastHealthBarY` to avoid redundant redraws
-    - Fixed browser global linting issues in Joystick.ts
-[x] Theme system (2026-01-03)
-    - Purchasable visual themes that change game appearance
-    - Four themes implemented:
-      - **Medieval** (free, default): Classic dungeon-crawler aesthetic with stone walls, traditional colors
-      - **Vaporwave** (10000 gold): Neon synthwave aesthetic with magenta/cyan colors
-      - **Middle-Earth** (666 gold): Lord of the Rings inspired with gold/green elvish colors, parchment textures
-        - Chapter themes: The Shire, Rivendell, Moria, Mordor, Mount Doom
-      - **Upside Down** (44 gems): Stranger Things inspired with red/black colors, eerie atmosphere
-        - Chapter themes: Hawkins, Hawkins Lab, The Upside Down, The Void, Mind Flayer
-    - Theme system components:
-      - `src/config/themeData.ts`: Theme definitions with ThemeColors and ThemeAssets interfaces
-      - `src/systems/ThemeManager.ts`: Singleton manager for unlock/select with localStorage persistence
-    - ThemeColors: UI colors (buttons, health bars, XP bar, text, chapter colors)
-    - ThemeAssets: Asset keys for player sprite, bullet, backgrounds (menu + 5 chapters)
-    - Per-chapter themed wall textures (wall_dungeon.png, wall_vaporwave_dungeon.png, wall_st_dungeon.png, etc.)
-    - Shop integration for purchasing themes with gold or gems
-    - Selected theme persists across sessions via localStorage
-```
+All V1 features implemented with full localStorage persistence and manager pattern.
+
+**Core Systems:**
+- Equipment: 4 slots, 5 rarity tiers, 19 perks, fusion (3→1 higher tier), EquipmentScene UI
+- Heroes: 3 heroes (Atreus free, Helix 5000g, Meowgik 10000g), HeroesScene with unlock/select
+- Currencies: Gold, gems, scrolls, energy (20 max, 1/12min regen), CurrencyManager
+- Talents: 9 talents (Common/Rare/Epic), lottery system with escalating costs, TalentsScene
+- Chapters: 5 chapters (20 rooms each), unique backgrounds, enemy modifiers per chapter
+- Chests: 3 types (wooden/silver/golden), ChestScene with opening animations
+
+**Bosses (15 total, 3 per chapter):**
+- Ch1 Dark Dungeon: Demon Boss
+- Ch2 Forest Ruins: TreeGuardian, WildBoar, ForestSpirit
+- Ch3 Frozen Caves: IceGolem, FrostWyrm, CrystalGuardian
+- Ch4 Volcanic Depths: LavaGolem, MagmaWyrm, InfernoDemon
+- Ch5 Shadow Realm: VoidLord, Nightmare, FinalBoss (multi-phase)
+
+**Progression Systems:**
+- SaveManager: Full persistence with version migration, 55 unit tests
+- Daily rewards: 7-day cycle with 48h streak timeout
+- Achievements: 7 achievements with Bronze/Silver/Gold/Platinum tiers
+- Energy timer with offline regeneration
+
+**Visual Polish:**
+- ScreenShake: 5 intensity presets, event-specific methods
+- ParticleManager: 9 effect types (death, hit, crit, fire, ice, levelUp, etc.)
+- MainMenuScene: Animated torches, ember particles, currency display
+
+**Content:**
+- 22 room templates, 20 enemy combinations
+- Chapter-specific enemy modifiers (speed, attack cooldown, projectile speed)
+- 4 themes: Medieval (free), Vaporwave (10000g), Middle-Earth (666g), Upside Down (44 gems)
 
 **V1 COMPLETE!** All features implemented. Ready for V2 monetization and content expansion.
 
@@ -1174,17 +537,10 @@ Battle Pass implementation:
 **Expanded content:**
 - 10 total chapters (50 rooms each for later chapters)
 - 8 heroes with unique skill trees
-- ✅ Endless mode: Survive as long as possible (2026-01-03)
-  - ENDLESS button on main menu (orange, next to PLAY)
-  - 10 rooms per wave with boss at end
-  - Difficulty increases 15% each wave (HP, damage, speed, attack cooldown)
-  - Wave notification with difficulty multiplier display
-  - UIScene shows "Wave X - Room/10" format
-  - GameOverScene displays wave reached with NEW BEST badge
-  - SaveManager tracks endlessHighWave statistic
-  - (Leaderboard rankings require backend - not implemented)
-- Challenge modes: Daily dungeon with special rules, fixed rewards
-- Special events: Limited-time themed content with exclusive rewards
+- ✅ Endless mode (10 rooms/wave, 2x difficulty scaling, high score tracking)
+- ✅ Daily Challenge (fixed date-based seed, all players get same challenge)
+- Challenge modes: Special rules with fixed rewards
+- Special events: Limited-time themed content
 
 **Social features:**
 - Account system (guest → email → social login)
@@ -1213,40 +569,20 @@ Battle Pass implementation:
 - [x] Tutorial system for new players
 - [x] Replay last run (same seed)
 
-### V2 technical additions
+### V2 Implementation Status
 
-```
-[x] Endless Mode (2026-01-03)
-    - Added ENDLESS button to MainMenuScene
-    - GameScene.isEndlessMode flag with wave system (10 rooms per wave)
-    - Difficulty scaling: 15% per wave (HP, damage, speed, attack cooldown)
-    - Wave notification UI with difficulty multiplier
-    - UIScene shows "Wave X - Room/10" format
-    - GameOverScene handles endless mode with NEW BEST badge
-    - SaveManager.endlessHighWave statistic tracking
-[x] Daily Challenge (2026-01-03)
-    - Added DAILY CHALLENGE button to MainMenuScene
-    - Uses endless mode mechanics with fixed date-based seed
-    - All players get the same challenge each day (same seed = same enemies, layouts, bosses)
-    - SaveManager tracks: lastCompletedDate, bestWave, completionsCount
-    - Button shows completion status with checkmark and best wave
-    - GameOverScene displays "DAILY CHALLENGE" title with wave info
-[ ] Ad SDK integration (Google AdMob or similar web equivalent)
-[ ] IAP integration (Stripe for web, or wrapper for app stores)
-[ ] Battle Pass system with tier tracking
-[ ] Server-side validation for purchases
-[ ] Account system with cloud save
-[ ] Leaderboard backend (Firebase Realtime DB or similar)
-[ ] Push notifications (web push API)
-[ ] Analytics integration (Amplitude, Mixpanel, or Firebase Analytics)
-[ ] Remote config system
-[ ] Seasonal content loading system
-[ ] Skin/cosmetic rendering system
-[ ] Clan data model and API
-[ ] Anti-cheat: Server-validated run results
-[ ] Localization framework (10+ languages)
-[ ] GDPR compliance: Consent dialogs, data export
-```
+**Completed:**
+- ✅ Endless Mode: Wave system, 2x difficulty scaling, high score tracking
+- ✅ Daily Challenge: Date-based seed, shared challenge, completion tracking
+- ✅ QoL: Graphics presets, colorblind modes, tutorial, replay with seed
+
+**Remaining:**
+- Ad SDK (AdMob), IAP (Stripe), Battle Pass
+- Account system with cloud save
+- Leaderboards, clans, push notifications
+- Analytics, remote config, A/B testing
+- Cosmetic/skin system
+- Localization (10+ languages), GDPR compliance
 
 ---
 

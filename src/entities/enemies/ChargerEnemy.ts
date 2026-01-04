@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from './Enemy'
+import Enemy, { EnemyOptions } from '../Enemy'
 
 type ChargerPhase = 'idle' | 'windup' | 'charging' | 'stunned'
 

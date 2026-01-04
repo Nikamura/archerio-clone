@@ -15,6 +15,7 @@ import { equipmentManager } from '../systems/EquipmentManager'
 import { Equipment, Rarity, RARITY_CONFIGS } from '../systems/Equipment'
 import { audioManager } from '../systems/AudioManager'
 import * as UIAnimations from '../systems/UIAnimations'
+import { createBackButton } from '../ui/components/BackButton'
 
 interface ChestSlot {
   container: Phaser.GameObjects.Container
@@ -214,24 +215,16 @@ export default class ChestScene extends Phaser.Scene {
   }
 
   private createBackButton(): void {
-    const { width, height } = this.cameras.main
+    const { height } = this.cameras.main
 
-    const backButton = this.add
-      .text(width / 2, height - 40, 'BACK TO MENU', {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#444455',
-        padding: { x: 30, y: 10 },
-      })
-      .setOrigin(0.5)
-
-    backButton.setInteractive({ useHandCursor: true })
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+    createBackButton({
+      scene: this,
+      y: height - 40,
+      targetScene: 'MainMenuScene',
+      text: 'BACK TO MENU',
+      backgroundColor: 0x444455,
+      hoverColor: 0x555566,
     })
-    backButton.on('pointerover', () => backButton.setStyle({ backgroundColor: '#555566' }))
-    backButton.on('pointerout', () => backButton.setStyle({ backgroundColor: '#444455' }))
   }
 
   private setupEventListeners(): void {
