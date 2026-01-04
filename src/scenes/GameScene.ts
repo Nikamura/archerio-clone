@@ -1987,6 +1987,8 @@ export default class GameScene extends Phaser.Scene {
     if (this.player.hasExtraLife()) {
       if (this.player.useExtraLife()) {
         console.log('Extra Life used! Reviving at 30% HP')
+        // Remove extra life from skills bar
+        this.abilitySystem.consumeAbility('extra_life')
         // Show revive effect
         this.player.clearTint()
         this.cameras.main.flash(500, 255, 215, 0) // Golden flash

@@ -168,6 +168,24 @@ export class AbilitySystem {
   }
 
   /**
+   * Consume one level of an ability (e.g., when extra life is used)
+   * Removes the ability from tracking if level reaches 0
+   */
+  consumeAbility(abilityId: string): void {
+    const currentLevel = this.acquiredAbilities.get(abilityId) || 0
+    if (currentLevel <= 0) return
+
+    if (currentLevel === 1) {
+      this.acquiredAbilities.delete(abilityId)
+    } else {
+      this.acquiredAbilities.set(abilityId, currentLevel - 1)
+    }
+
+    // Notify about ability update to refresh skills bar
+    this.eventHandlers.onAbilitiesUpdated(this.getAcquiredAbilitiesArray())
+  }
+
+  /**
    * Reset all abilities (for new run)
    */
   reset(): void {
