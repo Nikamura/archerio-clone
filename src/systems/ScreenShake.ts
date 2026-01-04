@@ -4,11 +4,11 @@ import Phaser from 'phaser'
  * Screen shake intensity presets
  */
 export enum ShakeIntensity {
-  TINY = 0.001,     // Very subtle (gold pickup, etc.)
-  SMALL = 0.003,    // Player damage
-  MEDIUM = 0.006,   // Boss attacks, explosions
-  LARGE = 0.01,     // Major impacts, boss death
-  EXTREME = 0.015,  // Critical moments
+  TINY = 0.0005,    // Very subtle (gold pickup, etc.)
+  SMALL = 0.0015,   // Player damage
+  MEDIUM = 0.003,   // Boss attacks, explosions
+  LARGE = 0.005,    // Major impacts, boss death
+  EXTREME = 0.008,  // Critical moments
 }
 
 /**
@@ -40,6 +40,8 @@ export class ScreenShake {
   private scene: Phaser.Scene
   private enabled: boolean = true
   private currentShakeEndTime: number = 0
+  private lastExplosionShakeTime: number = 0
+  private readonly EXPLOSION_SHAKE_COOLDOWN = 300 // Minimum ms between explosion shakes
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -105,8 +107,8 @@ export class ScreenShake {
    */
   onBossAttack(): void {
     this.shake({
-      intensity: ShakeIntensity.MEDIUM,
-      duration: ShakeDuration.MEDIUM,
+      intensity: ShakeIntensity.SMALL,
+      duration: ShakeDuration.SHORT,
     })
   }
 
@@ -115,7 +117,7 @@ export class ScreenShake {
    */
   onBossSpreadAttack(): void {
     this.shake({
-      intensity: ShakeIntensity.SMALL,
+      intensity: ShakeIntensity.TINY,
       duration: ShakeDuration.SHORT,
     })
   }
@@ -125,19 +127,26 @@ export class ScreenShake {
    */
   onBossCharge(): void {
     this.shake({
-      intensity: ShakeIntensity.MEDIUM,
-      duration: ShakeDuration.LONG,
+      intensity: ShakeIntensity.SMALL,
+      duration: ShakeDuration.MEDIUM,
       force: true,
     })
   }
 
   /**
    * Shake on explosion (enemy death cluster, etc.)
+   * Rate-limited to prevent excessive shaking during intense combat
    */
   onExplosion(): void {
+    const now = this.scene.time.now
+    if (now - this.lastExplosionShakeTime < this.EXPLOSION_SHAKE_COOLDOWN) {
+      return // Skip shake if on cooldown
+    }
+    this.lastExplosionShakeTime = now
+
     this.shake({
-      intensity: ShakeIntensity.MEDIUM,
-      duration: ShakeDuration.MEDIUM,
+      intensity: ShakeIntensity.SMALL,
+      duration: ShakeDuration.SHORT,
     })
   }
 
@@ -153,13 +162,11 @@ export class ScreenShake {
   }
 
   /**
-   * Shake on enemy hit by bullet (very subtle)
+   * Shake on enemy hit by bullet (disabled - too frequent during combat)
    */
   onEnemyHit(): void {
-    this.shake({
-      intensity: ShakeIntensity.TINY,
-      duration: ShakeDuration.SHORT,
-    })
+    // Disabled: Called every bullet hit, causes excessive shaking
+    // Visual feedback is already provided by hit particles
   }
 
   /**
@@ -167,7 +174,7 @@ export class ScreenShake {
    */
   onCriticalHit(): void {
     this.shake({
-      intensity: ShakeIntensity.SMALL,
+      intensity: ShakeIntensity.TINY,
       duration: ShakeDuration.SHORT,
     })
   }
