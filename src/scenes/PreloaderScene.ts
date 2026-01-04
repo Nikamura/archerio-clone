@@ -318,7 +318,13 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
     this.load.image('chest_silver', 'assets/sprites/chest/silver.png')
     this.load.image('chest_golden', 'assets/sprites/chest/golden.png')
-    
+
+    // Load theme preview images
+    this.load.image('themePreview_medieval', 'assets/ui/theme_previews/medieval.jpg')
+    this.load.image('themePreview_vaporwave', 'assets/ui/theme_previews/vaporwave.jpg')
+    this.load.image('themePreview_lotr', 'assets/ui/theme_previews/lotr.jpg')
+    this.load.image('themePreview_strangerThings', 'assets/ui/theme_previews/strangerThings.jpg')
+
     // Load equipment sprites
     // Weapons
     this.load.image('equip_brave_bow', 'assets/sprites/equipment/weapon/brave_bow.png')

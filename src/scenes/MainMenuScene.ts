@@ -30,7 +30,6 @@ export default class MainMenuScene extends Phaser.Scene {
   private chapterPanel?: ChapterSelectPanel
   private difficultyPanel?: DifficultyPanel
   private menuButtons: Phaser.GameObjects.Text[] = []
-  private customSeed: string = '' // Custom seed for seeded runs
 
   constructor() {
     super({ key: 'MainMenuScene' })
@@ -247,10 +246,6 @@ export default class MainMenuScene extends Phaser.Scene {
         return
       }
       audioManager.playGameStart()
-      // Set custom seed if provided
-      if (this.customSeed) {
-        this.game.registry.set('runSeed', this.customSeed)
-      }
       // Disable special modes for normal play
       this.game.registry.set('isEndlessMode', false)
       this.game.registry.set('isDailyChallengeMode', false)
@@ -345,35 +340,11 @@ export default class MainMenuScene extends Phaser.Scene {
       this.scene.launch('UIScene')
     })
 
-    // Seed input button (below daily button)
-    const seedButton = this.add.text(width / 2, 340, this.customSeed ? `Seed: ${this.customSeed}` : 'Enter Seed', {
-      fontSize: '12px',
-      color: this.customSeed ? '#00ddff' : '#888888',
-      backgroundColor: '#333333',
-      padding: { x: 12, y: 6 },
-    })
-    seedButton.setOrigin(0.5)
-    seedButton.setInteractive({ useHandCursor: true })
-    seedButton.setDepth(10)
-
-    seedButton.on('pointerover', () => {
-      seedButton.setStyle({ backgroundColor: '#444444' })
-    })
-
-    seedButton.on('pointerout', () => {
-      seedButton.setStyle({ backgroundColor: '#333333' })
-    })
-
-    seedButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.showSeedInputDialog(seedButton)
-    })
-
     // ============================================
     // MENU BUTTONS (Two rows for better layout)
     // ============================================
 
-    const menuY = 375
+    const menuY = 340
     const menuButtonConfigs = [
       { label: 'Heroes', scene: 'HeroesScene' },
       { label: 'Equip', scene: 'EquipmentScene' },
@@ -878,173 +849,5 @@ export default class MainMenuScene extends Phaser.Scene {
       tint: [0xff6600, 0xff8800, 0xffaa00],
     })
     rightEmitter.setDepth(2)
-  }
-
-  /**
-   * Show a DOM-based seed input dialog
-   */
-  private showSeedInputDialog(seedButton: Phaser.GameObjects.Text): void {
-    // Create overlay container
-    const overlay = document.createElement('div')
-    overlay.style.position = 'absolute'
-    overlay.style.top = '0'
-    overlay.style.left = '0'
-    overlay.style.width = '100%'
-    overlay.style.height = '100%'
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-    overlay.style.display = 'flex'
-    overlay.style.flexDirection = 'column'
-    overlay.style.alignItems = 'center'
-    overlay.style.justifyContent = 'center'
-    overlay.style.zIndex = '10000'
-
-    // Create dialog box
-    const dialog = document.createElement('div')
-    dialog.style.backgroundColor = '#222'
-    dialog.style.border = '2px solid #444'
-    dialog.style.borderRadius = '8px'
-    dialog.style.padding = '20px'
-    dialog.style.textAlign = 'center'
-    dialog.style.maxWidth = '300px'
-    dialog.style.width = '80%'
-
-    // Title
-    const title = document.createElement('div')
-    title.textContent = 'Enter Run Seed'
-    title.style.color = '#fff'
-    title.style.fontSize = '18px'
-    title.style.fontWeight = 'bold'
-    title.style.marginBottom = '15px'
-    dialog.appendChild(title)
-
-    // Description
-    const desc = document.createElement('div')
-    desc.textContent = 'Use a seed to replay the same enemy spawns and boss selection.'
-    desc.style.color = '#888'
-    desc.style.fontSize = '12px'
-    desc.style.marginBottom = '15px'
-    dialog.appendChild(desc)
-
-    // Input field
-    const input = document.createElement('input')
-    input.type = 'text'
-    input.placeholder = 'Leave empty for random'
-    input.value = this.customSeed
-    input.style.width = '100%'
-    input.style.padding = '10px'
-    input.style.fontSize = '16px'
-    input.style.fontFamily = 'monospace'
-    input.style.textAlign = 'center'
-    input.style.border = '1px solid #555'
-    input.style.borderRadius = '4px'
-    input.style.backgroundColor = '#333'
-    input.style.color = '#00ddff'
-    input.style.boxSizing = 'border-box'
-    input.style.marginBottom = '15px'
-    input.style.textTransform = 'uppercase'
-    dialog.appendChild(input)
-
-    // Button container
-    const buttonContainer = document.createElement('div')
-    buttonContainer.style.display = 'flex'
-    buttonContainer.style.gap = '10px'
-    buttonContainer.style.justifyContent = 'center'
-
-    // Confirm button
-    const confirmBtn = document.createElement('button')
-    confirmBtn.textContent = 'Confirm'
-    confirmBtn.style.padding = '10px 20px'
-    confirmBtn.style.fontSize = '14px'
-    confirmBtn.style.fontWeight = 'bold'
-    confirmBtn.style.backgroundColor = '#4a9eff'
-    confirmBtn.style.color = '#fff'
-    confirmBtn.style.border = 'none'
-    confirmBtn.style.borderRadius = '4px'
-    confirmBtn.style.cursor = 'pointer'
-    buttonContainer.appendChild(confirmBtn)
-
-    // Clear button
-    const clearBtn = document.createElement('button')
-    clearBtn.textContent = 'Clear'
-    clearBtn.style.padding = '10px 20px'
-    clearBtn.style.fontSize = '14px'
-    clearBtn.style.backgroundColor = '#666'
-    clearBtn.style.color = '#fff'
-    clearBtn.style.border = 'none'
-    clearBtn.style.borderRadius = '4px'
-    clearBtn.style.cursor = 'pointer'
-    buttonContainer.appendChild(clearBtn)
-
-    // Cancel button
-    const cancelBtn = document.createElement('button')
-    cancelBtn.textContent = 'Cancel'
-    cancelBtn.style.padding = '10px 20px'
-    cancelBtn.style.fontSize = '14px'
-    cancelBtn.style.backgroundColor = '#444'
-    cancelBtn.style.color = '#fff'
-    cancelBtn.style.border = 'none'
-    cancelBtn.style.borderRadius = '4px'
-    cancelBtn.style.cursor = 'pointer'
-    buttonContainer.appendChild(cancelBtn)
-
-    dialog.appendChild(buttonContainer)
-    overlay.appendChild(dialog)
-
-    // Get canvas parent for proper positioning
-    const canvasParent = this.game.canvas.parentElement
-    if (canvasParent) {
-      canvasParent.appendChild(overlay)
-    } else {
-      document.body.appendChild(overlay)
-    }
-
-    // Focus input
-    input.focus()
-
-    // Cleanup function
-    const cleanup = () => {
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay)
-      }
-    }
-
-    // Event handlers
-    confirmBtn.onclick = () => {
-      const newSeed = input.value.trim().toUpperCase()
-      this.customSeed = newSeed
-      seedButton.setText(newSeed ? `Seed: ${newSeed}` : 'Enter Seed')
-      seedButton.setStyle({ color: newSeed ? '#00ddff' : '#888888' })
-      audioManager.playMenuSelect()
-      cleanup()
-    }
-
-    clearBtn.onclick = () => {
-      input.value = ''
-      this.customSeed = ''
-      seedButton.setText('Enter Seed')
-      seedButton.setStyle({ color: '#888888' })
-      audioManager.playMenuSelect()
-      cleanup()
-    }
-
-    cancelBtn.onclick = () => {
-      cleanup()
-    }
-
-    // Close on overlay click (outside dialog)
-    overlay.onclick = (e) => {
-      if (e.target === overlay) {
-        cleanup()
-      }
-    }
-
-    // Handle Enter key
-    input.onkeydown = (e) => {
-      if (e.key === 'Enter') {
-        confirmBtn.click()
-      } else if (e.key === 'Escape') {
-        cleanup()
-      }
-    }
   }
 }
