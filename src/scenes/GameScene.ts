@@ -2683,7 +2683,7 @@ export default class GameScene extends Phaser.Scene {
       this.spawnDrops(e)
 
       // Add XP with equipment XP bonus and chapter scaling
-      const baseXpGain = isBoss ? 10 : 1
+      const baseXpGain = isBoss ? 10 : 2
       const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
       const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
       const leveledUp = this.player.addXP(xpGain)
@@ -2827,7 +2827,7 @@ export default class GameScene extends Phaser.Scene {
       this.spawnDrops(e)
 
       // Add XP with equipment XP bonus and chapter scaling
-      const baseXpGain = isBoss ? 10 : 1
+      const baseXpGain = isBoss ? 10 : 2
       const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
       const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
       const leveledUp = this.player.addXP(xpGain)
@@ -3068,7 +3068,7 @@ export default class GameScene extends Phaser.Scene {
     this.spawnDrops(e)
 
     // Add XP to player with equipment XP bonus and chapter scaling
-    const baseXpGain = isBoss ? 10 : 1
+    const baseXpGain = isBoss ? 10 : 2
     const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
     const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
     const leveledUp = this.player.addXP(xpGain)
