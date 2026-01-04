@@ -148,9 +148,11 @@ export default class GameScene extends Phaser.Scene {
   // Weapon projectile config (for changing bullet sprites based on equipped weapon)
   private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
 
-  // Door spawn configuration
-  private readonly DOOR_SPAWN_CHANCE = 0.35 // 35% chance for each enemy to spawn from door
-  private readonly DOOR_SPAWN_POSITION = { x: 0.5, y: 70 } // Top center (x is ratio, y is pixels)
+  // Door spawn configuration - enemies walk in from top of screen
+  private readonly DOOR_SPAWN_CHANCE = 0.35 // 35% chance for each mobile enemy to spawn from top
+  private readonly DOOR_SPAWN_Y = -30 // Spawn above screen edge so they walk in
+  // Stationary enemies that should NOT spawn from door (they don't move toward player)
+  private readonly STATIONARY_ENEMY_TYPES: string[] = ['spreader', 'spawner']
 
   constructor() {
     super({ key: 'GameScene' })
@@ -927,15 +929,17 @@ export default class GameScene extends Phaser.Scene {
   private spawnEnemyFromPosition(
     spawn: SpawnPosition,
     enemyOptions: EnemyOptions,
-    spawnFromDoor: boolean = false
+    spawnFromTop: boolean = false
   ): void {
-    const { x: targetX, y: targetY, enemyType } = spawn
+    const { x, y, enemyType } = spawn
 
-    // Determine spawn position: door or target position
-    const doorX = this.cameras.main.width * this.DOOR_SPAWN_POSITION.x
-    const doorY = this.DOOR_SPAWN_POSITION.y
-    const startX = spawnFromDoor ? doorX : targetX
-    const startY = spawnFromDoor ? doorY : targetY
+    // Determine spawn position
+    // If spawning from top, use a random X position and spawn above screen
+    // Enemy AI will naturally move them toward the player
+    const width = this.cameras.main.width
+    const margin = 50
+    const spawnX = spawnFromTop ? margin + this.runRng.random() * (width - margin * 2) : x
+    const spawnY = spawnFromTop ? this.DOOR_SPAWN_Y : y
 
     let enemy: Enemy
 
@@ -944,31 +948,31 @@ export default class GameScene extends Phaser.Scene {
 
     switch (enemyType) {
       case 'ranged':
-        enemy = new RangedShooterEnemy(this, startX, startY, this.enemyBulletPool, optionsWithType)
+        enemy = new RangedShooterEnemy(this, spawnX, spawnY, this.enemyBulletPool, optionsWithType)
         break
       case 'spreader':
-        enemy = new SpreaderEnemy(this, startX, startY, this.enemyBulletPool, optionsWithType)
+        enemy = new SpreaderEnemy(this, spawnX, spawnY, this.enemyBulletPool, optionsWithType)
         break
       case 'bomber':
         enemy = new BomberEnemy(
-          this, startX, startY, this.bombPool, optionsWithType,
+          this, spawnX, spawnY, this.bombPool, optionsWithType,
           (bx, by, radius, damage) => this.handleBombExplosion(bx, by, radius, damage)
         )
         break
       case 'tank':
-        enemy = new TankEnemy(this, startX, startY, this.enemyBulletPool, optionsWithType)
+        enemy = new TankEnemy(this, spawnX, spawnY, this.enemyBulletPool, optionsWithType)
         break
       case 'charger':
-        enemy = new ChargerEnemy(this, startX, startY, optionsWithType)
+        enemy = new ChargerEnemy(this, spawnX, spawnY, optionsWithType)
         break
       case 'healer':
-        enemy = new HealerEnemy(this, startX, startY, optionsWithType)
+        enemy = new HealerEnemy(this, spawnX, spawnY, optionsWithType)
         break
       case 'spawner':
-        enemy = new SpawnerEnemy(this, startX, startY, optionsWithType)
+        enemy = new SpawnerEnemy(this, spawnX, spawnY, optionsWithType)
         break
       default:
-        enemy = new Enemy(this, startX, startY, optionsWithType)
+        enemy = new Enemy(this, spawnX, spawnY, optionsWithType)
     }
 
     this.add.existing(enemy)
@@ -993,53 +997,39 @@ export default class GameScene extends Phaser.Scene {
       const offset = (displaySize - radius * 2) / 2
       body.setSize(displaySize, displaySize)
       body.setCircle(radius, offset, offset)
-      body.setCollideWorldBounds(true)
+      // Don't collide with world bounds if spawning from top - let them walk in
+      body.setCollideWorldBounds(!spawnFromTop)
     }
 
     this.enemies.add(enemy)
 
-    // If spawning from door, animate the enemy moving to its target position
-    if (spawnFromDoor) {
-      this.animateEnemyFromDoor(enemy, targetX, targetY)
+    // If spawning from top, enable world bounds collision after they enter the screen
+    if (spawnFromTop) {
+      this.enableWorldBoundsWhenOnScreen(enemy)
     }
   }
 
   /**
-   * Animate an enemy emerging from the door and moving to its target position
+   * Enable world bounds collision once enemy enters the visible screen area
    */
-  private animateEnemyFromDoor(enemy: Enemy, targetX: number, targetY: number): void {
-    // Calculate distance for duration scaling
-    const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY)
-    const baseDuration = 600
-    const duration = Math.min(baseDuration + distance * 0.5, 1200)
-
-    // Slight alpha fade-in effect as enemy emerges
-    enemy.setAlpha(0.3)
-
-    // Disable enemy AI briefly while moving to position
-    const originalUpdate = enemy.update.bind(enemy)
-    const isMovingToPosition = { value: true }
-
-    enemy.update = function(time: number, delta: number, playerX: number, playerY: number): boolean {
-      if (!isMovingToPosition.value) {
-        return originalUpdate(time, delta, playerX, playerY)
-      }
-      return false
-    }
-
-    // Tween to target position
-    this.tweens.add({
-      targets: enemy,
-      x: targetX,
-      y: targetY,
-      alpha: 1,
-      duration: duration,
-      ease: 'Quad.easeOut',
-      onComplete: () => {
-        // Re-enable normal AI behavior
-        isMovingToPosition.value = false
-        enemy.update = originalUpdate
-      }
+  private enableWorldBoundsWhenOnScreen(enemy: Enemy): void {
+    const checkInterval = this.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (!enemy.active) {
+          checkInterval.remove()
+          return
+        }
+        // Once enemy is on screen, enable world bounds
+        if (enemy.y > 0) {
+          const body = enemy.body as Phaser.Physics.Arcade.Body
+          if (body) {
+            body.setCollideWorldBounds(true)
+          }
+          checkInterval.remove()
+        }
+      },
+      loop: true
     })
   }
 
@@ -1079,16 +1069,19 @@ export default class GameScene extends Phaser.Scene {
     const chunkSize = Math.ceil(totalSpawns / waveCount)
     const waveDelay = 1500 // ms between waves
 
-    // Pre-determine which enemies will spawn from the door (for deterministic runs)
-    const doorSpawnFlags: boolean[] = generatedRoom.enemySpawns.map(() =>
-      this.runRng.random() < this.DOOR_SPAWN_CHANCE
-    )
-    const doorSpawnCount = doorSpawnFlags.filter(Boolean).length
+    // Pre-determine which enemies will spawn from the top (for deterministic runs)
+    // Skip stationary enemies (spreader, spawner) - they don't move toward player
+    const topSpawnFlags: boolean[] = generatedRoom.enemySpawns.map((spawn) => {
+      const isStationary = this.STATIONARY_ENEMY_TYPES.includes(spawn.enemyType)
+      if (isStationary) return false
+      return this.runRng.random() < this.DOOR_SPAWN_CHANCE
+    })
+    const topSpawnCount = topSpawnFlags.filter(Boolean).length
 
     for (let i = 0; i < waveCount; i++) {
       const startIdx = i * chunkSize
       const waveSpawns = generatedRoom.enemySpawns.slice(startIdx, (i + 1) * chunkSize)
-      const waveDoorFlags = doorSpawnFlags.slice(startIdx, (i + 1) * chunkSize)
+      const waveTopFlags = topSpawnFlags.slice(startIdx, (i + 1) * chunkSize)
       if (waveSpawns.length === 0) continue
 
       const delay = i === 0 ? 0 : waveDelay * i
@@ -1110,10 +1103,10 @@ export default class GameScene extends Phaser.Scene {
             abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
           }
 
-          // Determine if this enemy spawns from the door
-          const spawnFromDoor = waveDoorFlags[index] ?? false
+          // Determine if this enemy spawns from the top of screen
+          const spawnFromTop = waveTopFlags[index] ?? false
 
-          this.spawnEnemyFromPosition(spawn, enemyOptions, spawnFromDoor)
+          this.spawnEnemyFromPosition(spawn, enemyOptions, spawnFromTop)
           this.pendingEnemySpawns = Math.max(0, this.pendingEnemySpawns - 1)
         })
         this.checkRoomCleared()
@@ -1122,7 +1115,7 @@ export default class GameScene extends Phaser.Scene {
       this.activeWaveTimers.push(timer)
     }
 
-    console.log(`Room ${this.currentRoom}: Scheduled ${totalSpawns} enemies (${doorSpawnCount} from door) across ${waveCount} waves`)
+    console.log(`Room ${this.currentRoom}: Scheduled ${totalSpawns} enemies (${topSpawnCount} from top) across ${waveCount} waves`)
   }
 
   private spawnBoss() {
