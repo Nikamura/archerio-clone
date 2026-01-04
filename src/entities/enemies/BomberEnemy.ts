@@ -96,9 +96,10 @@ export default class BomberEnemy extends Enemy {
       const approachSpeed = baseApproachSpeed * this.speedMultiplier
 
       if (distanceToPlayer < minDistance) {
-        // Too close - retreat
-        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        this.setVelocity(-Math.cos(angle) * retreatSpeed, -Math.sin(angle) * retreatSpeed)
+        // Too close - retreat using bounds-aware flee
+        const fleeAngle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+        const fleeVelocity = this.calculateBoundsAwareFleeVelocity(fleeAngle, retreatSpeed)
+        this.setVelocity(fleeVelocity.vx, fleeVelocity.vy)
       } else if (distanceToPlayer > maxDistance) {
         // Too far - approach
         const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)

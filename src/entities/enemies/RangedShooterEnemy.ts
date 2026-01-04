@@ -74,9 +74,10 @@ export default class RangedShooterEnemy extends RangedEnemy {
           this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
         }
       } else if (distanceToPlayer < preferredDistance - 50) {
-        // Move away
-        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-        this.setVelocity(-Math.cos(angle) * speed, -Math.sin(angle) * speed)
+        // Move away using bounds-aware flee to avoid getting stuck at screen edges
+        const fleeAngle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+        const fleeVelocity = this.calculateBoundsAwareFleeVelocity(fleeAngle, speed)
+        this.setVelocity(fleeVelocity.vx, fleeVelocity.vy)
       } else {
         // Stop and prepare to shoot
         this.setVelocity(0, 0)
