@@ -82,8 +82,8 @@ export class MinionEnemy extends Enemy {
 }
 
 /**
- * SpawnerEnemy - Stationary enemy that periodically spawns minions
- * High health but doesn't move or directly attack
+ * SpawnerEnemy - Slow-moving enemy that periodically spawns minions
+ * High health, moves cautiously to stay away from player
  */
 export default class SpawnerEnemy extends Enemy {
   private lastSpawnTime: number = 0
@@ -101,6 +101,11 @@ export default class SpawnerEnemy extends Enemy {
 
   // Options to pass to spawned minions
   private spawnOptions: EnemyOptions
+
+  // Movement behavior - slow, cautious retreat from player
+  private readonly preferredDistance: number = 180 // Try to stay this far from player
+  private readonly retreatSpeed: number = 35 // Slow movement speed
+  private readonly approachSpeed: number = 20 // Even slower approach if too far
 
   // Minion spawn configuration - spawn from top of screen and walk in
   private readonly MINION_SPAWN_Y = -30 // Above screen edge so they walk in
@@ -233,8 +238,8 @@ export default class SpawnerEnemy extends Enemy {
       return true
     }
 
-    // Spawner is stationary
-    this.setVelocity(0, 0)
+    // Slow, cautious movement - try to maintain distance from player
+    this.updateMovement(time, playerX, playerY)
 
     // Check if we can spawn
     const aliveMinions = this.getAliveMinionsCount()
@@ -263,6 +268,62 @@ export default class SpawnerEnemy extends Enemy {
     }
 
     return false
+  }
+
+  /**
+   * Handle slow, cautious movement behavior
+   */
+  private updateMovement(time: number, playerX: number, playerY: number): void {
+    const distanceToPlayer = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY)
+
+    if (distanceToPlayer < this.preferredDistance - 30) {
+      // Too close to player - retreat slowly
+      const angle = Phaser.Math.Angle.Between(playerX, playerY, this.x, this.y)
+
+      // Use wall avoidance if available
+      if (this.wallGroup) {
+        // Calculate a target point in the retreat direction
+        const retreatTargetX = this.x + Math.cos(angle) * 100
+        const retreatTargetY = this.y + Math.sin(angle) * 100
+        const movement = this.calculateMovementWithWallAvoidance(
+          retreatTargetX,
+          retreatTargetY,
+          this.retreatSpeed,
+          time
+        )
+        this.setVelocity(movement.vx, movement.vy)
+      } else {
+        this.setVelocity(
+          Math.cos(angle) * this.retreatSpeed,
+          Math.sin(angle) * this.retreatSpeed
+        )
+      }
+    } else if (distanceToPlayer > this.preferredDistance + 80) {
+      // Too far from player - slowly approach to stay in the fight
+      if (this.wallGroup) {
+        const movement = this.calculateMovementWithWallAvoidance(
+          playerX,
+          playerY,
+          this.approachSpeed,
+          time
+        )
+        this.setVelocity(movement.vx, movement.vy)
+      } else {
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
+        this.setVelocity(
+          Math.cos(angle) * this.approachSpeed,
+          Math.sin(angle) * this.approachSpeed
+        )
+      }
+    } else {
+      // At comfortable distance - slow wobble/drift
+      const wobbleAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY) + Math.PI / 2
+      const wobble = Math.sin(time * 0.001) * 15
+      this.setVelocity(
+        Math.cos(wobbleAngle) * wobble,
+        Math.sin(wobbleAngle) * wobble
+      )
+    }
   }
 
   private spawnMinion(_playerX: number, _playerY: number): void {
