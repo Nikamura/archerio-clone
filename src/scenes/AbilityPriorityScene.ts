@@ -95,7 +95,7 @@ export default class AbilityPriorityScene extends Phaser.Scene {
 
     // Help text
     this.add
-      .text(width / 2, 58, 'Drag to reorder. Top = highest priority.', {
+      .text(width / 2, 58, 'Drag to reorder. Tap number to set max level.', {
         fontSize: '12px',
         color: '#888888',
       })
@@ -216,7 +216,7 @@ export default class AbilityPriorityScene extends Phaser.Scene {
     // One-time indicator for abilities with maxLevel: 1
     if (ability.maxLevel === 1) {
       const oneTimeBadge = this.add
-        .text(width / 2 - 70, 0, '1x', {
+        .text(width / 2 - 95, 0, '1x', {
           fontSize: '10px',
           color: '#ffaa00',
           fontStyle: 'bold',
@@ -226,6 +226,41 @@ export default class AbilityPriorityScene extends Phaser.Scene {
         .setOrigin(0.5)
       container.add(oneTimeBadge)
     }
+
+    // Priority max level selector (right side, before priority number)
+    const priorityMaxLevel = abilityPriorityManager.getPriorityMaxLevel(ability.id)
+    const maxLevelX = width / 2 - 60
+
+    // Background for max level control
+    const maxLevelBg = this.add.rectangle(maxLevelX, 0, 32, 24, 0x3a3a4e)
+    maxLevelBg.setStrokeStyle(1, 0x555555)
+    maxLevelBg.setInteractive({ useHandCursor: true })
+    container.add(maxLevelBg)
+
+    // Max level text
+    const maxLevelText = this.add
+      .text(maxLevelX, 0, priorityMaxLevel === 0 ? '∞' : `${priorityMaxLevel}`, {
+        fontSize: '12px',
+        color: priorityMaxLevel === 0 ? '#888888' : '#00ff88',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    maxLevelText.setData('isMaxLevelText', true)
+    container.add(maxLevelText)
+
+    // Click handler to cycle max level
+    maxLevelBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation()
+      this.cycleMaxLevel(ability.id, maxLevelText)
+    })
+
+    // Hover effects for max level control
+    maxLevelBg.on('pointerover', () => {
+      maxLevelBg.setFillStyle(0x4a4a5e)
+    })
+    maxLevelBg.on('pointerout', () => {
+      maxLevelBg.setFillStyle(0x3a3a4e)
+    })
 
     // Priority number (right side)
     const priorityText = this.add
@@ -520,6 +555,35 @@ export default class AbilityPriorityScene extends Phaser.Scene {
         }
       }
     })
+  }
+
+  private cycleMaxLevel(abilityId: string, maxLevelText: Phaser.GameObjects.Text) {
+    // Get the ability to check its inherent maxLevel
+    const ability = abilityPriorityManager.getAbilityById(abilityId)
+
+    // Get current priority max level
+    let currentMax = abilityPriorityManager.getPriorityMaxLevel(abilityId)
+
+    // Determine the ceiling for cycling:
+    // - If ability has inherent maxLevel (like extra_life with maxLevel: 1), use that as ceiling
+    // - Otherwise use 10 as a reasonable max
+    const ceiling = ability?.maxLevel ?? 10
+
+    // Cycle: 0 (∞) -> 1 -> 2 -> ... -> ceiling -> 0 (∞)
+    currentMax = currentMax + 1
+    if (currentMax > ceiling) {
+      currentMax = 0
+    }
+
+    // Save the new max level
+    abilityPriorityManager.setPriorityMaxLevel(abilityId, currentMax)
+
+    // Update the text
+    maxLevelText.setText(currentMax === 0 ? '∞' : `${currentMax}`)
+    maxLevelText.setColor(currentMax === 0 ? '#888888' : '#00ff88')
+
+    // Play feedback sound
+    audioManager.playMenuSelect()
   }
 
   private createResetButton(width: number) {

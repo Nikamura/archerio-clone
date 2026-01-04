@@ -241,8 +241,8 @@ export default class StartingAbilityScene extends Phaser.Scene {
   private selectPriorityAbilityOnTimeout() {
     if (this.isSelecting || this.selectedAbilities.length === 0) return
 
-    // Select highest priority ability from the 3 shown options
-    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities)
+    // Select highest priority ability from the 3 shown options (no levels yet at start)
+    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities, {})
     if (!priorityAbility) return
 
     const priorityIndex = this.selectedAbilities.findIndex((a) => a.id === priorityAbility.id)
@@ -324,8 +324,8 @@ export default class StartingAbilityScene extends Phaser.Scene {
       const priorityIndex = priorityOrder.indexOf(ability.id)
       const priorityNum = priorityIndex !== -1 ? priorityIndex + 1 : priorityOrder.length + 1
 
-      // Determine if this is the highest priority among the 3 options
-      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities)
+      // Determine if this is the highest priority among the 3 options (no levels yet at start)
+      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities, {})
       const isHighestPriority = highestPriority?.id === ability.id
 
       const priorityText = this.add.text(cardWidth / 2 - 20, 0, `#${priorityNum}`, {

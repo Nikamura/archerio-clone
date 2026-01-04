@@ -22,6 +22,8 @@ import { ABILITIES, AbilityData } from '../config/abilityData'
 export interface AbilityPrioritySaveData {
   /** Array of ability IDs in priority order (first = highest priority) */
   priorityOrder: string[]
+  /** Max level per ability after which it won't be prioritized (0 or undefined = no limit) */
+  priorityMaxLevels?: Record<string, number>
 }
 
 /**
@@ -50,6 +52,9 @@ class AbilityPriorityManager {
 
   /** Array of ability IDs in priority order (first = highest priority) */
   private priorityOrder: string[] = []
+
+  /** Max level per ability after which it won't be prioritized (0 = no limit) */
+  private priorityMaxLevels: Record<string, number> = {}
 
   /** Event listeners */
   private listeners: Map<AbilityPriorityEventType, AbilityPriorityEventCallback[]> = new Map()
@@ -93,9 +98,13 @@ class AbilityPriorityManager {
   /**
    * Get the highest priority ability from a list of available abilities
    * @param availableAbilities List of abilities to choose from
+   * @param currentLevels Optional map of ability ID to current level (for priority max level filtering)
    * @returns The highest priority ability, or null if list is empty
    */
-  getHighestPriorityAbility(availableAbilities: AbilityData[]): AbilityData | null {
+  getHighestPriorityAbility(
+    availableAbilities: AbilityData[],
+    currentLevels?: Record<string, number>
+  ): AbilityData | null {
     if (availableAbilities.length === 0) {
       return null
     }
@@ -106,6 +115,16 @@ class AbilityPriorityManager {
 
     for (const ability of availableAbilities) {
       const priorityIndex = this.priorityOrder.indexOf(ability.id)
+
+      // Check if this ability has exceeded its priority max level
+      if (currentLevels) {
+        const currentLevel = currentLevels[ability.id] ?? 0
+        const maxLevel = this.priorityMaxLevels[ability.id]
+        if (maxLevel && maxLevel > 0 && currentLevel >= maxLevel) {
+          // Skip this ability - it has reached its priority max level
+          continue
+        }
+      }
 
       if (priorityIndex === -1) {
         // Ability not in priority list (new ability), treat as lowest priority
@@ -146,8 +165,40 @@ class AbilityPriorityManager {
    */
   resetToDefault(): void {
     this.priorityOrder = ABILITIES.map((a) => a.id)
+    this.priorityMaxLevels = {}
     this.saveToStorage()
     this.emit('priorityChanged', this.priorityOrder)
+  }
+
+  /**
+   * Get the priority max level for an ability
+   * @param abilityId The ability ID
+   * @returns The max level (0 = no limit), or 0 if not set
+   */
+  getPriorityMaxLevel(abilityId: string): number {
+    return this.priorityMaxLevels[abilityId] ?? 0
+  }
+
+  /**
+   * Set the priority max level for an ability
+   * @param abilityId The ability ID
+   * @param maxLevel The max level after which the ability won't be prioritized (0 = no limit)
+   */
+  setPriorityMaxLevel(abilityId: string, maxLevel: number): void {
+    if (maxLevel <= 0) {
+      delete this.priorityMaxLevels[abilityId]
+    } else {
+      this.priorityMaxLevels[abilityId] = maxLevel
+    }
+    this.saveToStorage()
+  }
+
+  /**
+   * Get all priority max levels
+   * @returns Record of ability ID to max level
+   */
+  getAllPriorityMaxLevels(): Record<string, number> {
+    return { ...this.priorityMaxLevels }
   }
 
   /**
@@ -213,6 +264,7 @@ class AbilityPriorityManager {
   private saveToStorage(): void {
     const saveData: AbilityPrioritySaveData = {
       priorityOrder: this.priorityOrder,
+      priorityMaxLevels: this.priorityMaxLevels,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData))
   }
@@ -227,6 +279,7 @@ class AbilityPriorityManager {
       try {
         const saveData: AbilityPrioritySaveData = JSON.parse(stored)
         this.priorityOrder = saveData.priorityOrder || []
+        this.priorityMaxLevels = saveData.priorityMaxLevels || {}
 
         // Sync with master ABILITIES list - add any new abilities at the end
         this.syncWithMasterList()
