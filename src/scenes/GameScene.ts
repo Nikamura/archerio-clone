@@ -2147,9 +2147,9 @@ export default class GameScene extends Phaser.Scene {
     // Reset game over state
     this.isGameOver = false
 
-    // Grant temporary immunity (0.5 seconds)
+    // Grant temporary immunity (2 seconds to escape danger)
     this.isLevelingUp = true
-    this.time.delayedCall(500, () => {
+    this.time.delayedCall(2000, () => {
       this.isLevelingUp = false
     })
 
