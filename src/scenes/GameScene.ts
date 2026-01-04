@@ -476,24 +476,30 @@ export default class GameScene extends Phaser.Scene {
     this.runSeedString = this.runRng.getSeedString()
     console.log(`GameScene: Run seed: ${this.runSeedString}`)
 
-    // Apply starting abilities from Glory talent (Epic talent)
-    // Must be done after runRng is initialized for deterministic ability selection
-    // Now shows a selection UI instead of auto-applying random abilities
-    if (this.talentBonuses.startingAbilities > 0) {
-      console.log(`GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`)
-      // Schedule the starting ability selection UI to launch after scene is fully ready
-      this.time.delayedCall(100, () => {
-        this.launchStartingAbilitySelection()
-      })
-    }
-
     // Initialize room generator with seeded RNG
     this.roomGenerator = getRoomGenerator(width, height)
     this.roomGenerator.setRng(this.runRng)
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
-    this.spawnEnemies()
+
+    // Apply starting abilities from Glory talent (Epic talent)
+    // Must be done after runRng is initialized for deterministic ability selection
+    // Now shows a selection UI instead of auto-applying random abilities
+    if (this.talentBonuses.startingAbilities > 0) {
+      console.log(`GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`)
+      // Pause physics immediately to prevent any enemy movement/attacks during selection
+      this.physics.pause()
+      this.inputSystem.hide()
+      // Schedule the starting ability selection UI to launch after scene is fully ready
+      // Enemy spawning is deferred until after all starting abilities are selected
+      this.time.delayedCall(100, () => {
+        this.launchStartingAbilitySelection()
+      })
+    } else {
+      // No starting abilities - spawn enemies immediately
+      this.spawnEnemies()
+    }
 
     // Set up collisions
     this.physics.add.overlap(
@@ -1792,10 +1798,7 @@ export default class GameScene extends Phaser.Scene {
   private launchStartingAbilitySelection() {
     const totalSelections = this.talentBonuses.startingAbilities
 
-    // Pause physics and hide joystick during selection
-    this.physics.pause()
-    this.inputSystem.hide()
-
+    // Physics already paused and joystick already hidden in create()
     // Clean up any existing listeners to prevent multiple applications
     this.game.events.off('startingAbilitySelected')
 
@@ -1823,14 +1826,18 @@ export default class GameScene extends Phaser.Scene {
           this.game.events.off('startingAbilitySelected')
           this.resetJoystickState()
           this.inputSystem.show()
+          // Spawn enemies now that ability selection is complete
+          this.spawnEnemies()
           this.physics.resume()
         }
       } catch (error) {
         console.error('GameScene: Error applying starting ability:', error)
         this.game.events.off('startingAbilitySelected')
         this.resetJoystickState()
-        this.physics.resume()
         this.inputSystem.show()
+        // Spawn enemies even on error to prevent stuck game
+        this.spawnEnemies()
+        this.physics.resume()
       }
     })
 
