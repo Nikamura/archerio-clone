@@ -70,10 +70,18 @@ export class RoomGenerator {
   private screenHeight: number
   private margin: number = 50 // Margin from screen edges
   private rng: SeededRandom = new SeededRandom() // Default random seed
+  private forcedLayout: RoomLayout | null = null // Debug override
 
   constructor(screenWidth: number, screenHeight: number) {
     this.screenWidth = screenWidth
     this.screenHeight = screenHeight
+  }
+
+  /**
+   * Set a forced layout for all rooms (debug feature)
+   */
+  setForcedLayout(layout: RoomLayout | null): void {
+    this.forcedLayout = layout
   }
 
   /**
@@ -155,6 +163,11 @@ export class RoomGenerator {
    * Combat rooms have 70% chance to use chokepoint layouts with walls
    */
   private selectLayout(roomType: RoomType): RoomLayout {
+    // Debug forced layout overrides all
+    if (this.forcedLayout) {
+      return this.forcedLayout
+    }
+
     switch (roomType) {
       case 'boss':
         return BOSS_LAYOUTS[0]

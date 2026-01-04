@@ -315,6 +315,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.setDodgeChance(chance)
   }
 
+  setSpeedMultiplier(multiplier: number): void {
+    this.stats?.setSpeedMultiplier(multiplier)
+  }
+
   getDamageWithCrit(isCrit: boolean): number {
     return this.stats?.getDamageWithCrit(isCrit) ?? this.getDamage()
   }

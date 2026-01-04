@@ -48,6 +48,7 @@ import { SeededRandom } from '../systems/SeededRandom'
 import { ABILITIES, type AbilityData } from '../config/abilityData'
 import { abilityPriorityManager } from '../systems/AbilityPriorityManager'
 import { errorReporting } from '../systems/ErrorReportingManager'
+import { debugManager, type DebugSettings } from '../systems/DebugManager'
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig
@@ -148,6 +149,9 @@ export default class GameScene extends Phaser.Scene {
   // Weapon projectile config (for changing bullet sprites based on equipped weapon)
   private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
 
+  // Debug settings (only used when debug mode is active)
+  private debugSettings: DebugSettings | null = null
+
   constructor() {
     super({ key: 'GameScene' })
   }
@@ -156,6 +160,16 @@ export default class GameScene extends Phaser.Scene {
     // Load difficulty configuration
     this.difficultyConfig = getDifficultyConfig(this.game)
     console.log('Starting game with difficulty:', this.difficultyConfig.label)
+
+    // Load debug settings if in debug mode
+    if (this.game.registry.get('debug')) {
+      this.debugSettings = debugManager.getSettings()
+      if (debugManager.hasActiveOverrides()) {
+        console.log('GameScene: Debug overrides active:', this.debugSettings)
+      }
+    } else {
+      this.debugSettings = null
+    }
 
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
@@ -235,7 +249,14 @@ export default class GameScene extends Phaser.Scene {
     // Reset game state
     this.isGameOver = false
     this.enemiesKilled = 0
-    this.currentRoom = 1
+    // Apply debug start room if set (skip to boss sets room to 20)
+    if (this.debugSettings?.skipToBoss) {
+      this.currentRoom = 20
+    } else if (this.debugSettings?.startRoom && this.debugSettings.startRoom > 1) {
+      this.currentRoom = this.debugSettings.startRoom
+    } else {
+      this.currentRoom = 1
+    }
     this.totalRooms = this.isEndlessMode ? 10 : chapterManager.getTotalRooms() // Endless mode uses 10 rooms per wave
     this.isRoomCleared = false
     this.doorSprite = null
@@ -268,8 +289,14 @@ export default class GameScene extends Phaser.Scene {
     // Set physics world bounds to match camera/game size
     this.physics.world.setBounds(0, 0, width, height)
 
-    // Get selected chapter and its themed background
-    const selectedChapter = chapterManager.getSelectedChapter()
+    // Get selected chapter (debug can override)
+    let selectedChapter = chapterManager.getSelectedChapter()
+    if (this.debugSettings?.startChapter && this.debugSettings.startChapter !== selectedChapter) {
+      selectedChapter = this.debugSettings.startChapter
+      // Temporarily set the chapter for this run
+      chapterManager.selectChapter(selectedChapter)
+      console.log(`GameScene: Debug override - using chapter ${selectedChapter}`)
+    }
     const chapterDef = getChapterDefinition(selectedChapter)
     // Use theme-aware background key
     const themeAssets = themeManager.getAssets()
@@ -337,12 +364,16 @@ export default class GameScene extends Phaser.Scene {
     const equipmentStatMultiplier = 1 + (this.talentBonuses.percentEquipmentStats / 100)
 
     // Calculate final stats with equipment bonuses and talent bonuses
-    // Formula: (baseHeroStat + flatBonus + talentFlat) * (1 + percentBonus) * weaponMult * difficultyMult
+    // Formula: (baseHeroStat + flatBonus + talentFlat) * (1 + percentBonus) * weaponMult * difficultyMult * debugMult
+    const debugHealthMult = this.debugSettings?.startingHealthMultiplier ?? 1.0
+    const debugDamageMult = this.debugSettings?.playerDamageMultiplier ?? 1.0
+    const debugSpeedMult = this.debugSettings?.playerSpeedMultiplier ?? 1.0
+
     const baseMaxHealth = heroStats.maxHealth + (equipStats.maxHealth ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatHp
-    const finalMaxHealth = baseMaxHealth * (1 + (equipStats.maxHealthPercent ?? 0)) * (this.difficultyConfig.playerMaxHealth / 100)
+    const finalMaxHealth = baseMaxHealth * (1 + (equipStats.maxHealthPercent ?? 0)) * (this.difficultyConfig.playerMaxHealth / 100) * debugHealthMult
 
     const baseDamage = heroStats.attack + (equipStats.attackDamage ?? 0) * equipmentStatMultiplier + this.talentBonuses.flatAttack
-    const finalDamage = baseDamage * (1 + (equipStats.attackDamagePercent ?? 0)) * weaponDamageMult * (this.difficultyConfig.playerDamage / 10)
+    const finalDamage = baseDamage * (1 + (equipStats.attackDamagePercent ?? 0)) * weaponDamageMult * (this.difficultyConfig.playerDamage / 10) * debugDamageMult
 
     const baseAttackSpeed = heroStats.attackSpeed + (equipStats.attackSpeed ?? 0) * equipmentStatMultiplier
     const finalAttackSpeed = baseAttackSpeed * (1 + (equipStats.attackSpeedPercent ?? 0) + this.talentBonuses.percentAttackSpeed / 100) * weaponSpeedMult * (this.difficultyConfig.playerAttackSpeed / 1.0)
@@ -351,6 +382,9 @@ export default class GameScene extends Phaser.Scene {
     const finalCritDamage = heroStats.critDamage + (equipStats.critDamage ?? 0) * equipmentStatMultiplier
 
     console.log('GameScene: Final player stats - damage:', finalDamage, 'attackSpeed:', finalAttackSpeed, 'maxHealth:', finalMaxHealth, 'critChance:', finalCritChance)
+    if (this.debugSettings && debugManager.hasActiveOverrides()) {
+      console.log('GameScene: Debug multipliers - health:', debugHealthMult, 'damage:', debugDamageMult, 'speed:', debugSpeedMult)
+    }
 
     // Create player at bottom center with difficulty-adjusted stats and equipment bonuses
     this.player = new Player(this, width / 2, height - 100, {
@@ -365,10 +399,17 @@ export default class GameScene extends Phaser.Scene {
     const totalDodgeChance = (equipStats.dodgeChance ?? 0) * equipmentStatMultiplier
     this.player.setDodgeChance(totalDodgeChance)
 
-    // Calculate and cache equipment bonus multipliers for XP and gold
-    this.bonusXPMultiplier = 1 + (equipStats.bonusXPPercent ?? 0)
-    this.goldBonusMultiplier = 1 + (equipStats.goldBonusPercent ?? 0)
+    // Calculate and cache equipment bonus multipliers for XP and gold (with debug multipliers)
+    const debugXPMult = this.debugSettings?.xpMultiplier ?? 1.0
+    const debugGoldMult = this.debugSettings?.goldMultiplier ?? 1.0
+    this.bonusXPMultiplier = (1 + (equipStats.bonusXPPercent ?? 0)) * debugXPMult
+    this.goldBonusMultiplier = (1 + (equipStats.goldBonusPercent ?? 0)) * debugGoldMult
     console.log('GameScene: Bonus multipliers - XP:', this.bonusXPMultiplier, 'Gold:', this.goldBonusMultiplier)
+
+    // Apply debug speed multiplier to player movement
+    if (debugSpeedMult !== 1.0) {
+      this.player.setSpeedMultiplier(debugSpeedMult)
+    }
 
     // Apply Helix rage passive: automatically grants rage level 1 at start
     if (selectedHeroId === 'helix') {
@@ -471,9 +512,25 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    // Apply debug starting abilities
+    if (this.debugSettings?.startingAbilities && this.debugSettings.startingAbilities.length > 0) {
+      console.log(`GameScene: Applying ${this.debugSettings.startingAbilities.length} debug starting abilities`)
+      for (const abilityId of this.debugSettings.startingAbilities) {
+        this.applyAbility(abilityId)
+        console.log(`GameScene: Debug starting ability applied: ${abilityId}`)
+      }
+    }
+
     // Initialize room generator with seeded RNG
     this.roomGenerator = getRoomGenerator(width, height)
     this.roomGenerator.setRng(this.runRng)
+
+    // Apply debug forced layout if set
+    const debugForcedLayout = debugManager.getForcedLayout()
+    if (debugForcedLayout) {
+      this.roomGenerator.setForcedLayout(debugForcedLayout)
+      console.log(`GameScene: Debug forced layout: ${debugForcedLayout.name}`)
+    }
 
     // Create enemy physics group
     this.enemies = this.physics.add.group()
@@ -602,6 +659,24 @@ export default class GameScene extends Phaser.Scene {
 
     // Send initial health to UIScene (player may have bonus HP from equipment/talents)
     this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+
+    // Debug: Set up auto level up timer if configured
+    if (this.debugSettings?.autoLevelUpInterval && this.debugSettings.autoLevelUpInterval > 0) {
+      const intervalMs = this.debugSettings.autoLevelUpInterval * 1000
+      this.time.addEvent({
+        delay: intervalMs,
+        callback: () => {
+          // Trigger level up (grant XP to level up)
+          const xpNeeded = this.player.getXPToLevelUp() - this.player.getXP()
+          if (xpNeeded > 0) {
+            this.player.addXP(xpNeeded + 1)
+            console.log('GameScene: Debug auto level up triggered')
+          }
+        },
+        loop: true,
+      })
+      console.log(`GameScene: Debug auto level up enabled every ${this.debugSettings.autoLevelUpInterval}s`)
+    }
 
     // Show tutorial for first-time players
     if (!saveManager.isTutorialCompleted()) {
@@ -991,6 +1066,19 @@ export default class GameScene extends Phaser.Scene {
    * Spawn enemies using positions from the room generator
    */
   private spawnEnemiesFromGeneration(generatedRoom: GeneratedRoom): void {
+    // Debug: Skip enemy spawns if disabled
+    if (this.debugSettings?.disableEnemySpawns) {
+      console.log('GameScene: Debug - enemy spawns disabled')
+      // Still spawn walls for the layout
+      if (generatedRoom.layout.walls && generatedRoom.layout.walls.length > 0) {
+        this.wallGroup.createWalls(generatedRoom.layout.walls)
+      } else {
+        this.wallGroup.clearWalls()
+      }
+      this.pendingEnemySpawns = 0
+      return
+    }
+
     // Create enemy textures first (if needed)
     if (!this.textures.exists('enemy')) {
       const graphics = this.make.graphics({ x: 0, y: 0 }, false)

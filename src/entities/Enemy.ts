@@ -102,7 +102,15 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage(amount: number): boolean {
-    this.health -= amount
+    // Check debug one-shot mode (use global reference to avoid circular import)
+    const globalDebugManager = (globalThis as Record<string, unknown>).__debugManager as { get: (key: string) => boolean } | undefined
+    const oneShotMode = globalDebugManager?.get('oneShotEnemies') ?? false
+
+    if (oneShotMode) {
+      this.health = 0
+    } else {
+      this.health -= amount
+    }
 
     // Flash effect
     this.setTint(0xffffff)

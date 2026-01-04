@@ -20,6 +20,7 @@ import {
   GameMode,
 } from '../ui/components'
 import { createPlaySection } from './menus/PlaySection'
+import { debugManager } from '../systems/DebugManager'
 
 export default class MainMenuScene extends Phaser.Scene {
   private currencyBar?: CurrencyBarResult
@@ -169,6 +170,11 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   private trySpendEnergy(): boolean {
+    // Check if debug bypass is enabled
+    if (this.game.registry.get('debug') && debugManager.get('bypassEnergy')) {
+      return true // Skip energy check entirely
+    }
+
     const currentEnergy = currencyManager.get('energy')
     if (currentEnergy <= 0) {
       showNoEnergyModal({
@@ -186,23 +192,46 @@ export default class MainMenuScene extends Phaser.Scene {
   private setupDebugMode(_width: number, height: number) {
     if (!this.game.registry.get('debug')) return
 
+    // Debug mode indicator with active overrides count
+    const hasOverrides = debugManager.hasActiveOverrides()
+    const overrideText = hasOverrides ? ' (OVERRIDES ACTIVE)' : ''
     this.add
-      .text(10, height - 20, 'DEBUG MODE ACTIVE', {
+      .text(10, height - 20, `DEBUG MODE${overrideText}`, {
         fontSize: '10px',
-        color: '#ff0000',
+        color: hasOverrides ? '#ff6600' : '#ff0000',
         fontStyle: 'bold',
       })
       .setDepth(100)
 
-    const btn = document.createElement('button')
-    btn.innerText = 'DEBUG: UNLOCK ALL'
-    btn.style.cssText = `
+    // DOM button container for debug buttons
+    const container = document.createElement('div')
+    container.style.cssText = `
       position: absolute; top: 50px; left: 10px; z-index: 10000;
+      display: flex; flex-direction: column; gap: 8px;
+    `
+
+    // Debug Settings button
+    const settingsBtn = document.createElement('button')
+    settingsBtn.innerText = 'DEBUG SETTINGS'
+    settingsBtn.style.cssText = `
+      background-color: #ff6600; color: white; border: none;
+      padding: 10px; font-weight: bold; cursor: pointer; border-radius: 5px;
+    `
+    settingsBtn.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      transitionToScene(this, 'DebugScene', TransitionType.FADE, DURATION.FAST)
+    }
+    container.appendChild(settingsBtn)
+
+    // Unlock All button
+    const unlockBtn = document.createElement('button')
+    unlockBtn.innerText = 'UNLOCK ALL'
+    unlockBtn.style.cssText = `
       background-color: #cc0000; color: white; border: none;
       padding: 10px; font-weight: bold; cursor: pointer; border-radius: 5px;
     `
-
-    btn.onclick = (e) => {
+    unlockBtn.onclick = (e) => {
       e.preventDefault()
       e.stopPropagation()
       for (let i = 1; i <= 5; i++) {
@@ -217,9 +246,10 @@ export default class MainMenuScene extends Phaser.Scene {
       equipmentManager.createEquipment(SpiritType.LASER_BAT, Rarity.LEGENDARY, 70)
       this.scene.restart()
     }
+    container.appendChild(unlockBtn)
 
-    document.body.appendChild(btn)
-    this.events.once('shutdown', () => btn.parentNode?.removeChild(btn))
+    document.body.appendChild(container)
+    this.events.once('shutdown', () => container.parentNode?.removeChild(container))
   }
 
   private createTorches(width: number) {

@@ -117,6 +117,12 @@ export class PlayerStats {
   // ============================================
 
   takeDamage(amount: number): DamageResult {
+    // Check debug invincibility (use global reference to avoid circular import)
+    const globalDebugManager = (globalThis as Record<string, unknown>).__debugManager as { get: (key: string) => boolean } | undefined
+    if (globalDebugManager?.get('invincible')) {
+      return { damaged: false, died: false, dodged: false }
+    }
+
     // Roll for dodge
     if (this.dodgeChance > 0 && Math.random() < this.dodgeChance) {
       return { damaged: false, died: false, dodged: true }
@@ -581,6 +587,13 @@ export class PlayerStats {
    */
   addSpeedBoost(): void {
     this.movementSpeedMultiplier *= 1.15
+  }
+
+  /**
+   * Set speed multiplier directly (for debug override)
+   */
+  setSpeedMultiplier(multiplier: number): void {
+    this.movementSpeedMultiplier = multiplier
   }
 
   /**
