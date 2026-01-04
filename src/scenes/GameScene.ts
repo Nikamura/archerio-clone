@@ -171,6 +171,18 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off('skipRun', this.handleSkipRun, this)
     })
 
+    // Listen for pause event
+    this.game.events.on('pauseRequested', this.handlePause, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('pauseRequested', this.handlePause, this)
+    })
+
+    // Listen for quit from pause event
+    this.game.events.on('quitFromPause', this.handleQuitFromPause, this)
+    this.events.once('shutdown', () => {
+      this.game.events.off('quitFromPause', this.handleQuitFromPause, this)
+    })
+
     // Handle browser visibility changes and focus loss
     // This prevents stuck input states when user switches apps or screen turns off
     const handleVisibilityChange = () => {
@@ -1894,6 +1906,32 @@ export default class GameScene extends Phaser.Scene {
       // Stop GameScene last - this prevents texture issues when restarting
       this.scene.stop('GameScene')
     })
+  }
+
+  /**
+   * Handle pause request - pause game and show pause menu
+   */
+  private handlePause(): void {
+    if (this.isGameOver) return
+
+    console.log('GameScene: Pausing game')
+
+    // Pause this scene (freezes physics, tweens, timers)
+    this.scene.pause('GameScene')
+
+    // Launch pause scene overlay
+    this.scene.launch('PauseScene')
+  }
+
+  /**
+   * Handle quit from pause menu - end run and return to main menu
+   */
+  private handleQuitFromPause(): void {
+    // Resume scene first so we can properly shut it down
+    this.scene.resume('GameScene')
+
+    // Use skip run logic to properly end the run
+    this.handleSkipRun()
   }
 
   private findNearestEnemy(): Enemy | null {

@@ -222,17 +222,18 @@ export default class UIScene extends Phaser.Scene {
     const panelWidth = 115
     const panelBg = this.add.graphics()
     panelBg.fillStyle(0x111111, 0.95)
-    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
+    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 195, 8)
     panelBg.lineStyle(2, 0x444444)
-    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
+    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 195, 8)
     this.menuPanel.add(panelBg)
 
     // Menu items
     const menuItems = [
       { icon: '⚡', label: 'Auto Lv', key: 'autoLevel', y: 25 },
       { icon: '⏩', label: 'Auto Rm', key: 'autoRoom', y: 60 },
-      { icon: '↺', label: 'Reset', key: 'reset', y: 95 },
-      { icon: '🚪', label: 'End Run', key: 'skip', y: 130 },
+      { icon: '⏸', label: 'Pause', key: 'pause', y: 95 },
+      { icon: '↺', label: 'Reset', key: 'reset', y: 130 },
+      { icon: '🚪', label: 'End Run', key: 'skip', y: 165 },
     ]
 
     menuItems.forEach(item => {
@@ -343,6 +344,10 @@ export default class UIScene extends Phaser.Scene {
         row.setData('enabled', newState)
         break
       }
+      case 'pause':
+        this.game.events.emit('pauseRequested')
+        this.closeMenu()
+        break
       case 'reset':
         this.game.events.emit('resetLevel')
         this.closeMenu()
