@@ -371,7 +371,7 @@ Visual test screenshots are saved to `test/screenshots/`
 17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
 18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
 19. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
-20. **Spreader enemies stuck in walls** - Spreader enemies can still spawn inside walls and become unkillable
+20. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
 
 **BALANCE:**
 1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness
