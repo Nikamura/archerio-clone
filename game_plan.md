@@ -303,12 +303,26 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
 - Mini-boss at room 10, final boss at room 20 (3 attack patterns each)
 - Difficulty selection: Easy/Normal/Hard with stat modifiers
 
-**Abilities (22 total):**
+**Abilities (23 total):**
 - Core: Front Arrow, Multishot, Attack Speed, Attack Boost, Piercing, Ricochet, Fire DOT, Crit
-- Elemental: Ice Shot (freeze), Poison Shot (stacking DOT), Lightning Chain
+- Elemental: Ice Shot (freeze), Poison Shot (stacking DOT), Lightning Chain, Bleed (10% DOT, 2x if enemy moving)
 - Arrow mods: Diagonal, Rear, Bouncy Wall, Through Wall
 - Utility: Damage Aura, Bloodthirst, Rage, Speed Boost, Vitality, Dodge Master
 - Devil: Extra Life, Giant
+- Synergy: Shatter (+50% dmg to frozen), Fire Spread (burning enemies spread fire on death)
+
+**Elemental Resistances (per chapter):**
+Different chapters have different elemental resistances, encouraging players to adapt their builds:
+
+| Chapter | Fire | Cold | Bleed | Notes |
+|---------|------|------|-------|-------|
+| Ch1 Dark Dungeon | 1.0 | 1.0 | 1.0 | Neutral to all elements |
+| Ch2 Forest Ruins | 1.3 | 1.0 | 1.0 | Dry forest burns easily |
+| Ch3 Frozen Caves | 1.5 | 0.5 | 1.0 | Weak to fire, resist cold |
+| Ch4 Volcanic Depths | 0.5 | 1.5 | 1.2 | Resist fire, weak to cold |
+| Ch5 Shadow Realm | 0.9 | 0.9 | 0.8 | Slight resistance to all |
+
+*Values < 1.0 = resistant (less damage), > 1.0 = vulnerable (more damage)*
 
 **Level Systems:**
 - 20 rooms per chapter with door transitions (mini-boss at 10, boss at 20)
