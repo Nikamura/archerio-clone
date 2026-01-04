@@ -39,6 +39,8 @@ import {
   ChestEncyclopediaEntry,
 } from '../config/encyclopediaData'
 import { Rarity, RARITY_CONFIGS } from '../systems/Equipment'
+import { getEnemySpriteKey } from '../config/themeData'
+import { themeManager } from '../systems/ThemeManager'
 
 // ============================================
 // Types
@@ -648,8 +650,9 @@ export default class EncyclopediaScene extends Phaser.Scene {
         return eq.spriteKey
       }
       case 'enemies': {
+        // Use themed enemy sprite based on current theme
         const en = entry as EnemyEncyclopediaEntry
-        return en.spriteKey
+        return getEnemySpriteKey(en.id, themeManager.getAssets())
       }
       case 'bosses': {
         const bo = entry as BossEncyclopediaEntry

@@ -358,6 +358,26 @@ describe('PlayerStats', () => {
         // 1.25^5 = 3.0517...
         expect(stats.getAttackSpeed()).toBeCloseTo(3.0517578125)
       })
+
+      it('attack speed is capped at 5.0 (10 attacks per second)', () => {
+        // Stack many attack speed boosts to exceed the cap
+        for (let i = 0; i < 10; i++) {
+          stats.addAttackSpeedBoost(0.50) // +50% each time, 1.5^10 = 57.66
+        }
+        // Raw would be 1.0 * 1.5^10 = 57.66, but should be capped at 5.0
+        expect(stats.getAttackSpeed()).toBe(5.0)
+      })
+
+      it('attack speed cap works with high base attack speed', () => {
+        // Create player with high base attack speed
+        const fastStats = new PlayerStats({ baseAttackSpeed: 3.0 })
+        // Add some boosts
+        fastStats.addAttackSpeedBoost(0.50) // 3.0 * 1.5 = 4.5 (under cap)
+        expect(fastStats.getAttackSpeed()).toBeCloseTo(4.5)
+
+        fastStats.addAttackSpeedBoost(0.50) // 4.5 * 1.5 = 6.75 (over cap)
+        expect(fastStats.getAttackSpeed()).toBe(5.0)
+      })
     })
 
     describe('Piercing Shot', () => {

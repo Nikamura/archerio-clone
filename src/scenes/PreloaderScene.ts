@@ -156,17 +156,53 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('atreusSprite', 'assets/sprites/player/archer.png')
     this.load.image('helixSprite', 'assets/sprites/player/helix.png')
     this.load.image('meowgikSprite', 'assets/sprites/player/meowgik.png')
+    // Medieval (default) enemy sprites
     this.load.image('enemyMelee', 'assets/sprites/enemy/melee_slime.png')
     this.load.image('enemyRanged', 'assets/sprites/enemy/ranged_skeleton.png')
     this.load.image('enemySpreader', 'assets/sprites/enemy/spreader_eye.png')
     this.load.image('enemyHealer', 'assets/sprites/enemy/healer.png')
     this.load.image('enemySpawner', 'assets/sprites/enemy/spawner.png')
     this.load.image('enemyMinion', 'assets/sprites/enemy/minion.png')
-    // New V1 enemy types
     this.load.image('enemyBomber', 'assets/sprites/enemy/bomber.png')
     this.load.image('enemyTank', 'assets/sprites/enemy/tank.png')
     this.load.image('enemyCharger', 'assets/sprites/enemy/charger.png')
     this.load.image('enemyBurrower', 'assets/sprites/enemy/burrower.png')
+
+    // Vaporwave enemy sprites
+    this.load.image('vaporwave_enemyMelee', 'assets/sprites/enemy/vaporwave/melee.png')
+    this.load.image('vaporwave_enemyRanged', 'assets/sprites/enemy/vaporwave/ranged.png')
+    this.load.image('vaporwave_enemySpreader', 'assets/sprites/enemy/vaporwave/spreader.png')
+    this.load.image('vaporwave_enemyHealer', 'assets/sprites/enemy/vaporwave/healer.png')
+    this.load.image('vaporwave_enemySpawner', 'assets/sprites/enemy/vaporwave/spawner.png')
+    this.load.image('vaporwave_enemyMinion', 'assets/sprites/enemy/vaporwave/minion.png')
+    this.load.image('vaporwave_enemyBomber', 'assets/sprites/enemy/vaporwave/bomber.png')
+    this.load.image('vaporwave_enemyTank', 'assets/sprites/enemy/vaporwave/tank.png')
+    this.load.image('vaporwave_enemyCharger', 'assets/sprites/enemy/vaporwave/charger.png')
+    this.load.image('vaporwave_enemyBurrower', 'assets/sprites/enemy/vaporwave/burrower.png')
+
+    // LOTR (Middle-Earth) enemy sprites
+    this.load.image('lotr_enemyMelee', 'assets/sprites/enemy/lotr/melee.png')
+    this.load.image('lotr_enemyRanged', 'assets/sprites/enemy/lotr/ranged.png')
+    this.load.image('lotr_enemySpreader', 'assets/sprites/enemy/lotr/spreader.png')
+    this.load.image('lotr_enemyHealer', 'assets/sprites/enemy/lotr/healer.png')
+    this.load.image('lotr_enemySpawner', 'assets/sprites/enemy/lotr/spawner.png')
+    this.load.image('lotr_enemyMinion', 'assets/sprites/enemy/lotr/minion.png')
+    this.load.image('lotr_enemyBomber', 'assets/sprites/enemy/lotr/bomber.png')
+    this.load.image('lotr_enemyTank', 'assets/sprites/enemy/lotr/tank.png')
+    this.load.image('lotr_enemyCharger', 'assets/sprites/enemy/lotr/charger.png')
+    this.load.image('lotr_enemyBurrower', 'assets/sprites/enemy/lotr/burrower.png')
+
+    // Stranger Things (Upside Down) enemy sprites
+    this.load.image('st_enemyMelee', 'assets/sprites/enemy/strangerThings/melee.png')
+    this.load.image('st_enemyRanged', 'assets/sprites/enemy/strangerThings/ranged.png')
+    this.load.image('st_enemySpreader', 'assets/sprites/enemy/strangerThings/spreader.png')
+    this.load.image('st_enemyHealer', 'assets/sprites/enemy/strangerThings/healer.png')
+    this.load.image('st_enemySpawner', 'assets/sprites/enemy/strangerThings/spawner.png')
+    this.load.image('st_enemyMinion', 'assets/sprites/enemy/strangerThings/minion.png')
+    this.load.image('st_enemyBomber', 'assets/sprites/enemy/strangerThings/bomber.png')
+    this.load.image('st_enemyTank', 'assets/sprites/enemy/strangerThings/tank.png')
+    this.load.image('st_enemyCharger', 'assets/sprites/enemy/strangerThings/charger.png')
+    this.load.image('st_enemyBurrower', 'assets/sprites/enemy/strangerThings/burrower.png')
     this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
     // Chapter 2 - Forest bosses
     this.load.image('boss_tree_guardian', 'assets/sprites/boss/tree_guardian.png')
@@ -318,7 +354,13 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
     this.load.image('chest_silver', 'assets/sprites/chest/silver.png')
     this.load.image('chest_golden', 'assets/sprites/chest/golden.png')
-    
+
+    // Load theme preview images
+    this.load.image('themePreview_medieval', 'assets/ui/theme_previews/medieval.jpg')
+    this.load.image('themePreview_vaporwave', 'assets/ui/theme_previews/vaporwave.jpg')
+    this.load.image('themePreview_lotr', 'assets/ui/theme_previews/lotr.jpg')
+    this.load.image('themePreview_strangerThings', 'assets/ui/theme_previews/strangerThings.jpg')
+
     // Load equipment sprites
     // Weapons
     this.load.image('equip_brave_bow', 'assets/sprites/equipment/weapon/brave_bow.png')

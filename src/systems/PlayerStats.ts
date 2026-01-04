@@ -22,6 +22,9 @@ export class PlayerStats {
   private baseDamage: number
   private baseAttackSpeed: number
 
+  // Attack speed cap: Maximum 10 attacks per second (with 500ms base fire rate, this means max attack speed of 5.0)
+  private static readonly MAX_ATTACK_SPEED = 5.0
+
   // Ability counters (linear stacking)
   private extraProjectiles: number = 0
   private multishotCount: number = 0
@@ -223,10 +226,12 @@ export class PlayerStats {
   /**
    * Calculate current attack speed with ability modifiers
    * Multishot reduces attack speed by 15% per level
+   * Capped at MAX_ATTACK_SPEED (5.0) to limit to 10 attacks per second
    */
   getAttackSpeed(): number {
     const multishotPenalty = Math.pow(0.85, this.multishotCount)
-    return this.baseAttackSpeed * this.attackSpeedMultiplier * multishotPenalty
+    const rawAttackSpeed = this.baseAttackSpeed * this.attackSpeedMultiplier * multishotPenalty
+    return Math.min(rawAttackSpeed, PlayerStats.MAX_ATTACK_SPEED)
   }
 
   getExtraProjectiles(): number {

@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import { EnemyType } from '../config/chapterData'
+import { getEnemySpriteKey } from '../config/themeData'
+import { themeManager } from '../systems/ThemeManager'
 import type WallGroup from '../systems/WallGroup'
 import { StatusEffectSystem } from '../core/StatusEffects'
 
@@ -62,10 +64,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     y: number,
     options?: EnemyOptions
   ) {
-    super(scene, x, y, 'enemyMelee')
+    // Get themed sprite key for this enemy type
+    const enemyType = options?.enemyType ?? 'melee'
+    const spriteKey = getEnemySpriteKey(enemyType, themeManager.getAssets())
+    super(scene, x, y, spriteKey)
 
     // Store enemy type for kill tracking
-    this.enemyType = options?.enemyType ?? 'melee'
+    this.enemyType = enemyType
 
     // Initialize status effects system
     this.statusEffects = new StatusEffectSystem()

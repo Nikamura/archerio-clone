@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from '../Enemy'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 /**
  * Small minion enemy spawned by SpawnerEnemy
@@ -20,9 +22,10 @@ export class MinionEnemy extends Enemy {
     }
     super(scene, x, y, minionOptions)
 
-    // Use minion texture or fallback to melee enemy
-    if (scene.textures.exists('enemyMinion')) {
-      this.setTexture('enemyMinion')
+    // Use themed minion sprite
+    const spriteKey = getEnemySpriteKey('minion', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     }
     this.setDisplaySize(20, 20) // Very small
 
@@ -121,9 +124,10 @@ export default class SpawnerEnemy extends Enemy {
     const intensityMultiplier = options?.abilityIntensityMultiplier ?? 1.0
     this.maxMinions = Math.max(3, Math.ceil(3 * intensityMultiplier))
 
-    // Use texture (will be set externally or fallback to generated)
-    if (scene.textures.exists('enemySpawner')) {
-      this.setTexture('enemySpawner')
+    // Use themed spawner sprite
+    const spriteKey = getEnemySpriteKey('spawner', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     }
     this.setDisplaySize(40, 40) // Larger than normal enemies
 

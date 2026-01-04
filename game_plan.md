@@ -367,13 +367,17 @@ Visual test screenshots are saved to `test/screenshots/`
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 
 **UPCOMING FEATURES:**
-1. 🟡 **Shop theme preview images** - Show actual theme images instead of colors
-2. 🟡 **Max attack speed cap** - Cap at 10 attacks per second
-3. 🟡 **Regenerate skill icons** - Add 1px black border, no whitespace/white background
-4. 🟡 **Remove seed system from UI** - Remove from GameOverScene and MainMenuScene
-5. 🟡 **Energy refill via ads** - Mock popup with cat image, gives +1 energy
-6. 🟡 **Add favicon** - Add game favicon for browser tab
-7. 🟡 **Theme-specific enemy sprites** - Each theme should have unique enemy/boss art (e.g., Upside Down: demogorgons; Middle-Earth: goblins, orcs, Gollum)
+1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
+2. ✅ **Max attack speed cap** - Cap at 10 attacks per second (MAX_ATTACK_SPEED = 5.0 in PlayerStats)
+3. ✅ **Regenerate skill icons** - All 22 icons regenerated with transparent backgrounds and 1px black border
+4. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
+5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
+6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
+7. ✅ **Theme-specific enemy sprites** - 30 themed sprites (10 enemies × 3 themes: Vaporwave, LOTR, Stranger Things), encyclopedia shows themed sprites
+8. **Pause feature for long runs** - Pause button in HUD, PauseScene overlay with resume/settings/quit options, game state preservation
+9. **Equipment comparison in inventory** - Show upgrade indicators on items better than equipped gear, item popup displays stat comparison vs currently equipped item
+10. **Hero stats summary screen** - Display total combined stats from Hero base + Equipment bonuses + Talent bonuses, breakdown showing contribution from each source
+11. **Inventory sorting and filtering** - Sort by rarity, level, slot type, or stat value; filter by equipment slot or rarity tier
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 

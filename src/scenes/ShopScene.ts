@@ -161,32 +161,54 @@ export default class ShopScene extends Phaser.Scene {
       .setOrigin(0, 0)
     container.add(descText)
 
-    // Color preview swatches
-    const swatchY = 20
-    const swatchSize = 30
-    const swatches = [
-      theme.colors.primaryButton,
-      theme.colors.secondaryButton,
-      theme.colors.healthFull,
-      theme.colors.xpBar,
-    ]
-    const swatchLabels = ['Button', 'Menu', 'Health', 'XP']
+    // Theme preview image
+    const previewY = 20
+    const previewKey = `themePreview_${state.id}`
 
-    swatches.forEach((color, i) => {
-      const swatchX = -cardWidth / 2 + 35 + i * 80
-      const swatch = this.add.rectangle(swatchX, swatchY, swatchSize, swatchSize, color)
-      swatch.setStrokeStyle(1, 0x666666)
-      container.add(swatch)
+    if (this.textures.exists(previewKey)) {
+      const preview = this.add.image(0, previewY, previewKey)
+      // Scale to fit card width with some padding
+      const maxWidth = cardWidth - 40
+      const maxHeight = 80
+      const scale = Math.min(maxWidth / preview.width, maxHeight / preview.height)
+      preview.setScale(scale)
+      preview.setAlpha(state.isUnlocked ? 1 : 0.5)
+      container.add(preview)
 
-      // Swatch label
-      const label = this.add
-        .text(swatchX, swatchY + 22, swatchLabels[i], {
-          fontSize: '10px',
-          color: '#888888',
-        })
-        .setOrigin(0.5, 0)
-      container.add(label)
-    })
+      // Add a subtle border around the preview
+      const borderWidth = preview.displayWidth
+      const borderHeight = preview.displayHeight
+      const border = this.add.rectangle(0, previewY, borderWidth + 4, borderHeight + 4)
+      border.setStrokeStyle(2, state.isSelected ? 0x6bff6b : 0x444455)
+      border.setFillStyle(0x000000, 0)
+      container.add(border)
+    } else {
+      // Fallback to color swatches if preview not available
+      const swatchSize = 30
+      const swatches = [
+        theme.colors.primaryButton,
+        theme.colors.secondaryButton,
+        theme.colors.healthFull,
+        theme.colors.xpBar,
+      ]
+      const swatchLabels = ['Button', 'Menu', 'Health', 'XP']
+
+      swatches.forEach((color, i) => {
+        const swatchX = -cardWidth / 2 + 35 + i * 80
+        const swatch = this.add.rectangle(swatchX, previewY, swatchSize, swatchSize, color)
+        swatch.setStrokeStyle(1, 0x666666)
+        container.add(swatch)
+
+        // Swatch label
+        const label = this.add
+          .text(swatchX, previewY + 22, swatchLabels[i], {
+            fontSize: '10px',
+            color: '#888888',
+          })
+          .setOrigin(0.5, 0)
+        container.add(label)
+      })
+    }
 
     // Status/Action section
     if (state.isUnlocked) {

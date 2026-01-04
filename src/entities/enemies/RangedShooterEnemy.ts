@@ -11,6 +11,8 @@ import Phaser from 'phaser'
 import RangedEnemy from './RangedEnemy'
 import { EnemyOptions } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 export default class RangedShooterEnemy extends RangedEnemy {
   private isAiming: boolean = false
@@ -27,8 +29,9 @@ export default class RangedShooterEnemy extends RangedEnemy {
     // Base fire rate is 2000ms
     super(scene, x, y, bulletPool, 2000, options)
 
-    // Use ranged enemy sprite
-    this.setTexture('enemyRanged')
+    // Use themed ranged enemy sprite
+    const spriteKey = getEnemySpriteKey('ranged', themeManager.getAssets())
+    this.setTexture(spriteKey)
     this.setDisplaySize(30, 30)
 
     // Create telegraph line (initially hidden)
