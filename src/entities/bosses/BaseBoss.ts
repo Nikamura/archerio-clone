@@ -77,6 +77,16 @@ export default abstract class BaseBoss extends Enemy {
     }
     this.setDisplaySize(this.displaySize, this.displaySize)
 
+    // Set up centered circular hitbox for boss
+    // Hitbox is ~40% of display size for fair collision detection
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (body) {
+      const hitboxRadius = Math.floor(this.displaySize * 0.4)
+      body.setSize(this.displaySize, this.displaySize)
+      const offset = (this.displaySize - hitboxRadius * 2) / 2
+      body.setCircle(hitboxRadius, offset, offset)
+    }
+
     // Cache world bounds
     this.worldBounds = scene.physics.world.bounds
 
