@@ -772,8 +772,8 @@ export default class GameScene extends Phaser.Scene {
     this.endlessWave++
     this.currentRoom = 1
 
-    // Exponential scaling: difficulty doubles each wave
-    this.endlessDifficultyMultiplier = Math.pow(2, this.endlessWave - 1)
+    // Exponential scaling: difficulty increases 1.5x each wave
+    this.endlessDifficultyMultiplier = Math.pow(1.5, this.endlessWave - 1)
 
     // Clean up current room
     this.cleanupRoom()
