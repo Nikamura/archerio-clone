@@ -1296,6 +1296,26 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Calculate health potion heal value based on player stats and difficulty
+   * - Scales with player's max health (10% of max HP)
+   * - Reduced slightly on higher difficulties (more enemy damage = less healing)
+   * - Clamped between 15 and 100 HP
+   */
+  private calculateHealthPotionValue(): number {
+    // Base: 10% of player's max health
+    const maxHealth = this.player.getMaxHealth()
+    const baseHeal = Math.round(maxHealth * 0.1)
+
+    // Scale down slightly on harder difficulties (enemyDamage is higher)
+    // Normal difficulty has enemyDamage around 1.0, hard has 1.5+
+    const difficultyMod = Math.max(0.6, 1.0 / this.difficultyConfig.enemyDamageMultiplier)
+    const scaledHeal = Math.round(baseHeal * difficultyMod)
+
+    // Clamp between min 15 and max 100 HP
+    return Math.min(100, Math.max(15, scaledHeal))
+  }
+
+  /**
    * Convert BossType to BossId for kill tracking
    * Handles aliases like 'treant' -> 'tree_guardian' and 'frost_giant' -> 'ice_golem'
    */
@@ -1335,10 +1355,11 @@ export default class GameScene extends Phaser.Scene {
       console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
     }
 
-    // 5% chance to drop health potion (heals 20 HP)
+    // 5% chance to drop health potion (scales with difficulty)
     if (Math.random() < 0.05) {
-      this.healthPool.spawn(enemy.x, enemy.y, 20)
-      console.log('Health potion spawned!')
+      const healValue = this.calculateHealthPotionValue()
+      this.healthPool.spawn(enemy.x, enemy.y, healValue)
+      console.log(`Health potion spawned: ${healValue} HP`)
     }
   }
 
