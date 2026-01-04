@@ -198,7 +198,7 @@ export const DIFFICULTY_CHEST_SCALING: Record<string, {
 /**
  * Calculate endless wave scaling for chest rewards
  * Rewards scale with wave number to compensate for increased difficulty.
- * Enemy difficulty scales as 1.5^(wave-1), so rewards also increase per wave.
+ * Each wave completion grants bonus rewards.
  *
  * @param endlessWave - Current endless wave (1+)
  * @returns Scaling values for chest rewards
@@ -229,23 +229,32 @@ export function getEndlessWaveScaling(endlessWave: number): {
     }
   }
 
-  // Scale rewards with wave number
-  // Wave 2: modest bonus, Wave 5+: significant bonus
-  const waveBonus = endlessWave - 1
+  // Waves completed (not counting current wave 1)
+  const wavesCompleted = endlessWave - 1
+
+  // +1-2 wooden per wave (1 base + 1 extra every other wave)
+  const extraWooden = wavesCompleted + Math.floor(wavesCompleted / 2)
+
+  // +1 silver per wave completed
+  const extraSilver = wavesCompleted
+
+  // 10% golden chance per wave, +30% bonus every 5 waves
+  // Wave 2: 10%, Wave 3: 20%, Wave 5: 40%+30%=70%, Wave 6: 50%+30%=80%
+  const bonusFromMilestones = Math.floor(endlessWave / 5) * 30
+  const baseGoldenChance = wavesCompleted * 10
+  // Convert to multiplier (base chance is 10%, so 10% extra = 2.0x multiplier)
+  const goldenChanceMultiplier = 1 + (baseGoldenChance + bonusFromMilestones) / 10
 
   return {
-    // +1 wooden every 2 waves (wave 3, 5, 7...)
-    extraWooden: Math.floor(waveBonus / 2),
-    // +1 silver every 3 waves (wave 4, 7, 10...)
-    extraSilver: Math.floor(waveBonus / 3),
-    // Golden chance increases by 50% per wave
-    goldenChanceMultiplier: 1 + waveBonus * 0.5,
-    // 10% more upgrade chance per wave (capped at 50%)
-    upgradeToSilverChance: Math.min(50, waveBonus * 10),
-    // 5% more silver->golden upgrade chance per wave (capped at 30%)
-    upgradeToGoldenChance: Math.min(30, waveBonus * 5),
-    // +1 max chest every 3 waves
-    extraMaxChests: Math.floor(waveBonus / 3),
+    extraWooden,
+    extraSilver,
+    goldenChanceMultiplier,
+    // 10% upgrade chance per wave (capped at 60%)
+    upgradeToSilverChance: Math.min(60, wavesCompleted * 10),
+    // 5% silver->golden upgrade per wave (capped at 40%)
+    upgradeToGoldenChance: Math.min(40, wavesCompleted * 5),
+    // +1 max chest per wave to accommodate extra rewards
+    extraMaxChests: wavesCompleted,
   }
 }
 
