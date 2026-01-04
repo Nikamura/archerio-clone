@@ -65,6 +65,20 @@ export class SeededRandom {
   }
 
   /**
+   * Get current internal state (for serialization/restore)
+   */
+  getState(): number {
+    return this.seed
+  }
+
+  /**
+   * Set internal state (for deserialization/restore)
+   */
+  setState(state: number): void {
+    this.seed = state
+  }
+
+  /**
    * Mulberry32 PRNG - returns float in [0, 1)
    */
   random(): number {
