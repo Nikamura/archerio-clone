@@ -8,4 +8,6 @@ export { showNoEnergyModal, type NoEnergyModalConfig, type NoEnergyModalResult }
 export { showMockAdPopup, type MockAdPopupConfig, type MockAdPopupResult } from './MockAdPopup'
 export { createBottomNavBar, type NavItem, type BottomNavBarConfig, type BottomNavBarResult } from './BottomNavBar'
 export { createMoreDrawer, type DrawerItem, type MoreDrawerConfig, type MoreDrawerResult } from './MoreDrawer'
-export { createModeSelector, type GameMode, type ModeSelectorConfig, type ModeSelectorResult } from './ModeSelector'
+export { createModeSelector, type ModeSelectorConfig, type ModeSelectorResult } from './ModeSelector'
+export { createNavigationGrid, type NavGridItem, type NavigationGridConfig, type NavigationGridResult } from './NavigationGrid'
+export { createModeButtonBar, type GameMode, type ModeButtonBarConfig, type ModeButtonBarResult } from './ModeButtonBar'

@@ -39,6 +39,8 @@ export interface ThemeAssets {
   meowgikSprite: string
   bulletSprite: string
   menuBg: string
+  // Play button
+  playButton: string
   chapter1Bg: string
   chapter2Bg: string
   chapter3Bg: string
@@ -111,6 +113,7 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       meowgikSprite: 'meowgikSprite',
       bulletSprite: 'bulletSprite',
       menuBg: 'menuBg',
+      playButton: 'playButton_medieval',
       chapter1Bg: 'chapter1Bg',
       chapter2Bg: 'chapter2Bg',
       chapter3Bg: 'chapter3Bg',
@@ -168,6 +171,7 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       meowgikSprite: 'vaporwave_meowgikSprite',
       bulletSprite: 'vaporwave_bulletSprite',
       menuBg: 'vaporwave_menuBg',
+      playButton: 'playButton_vaporwave',
       chapter1Bg: 'vaporwave_chapter1Bg',
       chapter2Bg: 'vaporwave_chapter2Bg',
       chapter3Bg: 'vaporwave_chapter3Bg',
@@ -241,6 +245,7 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       meowgikSprite: 'lotr_meowgikSprite',
       bulletSprite: 'lotr_bulletSprite',
       menuBg: 'lotr_menuBg',
+      playButton: 'playButton_lotr',
       chapter1Bg: 'lotr_chapter1Bg',
       chapter2Bg: 'lotr_chapter2Bg',
       chapter3Bg: 'lotr_chapter3Bg',
@@ -314,6 +319,7 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       meowgikSprite: 'st_meowgikSprite',
       bulletSprite: 'st_bulletSprite',
       menuBg: 'st_menuBg',
+      playButton: 'playButton_st',
       chapter1Bg: 'st_chapter1Bg',
       chapter2Bg: 'st_chapter2Bg',
       chapter3Bg: 'st_chapter3Bg',

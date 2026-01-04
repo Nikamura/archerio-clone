@@ -1,9 +1,10 @@
 import Phaser from 'phaser'
 import { audioManager } from '../../systems/AudioManager'
+import { themeManager } from '../../systems/ThemeManager'
 import { applyButtonEffects } from '../../systems/UIAnimations'
 import { ChapterSelectPanel } from './ChapterSelectPanel'
 import { DifficultyPanel } from './DifficultyPanel'
-import { createModeSelector, GameMode } from '../../ui/components/ModeSelector'
+import { createModeButtonBar, GameMode } from '../../ui/components/ModeButtonBar'
 
 export interface PlaySectionConfig {
   scene: Phaser.Scene
@@ -21,7 +22,7 @@ export interface PlaySectionResult {
 }
 
 /**
- * PlaySection - Contains chapter selector, difficulty selector, mode selector, and PLAY button
+ * PlaySection - Contains mode buttons, chapter selector, difficulty selector, and PLAY button
  */
 export function createPlaySection(config: PlaySectionConfig): PlaySectionResult {
   const { scene, x, y, width, onPlay, depth = 10 } = config
@@ -31,47 +32,60 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
 
   let currentMode: GameMode = 'story'
 
-  // Chapter panel - directly visible
-  const chapterPanel = new ChapterSelectPanel({
+  // Mode button bar (Story | Endless | Daily)
+  const modeButtonBar = createModeButtonBar({
     scene,
     x: 0,
     y: 0,
-    width,
-  })
-  container.add(chapterPanel.getContainer())
-
-  // Difficulty panel - directly visible below chapters
-  const difficultyPanel = new DifficultyPanel({
-    scene,
-    x: 0,
-    y: 80,
-    game: scene.game,
-  })
-  container.add(difficultyPanel.getContainer())
-
-  // Mode selector - use absolute scene coordinates for dropdown positioning
-  const modeSelectorY = 150
-  const modeSelector = createModeSelector({
-    scene,
-    x: x, // Absolute scene X (PlaySection center)
-    y: y + modeSelectorY, // Absolute scene Y
     initialMode: 'story',
     onModeChange: (mode) => {
       currentMode = mode
     },
     depth,
   })
-  // Don't add to container - it's positioned absolutely on the scene
+  container.add(modeButtonBar.container)
 
-  // PLAY button (large and prominent)
-  const playButtonY = modeSelectorY + 70
-  const playButton = scene.add.text(0, playButtonY, 'PLAY', {
-    fontSize: '28px',
-    color: '#ffffff',
-    backgroundColor: '#4a9eff',
-    padding: { x: 60, y: 18 },
-    fontStyle: 'bold',
+  // Chapter panel - visible only in story mode
+  const chapterPanel = new ChapterSelectPanel({
+    scene,
+    x: 0,
+    y: 55,
+    width,
   })
+  container.add(chapterPanel.getContainer())
+
+  // Difficulty panel - below chapters
+  const difficultyPanel = new DifficultyPanel({
+    scene,
+    x: 0,
+    y: 130,
+    game: scene.game,
+  })
+  container.add(difficultyPanel.getContainer())
+
+  // Theme-aware PLAY button
+  const themeAssets = themeManager.getAssets()
+  const playButtonKey = themeAssets.playButton
+  const playButtonY = 200
+
+  // Check if texture exists, fallback to text button if not
+  let playButton: Phaser.GameObjects.Image | Phaser.GameObjects.Text
+
+  if (scene.textures.exists(playButtonKey)) {
+    playButton = scene.add.image(0, playButtonY, playButtonKey)
+    playButton.setDisplaySize(220, 66)
+  } else {
+    // Fallback to text-based button
+    const themeColors = themeManager.getColors()
+    playButton = scene.add.text(0, playButtonY, 'PLAY', {
+      fontSize: '32px',
+      color: '#ffffff',
+      backgroundColor: `#${themeColors.primaryButton.toString(16).padStart(6, '0')}`,
+      padding: { x: 70, y: 22 },
+      fontStyle: 'bold',
+    })
+  }
+
   playButton.setOrigin(0.5)
   playButton.setInteractive({ useHandCursor: true })
   container.add(playButton)
@@ -79,14 +93,6 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
   applyButtonEffects(scene, playButton, {
     scaleOnHover: 1.05,
     scaleOnPress: 0.95,
-  })
-
-  playButton.on('pointerover', () => {
-    playButton.setStyle({ backgroundColor: '#6bb6ff' })
-  })
-
-  playButton.on('pointerout', () => {
-    playButton.setStyle({ backgroundColor: '#4a9eff' })
   })
 
   playButton.on('pointerdown', () => {
@@ -99,7 +105,7 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
   const destroy = () => {
     chapterPanel.destroy()
     difficultyPanel.destroy()
-    modeSelector.destroy()
+    modeButtonBar.destroy()
     container.destroy()
   }
 

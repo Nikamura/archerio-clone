@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
 import { ChapterId } from '../config/chapterData'
-import { audioManager } from '../systems/AudioManager'
 import { saveManager } from '../systems/SaveManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { chapterManager } from '../systems/ChapterManager'
@@ -17,18 +16,13 @@ import {
   CurrencyBarResult,
   showNoEnergyModal,
   showMockAdPopup,
-  createBottomNavBar,
-  BottomNavBarResult,
-  createMoreDrawer,
-  MoreDrawerResult,
+  createNavigationGrid,
   GameMode,
 } from '../ui/components'
 import { createPlaySection } from './menus/PlaySection'
 
 export default class MainMenuScene extends Phaser.Scene {
   private currencyBar?: CurrencyBarResult
-  private bottomNavBar?: BottomNavBarResult
-  private moreDrawer?: MoreDrawerResult
 
   constructor() {
     super({ key: 'MainMenuScene' })
@@ -48,14 +42,11 @@ export default class MainMenuScene extends Phaser.Scene {
     // Header (currency + title + settings)
     this.createHeader(width)
 
-    // Play section (mode selector + collapsible chapter/difficulty + PLAY button)
+    // Play section (mode buttons + chapter/difficulty + PLAY button)
     this.createPlaySection(width)
 
-    // Bottom navigation bar
-    this.createBottomNavBar()
-
-    // More drawer (secondary navigation)
-    this.createMoreDrawer()
+    // Navigation grid (replaces bottom nav bar and more drawer)
+    this.createNavigationGrid(width, height)
 
     // Instructions footer
     this.createFooter(width, height)
@@ -108,25 +99,13 @@ export default class MainMenuScene extends Phaser.Scene {
       highScoreText.setDepth(10)
     }
 
-    // Settings button (top right)
-    const settingsBtn = this.add.text(width - 15, 55, '⚙️', {
-      fontSize: '24px',
-    })
-    settingsBtn.setOrigin(1, 0.5)
-    settingsBtn.setInteractive({ useHandCursor: true })
-    settingsBtn.setDepth(10)
-
-    settingsBtn.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      transitionToScene(this, 'SettingsScene', TransitionType.FADE, DURATION.FAST)
-    })
   }
 
   private createPlaySection(width: number) {
     createPlaySection({
       scene: this,
       x: width / 2,
-      y: 130,
+      y: 115,
       width,
       onPlay: (mode: GameMode) => {
         if (!this.trySpendEnergy()) return
@@ -142,49 +121,43 @@ export default class MainMenuScene extends Phaser.Scene {
     })
   }
 
-  private createBottomNavBar() {
+  private createNavigationGrid(width: number, height: number) {
     const chestCount = chestManager.getTotalChests()
-    const moreBadge = this.getMoreBadgeCount()
-
-    this.bottomNavBar = createBottomNavBar({
-      scene: this,
-      activeId: 'home',
-      items: [
-        { id: 'home', icon: '🏠', label: 'Home' },
-        { id: 'gear', icon: '⚔️', label: 'Gear', scene: 'EquipmentScene' },
-        { id: 'rewards', icon: '🎁', label: 'Rewards', scene: 'ChestScene', badge: chestCount },
-        { id: 'shop', icon: '🛒', label: 'Shop', scene: 'ShopScene' },
-        {
-          id: 'more',
-          icon: '•••',
-          label: 'More',
-          badge: moreBadge,
-          onClick: () => this.moreDrawer?.show(),
-        },
-      ],
-      depth: 50,
-    })
-  }
-
-  private createMoreDrawer() {
     const dailyBadge = dailyRewardManager.canClaimToday() ? 1 : 0
     const achieveBadge = achievementManager.getUnclaimedRewardsCount()
 
-    this.moreDrawer = createMoreDrawer({
+    createNavigationGrid({
       scene: this,
+      x: width / 2,
+      y: height - 170,
+      width,
       items: [
+        // Row 1
         { id: 'heroes', icon: '🦸', label: 'Heroes', scene: 'HeroesScene' },
+        { id: 'gear', icon: '⚔️', label: 'Gear', scene: 'EquipmentScene' },
         { id: 'talents', icon: '⭐', label: 'Talents', scene: 'TalentsScene' },
-        { id: 'daily', icon: '📅', label: 'Daily Rewards', scene: 'DailyRewardScene', badge: dailyBadge },
-        { id: 'achievements', icon: '🏆', label: 'Achievements', scene: 'AchievementsScene', badge: achieveBadge },
-        { id: 'guide', icon: '📖', label: 'Encyclopedia', scene: 'EncyclopediaScene' },
+        { id: 'rewards', icon: '🎁', label: 'Chests', scene: 'ChestScene', badge: chestCount },
+        { id: 'shop', icon: '🛒', label: 'Shop', scene: 'ShopScene' },
+        // Row 2
+        { id: 'daily', icon: '📅', label: 'Daily', scene: 'DailyRewardScene', badge: dailyBadge },
+        { id: 'achievements', icon: '🏆', label: 'Achieve', scene: 'AchievementsScene', badge: achieveBadge },
+        { id: 'guide', icon: '📖', label: 'Guide', scene: 'EncyclopediaScene' },
+        {
+          id: 'settings',
+          icon: '⚙️',
+          label: 'Settings',
+          onClick: () => {
+            transitionToScene(this, 'SettingsScene', TransitionType.FADE, DURATION.FAST)
+          },
+        },
       ],
+      columns: 5,
+      depth: 10,
     })
   }
 
   private createFooter(width: number, height: number) {
-    const navBarHeight = this.bottomNavBar?.getHeight() ?? 60
-    const instructionsText = this.add.text(width / 2, height - navBarHeight - 15, 'Move to dodge • Stop to shoot', {
+    const instructionsText = this.add.text(width / 2, height - 8, 'Move to dodge • Stop to shoot', {
       fontSize: '11px',
       color: '#666666',
       stroke: '#000000',
@@ -192,12 +165,6 @@ export default class MainMenuScene extends Phaser.Scene {
     })
     instructionsText.setOrigin(0.5)
     instructionsText.setDepth(10)
-  }
-
-  private getMoreBadgeCount(): number {
-    const daily = dailyRewardManager.canClaimToday() ? 1 : 0
-    const achieve = achievementManager.getUnclaimedRewardsCount()
-    return daily + achieve
   }
 
   private trySpendEnergy(): boolean {

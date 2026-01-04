@@ -380,6 +380,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('themePreview_lotr', 'assets/ui/theme_previews/lotr.jpg')
     this.load.image('themePreview_strangerThings', 'assets/ui/theme_previews/strangerThings.jpg')
 
+    // Load theme-specific play buttons
+    this.load.image('playButton_medieval', 'assets/sprites/ui/play_button_medieval.png')
+    this.load.image('playButton_vaporwave', 'assets/sprites/ui/play_button_vaporwave.png')
+    this.load.image('playButton_lotr', 'assets/sprites/ui/play_button_lotr.png')
+    this.load.image('playButton_st', 'assets/sprites/ui/play_button_st.png')
+
     // Load equipment sprites
     // Weapons
     this.load.image('equip_brave_bow', 'assets/sprites/equipment/weapon/brave_bow.png')
