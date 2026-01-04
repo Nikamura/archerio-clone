@@ -32,9 +32,18 @@ export default class Joystick {
   private onEnd: (() => void) | null = null
   private isVisible: boolean = true
   private isCreated: boolean = false
+  private isBlockedAtPoint: ((x: number, y: number) => boolean) | null = null
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
+  }
+
+  /**
+   * Set a callback to check if joystick creation should be blocked at a point.
+   * Used to prevent joystick activation when tapping on walls.
+   */
+  setBlockedAtPointCallback(callback: (x: number, y: number) => boolean): void {
+    this.isBlockedAtPoint = callback
   }
 
   create(_container: HTMLElement) {
@@ -70,6 +79,11 @@ export default class Joystick {
 
       // Only activate if no joystick is currently active
       if (this.isActive) return
+
+      // Check if the touch point is blocked (e.g., on a wall)
+      if (this.isBlockedAtPoint && this.isBlockedAtPoint(pointer.x, pointer.y)) {
+        return
+      }
 
       this.isActive = true
       this.pointerId = pointer.id

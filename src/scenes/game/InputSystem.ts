@@ -245,6 +245,16 @@ export class InputSystem {
   }
 
   /**
+   * Set a callback to check if joystick creation should be blocked at a point.
+   * Used to prevent joystick activation when tapping on walls.
+   */
+  setBlockedAtPointCallback(callback: (x: number, y: number) => boolean): void {
+    if (this.joystick) {
+      this.joystick.setBlockedAtPointCallback(callback)
+    }
+  }
+
+  /**
    * Destroy the input system and cleanup resources
    */
   destroy(): void {

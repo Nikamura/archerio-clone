@@ -182,4 +182,17 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   getWalls(): Wall[] {
     return this.walls
   }
+
+  /**
+   * Check if a point is inside any wall
+   * Used to prevent joystick creation on wall areas
+   */
+  containsPoint(x: number, y: number): boolean {
+    for (const wall of this.walls) {
+      if (wall.containsPoint(x, y)) {
+        return true
+      }
+    }
+    return false
+  }
 }

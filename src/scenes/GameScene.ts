@@ -519,6 +519,12 @@ export default class GameScene extends Phaser.Scene {
       joystickContainer: gameContainer ?? undefined,
     })
 
+    // Wire up wall collision check for joystick
+    // Prevents joystick from being created when tapping on walls
+    this.inputSystem.setBlockedAtPointCallback((x, y) => {
+      return this.wallGroup.containsPoint(x, y)
+    })
+
     // Initialize combat system (handles collisions and damage calculations)
     this.combatSystem = new CombatSystem({
       scene: this,
