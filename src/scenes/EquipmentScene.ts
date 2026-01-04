@@ -843,12 +843,104 @@ export default class EquipmentScene extends Phaser.Scene {
 
     if (result.success) {
       audioManager.playLevelUp()
-      // Show the highest rarity result item
-      const bestResult = result.results.reduce((best, item) =>
-        item.rarity > best.rarity ? item : best
-      )
-      this.showDetailPanel(bestResult, false)
+      // Show all fusion results in a popup
+      this.showFusionResultsPopup(result.results)
     }
+  }
+
+  /**
+   * Show a popup displaying all fusion result items
+   */
+  private showFusionResultsPopup(items: Equipment[]): void {
+    this.hideDetailPanel()
+
+    const { width, height } = this.cameras.main
+    const panelWidth = width - 40
+
+    // Calculate panel height based on number of items (row of 4)
+    const rows = Math.ceil(items.length / 4)
+    const itemSize = 60
+    const itemGap = 10
+    const headerHeight = 50
+    const panelHeight = headerHeight + (rows * (itemSize + itemGap)) + 40
+
+    this.detailPanel = this.add.container(width / 2, height / 2)
+    this.detailPanel.setDepth(100)
+
+    // Backdrop
+    const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
+    backdrop.setInteractive()
+    backdrop.on('pointerdown', () => this.hideDetailPanel())
+    this.detailPanel.add(backdrop)
+
+    // Panel background
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 1)
+    bg.setStrokeStyle(3, 0x9966ff) // Purple border for fusion
+    this.detailPanel.add(bg)
+
+    // Title
+    const title = this.add
+      .text(0, -panelHeight / 2 + 25, `Fusion Complete! (${items.length} items)`, {
+        fontSize: '18px',
+        color: '#9966ff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+    this.detailPanel.add(title)
+
+    // Display items in a grid
+    const cols = 4
+    const startX = -((Math.min(items.length, cols) - 1) * (itemSize + itemGap)) / 2
+    const startY = -panelHeight / 2 + headerHeight + itemSize / 2 + 10
+
+    items.forEach((item, index) => {
+      const col = index % cols
+      const row = Math.floor(index / cols)
+      const x = startX + col * (itemSize + itemGap)
+      const y = startY + row * (itemSize + itemGap)
+
+      const rarityConfig = RARITY_CONFIGS[item.rarity]
+      const rarityColor = Phaser.Display.Color.HexStringToColor(rarityConfig.color)
+
+      // Item slot background
+      const slotBg = this.add.rectangle(x, y, itemSize, itemSize, 0x2a2a3e)
+      slotBg.setStrokeStyle(2, rarityColor.color)
+      this.detailPanel!.add(slotBg)
+
+      // Item sprite
+      const sprite = this.add.image(x, y, `equip_${item.type}`)
+      sprite.setDisplaySize(itemSize - 10, itemSize - 10)
+      this.detailPanel!.add(sprite)
+
+      // Rarity name below
+      const rarityText = this.add
+        .text(x, y + itemSize / 2 + 8, rarityConfig.name, {
+          fontSize: '10px',
+          color: rarityConfig.color,
+        })
+        .setOrigin(0.5)
+      this.detailPanel!.add(rarityText)
+
+      // Make item clickable to show details
+      slotBg.setInteractive({ useHandCursor: true })
+      slotBg.on('pointerdown', () => {
+        this.showDetailPanel(item, false)
+      })
+    })
+
+    // OK button
+    const okBtn = this.add
+      .text(0, panelHeight / 2 - 25, 'OK', {
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#4a4a6a',
+        padding: { x: 30, y: 8 },
+      })
+      .setOrigin(0.5)
+    okBtn.setInteractive({ useHandCursor: true })
+    okBtn.on('pointerdown', () => this.hideDetailPanel())
+    UIAnimations.applyButtonEffects(this, okBtn)
+    this.detailPanel.add(okBtn)
   }
 
   private updateFusionButton(): void {
