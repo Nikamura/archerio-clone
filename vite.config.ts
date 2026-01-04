@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// Use root path for Netlify, '/archerio-clone/' for GitHub Pages
-const base = process.env.NETLIFY ? '/' : '/archerio-clone/'
+// Use root path for Netlify and Capacitor, '/archerio-clone/' for GitHub Pages
+const base = process.env.NETLIFY || process.env.CAPACITOR ? '/' : '/archerio-clone/'
 
 export default defineConfig({
   base,

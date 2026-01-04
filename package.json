@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:capacitor": "CAPACITOR=true tsc && CAPACITOR=true vite build",
     "preview": "vite preview",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
@@ -16,13 +17,25 @@
     "generate-image": "tsx scripts/generate-image.ts",
     "generate-sprite": "tsx scripts/generate-sprite.ts",
     "remove-bg": "tsx scripts/remove-background.ts",
-    "optimize-assets": "tsx scripts/optimize-assets.ts"
+    "optimize-assets": "tsx scripts/optimize-assets.ts",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:sync": "pnpm run build:capacitor && cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "cap run ios",
+    "cap:run:android": "cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@sentry/browser": "^10.32.1",
     "phaser": "^3.80.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
     "@eslint/js": "^9.39.2",
     "@types/node": "^20.11.5",
     "@types/sharp": "^0.32.0",

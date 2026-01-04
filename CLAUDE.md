@@ -265,6 +265,63 @@ hapticManager.pattern('levelUp')  // Special patterns
 
 **Virtual Joystick**: Native Phaser joystick spawns at touch point on left 60% of screen
 
+## Capacitor (Native Mobile Apps)
+
+The game supports deployment as native iOS and Android apps via Capacitor. This enables proper native haptic feedback and app store distribution.
+
+### Capacitor Commands
+
+```bash
+# Build for Capacitor (uses base path '/')
+pnpm run build:capacitor
+
+# Sync web assets to native projects
+pnpm run cap:sync
+
+# Open native IDE
+pnpm run cap:open:ios      # Opens Xcode
+pnpm run cap:open:android  # Opens Android Studio
+
+# Run on device/simulator
+pnpm run cap:run:ios
+pnpm run cap:run:android
+
+# Add platforms (already done)
+pnpm run cap:add:ios
+pnpm run cap:add:android
+```
+
+### Haptic Feedback with Capacitor
+
+The `HapticManager` automatically detects if running as a native app and uses Capacitor Haptics for proper native vibration:
+
+```typescript
+import { hapticManager } from '../systems/HapticManager'
+
+// These work on both web and native
+hapticManager.light()    // ImpactStyle.Light on native
+hapticManager.medium()   // ImpactStyle.Medium on native
+hapticManager.heavy()    // ImpactStyle.Heavy on native
+hapticManager.levelUp()  // NotificationType.Success on native
+hapticManager.death()    // NotificationType.Error on native
+
+// Check platform
+hapticManager.isNative   // true if running in Capacitor
+```
+
+### Development Workflow
+
+1. **Web development**: Use `pnpm run dev` as normal
+2. **Native testing**: Run `pnpm run cap:sync` then open in Xcode/Android Studio
+3. **Live reload**: Uncomment the `server.url` in `capacitor.config.ts` with your dev server IP
+
+### Native Project Locations
+
+- **iOS**: `ios/` - Open with Xcode
+- **Android**: `android/` - Open with Android Studio
+
+Both directories are committed to git. Platform-specific build artifacts are gitignored.
+
 ## Asset Generation
 
 ```bash
