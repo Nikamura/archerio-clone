@@ -368,6 +368,7 @@ Visual test screenshots are saved to `test/screenshots/`
 14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
 15. **Duplicate item attributes not combined** - Equipment displays same attribute multiple times (e.g., "Dodge 5%, Dodge 1%") instead of combining into single value ("Dodge 6%")
 16. **Joystick not working when created on wall** - Joystick fails to respond when player taps on a wall area to create it
+17. **Dodge display exceeds 5% cap** - UI shows dodge values above the 5% limit (e.g., "6% dodge") even though actual dodge is capped at 5%
 
 **BALANCE:**
 1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness

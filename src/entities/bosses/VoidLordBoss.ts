@@ -381,6 +381,7 @@ export default class VoidLordBoss extends BaseBoss {
     }
 
     if (elapsed > 1500) {
+      this.isPhaseShifting = false // Reset invincibility when phase shift ends
       this.finishAttack(time)
     }
   }
