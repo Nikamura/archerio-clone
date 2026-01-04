@@ -315,6 +315,10 @@ export default class SpawnerEnemy extends Enemy {
     this.scene.add.existing(minion)
     this.scene.physics.add.existing(minion)
 
+    // Ensure minion is properly activated for lightning chain targeting
+    minion.setActive(true)
+    minion.setVisible(true)
+
     // Set wall group for pathfinding (inherited from spawner)
     if (this.wallGroup) {
       minion.setWallGroup(this.wallGroup)

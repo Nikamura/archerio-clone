@@ -527,7 +527,7 @@ export class CombatSystem {
    * Apply lightning chain effect to nearby enemies
    */
   applyLightningChain(source: Enemy, damage: number, chainCount: number): void {
-    const maxChainDistance = 150
+    const maxChainDistance = 250 // Increased from 150 to better catch minions
 
     // Find nearby enemies excluding the source
     const nearbyEnemies: Enemy[] = []
@@ -550,10 +550,17 @@ export class CombatSystem {
 
     const targets = nearbyEnemies.slice(0, chainCount)
 
-    // Apply damage to each target
+    // Apply damage to each target with visual feedback
     targets.forEach((target) => {
       if (!target.active || !target.scene) return
 
+      // Draw lightning line from source to target
+      this.drawLightningLine(source.x, source.y, target.x, target.y)
+
+      // Show particle effect at target
+      this.particles.emitHit(target.x, target.y)
+
+      // Apply damage
       const killed = target.takeDamage(Math.floor(damage))
 
       if (killed) {
@@ -698,6 +705,40 @@ export class CombatSystem {
     })
 
     return nearest
+  }
+
+  /**
+   * Draw a lightning effect line between two points
+   */
+  private drawLightningLine(x1: number, y1: number, x2: number, y2: number): void {
+    const graphics = this.scene.add.graphics()
+    graphics.lineStyle(3, 0x8888ff, 1) // Light blue/purple
+
+    // Draw slightly jagged line for lightning effect
+    const segments = 4
+    const dx = (x2 - x1) / segments
+    const dy = (y2 - y1) / segments
+
+    graphics.beginPath()
+    graphics.moveTo(x1, y1)
+
+    for (let i = 1; i < segments; i++) {
+      // Add some randomness to middle points
+      const offsetX = (Math.random() - 0.5) * 10
+      const offsetY = (Math.random() - 0.5) * 10
+      graphics.lineTo(x1 + dx * i + offsetX, y1 + dy * i + offsetY)
+    }
+
+    graphics.lineTo(x2, y2)
+    graphics.strokePath()
+
+    // Fade out and destroy
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => graphics.destroy(),
+    })
   }
 }
 

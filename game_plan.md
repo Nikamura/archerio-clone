@@ -372,7 +372,7 @@ Visual test screenshots are saved to `test/screenshots/`
 18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
 19. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
 20. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
-21. **Lightning ability doesn't attack surrounding minions** - Lightning Chain ability should jump to nearby enemies but doesn't seem to be targeting/damaging them
+21. ✅ **Lightning ability doesn't attack surrounding minions** - Fixed: Increased chain range from 150px to 250px, added visual lightning line effect, ensured minions are properly initialized with setActive(true)
 
 **BALANCE:**
 1. ✅ **Nerf Dodge** - Fixed: Cap reduced from 5% to 3% (MAX_DODGE_CHANCE)
