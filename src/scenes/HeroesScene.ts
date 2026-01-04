@@ -2,9 +2,12 @@ import Phaser from 'phaser'
 import { heroManager } from '../systems/HeroManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
+import { equipmentManager } from '../systems/EquipmentManager'
+import { talentManager } from '../systems/TalentManager'
 import { HERO_DEFINITIONS, HERO_MAX_LEVEL, getHeroXPThreshold, type HeroId } from '../config/heroData'
 import type { HeroState } from '../systems/Hero'
 import { createBackButton } from '../ui/components/BackButton'
+import * as UIAnimations from '../systems/UIAnimations'
 
 /**
  * HeroesScene - Displays hero selection and unlock interface
@@ -12,6 +15,7 @@ import { createBackButton } from '../ui/components/BackButton'
 export default class HeroesScene extends Phaser.Scene {
   private heroCards: Phaser.GameObjects.Container[] = []
   private goldText?: Phaser.GameObjects.Text
+  private statsPanel?: Phaser.GameObjects.Container
 
   constructor() {
     super({ key: 'HeroesScene' })
@@ -52,6 +56,25 @@ export default class HeroesScene extends Phaser.Scene {
         color: '#FFD700',
       })
       .setOrigin(0.5)
+
+    // Stats button (top-right)
+    const statsBtn = this.add.container(width - 50, 35)
+    const statsBg = this.add.rectangle(0, 0, 70, 30, 0x4a6fa5)
+    statsBg.setStrokeStyle(1, 0x6b9fff)
+    statsBg.setInteractive({ useHandCursor: true })
+    const statsText = this.add.text(0, 0, 'STATS', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    statsBtn.add([statsBg, statsText])
+
+    statsBg.on('pointerover', () => statsBg.setFillStyle(0x5a7fb5))
+    statsBg.on('pointerout', () => statsBg.setFillStyle(0x4a6fa5))
+    statsBg.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.showStatsPanel()
+    })
   }
 
   private createHeroCards(width: number, _height: number): void {
@@ -369,6 +392,233 @@ export default class HeroesScene extends Phaser.Scene {
       backgroundColor: 0x555555,
       hoverColor: 0x666666,
       fontSize: '18px',
+    })
+  }
+
+  // ============================================
+  // Stats Summary Panel
+  // ============================================
+
+  private showStatsPanel(): void {
+    if (this.statsPanel) return
+
+    const { width, height } = this.cameras.main
+    this.statsPanel = this.add.container(width / 2, height / 2)
+    this.statsPanel.setDepth(100)
+
+    // Backdrop
+    const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.8)
+    backdrop.setInteractive()
+    backdrop.on('pointerdown', () => this.hideStatsPanel())
+    this.statsPanel.add(backdrop)
+
+    // Panel
+    const panelWidth = width - 30
+    const panelHeight = 480
+    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x2a2a40, 1)
+    panel.setStrokeStyle(2, 0x4a4a6a)
+    this.statsPanel.add(panel)
+
+    // Title
+    const title = this.add.text(0, -panelHeight / 2 + 20, 'STATS SUMMARY', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    this.statsPanel.add(title)
+
+    // Get stats from all sources
+    const heroStats = heroManager.getSelectedHeroStats()
+    const equipStats = equipmentManager.getEquippedStats()
+    const talentBonuses = talentManager.calculateTotalBonuses()
+
+    // Equipment stat multiplier from talents
+    const equipMultiplier = 1 + (talentBonuses.percentEquipmentStats / 100)
+
+    let y = -panelHeight / 2 + 55
+
+    // Section: Attack
+    y = this.addStatSection(y, panelWidth, 'ATTACK', [
+      {
+        label: 'Attack Damage',
+        hero: heroStats.attack,
+        equip: (equipStats.attackDamage ?? 0) * equipMultiplier,
+        talent: talentBonuses.flatAttack,
+        percent: equipStats.attackDamagePercent,
+      },
+      {
+        label: 'Attack Speed',
+        hero: heroStats.attackSpeed,
+        equip: (equipStats.attackSpeed ?? 0) * equipMultiplier,
+        talent: 0,
+        percent: (equipStats.attackSpeedPercent ?? 0) + (talentBonuses.percentAttackSpeed / 100),
+        decimals: 2,
+      },
+      {
+        label: 'Crit Chance',
+        hero: heroStats.critChance * 100,
+        equip: ((equipStats.critChance ?? 0) * equipMultiplier) * 100,
+        talent: talentBonuses.percentCritChance,
+        suffix: '%',
+      },
+      {
+        label: 'Crit Damage',
+        hero: heroStats.critDamage * 100,
+        equip: ((equipStats.critDamage ?? 0) * equipMultiplier) * 100,
+        suffix: '%',
+      },
+    ])
+
+    // Section: Defense
+    y = this.addStatSection(y + 10, panelWidth, 'DEFENSE', [
+      {
+        label: 'Max Health',
+        hero: heroStats.maxHealth,
+        equip: (equipStats.maxHealth ?? 0) * equipMultiplier,
+        talent: talentBonuses.flatHp,
+        percent: equipStats.maxHealthPercent,
+      },
+      {
+        label: 'Damage Reduction',
+        hero: 0,
+        equip: (equipStats.damageReduction ?? 0) * equipMultiplier,
+        talent: 0,
+        percent: (equipStats.damageReductionPercent ?? 0) + (talentBonuses.percentDamageReduction / 100),
+      },
+      {
+        label: 'Dodge Chance',
+        hero: 0,
+        equip: Math.min(3, ((equipStats.dodgeChance ?? 0) * equipMultiplier) * 100),
+        suffix: '%',
+        note: '(max 3%)',
+      },
+    ])
+
+    // Section: Utility
+    y = this.addStatSection(y + 10, panelWidth, 'UTILITY', [
+      {
+        label: 'Bonus XP',
+        hero: 0,
+        equip: ((equipStats.bonusXPPercent ?? 0) * equipMultiplier) * 100,
+        suffix: '%',
+      },
+      {
+        label: 'Gold Bonus',
+        hero: 0,
+        equip: ((equipStats.goldBonusPercent ?? 0) * equipMultiplier) * 100,
+        suffix: '%',
+      },
+    ])
+
+    // Talent Equipment Bonus note
+    if (talentBonuses.percentEquipmentStats > 0) {
+      const noteText = this.add.text(0, y + 25, `* Equipment stats boosted by ${talentBonuses.percentEquipmentStats}% from talents`, {
+        fontSize: '10px',
+        color: '#88cc88',
+      }).setOrigin(0.5)
+      this.statsPanel.add(noteText)
+    }
+
+    // Close hint
+    const closeHint = this.add.text(0, panelHeight / 2 - 25, 'TAP TO CLOSE', {
+      fontSize: '11px',
+      color: '#888888',
+    }).setOrigin(0.5)
+    this.statsPanel.add(closeHint)
+
+    // Animate in
+    UIAnimations.showModal(this, this.statsPanel)
+  }
+
+  private addStatSection(
+    startY: number,
+    panelWidth: number,
+    sectionTitle: string,
+    stats: Array<{
+      label: string
+      hero: number
+      equip?: number
+      talent?: number
+      percent?: number
+      suffix?: string
+      note?: string
+      decimals?: number
+    }>
+  ): number {
+    if (!this.statsPanel) return startY
+
+    const leftX = -panelWidth / 2 + 15
+    let y = startY
+
+    // Section header
+    const header = this.add.text(leftX, y, sectionTitle, {
+      fontSize: '12px',
+      color: '#ffdd00',
+      fontStyle: 'bold',
+    }).setOrigin(0, 0.5)
+    this.statsPanel.add(header)
+    y += 18
+
+    // Stats rows
+    for (const stat of stats) {
+      const decimals = stat.decimals ?? 0
+      const suffix = stat.suffix ?? ''
+      const hero = stat.hero
+      const equip = stat.equip ?? 0
+      const talent = stat.talent ?? 0
+      const percent = stat.percent ?? 0
+
+      // Calculate total
+      const baseTotal = hero + equip + talent
+      const total = baseTotal * (1 + percent)
+
+      // Format total
+      const totalStr = decimals > 0 ? total.toFixed(decimals) : Math.round(total).toString()
+
+      // Row: Label
+      const labelText = this.add.text(leftX, y, stat.label, {
+        fontSize: '11px',
+        color: '#aaaaaa',
+      }).setOrigin(0, 0.5)
+      this.statsPanel.add(labelText)
+
+      // Row: Total value
+      const totalText = this.add.text(leftX + 100, y, `${totalStr}${suffix}`, {
+        fontSize: '11px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5)
+      this.statsPanel.add(totalText)
+
+      // Row: Breakdown
+      const parts: string[] = []
+      if (hero > 0) parts.push(`H:${decimals > 0 ? hero.toFixed(decimals) : Math.round(hero)}`)
+      if (equip > 0) parts.push(`E:${decimals > 0 ? equip.toFixed(decimals) : Math.round(equip)}`)
+      if (talent > 0) parts.push(`T:${Math.round(talent)}`)
+      if (percent > 0) parts.push(`+${Math.round(percent * 100)}%`)
+
+      const breakdownStr = parts.length > 0 ? `(${parts.join(' + ')})` : ''
+      const breakdownText = this.add.text(leftX + 150, y, breakdownStr + (stat.note ?? ''), {
+        fontSize: '9px',
+        color: '#666666',
+      }).setOrigin(0, 0.5)
+      this.statsPanel.add(breakdownText)
+
+      y += 16
+    }
+
+    return y
+  }
+
+  private hideStatsPanel(): void {
+    if (!this.statsPanel) return
+
+    audioManager.playMenuSelect()
+    UIAnimations.hideModal(this, this.statsPanel, UIAnimations.DURATION.FAST, () => {
+      if (this.statsPanel) {
+        this.statsPanel.destroy()
+        this.statsPanel = undefined
+      }
     })
   }
 }
