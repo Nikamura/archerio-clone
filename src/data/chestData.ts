@@ -328,3 +328,69 @@ export function rollChestRarity(chestType: ChestType): Rarity {
   // Fallback to common (should never reach here)
   return Rarity.COMMON
 }
+
+// ============================================
+// Currency Rewards from Chests
+// ============================================
+
+interface CurrencyDropConfig {
+  chance: number // 0-1 (e.g., 0.6 = 60%)
+  min: number
+  max: number
+}
+
+/**
+ * Currency reward configuration for each chest type
+ */
+export const CHEST_CURRENCY_REWARDS: Record<ChestType, {
+  gold: CurrencyDropConfig
+  gems: CurrencyDropConfig
+}> = {
+  wooden: {
+    gold: { chance: 0.6, min: 20, max: 50 },
+    gems: { chance: 0, min: 0, max: 0 }, // No gems from wooden
+  },
+  silver: {
+    gold: { chance: 0.75, min: 50, max: 100 },
+    gems: { chance: 0.001, min: 1, max: 2 }, // 0.1% chance
+  },
+  golden: {
+    gold: { chance: 0.9, min: 100, max: 200 },
+    gems: { chance: 0.01, min: 1, max: 2 }, // 1% chance
+  },
+}
+
+/**
+ * Currency rewards result
+ */
+export interface ChestCurrencyRewards {
+  gold: number
+  gems: number
+}
+
+/**
+ * Roll for currency rewards when opening a chest
+ *
+ * @param chestType - Type of chest being opened
+ * @returns Gold and gems awarded (can be 0 for either)
+ */
+export function rollChestCurrencyRewards(chestType: ChestType): ChestCurrencyRewards {
+  const config = CHEST_CURRENCY_REWARDS[chestType]
+  const rewards: ChestCurrencyRewards = { gold: 0, gems: 0 }
+
+  // Roll for gold
+  if (Math.random() < config.gold.chance) {
+    rewards.gold = Math.floor(
+      Math.random() * (config.gold.max - config.gold.min + 1) + config.gold.min
+    )
+  }
+
+  // Roll for gems (very rare)
+  if (Math.random() < config.gems.chance) {
+    rewards.gems = Math.floor(
+      Math.random() * (config.gems.max - config.gems.min + 1) + config.gems.min
+    )
+  }
+
+  return rewards
+}

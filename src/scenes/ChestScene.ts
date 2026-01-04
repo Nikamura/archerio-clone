@@ -9,8 +9,9 @@
  */
 
 import Phaser from 'phaser'
-import { ChestType, CHEST_CONFIGS, CHEST_ORDER, rollChestRarity } from '../data/chestData'
+import { ChestType, CHEST_CONFIGS, CHEST_ORDER, rollChestRarity, rollChestCurrencyRewards, ChestCurrencyRewards } from '../data/chestData'
 import { chestManager } from '../systems/ChestManager'
+import { currencyManager } from '../systems/CurrencyManager'
 import { equipmentManager } from '../systems/EquipmentManager'
 import { Equipment, Rarity, RARITY_CONFIGS, EquipmentStats, PerkId } from '../systems/Equipment'
 import { PERKS } from '../config/equipmentData'
@@ -303,11 +304,22 @@ export default class ChestScene extends Phaser.Scene {
     const rarity = rollChestRarity(chestType)
     const equipment = equipmentManager.generateRandomEquipment(rarity)
 
+    // Roll for currency rewards
+    const currencyRewards = rollChestCurrencyRewards(chestType)
+
+    // Award currency immediately
+    if (currencyRewards.gold > 0) {
+      currencyManager.add('gold', currencyRewards.gold)
+    }
+    if (currencyRewards.gems > 0) {
+      currencyManager.add('gems', currencyRewards.gems)
+    }
+
     // Play opening animation
-    this.playChestOpenAnimation(chestType, equipment)
+    this.playChestOpenAnimation(chestType, equipment, currencyRewards)
   }
 
-  private playChestOpenAnimation(chestType: ChestType, equipment: Equipment): void {
+  private playChestOpenAnimation(chestType: ChestType, equipment: Equipment, currencyRewards: ChestCurrencyRewards): void {
     const { width, height } = this.cameras.main
     const config = CHEST_CONFIGS[chestType]
 
@@ -376,7 +388,7 @@ export default class ChestScene extends Phaser.Scene {
 
         // Show equipment reveal after delay
         this.time.delayedCall(400, () => {
-          this.showEquipmentReveal(equipment, overlay)
+          this.showEquipmentReveal(equipment, overlay, currencyRewards)
         })
       },
     })
@@ -414,10 +426,14 @@ export default class ChestScene extends Phaser.Scene {
     })
   }
 
-  private showEquipmentReveal(equipment: Equipment, overlay: Phaser.GameObjects.Rectangle): void {
+  private showEquipmentReveal(equipment: Equipment, overlay: Phaser.GameObjects.Rectangle, currencyRewards?: ChestCurrencyRewards): void {
     const { width, height } = this.cameras.main
     const rarityConfig = RARITY_CONFIGS[equipment.rarity]
     const rarityColor = Phaser.Display.Color.HexStringToColor(rarityConfig.color).color
+
+    // Adjust card height if currency rewards are present
+    const hasCurrency = currencyRewards && (currencyRewards.gold > 0 || currencyRewards.gems > 0)
+    const cardHeight = hasCurrency ? 400 : 360
 
     this.revealContainer = this.add.container(width / 2, height / 2)
     this.revealContainer.setDepth(104)
@@ -426,7 +442,6 @@ export default class ChestScene extends Phaser.Scene {
 
     // Card background
     const cardWidth = 280
-    const cardHeight = 360
     const card = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x1a1a2e, 1)
     card.setStrokeStyle(4, rarityColor)
     this.revealContainer.add(card)
@@ -528,6 +543,45 @@ export default class ChestScene extends Phaser.Scene {
       })
     }
 
+    // Currency rewards display (if any)
+    if (hasCurrency && currencyRewards) {
+      const currencyY = cardHeight / 2 - 90
+      const currencyContainer = this.add.container(0, currencyY)
+      this.revealContainer.add(currencyContainer)
+
+      // Background for currency row
+      const currencyBg = this.add.rectangle(0, 0, cardWidth - 40, 30, 0x2d2d44, 1)
+      currencyBg.setStrokeStyle(1, 0x444466)
+      currencyContainer.add(currencyBg)
+
+      // Build currency display text parts
+      const currencyParts: string[] = []
+
+      if (currencyRewards.gold > 0) {
+        currencyParts.push(`💰+${currencyRewards.gold}`)
+      }
+      if (currencyRewards.gems > 0) {
+        currencyParts.push(`💎+${currencyRewards.gems}`)
+      }
+
+      const currencyText = this.add.text(0, 0, currencyParts.join('  '), {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5)
+      currencyContainer.add(currencyText)
+
+      // Animate currency appearing with bounce
+      currencyContainer.setScale(0)
+      this.tweens.add({
+        targets: currencyContainer,
+        scale: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+        delay: 200,
+      })
+    }
+
     // Buttons
     const buttonY = cardHeight / 2 - 50
 
@@ -621,20 +675,36 @@ export default class ChestScene extends Phaser.Scene {
     audioManager.playLevelUp()
 
     const items: Equipment[] = []
+    const totalCurrency: ChestCurrencyRewards = { gold: 0, gems: 0 }
+
     for (let i = 0; i < count; i++) {
       chestManager.removeChest(chestType)
       const rarity = rollChestRarity(chestType)
       // generateRandomEquipment already adds to inventory via createEquipment
       const equipment = equipmentManager.generateRandomEquipment(rarity)
       items.push(equipment)
+
+      // Roll currency for each chest
+      const currencyRewards = rollChestCurrencyRewards(chestType)
+      totalCurrency.gold += currencyRewards.gold
+      totalCurrency.gems += currencyRewards.gems
     }
 
-    this.showBulkReveal(items, chestType)
+    // Award total currency
+    if (totalCurrency.gold > 0) {
+      currencyManager.add('gold', totalCurrency.gold)
+    }
+    if (totalCurrency.gems > 0) {
+      currencyManager.add('gems', totalCurrency.gems)
+    }
+
+    this.showBulkReveal(items, chestType, totalCurrency)
   }
 
-  private showBulkReveal(items: Equipment[], chestType: ChestType): void {
+  private showBulkReveal(items: Equipment[], chestType: ChestType, currencyRewards?: ChestCurrencyRewards): void {
     const { width, height } = this.cameras.main
     const config = CHEST_CONFIGS[chestType]
+    const hasCurrency = currencyRewards && (currencyRewards.gold > 0 || currencyRewards.gems > 0)
 
     // Create overlay
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0)
@@ -651,9 +721,9 @@ export default class ChestScene extends Phaser.Scene {
     this.bulkRevealContainer.setScale(0.8)
     this.bulkRevealContainer.setAlpha(0)
 
-    // Background panel
+    // Background panel - slightly taller if currency rewards
     const panelWidth = 320
-    const panelHeight = 480
+    const panelHeight = hasCurrency ? 520 : 480
     const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1a1a2e, 1)
     panel.setStrokeStyle(3, Phaser.Display.Color.HexStringToColor(config.color).color)
     this.bulkRevealContainer.add(panel)
@@ -672,9 +742,52 @@ export default class ChestScene extends Phaser.Scene {
     const divider = this.add.rectangle(0, -panelHeight / 2 + 65, panelWidth - 40, 2, 0x444444)
     this.bulkRevealContainer.add(divider)
 
+    // Currency rewards display (if any)
+    let currencyOffset = 0
+    if (hasCurrency && currencyRewards) {
+      currencyOffset = 35
+      const currencyY = -panelHeight / 2 + 90
+      const currencyContainer = this.add.container(0, currencyY)
+      this.bulkRevealContainer.add(currencyContainer)
+
+      // "Also received:" label
+      const labelText = this.add.text(0, -8, 'Also received:', {
+        fontSize: '12px',
+        color: '#aaaaaa',
+      }).setOrigin(0.5)
+      currencyContainer.add(labelText)
+
+      // Build currency display text parts
+      const currencyParts: string[] = []
+
+      if (currencyRewards.gold > 0) {
+        currencyParts.push(`💰+${currencyRewards.gold}`)
+      }
+      if (currencyRewards.gems > 0) {
+        currencyParts.push(`💎+${currencyRewards.gems}`)
+      }
+
+      const currencyText = this.add.text(0, 12, currencyParts.join('  '), {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5)
+      currencyContainer.add(currencyText)
+
+      // Animate currency appearing
+      currencyContainer.setScale(0)
+      this.tweens.add({
+        targets: currencyContainer,
+        scale: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+        delay: 100,
+      })
+    }
+
     // Scrollable grid area
-    const gridTop = -panelHeight / 2 + 80
-    const gridHeight = 320
+    const gridTop = -panelHeight / 2 + 80 + currencyOffset
+    const gridHeight = 320 - (hasCurrency ? 0 : 0)
     const gridWidth = panelWidth - 40
 
     // Create mask for scrolling (GeometryMask requires Graphics, not Rectangle)
