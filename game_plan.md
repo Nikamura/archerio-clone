@@ -362,6 +362,7 @@ Visual test screenshots are saved to `test/screenshots/`
 8. 🔴 **No damage aura visual indicator** - Players can't see aura range or active state
 9. 🔴 **Chest gives double items** - Shows 1 item but adds 2 to inventory
 10. 🔴 **LOTR theme backgrounds not optimized** - Need size optimization
+11. 🔴 Inventory items are not visible after playing a game and opening chests, opening Equipment shows no items, but you can click on empty squares and popup opens and after refresh it's working.
 
 **UPCOMING FEATURES:**
 1. 🟡 **Shop theme preview images** - Show actual theme images instead of colors
