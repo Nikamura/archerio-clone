@@ -20,6 +20,11 @@ export interface ThemeColors {
   xpBar: number
   bossHealth: number
 
+  // Boss name announcement colors
+  bossNamePrimary: string      // Main boss name color (CSS format)
+  bossNameSecondary: string    // Secondary/glow color (CSS format)
+  bossNameStroke: string       // Outline color (CSS format)
+
   // Text colors (CSS format)
   titleText: string
   accentText: string
@@ -96,6 +101,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       healthLow: 0xff0000,
       xpBar: 0x4488ff,
       bossHealth: 0xff2222,
+      bossNamePrimary: '#ffd700',    // Royal gold
+      bossNameSecondary: '#ff4444',  // Blood red accent
+      bossNameStroke: '#2a0000',     // Dark blood outline
       titleText: '#ffffff',
       accentText: '#ffdd00',
       mutedText: '#aaaaaa',
@@ -154,6 +162,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       healthLow: 0xff0066,
       xpBar: 0xff00ff,
       bossHealth: 0xff0066,
+      bossNamePrimary: '#ff00ff',    // Neon magenta
+      bossNameSecondary: '#00ffff',  // Cyan glow
+      bossNameStroke: '#000033',     // Dark blue outline
       titleText: '#00ffff',
       accentText: '#ff00ff',
       mutedText: '#9999ff',
@@ -226,6 +237,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       // XP and boss - gold and Mordor fire
       xpBar: 0xd4af37, // Gold
       bossHealth: 0xff4500, // Mordor orange-red
+      bossNamePrimary: '#ffd700',    // Gold like the One Ring
+      bossNameSecondary: '#ff4500',  // Mordor fire
+      bossNameStroke: '#1a0a00',     // Dark Mordor outline
       // Text colors - parchment and gold
       titleText: '#f5deb3', // Wheat/parchment
       accentText: '#ffd700', // Gold
@@ -300,6 +314,9 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       // XP and boss - glowing red/purple
       xpBar: 0xff00aa, // Pink-purple (psychic energy)
       bossHealth: 0xcc0000, // Demogorgon red
+      bossNamePrimary: '#ff0000',    // Christmas lights red
+      bossNameSecondary: '#00ff88',  // Eleven's psychic green
+      bossNameStroke: '#0a0a0a',     // Upside Down darkness
       // Text colors - flickering lights aesthetic
       titleText: '#ff0000', // Red (like the Christmas lights)
       accentText: '#00ff88', // Electric green

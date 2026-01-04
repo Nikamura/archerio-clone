@@ -388,14 +388,17 @@ export default class UIScene extends Phaser.Scene {
     this.bossHealthBar = this.add.graphics()
     this.bossHealthContainer.add(this.bossHealthBar)
 
-    // Boss name
+    // Boss name with themed styling
+    const colors = themeManager.getColors()
     this.bossNameText = this.add.text(width / 2, yPos - 14, 'BOSS', {
-      fontSize: '12px',
-      color: '#ff4444',
+      fontSize: '14px',
+      fontFamily: '"Times New Roman", Georgia, serif',
+      color: colors.bossNamePrimary,
       fontStyle: 'bold',
+      letterSpacing: 2,
     })
     this.bossNameText.setOrigin(0.5, 0.5)
-    this.bossNameText.setStroke('#000000', 2)
+    this.bossNameText.setStroke(colors.bossNameStroke, 3)
     this.bossHealthContainer.add(this.bossNameText)
 
     this.bossHealthContainer.setVisible(false)
@@ -423,8 +426,8 @@ export default class UIScene extends Phaser.Scene {
     })
 
     // Boss health events
-    this.events.on('showBossHealth', (health: number, maxHealth: number) => {
-      this.showBossHealthBar(health, maxHealth)
+    this.events.on('showBossHealth', (health: number, maxHealth: number, bossName?: string) => {
+      this.showBossHealthBar(health, maxHealth, bossName)
     })
     this.events.on('updateBossHealth', (health: number, maxHealth: number) => {
       this.updateBossHealthBar(health, maxHealth)
@@ -525,7 +528,11 @@ export default class UIScene extends Phaser.Scene {
     })
   }
 
-  private showBossHealthBar(health: number, maxHealth: number) {
+  private showBossHealthBar(health: number, maxHealth: number, bossName?: string) {
+    // Update boss name if provided
+    if (bossName && this.bossNameText) {
+      this.bossNameText.setText(bossName.toUpperCase())
+    }
     this.bossHealthContainer.setVisible(true)
     this.updateBossHealthBar(health, maxHealth)
   }
