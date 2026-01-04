@@ -1,13 +1,15 @@
 import Phaser from 'phaser'
 import Player from '../entities/Player'
 import Enemy, { EnemyOptions } from '../entities/Enemy'
-import RangedShooterEnemy from '../entities/RangedShooterEnemy'
-import SpreaderEnemy from '../entities/SpreaderEnemy'
-import BomberEnemy from '../entities/BomberEnemy'
-import TankEnemy from '../entities/TankEnemy'
-import ChargerEnemy from '../entities/ChargerEnemy'
-import HealerEnemy from '../entities/HealerEnemy'
-import SpawnerEnemy from '../entities/SpawnerEnemy'
+import {
+  RangedShooterEnemy,
+  SpreaderEnemy,
+  BomberEnemy,
+  TankEnemy,
+  ChargerEnemy,
+  HealerEnemy,
+  SpawnerEnemy,
+} from '../entities/enemies'
 import Boss from '../entities/Boss'
 import Bullet from '../entities/Bullet'
 import Joystick from '../ui/Joystick'

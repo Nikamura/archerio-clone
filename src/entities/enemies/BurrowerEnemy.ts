@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
-import EnemyBulletPool from '../systems/EnemyBulletPool'
+import Enemy from '../Enemy'
+import EnemyBulletPool from '../../systems/EnemyBulletPool'
 
 type BurrowerPhase = 'burrowed' | 'surfacing' | 'attacking' | 'burrowing'
 

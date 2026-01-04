@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from './Enemy'
+import Enemy, { EnemyOptions } from '../Enemy'
 
 export default class HealerEnemy extends Enemy {
   private lastHealTime: number = 0

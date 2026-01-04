@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from './Enemy'
+import Enemy, { EnemyOptions } from '../Enemy'
 
 /**
  * Small minion enemy spawned by SpawnerEnemy
