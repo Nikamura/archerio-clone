@@ -357,11 +357,11 @@ Visual test screenshots are saved to `test/screenshots/`
 3. ✅ **Extra life can stack beyond intended limit** - Fixed: maxLevel property on abilities
 4. ✅ **Leveling too fast** - Fixed: XP now scales exponentially (baseXP * 1.5^(level-2))
 5. ✅ **Stationary enemies stuck in walls** - Fixed: isValidSpawnPosition checks wall overlap
-6. 🔴 **Wall textures not tileable** - Need seamless textures; thin walls show cut textures
+6. ✅ **Wall textures not tileable** - Fixed: applied seamless blend technique to all 20 wall textures
 7. ✅ **Fusion popup shows wrong items** - Fixed: showFusionResultsPopup() displays all items in grid
 8. ✅ **Damage aura visual indicator** - Already implemented: pulsing orange circle shows range
 9. ✅ **Chest gives double items** - Fixed: removed duplicate addToInventory call in openAllChests
-10. 🔴 **LOTR theme backgrounds not optimized** - Need size optimization
+10. ✅ **LOTR theme backgrounds not optimized** - Fixed: 93% size reduction (4.9MB to 369KB)
 11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
 12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
