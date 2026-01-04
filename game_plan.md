@@ -367,6 +367,7 @@ Visual test screenshots are saved to `test/screenshots/`
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
 14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
 15. **Duplicate item attributes not combined** - Equipment displays same attribute multiple times (e.g., "Dodge 5%, Dodge 1%") instead of combining into single value ("Dodge 6%")
+16. **Joystick not working when created on wall** - Joystick fails to respond when player taps on a wall area to create it
 
 **BALANCE:**
 1. **Nerf Dodge** - Dodge is too strong, reduce effectiveness

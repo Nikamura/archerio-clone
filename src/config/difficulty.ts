@@ -82,7 +82,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     // Display
     label: 'NORMAL',
     description: 'Balanced challenge',
-    color: '#ffff00',
+    color: '#cc8800',
   },
   [DifficultyLevel.HARD]: {
     // Player nerfs

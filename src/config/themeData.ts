@@ -41,6 +41,12 @@ export interface ThemeAssets {
   chapter3Bg: string
   chapter4Bg: string
   chapter5Bg: string
+  // Chapter selection icons
+  chapter1Icon: string
+  chapter2Icon: string
+  chapter3Icon: string
+  chapter4Icon: string
+  chapter5Icon: string
   loadingBarColor: number
   loadingBgColor: number
   // Enemy sprites - themed variants
@@ -105,6 +111,11 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter3Bg: 'chapter3Bg',
       chapter4Bg: 'chapter4Bg',
       chapter5Bg: 'chapter5Bg',
+      chapter1Icon: 'chapter1Icon_medieval',
+      chapter2Icon: 'chapter2Icon_medieval',
+      chapter3Icon: 'chapter3Icon_medieval',
+      chapter4Icon: 'chapter4Icon_medieval',
+      chapter5Icon: 'chapter5Icon_medieval',
       loadingBarColor: 0xffffff,
       loadingBgColor: 0x222222,
       enemyMelee: 'enemyMelee',
@@ -157,6 +168,11 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter3Bg: 'vaporwave_chapter3Bg',
       chapter4Bg: 'vaporwave_chapter4Bg',
       chapter5Bg: 'vaporwave_chapter5Bg',
+      chapter1Icon: 'chapter1Icon_vaporwave',
+      chapter2Icon: 'chapter2Icon_vaporwave',
+      chapter3Icon: 'chapter3Icon_vaporwave',
+      chapter4Icon: 'chapter4Icon_vaporwave',
+      chapter5Icon: 'chapter5Icon_vaporwave',
       loadingBarColor: 0xff00ff,
       loadingBgColor: 0x1a0033,
       enemyMelee: 'vaporwave_enemyMelee',
@@ -214,6 +230,11 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter3Bg: 'lotr_chapter3Bg',
       chapter4Bg: 'lotr_chapter4Bg',
       chapter5Bg: 'lotr_chapter5Bg',
+      chapter1Icon: 'chapter1Icon_lotr',
+      chapter2Icon: 'chapter2Icon_lotr',
+      chapter3Icon: 'chapter3Icon_lotr',
+      chapter4Icon: 'chapter4Icon_lotr',
+      chapter5Icon: 'chapter5Icon_lotr',
       loadingBarColor: 0xd4af37, // Gold
       loadingBgColor: 0x1a1a0a, // Dark parchment
       enemyMelee: 'lotr_enemyMelee',
@@ -271,6 +292,11 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter3Bg: 'st_chapter3Bg',
       chapter4Bg: 'st_chapter4Bg',
       chapter5Bg: 'st_chapter5Bg',
+      chapter1Icon: 'chapter1Icon_st',
+      chapter2Icon: 'chapter2Icon_st',
+      chapter3Icon: 'chapter3Icon_st',
+      chapter4Icon: 'chapter4Icon_st',
+      chapter5Icon: 'chapter5Icon_st',
       loadingBarColor: 0xcc0000, // Stranger Things red
       loadingBgColor: 0x0a0a0a, // Near black
       enemyMelee: 'st_enemyMelee',

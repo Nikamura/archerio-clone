@@ -318,12 +318,31 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('heroHelix', 'assets/sprites/ui/hero_helix.png')
     this.load.image('heroMeowgik', 'assets/sprites/ui/hero_meowgik.png')
 
-    // Load chapter icons
-    this.load.image('chapterIcon1', 'assets/sprites/ui/chapter1_icon.png')
-    this.load.image('chapterIcon2', 'assets/sprites/ui/chapter2_icon.png')
-    this.load.image('chapterIcon3', 'assets/sprites/ui/chapter3_icon.png')
-    this.load.image('chapterIcon4', 'assets/sprites/ui/chapter4_icon.png')
-    this.load.image('chapterIcon5', 'assets/sprites/ui/chapter5_icon.png')
+    // Load chapter icons (themed)
+    // Medieval theme
+    this.load.image('chapter1Icon_medieval', 'assets/sprites/ui/chapter1_icon_medieval.png')
+    this.load.image('chapter2Icon_medieval', 'assets/sprites/ui/chapter2_icon_medieval.png')
+    this.load.image('chapter3Icon_medieval', 'assets/sprites/ui/chapter3_icon_medieval.png')
+    this.load.image('chapter4Icon_medieval', 'assets/sprites/ui/chapter4_icon_medieval.png')
+    this.load.image('chapter5Icon_medieval', 'assets/sprites/ui/chapter5_icon_medieval.png')
+    // Vaporwave theme
+    this.load.image('chapter1Icon_vaporwave', 'assets/sprites/ui/chapter1_icon_vaporwave.png')
+    this.load.image('chapter2Icon_vaporwave', 'assets/sprites/ui/chapter2_icon_vaporwave.png')
+    this.load.image('chapter3Icon_vaporwave', 'assets/sprites/ui/chapter3_icon_vaporwave.png')
+    this.load.image('chapter4Icon_vaporwave', 'assets/sprites/ui/chapter4_icon_vaporwave.png')
+    this.load.image('chapter5Icon_vaporwave', 'assets/sprites/ui/chapter5_icon_vaporwave.png')
+    // LOTR theme
+    this.load.image('chapter1Icon_lotr', 'assets/sprites/ui/chapter1_icon_lotr.png')
+    this.load.image('chapter2Icon_lotr', 'assets/sprites/ui/chapter2_icon_lotr.png')
+    this.load.image('chapter3Icon_lotr', 'assets/sprites/ui/chapter3_icon_lotr.png')
+    this.load.image('chapter4Icon_lotr', 'assets/sprites/ui/chapter4_icon_lotr.png')
+    this.load.image('chapter5Icon_lotr', 'assets/sprites/ui/chapter5_icon_lotr.png')
+    // Stranger Things theme
+    this.load.image('chapter1Icon_st', 'assets/sprites/ui/chapter1_icon_st.png')
+    this.load.image('chapter2Icon_st', 'assets/sprites/ui/chapter2_icon_st.png')
+    this.load.image('chapter3Icon_st', 'assets/sprites/ui/chapter3_icon_st.png')
+    this.load.image('chapter4Icon_st', 'assets/sprites/ui/chapter4_icon_st.png')
+    this.load.image('chapter5Icon_st', 'assets/sprites/ui/chapter5_icon_st.png')
     
     // Load wall textures (chapter-themed)
     this.load.image('wall_dungeon', 'assets/sprites/walls/wall_dungeon.png')
