@@ -76,15 +76,32 @@ export interface GameOverData {
  * - boss: 50-100 (avg 75)
  *
  * We approximate with a weighted average assuming mix of enemy types
+ *
+ * In endless mode, gold scales with wave number to reward progression
+ * against increasingly difficult enemies.
  */
-function calculateGoldEarned(enemiesKilled: number, bossDefeated: boolean): number {
+function calculateGoldEarned(
+  enemiesKilled: number,
+  bossDefeated: boolean,
+  endlessWave: number = 1,
+  isEndlessMode: boolean = false
+): number {
   // Approximate 10 gold per regular enemy (weighted average)
   const baseGold = enemiesKilled * 10
 
   // Boss bonus
   const bossGold = bossDefeated ? 75 : 0
 
-  return baseGold + bossGold
+  let totalGold = baseGold + bossGold
+
+  // Apply endless wave multiplier: 50% more gold per wave
+  // Wave 1: 1.0x, Wave 2: 1.5x, Wave 3: 2.0x, etc.
+  if (isEndlessMode && endlessWave > 1) {
+    const waveMultiplier = 1 + (endlessWave - 1) * 0.5
+    totalGold = Math.floor(totalGold * waveMultiplier)
+  }
+
+  return totalGold
 }
 
 /**
@@ -161,7 +178,12 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
-    this.goldEarned = this.stats.goldEarned ?? calculateGoldEarned(this.stats.enemiesKilled, bossDefeated)
+    this.goldEarned = this.stats.goldEarned ?? calculateGoldEarned(
+      this.stats.enemiesKilled,
+      bossDefeated,
+      this.endlessWave,
+      this.isEndlessMode
+    )
 
     // Get chapter and difficulty for scaled rewards
     const chapterId = data?.chapterId ?? chapterManager.getSelectedChapter()
@@ -173,7 +195,9 @@ export default class GameOverScene extends Phaser.Scene {
       bossDefeated,
       this.stats.isVictory ?? false,
       chapterId,
-      difficulty
+      difficulty,
+      this.endlessWave,
+      this.isEndlessMode
     )
 
     // Calculate score
