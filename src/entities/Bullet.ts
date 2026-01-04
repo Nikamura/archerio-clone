@@ -193,6 +193,13 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Mark an enemy as hit to prevent duplicate damage in the same frame
+   */
+  markEnemyAsHit(enemy: Phaser.GameObjects.GameObject): void {
+    this.hitEnemies.add(enemy)
+  }
+
+  /**
    * Called when bullet hits an enemy
    * @param enemy The enemy that was hit (for tracking pierced enemies)
    * @returns true if bullet should be deactivated (no piercing/ricochet)

@@ -121,9 +121,24 @@ export class CombatSystem {
     const bulletSprite = bullet as Bullet
     const enemySprite = enemy as Enemy
 
+    // Skip if bullet is already inactive
+    if (!bulletSprite.active) {
+      return
+    }
+
     // Skip if bullet has already hit this enemy (prevents duplicate collisions during piercing)
     if (bulletSprite.hasHitEnemy(enemy)) {
       return
+    }
+
+    // IMPORTANT: Immediately mark this enemy as hit to prevent duplicate damage
+    // when physics system detects multiple overlaps in the same frame
+    bulletSprite.markEnemyAsHit(enemy)
+
+    // For non-piercing bullets, deactivate immediately to prevent hitting multiple enemies
+    if (bulletSprite.getMaxPierces() === 0 && bulletSprite.getMaxBounces() === 0) {
+      bulletSprite.setActive(false)
+      bulletSprite.setVisible(false)
     }
 
     // Calculate damage based on bullet properties
