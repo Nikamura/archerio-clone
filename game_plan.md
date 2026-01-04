@@ -369,7 +369,7 @@ Visual test screenshots are saved to `test/screenshots/`
 **UPCOMING FEATURES:**
 1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
 2. ✅ **Max attack speed cap** - Cap at 10 attacks per second (MAX_ATTACK_SPEED = 5.0 in PlayerStats)
-3. 🟡 **Regenerate skill icons** - Add 1px black border, no whitespace/white background
+3. ✅ **Regenerate skill icons** - All 22 icons regenerated with transparent backgrounds and 1px black border
 4. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
 5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
 6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
