@@ -312,6 +312,9 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('abilityExtraLife', 'assets/sprites/abilities/extra_life.png')
     this.load.image('abilityThroughWall', 'assets/sprites/abilities/through_wall.png')
     this.load.image('abilityGiant', 'assets/sprites/abilities/giant.png')
+    // Orbital abilities
+    this.load.image('abilityChainsawOrbit', 'assets/sprites/abilities/chainsaw_orbit.png')
+    this.load.image('chainsawOrbit', 'assets/sprites/abilities/chainsaw_orbit.png')  // Sprite for in-game visual
 
     // Load hero icons
     this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')

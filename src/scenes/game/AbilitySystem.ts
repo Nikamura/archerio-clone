@@ -117,6 +117,11 @@ export class AbilitySystem {
           this.eventHandlers.onGiantLevelChanged(this.player.getGiantLevel())
         }
         break
+
+      // Orbital abilities
+      case 'chainsaw_orbit':
+        this.player.addChainsawOrbit()
+        break
     }
 
     this.abilitiesGained++

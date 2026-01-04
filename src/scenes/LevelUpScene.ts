@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
 import { DURATION, EASING } from '../systems/UIAnimations'
 import { errorReporting } from '../systems/ErrorReportingManager'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
 
 export interface AbilityData {
   id: string
@@ -179,6 +180,14 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc3300,
     iconKey: 'abilityGiant',
   },
+  // Orbital abilities
+  {
+    id: 'chainsaw_orbit',
+    name: 'Chainsaw Orbit',
+    description: 'Spinning saw deals damage',
+    color: 0xcc4400,
+    iconKey: 'abilityChainsawOrbit',
+  },
 ]
 
 export interface LevelUpData {
@@ -199,6 +208,8 @@ export default class LevelUpScene extends Phaser.Scene {
   private isSelecting: boolean = false
   private abilityLevels: Record<string, number> = {}
   private hasExtraLife: boolean = false
+  private isDebugMode: boolean = false
+  private scrollContainer?: ScrollContainer
 
   constructor() {
     super({ key: 'LevelUpScene' })
@@ -213,6 +224,7 @@ export default class LevelUpScene extends Phaser.Scene {
     this.isSelecting = false
     this.abilityLevels = data.abilityLevels ?? {}
     this.hasExtraLife = data.hasExtraLife ?? false
+    this.scrollContainer = undefined
   }
 
   create() {
@@ -271,29 +283,47 @@ export default class LevelUpScene extends Phaser.Scene {
       title.setStroke('#000000', 3)
       this.modalContainer.add(title)
 
+      // Check for debug mode
+      this.isDebugMode = this.game.registry.get('debug') === true
+
       // Subtitle
-      const subtitle = this.add.text(0, -modalHeight / 2 + 55, 'Choose an ability', {
+      const subtitleText = this.isDebugMode ? 'DEBUG: All abilities (scroll)' : 'Choose an ability'
+      const subtitle = this.add.text(0, -modalHeight / 2 + 55, subtitleText, {
         fontSize: '12px',
-        color: '#888888',
+        color: this.isDebugMode ? '#ff6666' : '#888888',
       }).setOrigin(0.5)
       this.modalContainer.add(subtitle)
 
-      // Select 3 random abilities
-      this.selectedAbilities = this.selectRandomAbilities(3)
+      // Select abilities based on mode
+      if (this.isDebugMode) {
+        // Debug mode: show ALL abilities
+        this.selectedAbilities = [...ABILITIES]
+      } else {
+        // Normal mode: 3 random abilities
+        this.selectedAbilities = this.selectRandomAbilities(3)
+      }
 
       // Create ability cards
       const cardWidth = modalWidth - 30
       const cardHeight = 60
       const cardSpacing = 70
-      const startY = -40
 
-      this.selectedAbilities.forEach((ability, index) => {
-        const y = startY + index * cardSpacing
-        this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index)
-      })
+      if (this.isDebugMode) {
+        // Debug mode: scrollable list
+        this.createScrollableAbilityList(modalWidth, modalHeight, cardWidth, cardHeight, cardSpacing)
+      } else {
+        // Normal mode: fixed 3 cards
+        const startY = -40
+        this.selectedAbilities.forEach((ability, index) => {
+          const y = startY + index * cardSpacing
+          this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index)
+        })
+      }
 
-      // Progress bar at bottom of modal
-      this.createProgressBar(modalWidth, modalHeight)
+      // Progress bar at bottom of modal (skip in debug mode)
+      if (!this.isDebugMode) {
+        this.createProgressBar(modalWidth, modalHeight)
+      }
 
       // Animate modal in
       this.tweens.add({
@@ -303,7 +333,10 @@ export default class LevelUpScene extends Phaser.Scene {
         duration: 200,
         ease: 'Back.easeOut',
         onComplete: () => {
-          this.startSelectionTimer()
+          // Only start timer in normal mode
+          if (!this.isDebugMode) {
+            this.startSelectionTimer()
+          }
         },
       })
 
@@ -336,6 +369,170 @@ export default class LevelUpScene extends Phaser.Scene {
 
     const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, count)
+  }
+
+  private createScrollableAbilityList(
+    modalWidth: number,
+    modalHeight: number,
+    cardWidth: number,
+    cardHeight: number,
+    cardSpacing: number
+  ) {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+
+    // Visible area dimensions (leave room for title and padding)
+    const scrollTop = height / 2 - modalHeight / 2 + 70  // Below title
+    const scrollBottom = height / 2 + modalHeight / 2 - 20  // Above bottom padding
+
+    // Create ScrollContainer using the reusable component
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      x: width / 2,
+      y: scrollTop,
+      width: modalWidth - 20,
+      bounds: { top: scrollTop, bottom: scrollBottom },
+      depth: 15,
+    })
+
+    // Create all ability cards inside scroll container
+    const totalHeight = this.selectedAbilities.length * cardSpacing
+    const startY = cardHeight / 2 + 10  // Start from top with padding
+
+    this.selectedAbilities.forEach((ability, index) => {
+      const y = startY + index * cardSpacing
+      this.createAbilityCardInContainer(this.scrollContainer!.getContainer(), 0, y, cardWidth, cardHeight, ability, index)
+    })
+
+    // Set content height for scroll calculations
+    this.scrollContainer.setContentHeight(totalHeight + 20)
+
+    // Add scroll indicator if content is scrollable
+    if (this.scrollContainer.getMaxScroll() > 0) {
+      const scrollHint = this.add.text(0, modalHeight / 2 - 15, '↑↓ Scroll for more', {
+        fontSize: '10px',
+        color: '#666688',
+      }).setOrigin(0.5)
+      this.modalContainer.add(scrollHint)
+    }
+  }
+
+  private createAbilityCardInContainer(
+    container: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    cardWidth: number,
+    cardHeight: number,
+    ability: AbilityData,
+    index: number
+  ) {
+    try {
+      const cardContainer = this.add.container(x, y)
+      cardContainer.setDepth(10 + index)
+
+      // Card background
+      const cardBg = this.add.graphics()
+      cardBg.fillStyle(0x252540, 1)
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
+
+      // Left accent bar (ability color)
+      cardBg.fillStyle(ability.color, 1)
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
+
+      cardContainer.add(cardBg)
+
+      // Interactive area
+      const hitArea = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x000000, 0)
+      hitArea.setInteractive({ useHandCursor: true })
+      cardContainer.add(hitArea)
+
+      // Icon
+      const iconX = -cardWidth / 2 + 40
+      if (this.textures.exists(ability.iconKey)) {
+        const icon = this.add.image(iconX, 0, ability.iconKey)
+        icon.setDisplaySize(36, 36)
+        cardContainer.add(icon)
+      } else {
+        const iconCircle = this.add.circle(iconX, 0, 16, ability.color)
+        cardContainer.add(iconCircle)
+      }
+
+      // Name
+      const nameText = this.add.text(iconX + 35, -10, ability.name, {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5)
+      cardContainer.add(nameText)
+
+      // Description
+      const descText = this.add.text(iconX + 35, 10, ability.description, {
+        fontSize: '12px',
+        color: '#888888',
+      }).setOrigin(0, 0.5)
+      cardContainer.add(descText)
+
+      // Current level indicator (useful in debug mode)
+      const currentLevel = this.abilityLevels[ability.id] ?? 0
+      if (currentLevel > 0) {
+        const levelText = this.add.text(cardWidth / 2 - 15, 0, `Lv${currentLevel}`, {
+          fontSize: '12px',
+          color: '#ffdd00',
+          fontStyle: 'bold',
+        }).setOrigin(0.5)
+        cardContainer.add(levelText)
+      }
+
+      // Hover effects
+      hitArea.on('pointerover', () => {
+        this.tweens.add({
+          targets: cardContainer,
+          scale: 1.02,
+          duration: 100,
+          ease: 'Power2.easeOut',
+        })
+        cardBg.clear()
+        cardBg.fillStyle(0x303050, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
+        cardBg.fillStyle(ability.color, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
+      })
+
+      hitArea.on('pointerout', () => {
+        this.tweens.add({
+          targets: cardContainer,
+          scale: 1,
+          duration: 100,
+          ease: 'Power2.easeOut',
+        })
+        cardBg.clear()
+        cardBg.fillStyle(0x252540, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10)
+        cardBg.fillStyle(ability.color, 1)
+        cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, { tl: 10, bl: 10, tr: 0, br: 0 })
+      })
+
+      // Click handler
+      hitArea.on('pointerdown', () => {
+        console.log('LevelUpScene: Selected', ability.id)
+        this.tweens.add({
+          targets: cardContainer,
+          scale: 1.05,
+          duration: 80,
+          yoyo: true,
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            this.selectAbility(ability.id, cardContainer)
+          },
+        })
+      })
+
+      // Add to scroll container
+      container.add(cardContainer)
+      this.abilityCards.push(cardContainer)
+    } catch (error) {
+      console.error('LevelUpScene: Error creating card in container:', error)
+    }
   }
 
   private createProgressBar(modalWidth: number, modalHeight: number) {
@@ -643,6 +840,12 @@ export default class LevelUpScene extends Phaser.Scene {
     if (this.selectionTimer) {
       this.selectionTimer.destroy()
       this.selectionTimer = undefined
+    }
+
+    // Clean up scroll container if in debug mode
+    if (this.scrollContainer) {
+      this.scrollContainer.destroy()
+      this.scrollContainer = undefined
     }
 
     this.input.removeAllListeners()

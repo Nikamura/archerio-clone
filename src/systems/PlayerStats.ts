@@ -67,6 +67,9 @@ export class PlayerStats {
   private throughWallEnabled: boolean = false  // Arrows pass through walls
   private giantLevel: number = 0  // +40% damage per level, larger player hitbox
 
+  // Orbital abilities
+  private chainsawOrbitLevel: number = 0  // Number of chainsaws orbiting player
+
   constructor(options?: {
     maxHealth?: number
     baseDamage?: number
@@ -391,6 +394,19 @@ export class PlayerStats {
     return 1 + (this.giantLevel * 0.4)
   }
 
+  // Chainsaw orbit getters
+  getChainsawOrbitCount(): number {
+    return this.chainsawOrbitLevel
+  }
+
+  /**
+   * Get chainsaw orbit damage (50% of weapon damage per hit)
+   */
+  getChainsawOrbitDamage(): number {
+    if (this.chainsawOrbitLevel <= 0) return 0
+    return Math.floor(this.getDamage() * 0.5)
+  }
+
   /**
    * Roll for freeze effect
    * @returns true if this hit should freeze the enemy
@@ -624,6 +640,14 @@ export class PlayerStats {
     this.giantLevel++
   }
 
+  /**
+   * Add Chainsaw Orbit ability (+1 orbiting chainsaw per level)
+   * Stacking: Each level adds +1 chainsaw at even spacing
+   */
+  addChainsawOrbit(): void {
+    this.chainsawOrbitLevel++
+  }
+
   // ============================================
   // Iron Will (Epic Talent) - Bonus HP when low health
   // ============================================
@@ -685,6 +709,8 @@ export class PlayerStats {
     this.extraLives = 0
     this.throughWallEnabled = false
     this.giantLevel = 0
+    // Reset orbital abilities
+    this.chainsawOrbitLevel = 0
   }
 
   /**
@@ -719,6 +745,7 @@ export class PlayerStats {
     extraLives: number
     throughWallEnabled: boolean
     giantLevel: number
+    chainsawOrbitLevel: number
   } {
     return {
       health: this.health,
@@ -749,6 +776,7 @@ export class PlayerStats {
       extraLives: this.extraLives,
       throughWallEnabled: this.throughWallEnabled,
       giantLevel: this.giantLevel,
+      chainsawOrbitLevel: this.chainsawOrbitLevel,
     }
   }
 }

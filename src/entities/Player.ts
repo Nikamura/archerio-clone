@@ -265,6 +265,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addGiant()
   }
 
+  addChainsawOrbit() {
+    this.stats?.addChainsawOrbit()
+  }
+
   // Iron Will talent support (bonus HP when low health)
   addMaxHealthBonus(amount: number) {
     this.stats?.addMaxHealthBonus(amount)
@@ -395,6 +399,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   getGiantDamageMultiplier(): number {
     return this.stats?.getGiantDamageMultiplier() ?? 1.0
+  }
+
+  // Chainsaw orbit getters
+  getChainsawOrbitCount(): number {
+    return this.stats?.getChainsawOrbitCount() ?? 0
+  }
+
+  getChainsawOrbitDamage(): number {
+    return this.stats?.getChainsawOrbitDamage() ?? 0
   }
 
   // Reset run-based stats
