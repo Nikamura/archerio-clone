@@ -373,7 +373,7 @@ Visual test screenshots are saved to `test/screenshots/`
 4. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
 5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
 6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
-7. 🟡 **Theme-specific enemy sprites** - Each theme should have unique enemy/boss art (e.g., Upside Down: demogorgons; Middle-Earth: goblins, orcs, Gollum)
+7. ✅ **Theme-specific enemy sprites** - 30 themed sprites (10 enemies × 3 themes: Vaporwave, LOTR, Stranger Things), encyclopedia shows themed sprites
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
