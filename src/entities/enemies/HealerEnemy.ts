@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from '../Enemy'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 export default class HealerEnemy extends Enemy {
   private lastHealTime: number = 0
@@ -33,9 +35,10 @@ export default class HealerEnemy extends Enemy {
     this.healInterval = 3000 * (options?.attackCooldownMultiplier ?? 1.0)
     this.healAmount = Math.round(10 * (options?.abilityIntensityMultiplier ?? 1.0))
 
-    // Use texture (will be set externally or fallback to generated)
-    if (scene.textures.exists('enemyHealer')) {
-      this.setTexture('enemyHealer')
+    // Use themed healer enemy sprite
+    const spriteKey = getEnemySpriteKey('healer', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     }
     this.setDisplaySize(28, 28) // Slightly smaller than normal enemies
 

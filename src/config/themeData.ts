@@ -43,6 +43,17 @@ export interface ThemeAssets {
   chapter5Bg: string
   loadingBarColor: number
   loadingBgColor: number
+  // Enemy sprites - themed variants
+  enemyMelee: string
+  enemyRanged: string
+  enemySpreader: string
+  enemyHealer: string
+  enemySpawner: string
+  enemyBomber: string
+  enemyCharger: string
+  enemyBurrower: string
+  enemyTank: string
+  enemyMinion: string
 }
 
 export interface ThemeDefinition {
@@ -96,6 +107,16 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'chapter5Bg',
       loadingBarColor: 0xffffff,
       loadingBgColor: 0x222222,
+      enemyMelee: 'enemyMelee',
+      enemyRanged: 'enemyRanged',
+      enemySpreader: 'enemySpreader',
+      enemyHealer: 'enemyHealer',
+      enemySpawner: 'enemySpawner',
+      enemyBomber: 'enemyBomber',
+      enemyCharger: 'enemyCharger',
+      enemyBurrower: 'enemyBurrower',
+      enemyTank: 'enemyTank',
+      enemyMinion: 'enemyMinion',
     },
   },
   vaporwave: {
@@ -138,6 +159,16 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'vaporwave_chapter5Bg',
       loadingBarColor: 0xff00ff,
       loadingBgColor: 0x1a0033,
+      enemyMelee: 'vaporwave_enemyMelee',
+      enemyRanged: 'vaporwave_enemyRanged',
+      enemySpreader: 'vaporwave_enemySpreader',
+      enemyHealer: 'vaporwave_enemyHealer',
+      enemySpawner: 'vaporwave_enemySpawner',
+      enemyBomber: 'vaporwave_enemyBomber',
+      enemyCharger: 'vaporwave_enemyCharger',
+      enemyBurrower: 'vaporwave_enemyBurrower',
+      enemyTank: 'vaporwave_enemyTank',
+      enemyMinion: 'vaporwave_enemyMinion',
     },
   },
   lotr: {
@@ -185,6 +216,16 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'lotr_chapter5Bg',
       loadingBarColor: 0xd4af37, // Gold
       loadingBgColor: 0x1a1a0a, // Dark parchment
+      enemyMelee: 'lotr_enemyMelee',
+      enemyRanged: 'lotr_enemyRanged',
+      enemySpreader: 'lotr_enemySpreader',
+      enemyHealer: 'lotr_enemyHealer',
+      enemySpawner: 'lotr_enemySpawner',
+      enemyBomber: 'lotr_enemyBomber',
+      enemyCharger: 'lotr_enemyCharger',
+      enemyBurrower: 'lotr_enemyBurrower',
+      enemyTank: 'lotr_enemyTank',
+      enemyMinion: 'lotr_enemyMinion',
     },
   },
   strangerThings: {
@@ -232,6 +273,16 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
       chapter5Bg: 'st_chapter5Bg',
       loadingBarColor: 0xcc0000, // Stranger Things red
       loadingBgColor: 0x0a0a0a, // Near black
+      enemyMelee: 'st_enemyMelee',
+      enemyRanged: 'st_enemyRanged',
+      enemySpreader: 'st_enemySpreader',
+      enemyHealer: 'st_enemyHealer',
+      enemySpawner: 'st_enemySpawner',
+      enemyBomber: 'st_enemyBomber',
+      enemyCharger: 'st_enemyCharger',
+      enemyBurrower: 'st_enemyBurrower',
+      enemyTank: 'st_enemyTank',
+      enemyMinion: 'st_enemyMinion',
     },
   },
 }
@@ -249,6 +300,38 @@ export function getThemeDefinition(id: ThemeId): ThemeDefinition {
 }
 
 export type HeroId = 'atreus' | 'helix' | 'meowgik'
+
+// Map enemyType to the corresponding sprite key in ThemeAssets
+// enemyType string matches the EnemyType from chapterData.ts
+export function getEnemySpriteKey(
+  enemyType: string,
+  assets: ThemeAssets
+): string {
+  switch (enemyType) {
+    case 'melee':
+      return assets.enemyMelee
+    case 'ranged':
+      return assets.enemyRanged
+    case 'spreader':
+      return assets.enemySpreader
+    case 'healer':
+      return assets.enemyHealer
+    case 'spawner':
+      return assets.enemySpawner
+    case 'bomber':
+      return assets.enemyBomber
+    case 'charger':
+      return assets.enemyCharger
+    case 'burrower':
+      return assets.enemyBurrower
+    case 'tank':
+      return assets.enemyTank
+    case 'minion':
+      return assets.enemyMinion
+    default:
+      return assets.enemyMelee
+  }
+}
 
 // Map heroId to the corresponding sprite key in ThemeAssets
 export function getHeroSpriteKey(

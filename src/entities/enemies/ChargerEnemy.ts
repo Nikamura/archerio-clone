@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from '../Enemy'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 type ChargerPhase = 'idle' | 'windup' | 'charging' | 'stunned'
 
@@ -42,9 +44,10 @@ export default class ChargerEnemy extends Enemy {
     // Charge speed also scales with speedMultiplier for thematic ice slides, etc.
     this.chargeSpeed = 350 * (options?.speedMultiplier ?? 1.0)
 
-    // Use charger enemy sprite (fallback to melee if not loaded)
-    if (scene.textures.exists('enemyCharger')) {
-      this.setTexture('enemyCharger')
+    // Use themed charger enemy sprite
+    const spriteKey = getEnemySpriteKey('charger', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     } else {
       // Fallback: tint melee sprite cyan
       this.setTint(0x00ffff)

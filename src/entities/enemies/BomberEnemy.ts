@@ -12,6 +12,8 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from '../Enemy'
 import BombPool from '../../systems/BombPool'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 export default class BomberEnemy extends Enemy {
   private lastThrowTime: number = 0
@@ -48,9 +50,10 @@ export default class BomberEnemy extends Enemy {
       this.bombPool.setDamageMultiplier(options.damageMultiplier)
     }
 
-    // Use bomber enemy sprite (fallback to melee if not loaded)
-    if (scene.textures.exists('enemyBomber')) {
-      this.setTexture('enemyBomber')
+    // Use themed bomber enemy sprite
+    const spriteKey = getEnemySpriteKey('bomber', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     } else {
       // Fallback: tint melee sprite orange
       this.setTint(0xff8800)

@@ -10,6 +10,8 @@ import Phaser from 'phaser'
 import RangedEnemy from './RangedEnemy'
 import { EnemyOptions } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 export default class SpreaderEnemy extends RangedEnemy {
   constructor(
@@ -22,8 +24,9 @@ export default class SpreaderEnemy extends RangedEnemy {
     // Base fire rate is 3000ms
     super(scene, x, y, bulletPool, 3000, options)
 
-    // Use spreader enemy sprite
-    this.setTexture('enemySpreader')
+    // Use themed spreader enemy sprite
+    const spriteKey = getEnemySpriteKey('spreader', themeManager.getAssets())
+    this.setTexture(spriteKey)
     this.setDisplaySize(36, 36) // Slightly larger than others
 
     console.log('SpreaderEnemy created at', x, y)

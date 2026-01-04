@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { getEnemySpriteKey } from '../../config/themeData'
+import { themeManager } from '../../systems/ThemeManager'
 
 export default class TankEnemy extends Enemy {
   private lastShotTime: number = 0
@@ -37,9 +39,10 @@ export default class TankEnemy extends Enemy {
     this.fireRate = 3500 * (options?.attackCooldownMultiplier ?? 1.0)
     this.projectileSpeedMultiplier = options?.projectileSpeedMultiplier ?? 1.0
 
-    // Use tank enemy sprite (fallback to melee if not loaded)
-    if (scene.textures.exists('enemyTank')) {
-      this.setTexture('enemyTank')
+    // Use themed tank enemy sprite
+    const spriteKey = getEnemySpriteKey('tank', themeManager.getAssets())
+    if (scene.textures.exists(spriteKey)) {
+      this.setTexture(spriteKey)
     } else {
       // Fallback: tint melee sprite purple and make it larger
       this.setTint(0x8800ff)
