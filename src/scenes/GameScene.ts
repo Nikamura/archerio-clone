@@ -490,7 +490,7 @@ export default class GameScene extends Phaser.Scene {
       console.log(`GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`)
       // Pause physics immediately to prevent any enemy movement/attacks during selection
       this.physics.pause()
-      this.inputSystem.hide()
+      // Note: inputSystem.hide() is called in launchStartingAbilitySelection() after inputSystem is created
       // Schedule the starting ability selection UI to launch after scene is fully ready
       // Enemy spawning is deferred until after all starting abilities are selected
       this.time.delayedCall(100, () => {
@@ -1798,7 +1798,8 @@ export default class GameScene extends Phaser.Scene {
   private launchStartingAbilitySelection() {
     const totalSelections = this.talentBonuses.startingAbilities
 
-    // Physics already paused and joystick already hidden in create()
+    // Physics already paused in create() - hide joystick now that inputSystem exists
+    this.inputSystem.hide()
     // Clean up any existing listeners to prevent multiple applications
     this.game.events.off('startingAbilitySelected')
 
