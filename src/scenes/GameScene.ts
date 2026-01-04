@@ -2239,10 +2239,10 @@ export default class GameScene extends Phaser.Scene {
    * Push all enemies away from player on respawn
    */
   private pushEnemiesAway(): void {
-    const pushForce = 300
-    const pushRadius = 200
+    const pushForce = 500
+    const minDistance = 150 // Minimum distance to push enemies to
 
-    // Push regular enemies
+    // Push ALL regular enemies away
     this.enemies.getChildren().forEach((child) => {
       const enemy = child as Enemy
       if (!enemy.active) return
@@ -2254,25 +2254,27 @@ export default class GameScene extends Phaser.Scene {
         enemy.y
       )
 
-      // Only push enemies within radius
-      if (distance < pushRadius && distance > 0) {
-        const angle = Phaser.Math.Angle.Between(
-          this.player.x,
-          this.player.y,
-          enemy.x,
-          enemy.y
-        )
-        // Apply stronger push to closer enemies
-        const forceFactor = 1 - distance / pushRadius
-        const force = pushForce * forceFactor
+      // Calculate angle from player to enemy
+      const angle = Phaser.Math.Angle.Between(
+        this.player.x,
+        this.player.y,
+        enemy.x,
+        enemy.y
+      )
 
-        const body = enemy.body as Phaser.Physics.Arcade.Body
-        if (body) {
-          body.setVelocity(
-            Math.cos(angle) * force,
-            Math.sin(angle) * force
-          )
-        }
+      // If enemy is too close, teleport them to minimum distance
+      if (distance < minDistance) {
+        enemy.x = this.player.x + Math.cos(angle) * minDistance
+        enemy.y = this.player.y + Math.sin(angle) * minDistance
+      }
+
+      // Apply strong outward velocity
+      const body = enemy.body as Phaser.Physics.Arcade.Body
+      if (body) {
+        body.setVelocity(
+          Math.cos(angle) * pushForce,
+          Math.sin(angle) * pushForce
+        )
       }
     })
 
@@ -2285,28 +2287,52 @@ export default class GameScene extends Phaser.Scene {
         this.boss.y
       )
 
-      if (distance < pushRadius && distance > 0) {
-        const angle = Phaser.Math.Angle.Between(
-          this.player.x,
-          this.player.y,
-          this.boss.x,
-          this.boss.y
-        )
-        const forceFactor = 1 - distance / pushRadius
-        const force = pushForce * 0.5 * forceFactor // Boss gets pushed less
+      const angle = Phaser.Math.Angle.Between(
+        this.player.x,
+        this.player.y,
+        this.boss.x,
+        this.boss.y
+      )
 
-        const body = this.boss.body as Phaser.Physics.Arcade.Body
-        if (body) {
-          body.setVelocity(
-            Math.cos(angle) * force,
-            Math.sin(angle) * force
-          )
-        }
+      // If boss is too close, teleport them to minimum distance
+      if (distance < minDistance) {
+        this.boss.x = this.player.x + Math.cos(angle) * minDistance
+        this.boss.y = this.player.y + Math.sin(angle) * minDistance
+      }
+
+      const body = this.boss.body as Phaser.Physics.Arcade.Body
+      if (body) {
+        body.setVelocity(
+          Math.cos(angle) * pushForce * 0.7,
+          Math.sin(angle) * pushForce * 0.7
+        )
       }
     }
 
-    // Clear any enemy bullets near player
-    this.enemyBulletPool.clear(true, true)
+    // Clear ALL flying bullets (both enemy and bomb projectiles)
+    this.enemyBulletPool.getChildren().forEach((child) => {
+      const bullet = child as Phaser.Physics.Arcade.Sprite
+      if (bullet.active) {
+        bullet.setActive(false)
+        bullet.setVisible(false)
+        const body = bullet.body as Phaser.Physics.Arcade.Body
+        if (body) {
+          body.stop()
+          body.enable = false
+        }
+      }
+    })
+
+    // Also clear bombs if present
+    if (this.bombPool) {
+      this.bombPool.getChildren().forEach((child) => {
+        const bomb = child as Phaser.Physics.Arcade.Sprite
+        if (bomb.active) {
+          bomb.setActive(false)
+          bomb.setVisible(false)
+        }
+      })
+    }
   }
 
   /**
