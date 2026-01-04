@@ -2154,8 +2154,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private shootAtEnemy(enemy: Enemy) {
-    // Don't shoot during level up, transitions, tutorial, or game over
-    if (this.isLevelingUp || this.isTransitioning || this.showingTutorial || this.isGameOver) {
+    // Don't shoot during transitions, tutorial, or game over
+    // Note: isLevelingUp is NOT checked here - player should be able to shoot after selecting ability
+    // isLevelingUp is only used to provide brief immunity from damage, not block shooting
+    if (this.isTransitioning || this.showingTutorial || this.isGameOver) {
       return
     }
 
