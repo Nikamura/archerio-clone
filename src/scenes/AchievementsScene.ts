@@ -1,13 +1,15 @@
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
 import { achievementManager, AchievementProgress } from '../systems/AchievementManager'
-import { currencyManager } from '../systems/CurrencyManager'
 import {
   Achievement,
   ACHIEVEMENTS,
   getTierName,
   getTierColor,
 } from '../config/achievementData'
+import { ScrollContainer } from '../ui/components/ScrollContainer'
+import { createBackButton, createBackButtonFooter } from '../ui/components/BackButton'
+import { createSceneHeader } from '../ui/components/SceneHeader'
 
 /**
  * AchievementsScene - UI for viewing achievements and claiming rewards
@@ -17,28 +19,26 @@ import {
  * - Tier indicators (bronze/silver/gold/platinum)
  * - Claim buttons for unclaimed rewards
  * - Total earned display
+ *
+ * Refactored to use reusable UI components from src/ui/components
  */
 export default class AchievementsScene extends Phaser.Scene {
   // UI Elements
-  private goldText?: Phaser.GameObjects.Text
-  private gemsText?: Phaser.GameObjects.Text
   private totalEarnedText?: Phaser.GameObjects.Text
   private achievementCards: Map<string, Phaser.GameObjects.Container> = new Map()
 
-  // Scroll container for achievement list
-  private scrollContainer?: Phaser.GameObjects.Container
-  private scrollMask?: Phaser.GameObjects.Graphics
-  private scrollBounds = { top: 90, bottom: 590, contentHeight: 0 }
-  private scrollY = 0
-  private isDragging = false
-  private dragStartY = 0
-  private scrollStartY = 0
+  // Scroll container (using reusable component)
+  private scrollContainer?: ScrollContainer
+  private scrollBounds = { top: 90, bottom: 590 }
 
   // Track interactive tier circles for visibility-based interactivity
   private interactiveTierCircles: Array<{
     circle: Phaser.GameObjects.Arc
     container: Phaser.GameObjects.Container
   }> = []
+
+  // Header reference for currency updates
+  private headerRef?: { updateCurrency: () => void }
 
   constructor() {
     super({ key: 'AchievementsScene' })
@@ -54,7 +54,7 @@ export default class AchievementsScene extends Phaser.Scene {
     // Background (lowest depth)
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e).setDepth(0)
 
-    // Header (high depth to stay above scroll content)
+    // Header using reusable component
     this.createHeader(width)
 
     // Achievement list
@@ -63,8 +63,8 @@ export default class AchievementsScene extends Phaser.Scene {
     // Total earned display at bottom
     this.createTotalEarnedDisplay(width, height)
 
-    // Back button
-    this.createBackButton(width, height)
+    // Back button using reusable component
+    this.createBackButtonSection(width, height)
 
     // Check achievements on entry
     achievementManager.checkAchievements()
@@ -74,32 +74,17 @@ export default class AchievementsScene extends Phaser.Scene {
     // Header background to cover scroll content
     this.add.rectangle(width / 2, 45, width, 90, 0x1a1a2e).setDepth(10)
 
-    // Title
-    this.add
-      .text(width / 2, 30, 'ACHIEVEMENTS', {
-        fontSize: '24px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setDepth(11)
-
-    // Currency display
-    this.goldText = this.add
-      .text(15, 60, `Gold: ${currencyManager.get('gold')}`, {
-        fontSize: '14px',
-        color: '#FFD700',
-      })
-      .setOrigin(0, 0.5)
-      .setDepth(11)
-
-    this.gemsText = this.add
-      .text(width - 15, 60, `Gems: ${currencyManager.get('gems')}`, {
-        fontSize: '14px',
-        color: '#00FFFF',
-      })
-      .setOrigin(1, 0.5)
-      .setDepth(11)
+    // Use reusable header component
+    this.headerRef = createSceneHeader({
+      scene: this,
+      title: 'ACHIEVEMENTS',
+      showCurrency: true,
+      currencyTypes: ['gold', 'gems'],
+      y: 0,
+      titleFontSize: '24px',
+      depth: 11,
+      showBackground: false,
+    })
 
     // Claim All button (if rewards available)
     const unclaimed = achievementManager.getUnclaimedRewardsCount()
@@ -136,20 +121,14 @@ export default class AchievementsScene extends Phaser.Scene {
     const cardWidth = width - 30
     const cardX = width / 2
 
-    // Create the scroll container (depth 1 to be above background, below header/footer)
-    this.scrollContainer = this.add.container(0, 0)
-    this.scrollContainer.setDepth(1)
-
-    // Create mask for the scrollable area
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-    this.scrollMask = this.add.graphics()
-    this.scrollMask.fillStyle(0xffffff)
-    this.scrollMask.fillRect(0, this.scrollBounds.top, width, scrollAreaHeight)
-    this.scrollMask.setVisible(false)
-
-    // Apply mask to scroll container
-    const mask = this.scrollMask.createGeometryMask()
-    this.scrollContainer.setMask(mask)
+    // Create scroll container using reusable component
+    this.scrollContainer = new ScrollContainer({
+      scene: this,
+      width,
+      bounds: this.scrollBounds,
+      depth: 1,
+      onScroll: () => this.updateTierCircleInteractivity(),
+    })
 
     // Create achievement cards
     let currentY = this.scrollBounds.top + 10
@@ -171,81 +150,11 @@ export default class AchievementsScene extends Phaser.Scene {
       currentY += cardSpacing
     })
 
-    // Calculate total content height
-    this.scrollBounds.contentHeight = currentY - this.scrollBounds.top + 10
-
-    // Setup scroll input
-    this.setupScrollInput(width)
+    // Set content height for scroll calculations
+    const contentHeight = currentY - this.scrollBounds.top + 10
+    this.scrollContainer.setContentHeight(contentHeight)
 
     // Initial interactivity update for items outside visible area
-    this.updateTierCircleInteractivity()
-  }
-
-  private setupScrollInput(width: number) {
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-
-    // Create an invisible interactive zone for the scroll area
-    const scrollZone = this.add.zone(
-      width / 2,
-      this.scrollBounds.top + scrollAreaHeight / 2,
-      width,
-      scrollAreaHeight
-    )
-    scrollZone.setInteractive()
-
-    // Mouse wheel scrolling
-    this.input.on(
-      'wheel',
-      (
-        _pointer: Phaser.Input.Pointer,
-        _gameObjects: Phaser.GameObjects.GameObject[],
-        _deltaX: number,
-        deltaY: number
-      ) => {
-        this.scrollContent(deltaY * 0.5)
-      }
-    )
-
-    // Touch/mouse drag scrolling
-    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDragging = true
-      this.dragStartY = pointer.y
-      this.scrollStartY = this.scrollY
-    })
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDragging) {
-        const deltaY = this.dragStartY - pointer.y
-        this.setScrollPosition(this.scrollStartY + deltaY)
-      }
-    })
-
-    this.input.on('pointerup', () => {
-      this.isDragging = false
-    })
-
-    this.input.on('pointerupoutside', () => {
-      this.isDragging = false
-    })
-  }
-
-  private scrollContent(deltaY: number) {
-    this.setScrollPosition(this.scrollY + deltaY)
-  }
-
-  private setScrollPosition(newY: number) {
-    const scrollAreaHeight = this.scrollBounds.bottom - this.scrollBounds.top
-    const maxScroll = Math.max(0, this.scrollBounds.contentHeight - scrollAreaHeight)
-
-    // Clamp scroll position
-    this.scrollY = Phaser.Math.Clamp(newY, 0, maxScroll)
-
-    // Apply scroll position to container
-    if (this.scrollContainer) {
-      this.scrollContainer.y = -this.scrollY
-    }
-
-    // Update interactivity for scrolled items
     this.updateTierCircleInteractivity()
   }
 
@@ -254,22 +163,20 @@ export default class AchievementsScene extends Phaser.Scene {
    * This prevents invisible (scrolled-out) items from capturing clicks meant for other UI elements.
    */
   private updateTierCircleInteractivity(): void {
-    // Guard against scene not being active or scroll container not ready
     if (!this.scrollContainer || !this.scene || !this.sys?.isActive()) return
 
     const maskTop = this.scrollBounds.top
     const maskBottom = this.scrollBounds.bottom
+    const container = this.scrollContainer.getContainer()
 
-    this.interactiveTierCircles.forEach(({ circle, container }) => {
+    this.interactiveTierCircles.forEach(({ circle, container: cardContainer }) => {
       // Skip if circle was destroyed
       if (!circle || !circle.scene) return
 
       // Calculate the container's world Y position
-      // The container's local Y is relative to scrollContainer, which is at -scrollY
-      const containerWorldY = this.scrollContainer!.y + container.y
+      const containerWorldY = container.y + cardContainer.y
 
       // Check if the container's CENTER is within the visible mask area
-      // Using center-based check prevents items just outside the mask from catching clicks
       const isVisible = containerWorldY >= maskTop && containerWorldY <= maskBottom
 
       // Enable or disable interactivity based on visibility
@@ -343,7 +250,6 @@ export default class AchievementsScene extends Phaser.Scene {
 
       // Tier icon/check mark
       if (isClaimed) {
-        // Show checkmark for claimed
         const checkmark = this.add
           .text(tierX, tierY, '✓', {
             fontSize: '14px',
@@ -353,7 +259,6 @@ export default class AchievementsScene extends Phaser.Scene {
           .setOrigin(0.5)
         container.add(checkmark)
       } else if (isCompleted) {
-        // Show "!" for claimable
         const exclaim = this.add
           .text(tierX, tierY, '!', {
             fontSize: '16px',
@@ -363,7 +268,6 @@ export default class AchievementsScene extends Phaser.Scene {
           .setOrigin(0.5)
         container.add(exclaim)
       } else {
-        // Show tier number for incomplete
         const tierNum = this.add
           .text(tierX, tierY, `${i + 1}`, {
             fontSize: '12px',
@@ -585,7 +489,7 @@ export default class AchievementsScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    let rewardLines: string[] = []
+    const rewardLines: string[] = []
     if (rewards.gold && rewards.gold > 0) rewardLines.push(`+${rewards.gold} Gold`)
     if (rewards.gems && rewards.gems > 0) rewardLines.push(`+${rewards.gems} Gems`)
 
@@ -651,42 +555,24 @@ export default class AchievementsScene extends Phaser.Scene {
       .setDepth(11)
   }
 
-  private createBackButton(width: number, height: number) {
-    // Footer background to cover scroll content
-    this.add.rectangle(width / 2, height - 25, width, 50, 0x1a1a2e).setDepth(20)
+  private createBackButtonSection(width: number, height: number) {
+    // Footer background using reusable component
+    createBackButtonFooter(this, width, height, 50, 0x1a1a2e, 20)
 
-    const backButton = this.add
-      .text(width / 2, height - 25, '< BACK', {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#444444',
-        padding: { x: 20, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setInteractive({ useHandCursor: true })
-
-    backButton.on('pointerover', () => {
-      backButton.setStyle({ backgroundColor: '#666666' })
-    })
-
-    backButton.on('pointerout', () => {
-      backButton.setStyle({ backgroundColor: '#444444' })
-    })
-
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+    // Back button using reusable component
+    createBackButton({
+      scene: this,
+      x: width / 2,
+      y: height - 25,
+      targetScene: 'MainMenuScene',
+      depth: 20,
     })
   }
 
   private updateUI() {
-    // Update currency display
-    if (this.goldText) {
-      this.goldText.setText(`Gold: ${currencyManager.get('gold')}`)
-    }
-    if (this.gemsText) {
-      this.gemsText.setText(`Gems: ${currencyManager.get('gems')}`)
+    // Update currency display using header component
+    if (this.headerRef) {
+      this.headerRef.updateCurrency()
     }
 
     // Update total earned
@@ -697,7 +583,6 @@ export default class AchievementsScene extends Phaser.Scene {
     }
 
     // Recreate the scene to update achievement cards
-    // This is simpler than updating each card individually
     this.scene.restart()
   }
 }

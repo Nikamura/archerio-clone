@@ -14,6 +14,7 @@ import { audioManager } from '../systems/AudioManager'
 import { encyclopediaManager } from '../systems/EncyclopediaManager'
 import { saveManager } from '../systems/SaveManager'
 import * as UIAnimations from '../systems/UIAnimations'
+import { createBackButton, createBackButtonFooter } from '../ui/components/BackButton'
 import {
   EncyclopediaCategory,
   CATEGORY_TABS,
@@ -1087,35 +1088,29 @@ export default class EncyclopediaScene extends Phaser.Scene {
   }
 
   // ============================================
-  // Back Button
+  // Back Button (using BackButton component)
   // ============================================
 
   private createBackButton(): void {
     const { width, height } = this.cameras.main
 
-    const button = this.add
-      .text(width / 2, height - 35, 'BACK', {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#444455',
-        padding: { x: 50, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20) // Above content container (depth 1) and scroll indicator (depth 10)
+    // Footer background
+    createBackButtonFooter(this, width, height, 50, 0x1a1a2e, 19)
 
-    button.setInteractive({ useHandCursor: true })
-    button.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
-    })
-    button.on('pointerover', () => {
-      button.setStyle({ backgroundColor: '#555566' })
-    })
-    button.on('pointerout', () => {
-      button.setStyle({ backgroundColor: '#444455' })
+    // Back button with custom styling to match original
+    const button = createBackButton({
+      scene: this,
+      y: height - 35,
+      targetScene: 'MainMenuScene',
+      text: 'BACK',
+      depth: 20,
+      backgroundColor: 0x444455,
+      hoverColor: 0x555566,
     })
 
-    UIAnimations.applyButtonEffects(this, button)
+    // Get the text child and apply button effects
+    const textChild = button.first as Phaser.GameObjects.Text
+    UIAnimations.applyButtonEffects(this, textChild)
   }
 
   // ============================================

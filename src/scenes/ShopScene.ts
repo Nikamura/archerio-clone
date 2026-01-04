@@ -3,6 +3,7 @@ import { themeManager } from '../systems/ThemeManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
 import { type ThemeId, THEME_DEFINITIONS } from '../config/themeData'
+import { createBackButton } from '../ui/components/BackButton'
 
 /**
  * ShopScene - Displays theme selection and unlock interface
@@ -370,28 +371,15 @@ export default class ShopScene extends Phaser.Scene {
     }
   }
 
-  private createBackButton(width: number, height: number): void {
-    const backBtn = this.add
-      .text(width / 2, height - 50, 'BACK', {
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#555555',
-        padding: { x: 40, y: 12 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-
-    backBtn.on('pointerover', () => {
-      backBtn.setStyle({ backgroundColor: '#666666' })
-    })
-
-    backBtn.on('pointerout', () => {
-      backBtn.setStyle({ backgroundColor: '#555555' })
-    })
-
-    backBtn.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+  private createBackButton(_width: number, height: number): void {
+    createBackButton({
+      scene: this,
+      y: height - 50,
+      targetScene: 'MainMenuScene',
+      text: 'BACK',
+      backgroundColor: 0x555555,
+      hoverColor: 0x666666,
+      fontSize: '18px',
     })
   }
 }

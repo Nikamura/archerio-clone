@@ -327,7 +327,7 @@ No equipment, no persistent progression, no currencies, no hero selection, no ad
   - Vitality (+10% max HP per level, heals gained amount)
   - **New Abilities (2026-01-03):**
   - Bouncy Wall (+2 wall bounces per level, arrows reflect off screen edges)
-  - Dodge Master (+15% dodge chance per level, capped at 75%)
+  - Dodge Master (+1.5% dodge chance per level, capped at 75%)
   - **Devil Abilities (2026-01-03):** High-risk/high-reward abilities
   - Extra Life (revive once at 30% HP per level, golden flash on revive)
   - Through Wall (arrows wrap around screen edges instead of disappearing)

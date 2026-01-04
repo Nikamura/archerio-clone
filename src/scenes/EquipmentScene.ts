@@ -18,6 +18,7 @@ import { equipmentManager, EQUIPMENT_EVENTS } from '../systems/EquipmentManager'
 import { currencyManager } from '../systems/CurrencyManager'
 import { audioManager } from '../systems/AudioManager'
 import * as UIAnimations from '../systems/UIAnimations'
+import { createBackButton } from '../ui/components/BackButton'
 
 // Slot display names
 const SLOT_NAMES: Record<EquipmentSlotType, string> = {
@@ -509,24 +510,22 @@ export default class EquipmentScene extends Phaser.Scene {
   }
 
   private createBackButton(): void {
-    const { width, height } = this.cameras.main
+    const { height } = this.cameras.main
 
-    const backButton = this.add
-      .text(width / 2, height - 40, 'BACK', {
-        fontSize: '18px',
-        color: '#ffffff',
-        backgroundColor: '#444455',
-        padding: { x: 40, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20) // Above inventory container (depth 1) and equipped slots (depth 10)
-
-    backButton.setInteractive({ useHandCursor: true })
-    backButton.on('pointerdown', () => {
-      audioManager.playMenuSelect()
-      this.scene.start('MainMenuScene')
+    const container = createBackButton({
+      scene: this,
+      y: height - 40,
+      targetScene: 'MainMenuScene',
+      text: 'BACK',
+      depth: 20, // Above inventory container (depth 1) and equipped slots (depth 10)
+      backgroundColor: 0x444455,
+      hoverColor: 0x555566,
+      fontSize: '18px',
     })
-    UIAnimations.applyButtonEffects(this, backButton)
+
+    // Apply button effects to the text child
+    const textChild = container.first as Phaser.GameObjects.Text
+    UIAnimations.applyButtonEffects(this, textChild)
   }
 
   private setupEventListeners(): void {

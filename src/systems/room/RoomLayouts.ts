@@ -1,0 +1,628 @@
+/**
+ * Room Layout Definitions
+ *
+ * Contains all room layout templates for procedural room generation.
+ * Layouts define spawn zones, safe zones, and wall configurations.
+ */
+
+// ============================================
+// Types
+// ============================================
+
+/**
+ * Room layout types for variety
+ */
+export type RoomLayoutType =
+  | 'open_arena'      // Large open space - good for kiting
+  | 'narrow_corridor' // Long narrow area - limited dodging
+  | 'split_arena'     // Two halves connected - divide and conquer
+  | 'corner_rooms'    // Four corners with center - tactical positioning
+  | 'maze_lite'       // Light maze with a few walls - cover tactics
+  | 'gauntlet'        // Long path with enemies along sides
+  | 'ambush'          // Enemies spawn from edges after entering
+  | 'boss_arena'      // Large circular arena for boss fights
+  | 'mini_boss_pit'   // Medium arena with tight space
+
+/**
+ * Spawn zone within a room (normalized 0-1 coordinates)
+ */
+export interface SpawnZone {
+  x: number      // Center X (0-1)
+  y: number      // Center Y (0-1)
+  radius: number // Spawn radius (0-1)
+  weight: number // Spawn probability weight
+}
+
+/**
+ * Safe zone where enemies should not spawn
+ */
+export interface SafeZone {
+  x: number
+  y: number
+  radius: number
+}
+
+/**
+ * Wall configuration (normalized coordinates 0-1)
+ */
+export interface WallConfig {
+  x: number      // Center X (0-1)
+  y: number      // Center Y (0-1)
+  width: number  // Width (0-1)
+  height: number // Height (0-1)
+}
+
+/**
+ * Room layout definition
+ */
+export interface RoomLayout {
+  type: RoomLayoutType
+  name: string
+  description: string
+  spawnZones: SpawnZone[]
+  safeZones: SafeZone[]
+  walls?: WallConfig[] // Optional walls for obstacles
+  playerSpawnSafeRadius: number // Minimum distance from player spawn
+}
+
+// ============================================
+// Standard Room Layouts - 20+ variations
+// ============================================
+
+export const ROOM_LAYOUTS: RoomLayout[] = [
+  // Open Arenas (3 variants)
+  {
+    type: 'open_arena',
+    name: 'Central Arena',
+    description: 'Large open space with enemies spawning around the edges',
+    spawnZones: [
+      { x: 0.2, y: 0.2, radius: 0.15, weight: 1 },
+      { x: 0.8, y: 0.2, radius: 0.15, weight: 1 },
+      { x: 0.2, y: 0.7, radius: 0.15, weight: 1 },
+      { x: 0.8, y: 0.7, radius: 0.15, weight: 1 },
+      { x: 0.5, y: 0.25, radius: 0.2, weight: 0.5 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.25,
+  },
+  {
+    type: 'open_arena',
+    name: 'Scattered Arena',
+    description: 'Open space with enemies scattered throughout',
+    spawnZones: [
+      { x: 0.3, y: 0.3, radius: 0.18, weight: 1 },
+      { x: 0.7, y: 0.3, radius: 0.18, weight: 1 },
+      { x: 0.5, y: 0.5, radius: 0.15, weight: 0.8 },
+      { x: 0.3, y: 0.6, radius: 0.15, weight: 1 },
+      { x: 0.7, y: 0.6, radius: 0.15, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.9, radius: 0.12 }],
+    playerSpawnSafeRadius: 0.22,
+  },
+  {
+    type: 'open_arena',
+    name: 'Ring Formation',
+    description: 'Enemies form a ring around the player',
+    spawnZones: [
+      { x: 0.15, y: 0.4, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.4, radius: 0.1, weight: 1 },
+      { x: 0.3, y: 0.2, radius: 0.12, weight: 1 },
+      { x: 0.7, y: 0.2, radius: 0.12, weight: 1 },
+      { x: 0.5, y: 0.15, radius: 0.15, weight: 1.2 },
+      { x: 0.3, y: 0.65, radius: 0.1, weight: 0.8 },
+      { x: 0.7, y: 0.65, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.18 }],
+    playerSpawnSafeRadius: 0.28,
+  },
+
+  // Narrow Corridors (3 variants)
+  {
+    type: 'narrow_corridor',
+    name: 'Vertical Corridor',
+    description: 'Narrow vertical path with enemies blocking the way',
+    spawnZones: [
+      { x: 0.5, y: 0.2, radius: 0.2, weight: 1.5 },
+      { x: 0.5, y: 0.4, radius: 0.18, weight: 1 },
+      { x: 0.5, y: 0.55, radius: 0.15, weight: 0.8 },
+    ],
+    safeZones: [
+      { x: 0.15, y: 0.5, radius: 0.1 },
+      { x: 0.85, y: 0.5, radius: 0.1 },
+    ],
+    playerSpawnSafeRadius: 0.2,
+  },
+  {
+    type: 'narrow_corridor',
+    name: 'Horizontal Corridor',
+    description: 'Wide horizontal corridor with flanking positions',
+    spawnZones: [
+      { x: 0.2, y: 0.4, radius: 0.15, weight: 1 },
+      { x: 0.5, y: 0.35, radius: 0.18, weight: 1.2 },
+      { x: 0.8, y: 0.4, radius: 0.15, weight: 1 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.15, radius: 0.1 },
+      { x: 0.5, y: 0.85, radius: 0.12 },
+    ],
+    playerSpawnSafeRadius: 0.2,
+  },
+  {
+    type: 'narrow_corridor',
+    name: 'Diagonal Run',
+    description: 'Diagonal path with enemies positioned along it',
+    spawnZones: [
+      { x: 0.25, y: 0.25, radius: 0.15, weight: 1 },
+      { x: 0.45, y: 0.4, radius: 0.15, weight: 1 },
+      { x: 0.65, y: 0.3, radius: 0.15, weight: 1 },
+      { x: 0.75, y: 0.2, radius: 0.12, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.8, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Split Arenas (2 variants) - with dividing walls
+  {
+    type: 'split_arena',
+    name: 'Left-Right Split',
+    description: 'Two groups on opposite sides with center wall',
+    spawnZones: [
+      { x: 0.2, y: 0.35, radius: 0.18, weight: 1.5 },
+      { x: 0.25, y: 0.55, radius: 0.12, weight: 1 },
+      { x: 0.8, y: 0.35, radius: 0.18, weight: 1.5 },
+      { x: 0.75, y: 0.55, radius: 0.12, weight: 1 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.45, radius: 0.12 },
+      { x: 0.5, y: 0.85, radius: 0.1 },
+    ],
+    walls: [
+      { x: 0.5, y: 0.35, width: 0.04, height: 0.25 },
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+  {
+    type: 'split_arena',
+    name: 'Top-Bottom Split',
+    description: 'Enemies in upper section with horizontal barrier',
+    spawnZones: [
+      { x: 0.3, y: 0.2, radius: 0.18, weight: 1.2 },
+      { x: 0.7, y: 0.2, radius: 0.18, weight: 1.2 },
+      { x: 0.5, y: 0.35, radius: 0.2, weight: 1.5 },
+      { x: 0.5, y: 0.55, radius: 0.15, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.9, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.48, width: 0.25, height: 0.04 },
+    ],
+    playerSpawnSafeRadius: 0.3,
+  },
+
+  // Corner Rooms (2 variants) - with corner cover
+  {
+    type: 'corner_rooms',
+    name: 'Four Corners',
+    description: 'Enemies in corners with center pillars',
+    spawnZones: [
+      { x: 0.15, y: 0.2, radius: 0.12, weight: 1 },
+      { x: 0.85, y: 0.2, radius: 0.12, weight: 1 },
+      { x: 0.15, y: 0.65, radius: 0.12, weight: 1 },
+      { x: 0.85, y: 0.65, radius: 0.12, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.5, radius: 0.2 }],
+    walls: [
+      { x: 0.35, y: 0.4, width: 0.06, height: 0.06 },
+      { x: 0.65, y: 0.4, width: 0.06, height: 0.06 },
+    ],
+    playerSpawnSafeRadius: 0.2,
+  },
+  {
+    type: 'corner_rooms',
+    name: 'Corners Plus Center',
+    description: 'Enemies in corners with center obstacles',
+    spawnZones: [
+      { x: 0.2, y: 0.22, radius: 0.1, weight: 0.8 },
+      { x: 0.8, y: 0.22, radius: 0.1, weight: 0.8 },
+      { x: 0.2, y: 0.6, radius: 0.1, weight: 0.8 },
+      { x: 0.8, y: 0.6, radius: 0.1, weight: 0.8 },
+      { x: 0.5, y: 0.38, radius: 0.18, weight: 1.5 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.12 }],
+    walls: [
+      { x: 0.5, y: 0.5, width: 0.08, height: 0.08 },
+      { x: 0.3, y: 0.35, width: 0.05, height: 0.1 },
+      { x: 0.7, y: 0.35, width: 0.05, height: 0.1 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Maze Lite (2 variants) - with walls for cover
+  {
+    type: 'maze_lite',
+    name: 'Cover Points',
+    description: 'Multiple clusters with gaps for kiting, walls provide cover',
+    spawnZones: [
+      { x: 0.25, y: 0.25, radius: 0.12, weight: 1 },
+      { x: 0.5, y: 0.3, radius: 0.12, weight: 1 },
+      { x: 0.75, y: 0.25, radius: 0.12, weight: 1 },
+      { x: 0.35, y: 0.5, radius: 0.1, weight: 0.8 },
+      { x: 0.65, y: 0.5, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.85, radius: 0.1 },
+      { x: 0.5, y: 0.65, radius: 0.08 },
+    ],
+    walls: [
+      { x: 0.3, y: 0.4, width: 0.08, height: 0.15 },
+      { x: 0.7, y: 0.4, width: 0.08, height: 0.15 },
+      { x: 0.5, y: 0.55, width: 0.12, height: 0.04 },
+    ],
+    playerSpawnSafeRadius: 0.2,
+  },
+  {
+    type: 'maze_lite',
+    name: 'Scattered Pockets',
+    description: 'Small groups spread throughout the room with wall barriers',
+    spawnZones: [
+      { x: 0.2, y: 0.3, radius: 0.1, weight: 1 },
+      { x: 0.4, y: 0.2, radius: 0.1, weight: 1 },
+      { x: 0.6, y: 0.35, radius: 0.1, weight: 1 },
+      { x: 0.8, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.3, y: 0.55, radius: 0.1, weight: 0.8 },
+      { x: 0.7, y: 0.5, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
+    walls: [
+      { x: 0.5, y: 0.4, width: 0.04, height: 0.2 },
+      { x: 0.25, y: 0.45, width: 0.06, height: 0.1 },
+      { x: 0.75, y: 0.35, width: 0.06, height: 0.1 },
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+
+  // Gauntlet (2 variants) - with side walls
+  {
+    type: 'gauntlet',
+    name: 'Side Runners',
+    description: 'Enemies along both sides with corridor walls',
+    spawnZones: [
+      { x: 0.15, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.45, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.65, radius: 0.1, weight: 0.8 },
+      { x: 0.85, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.45, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.65, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.4, radius: 0.15 },
+      { x: 0.5, y: 0.85, radius: 0.1 },
+    ],
+    walls: [
+      { x: 0.32, y: 0.35, width: 0.04, height: 0.25 },
+      { x: 0.68, y: 0.35, width: 0.04, height: 0.25 },
+    ],
+    playerSpawnSafeRadius: 0.18,
+  },
+  {
+    type: 'gauntlet',
+    name: 'Forward March',
+    description: 'Enemies advancing with barrier cover',
+    spawnZones: [
+      { x: 0.35, y: 0.18, radius: 0.12, weight: 1.2 },
+      { x: 0.65, y: 0.18, radius: 0.12, weight: 1.2 },
+      { x: 0.5, y: 0.32, radius: 0.15, weight: 1 },
+      { x: 0.3, y: 0.45, radius: 0.1, weight: 0.8 },
+      { x: 0.7, y: 0.45, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.82, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.55, width: 0.2, height: 0.04 },
+      { x: 0.25, y: 0.4, width: 0.06, height: 0.1 },
+      { x: 0.75, y: 0.4, width: 0.06, height: 0.1 },
+    ],
+    playerSpawnSafeRadius: 0.28,
+  },
+
+  // Ambush (1 variant - special) - with trap corridor
+  {
+    type: 'ambush',
+    name: 'Pincer Attack',
+    description: 'Enemies spawn from sides with corridor walls',
+    spawnZones: [
+      { x: 0.1, y: 0.35, radius: 0.08, weight: 1 },
+      { x: 0.1, y: 0.55, radius: 0.08, weight: 1 },
+      { x: 0.9, y: 0.35, radius: 0.08, weight: 1 },
+      { x: 0.9, y: 0.55, radius: 0.08, weight: 1 },
+      { x: 0.5, y: 0.2, radius: 0.15, weight: 1.2 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.75, radius: 0.2 }],
+    walls: [
+      { x: 0.25, y: 0.45, width: 0.04, height: 0.2 },
+      { x: 0.75, y: 0.45, width: 0.04, height: 0.2 },
+      { x: 0.5, y: 0.6, width: 0.15, height: 0.04 },
+    ],
+    playerSpawnSafeRadius: 0.2,
+  },
+
+  // Circular Formation (1 variant) - with center pillar
+  {
+    type: 'open_arena',
+    name: 'Circular Siege',
+    description: 'Enemies arranged in circle with center obstacle',
+    spawnZones: [
+      { x: 0.5, y: 0.15, radius: 0.1, weight: 1 },
+      { x: 0.2, y: 0.3, radius: 0.1, weight: 1 },
+      { x: 0.8, y: 0.3, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.5, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.5, radius: 0.1, weight: 1 },
+      { x: 0.25, y: 0.65, radius: 0.08, weight: 0.8 },
+      { x: 0.75, y: 0.65, radius: 0.08, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    walls: [
+      { x: 0.5, y: 0.42, width: 0.1, height: 0.1 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Wave Formation (2 variants)
+  {
+    type: 'gauntlet',
+    name: 'Advancing Wave',
+    description: 'Enemies in rows advancing toward player',
+    spawnZones: [
+      { x: 0.25, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.5, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.75, y: 0.15, radius: 0.12, weight: 1.2 },
+      { x: 0.35, y: 0.32, radius: 0.1, weight: 1 },
+      { x: 0.65, y: 0.32, radius: 0.1, weight: 1 },
+      { x: 0.5, y: 0.48, radius: 0.12, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.18 }],
+    playerSpawnSafeRadius: 0.3,
+  },
+  {
+    type: 'gauntlet',
+    name: 'Staggered Lines',
+    description: 'Multiple staggered enemy lines',
+    spawnZones: [
+      { x: 0.3, y: 0.2, radius: 0.1, weight: 1 },
+      { x: 0.7, y: 0.2, radius: 0.1, weight: 1 },
+      { x: 0.2, y: 0.38, radius: 0.1, weight: 1 },
+      { x: 0.5, y: 0.35, radius: 0.12, weight: 1 },
+      { x: 0.8, y: 0.38, radius: 0.1, weight: 1 },
+      { x: 0.35, y: 0.55, radius: 0.08, weight: 0.7 },
+      { x: 0.65, y: 0.55, radius: 0.08, weight: 0.7 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
+    playerSpawnSafeRadius: 0.28,
+  },
+
+  // Crossfire Pattern
+  {
+    type: 'split_arena',
+    name: 'Crossfire',
+    description: 'Enemies positioned for crossfire tactics',
+    spawnZones: [
+      { x: 0.15, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.85, y: 0.25, radius: 0.1, weight: 1 },
+      { x: 0.15, y: 0.5, radius: 0.1, weight: 1.2 },
+      { x: 0.85, y: 0.5, radius: 0.1, weight: 1.2 },
+      { x: 0.5, y: 0.2, radius: 0.15, weight: 1 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.5, radius: 0.1 },
+      { x: 0.5, y: 0.85, radius: 0.12 },
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+
+  // Defensive Positions
+  {
+    type: 'corner_rooms',
+    name: 'Defensive Perimeter',
+    description: 'Enemies positioned defensively around the room',
+    spawnZones: [
+      { x: 0.2, y: 0.2, radius: 0.1, weight: 1.2 },
+      { x: 0.8, y: 0.2, radius: 0.1, weight: 1.2 },
+      { x: 0.5, y: 0.3, radius: 0.15, weight: 1.5 },
+      { x: 0.2, y: 0.55, radius: 0.08, weight: 0.8 },
+      { x: 0.8, y: 0.55, radius: 0.08, weight: 0.8 },
+    ],
+    safeZones: [
+      { x: 0.5, y: 0.6, radius: 0.1 },
+      { x: 0.5, y: 0.85, radius: 0.12 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Central Nexus
+  {
+    type: 'maze_lite',
+    name: 'Central Nexus',
+    description: 'Enemies converge from multiple points toward center',
+    spawnZones: [
+      { x: 0.5, y: 0.28, radius: 0.18, weight: 2 },
+      { x: 0.2, y: 0.25, radius: 0.1, weight: 0.8 },
+      { x: 0.8, y: 0.25, radius: 0.1, weight: 0.8 },
+      { x: 0.25, y: 0.5, radius: 0.1, weight: 0.8 },
+      { x: 0.75, y: 0.5, radius: 0.1, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.25,
+  },
+]
+
+// ============================================
+// Chokepoint Layouts - wall-heavy designs
+// ============================================
+
+/**
+ * Chokepoint layouts - wall-heavy designs with narrow passages
+ * These create tactical gameplay with predictable wall positions
+ * All walls are positioned with y < 0.70 to keep bottom area clear for player spawn
+ */
+export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
+  // The Funnel - walls on sides force movement through center
+  {
+    type: 'narrow_corridor',
+    name: 'The Funnel',
+    description: 'Side walls create a narrow central passage',
+    spawnZones: [
+      { x: 0.5, y: 0.20, radius: 0.20, weight: 1.5 },
+      { x: 0.5, y: 0.40, radius: 0.18, weight: 1 },
+      { x: 0.35, y: 0.55, radius: 0.10, weight: 0.8 },
+      { x: 0.65, y: 0.55, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.15, y: 0.40, width: 0.15, height: 0.50 },
+      { x: 0.85, y: 0.40, width: 0.15, height: 0.50 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Corridor Split - center divider forces left/right choice
+  {
+    type: 'split_arena',
+    name: 'Corridor Split',
+    description: 'Center wall splits arena into two paths',
+    spawnZones: [
+      { x: 0.25, y: 0.25, radius: 0.15, weight: 1.2 },
+      { x: 0.75, y: 0.25, radius: 0.15, weight: 1.2 },
+      { x: 0.25, y: 0.50, radius: 0.12, weight: 1 },
+      { x: 0.75, y: 0.50, radius: 0.12, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.12, y: 0.35, width: 0.10, height: 0.40 },
+      { x: 0.50, y: 0.35, width: 0.10, height: 0.45 },
+      { x: 0.88, y: 0.35, width: 0.10, height: 0.40 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Barricades - staggered horizontal bars create weaving path
+  {
+    type: 'maze_lite',
+    name: 'Barricades',
+    description: 'Staggered horizontal barriers create a weaving path',
+    spawnZones: [
+      { x: 0.25, y: 0.15, radius: 0.12, weight: 1 },
+      { x: 0.75, y: 0.15, radius: 0.12, weight: 1 },
+      { x: 0.50, y: 0.28, radius: 0.15, weight: 1.2 },
+      { x: 0.25, y: 0.40, radius: 0.10, weight: 0.8 },
+      { x: 0.75, y: 0.40, radius: 0.10, weight: 0.8 },
+      { x: 0.50, y: 0.55, radius: 0.12, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.30, y: 0.20, width: 0.28, height: 0.05 },
+      { x: 0.70, y: 0.32, width: 0.28, height: 0.05 },
+      { x: 0.30, y: 0.44, width: 0.28, height: 0.05 },
+      { x: 0.70, y: 0.56, width: 0.28, height: 0.05 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Fortress - large central obstacle with side pillars
+  {
+    type: 'corner_rooms',
+    name: 'Fortress',
+    description: 'Large central obstacle forces flanking movement',
+    spawnZones: [
+      { x: 0.20, y: 0.20, radius: 0.12, weight: 1.2 },
+      { x: 0.80, y: 0.20, radius: 0.12, weight: 1.2 },
+      { x: 0.50, y: 0.15, radius: 0.15, weight: 1 },
+      { x: 0.20, y: 0.50, radius: 0.10, weight: 0.8 },
+      { x: 0.80, y: 0.50, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.50, y: 0.38, width: 0.28, height: 0.22 },
+      { x: 0.14, y: 0.35, width: 0.08, height: 0.30 },
+      { x: 0.86, y: 0.35, width: 0.08, height: 0.30 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // Pinch Points - alternating walls create zigzag path
+  {
+    type: 'gauntlet',
+    name: 'Pinch Points',
+    description: 'Alternating obstacles create multiple chokepoints',
+    spawnZones: [
+      { x: 0.50, y: 0.15, radius: 0.18, weight: 1.5 },
+      { x: 0.25, y: 0.30, radius: 0.10, weight: 1 },
+      { x: 0.75, y: 0.30, radius: 0.10, weight: 1 },
+      { x: 0.50, y: 0.45, radius: 0.12, weight: 1 },
+      { x: 0.25, y: 0.58, radius: 0.08, weight: 0.7 },
+      { x: 0.75, y: 0.58, radius: 0.08, weight: 0.7 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.25, y: 0.22, width: 0.16, height: 0.10 },
+      { x: 0.75, y: 0.22, width: 0.16, height: 0.10 },
+      { x: 0.50, y: 0.38, width: 0.20, height: 0.08 },
+      { x: 0.25, y: 0.52, width: 0.16, height: 0.10 },
+      { x: 0.75, y: 0.52, width: 0.16, height: 0.10 },
+    ],
+    playerSpawnSafeRadius: 0.25,
+  },
+
+  // The Gauntlet - long corridor with extended side walls
+  {
+    type: 'gauntlet',
+    name: 'The Gauntlet',
+    description: 'Extended side walls create a long corridor',
+    spawnZones: [
+      { x: 0.50, y: 0.15, radius: 0.15, weight: 1.5 },
+      { x: 0.50, y: 0.30, radius: 0.15, weight: 1.2 },
+      { x: 0.50, y: 0.45, radius: 0.15, weight: 1 },
+      { x: 0.40, y: 0.58, radius: 0.10, weight: 0.8 },
+      { x: 0.60, y: 0.58, radius: 0.10, weight: 0.8 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
+    walls: [
+      { x: 0.20, y: 0.38, width: 0.12, height: 0.55 },
+      { x: 0.80, y: 0.38, width: 0.12, height: 0.55 },
+    ],
+    playerSpawnSafeRadius: 0.22,
+  },
+]
+
+// ============================================
+// Special Room Layouts
+// ============================================
+
+/**
+ * Boss room layouts
+ */
+export const BOSS_LAYOUTS: RoomLayout[] = [
+  {
+    type: 'boss_arena',
+    name: 'Boss Arena',
+    description: 'Large circular arena for boss fights',
+    spawnZones: [
+      { x: 0.5, y: 0.35, radius: 0.05, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.18 }],
+    playerSpawnSafeRadius: 0.35,
+  },
+]
+
+/**
+ * Mini-boss room layouts
+ */
+export const MINI_BOSS_LAYOUTS: RoomLayout[] = [
+  {
+    type: 'mini_boss_pit',
+    name: 'Mini-Boss Pit',
+    description: 'Tighter arena for mini-boss encounters',
+    spawnZones: [
+      { x: 0.5, y: 0.4, radius: 0.1, weight: 1 },
+    ],
+    safeZones: [{ x: 0.5, y: 0.85, radius: 0.15 }],
+    playerSpawnSafeRadius: 0.3,
+  },
+]
