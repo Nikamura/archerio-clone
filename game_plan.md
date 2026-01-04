@@ -365,6 +365,7 @@ Visual test screenshots are saved to `test/screenshots/`
 11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
 12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
 13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
+14. **Endless mode bosses unkillable at 50% HP** - Sometimes in endless runs, bosses become unkillable when reaching 50% health
 
 **UPCOMING FEATURES:**
 1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
