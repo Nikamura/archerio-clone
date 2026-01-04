@@ -339,7 +339,12 @@ export default class TalentsScene extends Phaser.Scene {
     }
 
     if (!canSpin) {
-      this.showMessage('Daily limit reached!', '#ff4444')
+      // Check which condition failed
+      if (talentManager.areAllTalentsMaxed()) {
+        this.showMessage('All talents maxed!', '#ff4444')
+      } else {
+        this.showMessage('Daily limit reached!', '#ff4444')
+      }
       return
     }
 
