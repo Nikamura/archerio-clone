@@ -483,6 +483,23 @@ export default class EquipmentScene extends Phaser.Scene {
       // Guard against missing UI elements (can happen if scene not fully initialized)
       if (!itemSprite || !levelText) return
 
+      // Get or create upgrade indicator
+      let upgradeIndicator = slot.container.getByName('upgradeIndicator') as Phaser.GameObjects.Text | null
+      if (!upgradeIndicator) {
+        upgradeIndicator = this.add.text(
+          this.INVENTORY_SLOT_SIZE / 2 - 2, -this.INVENTORY_SLOT_SIZE / 2 + 2,
+          '\u2191', // Up arrow
+          {
+            fontSize: '14px',
+            color: '#00ff88',
+            fontStyle: 'bold',
+            backgroundColor: '#1a1a2e',
+            padding: { x: 2, y: 0 },
+          }
+        ).setOrigin(1, 0).setName('upgradeIndicator')
+        slot.container.add(upgradeIndicator)
+      }
+
       if (item) {
         const rarityColor = Phaser.Display.Color.HexStringToColor(RARITY_CONFIGS[item.rarity].color)
         slot.background.setStrokeStyle(2, rarityColor.color)
@@ -493,10 +510,15 @@ export default class EquipmentScene extends Phaser.Scene {
 
         levelText.setText(`Lv.${item.level}`)
         levelText.setVisible(true)
+
+        // Show upgrade indicator if this item is better than equipped
+        const isUpgrade = this.isUpgradeOverEquipped(item)
+        upgradeIndicator.setVisible(isUpgrade)
       } else {
         slot.background.setStrokeStyle(1, 0x3a3a55)
         itemSprite.setVisible(false)
         levelText.setVisible(false)
+        upgradeIndicator.setVisible(false)
       }
     })
   }
@@ -531,7 +553,19 @@ export default class EquipmentScene extends Phaser.Scene {
     // Stats section: combine base stats + perk stats, each stat takes 22px
     const combinedStats = this.getCombinedItemStats(item)
     const statsEntries = Object.entries(combinedStats).filter(([_, value]) => value !== undefined && value !== 0)
-    const statsHeight = statsEntries.length * 22
+    let statsHeight = statsEntries.length * 22
+    // For inventory items, also account for "lost stats" from equipped item
+    if (!isEquipped) {
+      const equippedForHeight = equipmentManager.getEquipped(item.slot)
+      if (equippedForHeight) {
+        const equippedStats = this.getCombinedItemStats(equippedForHeight)
+        for (const [stat, value] of Object.entries(equippedStats)) {
+          if (value && value !== 0 && !combinedStats[stat as keyof EquipmentStats]) {
+            statsHeight += 22 // Add height for each lost stat
+          }
+        }
+      }
+    }
     // Button section: buttons + padding
     const buttonSectionHeight = 60
     // Total content height with padding
@@ -605,21 +639,66 @@ export default class EquipmentScene extends Phaser.Scene {
     const divider = this.add.rectangle(0, -panelHeight / 2 + 130, panelWidth - 40, 1, 0x444466)
     this.detailPanel.add(divider)
 
-    // Stats display
+    // Stats display with comparison for inventory items
     const statsY = -panelHeight / 2 + 150
     let yOffset = 0
 
+    // Get comparison data if this is an inventory item (not equipped)
+    const equippedItem = !isEquipped ? equipmentManager.getEquipped(item.slot) : null
+    const comparison = !isEquipped ? this.compareItemStats(item, equippedItem) : null
+
     statsEntries.forEach(([stat, value]) => {
       const statName = this.formatStatName(stat)
+      const baseText = `${statName}: +${this.formatStatValue(value as number)}`
+
+      // Add comparison indicator for inventory items
+      let displayText = baseText
+      let textColor = '#88ff88'
+
+      if (comparison && comparison.differences[stat] !== undefined) {
+        const diff = comparison.differences[stat]
+        if (diff > 0) {
+          // This item is better
+          displayText = `${baseText}  ▲${this.formatStatValue(diff)}`
+          textColor = '#44ff44'
+        } else if (diff < 0) {
+          // This item is worse
+          displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(diff))}`
+          textColor = '#ff6666'
+        }
+      } else if (comparison && equippedItem) {
+        // Stat exists on this item but not on equipped - it's a bonus
+        displayText = `${baseText}  ▲${this.formatStatValue(value as number)}`
+        textColor = '#44ff44'
+      }
+
       const statText = this.add
-        .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: +${this.formatStatValue(value as number)}`, {
+        .text(-panelWidth / 2 + 30, statsY + yOffset, displayText, {
           fontSize: '14px',
-          color: '#88ff88',
+          color: textColor,
         })
         .setOrigin(0, 0)
       this.detailPanel?.add(statText)
       yOffset += 22
     })
+
+    // Show stats that are on equipped item but not on this item (what you'd lose)
+    if (comparison && equippedItem) {
+      const equippedStats = this.getCombinedItemStats(equippedItem)
+      for (const [stat, value] of Object.entries(equippedStats)) {
+        if (value && value !== 0 && !combinedStats[stat as keyof EquipmentStats]) {
+          const statName = this.formatStatName(stat)
+          const lostText = this.add
+            .text(-panelWidth / 2 + 30, statsY + yOffset, `${statName}: -${this.formatStatValue(value as number)}  ▼`, {
+              fontSize: '14px',
+              color: '#ff6666',
+            })
+            .setOrigin(0, 0)
+          this.detailPanel?.add(lostText)
+          yOffset += 22
+        }
+      }
+    }
 
     // Action buttons - use smaller font and dynamic positioning
     const buttonY = panelHeight / 2 - 40
@@ -787,6 +866,57 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     return combined
+  }
+
+  /**
+   * Compare two items and determine stat differences.
+   * Returns an object with stat differences (positive = item is better, negative = equipped is better).
+   */
+  private compareItemStats(
+    item: Equipment,
+    equipped: Equipment | null
+  ): { differences: Record<string, number>; isBetterOverall: boolean } {
+    const itemStats = this.getCombinedItemStats(item)
+    const equippedStats = equipped ? this.getCombinedItemStats(equipped) : {}
+
+    const differences: Record<string, number> = {}
+    let betterCount = 0
+    let worseCount = 0
+
+    // Get all unique stat keys
+    const allStatKeys = new Set([
+      ...Object.keys(itemStats),
+      ...Object.keys(equippedStats),
+    ])
+
+    for (const key of allStatKeys) {
+      const itemValue = (itemStats as Record<string, number>)[key] ?? 0
+      const equippedValue = (equippedStats as Record<string, number>)[key] ?? 0
+      const diff = itemValue - equippedValue
+
+      if (diff !== 0) {
+        differences[key] = diff
+        if (diff > 0) betterCount++
+        else worseCount++
+      }
+    }
+
+    // Item is considered "better overall" if it has more better stats than worse stats
+    // and the equipped item exists (otherwise, any item is better than nothing)
+    const isBetterOverall = !equipped || betterCount > worseCount
+
+    return { differences, isBetterOverall }
+  }
+
+  /**
+   * Check if an inventory item is an upgrade over currently equipped gear.
+   */
+  private isUpgradeOverEquipped(item: Equipment): boolean {
+    const equipped = equipmentManager.getEquipped(item.slot)
+    if (!equipped) return true // Any item is better than nothing
+
+    const { isBetterOverall } = this.compareItemStats(item, equipped)
+    return isBetterOverall
   }
 
   private onUpgradeClick(item: Equipment): void {
