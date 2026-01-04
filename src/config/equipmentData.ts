@@ -478,14 +478,23 @@ export function calculateTotalUpgradeCost(
 
 /**
  * Calculate sell price for an item
- * Price = base price + (level - 1) * 10 * rarity multiplier
- * Higher level items sell for more gold
+ * Returns approximately 30% of the total gold invested in upgrades
+ * This makes selling feel rewarding while still encouraging keeping upgraded items
  */
 export function calculateSellPrice(rarity: Rarity, level: number): number {
   const basePrice = BASE_SELL_PRICES[rarity]
-  const rarityMultiplier = RARITY_CONFIGS[rarity].statMultiplier
-  const levelBonus = (level - 1) * 10 * rarityMultiplier
-  return Math.floor(basePrice + levelBonus)
+
+  // If level 1, just return base price
+  if (level <= 1) {
+    return basePrice
+  }
+
+  // Calculate total upgrade cost to reach this level
+  const totalUpgradeCost = calculateTotalUpgradeCost(rarity, 1, level)
+
+  // Return base price + 30% of invested upgrade gold
+  const sellbackPercent = 0.3
+  return Math.floor(basePrice + totalUpgradeCost.gold * sellbackPercent)
 }
 
 // ============================================

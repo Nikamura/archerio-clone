@@ -370,7 +370,7 @@ Visual test screenshots are saved to `test/screenshots/`
 16. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
 17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
 18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
-19. **Selling items too cheap** - Sell price is very low compared to upgrade costs, making selling feel unrewarding
+19. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
 20. **Spreader enemies stuck in walls** - Spreader enemies can still spawn inside walls and become unkillable
 
 **BALANCE:**
