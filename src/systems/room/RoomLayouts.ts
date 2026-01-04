@@ -29,6 +29,22 @@ export const WALL_H3 = 0.288 // ~192px
 export const WALL_H4 = 0.384 // ~256px
 export const WALL_H5 = 0.480 // ~320px
 
+/**
+ * Wall X positions for proper corridor spacing (player is 64px, needs ~96px min corridor)
+ * These positions ensure walls either block passage completely or allow comfortable movement
+ */
+// Walls flush against screen edges (no passage possible)
+export const WALL_X_LEFT_EDGE = 0.085 // Wall center at 32px, flush with left edge
+export const WALL_X_RIGHT_EDGE = 0.915 // Wall center at 343px, flush with right edge
+
+// Walls with passage to screen edge (96px+ corridor)
+export const WALL_X_LEFT_PASSAGE = 0.34 // Wall at 128px center, leaves 96px corridor to left
+export const WALL_X_RIGHT_PASSAGE = 0.66 // Wall at 247px center, leaves 96px corridor to right
+
+// Center corridor walls (ensures 128px+ passage in center)
+export const WALL_X_LEFT_CENTER = 0.38 // For center corridors
+export const WALL_X_RIGHT_CENTER = 0.62 // For center corridors
+
 // ============================================
 // Types
 // ============================================
@@ -298,8 +314,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     safeZones: [{ x: 0.5, y: 0.88, radius: 0.12 }],
     walls: [
       { x: 0.5, y: 0.4, width: WALL_W1, height: WALL_H2 },
-      { x: 0.25, y: 0.45, width: WALL_W1, height: WALL_H1 },
-      { x: 0.75, y: 0.35, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.35, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.22,
   },
@@ -322,8 +338,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
       { x: 0.5, y: 0.85, radius: 0.1 },
     ],
     walls: [
-      { x: 0.32, y: 0.35, width: WALL_W1, height: WALL_H3 },
-      { x: 0.68, y: 0.35, width: WALL_W1, height: WALL_H3 },
+      { x: WALL_X_LEFT_CENTER, y: 0.35, width: WALL_W1, height: WALL_H3 },
+      { x: WALL_X_RIGHT_CENTER, y: 0.35, width: WALL_W1, height: WALL_H3 },
     ],
     playerSpawnSafeRadius: 0.18,
   },
@@ -341,8 +357,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     safeZones: [{ x: 0.5, y: 0.82, radius: 0.15 }],
     walls: [
       { x: 0.5, y: 0.55, width: WALL_W2, height: WALL_H1 },
-      { x: 0.25, y: 0.4, width: WALL_W1, height: WALL_H1 },
-      { x: 0.75, y: 0.4, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.4, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.4, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.28,
   },
@@ -361,8 +377,8 @@ export const ROOM_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.75, radius: 0.2 }],
     walls: [
-      { x: 0.25, y: 0.45, width: WALL_W1, height: WALL_H2 },
-      { x: 0.75, y: 0.45, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H2 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.45, width: WALL_W1, height: WALL_H2 },
       { x: 0.5, y: 0.6, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.2,
@@ -500,8 +516,8 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.15, y: 0.40, width: WALL_W1, height: WALL_H5 },
-      { x: 0.85, y: 0.40, width: WALL_W1, height: WALL_H5 },
+      { x: WALL_X_LEFT_EDGE, y: 0.40, width: WALL_W1, height: WALL_H5 },
+      { x: WALL_X_RIGHT_EDGE, y: 0.40, width: WALL_W1, height: WALL_H5 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -519,9 +535,9 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.12, y: 0.35, width: WALL_W1, height: WALL_H4 },
+      { x: WALL_X_LEFT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H4 },
       { x: 0.50, y: 0.35, width: WALL_W1, height: WALL_H5 },
-      { x: 0.88, y: 0.35, width: WALL_W1, height: WALL_H4 },
+      { x: WALL_X_RIGHT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H4 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -564,8 +580,8 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
       { x: 0.50, y: 0.38, width: WALL_W2, height: WALL_H2 },
-      { x: 0.14, y: 0.35, width: WALL_W1, height: WALL_H3 },
-      { x: 0.86, y: 0.35, width: WALL_W1, height: WALL_H3 },
+      { x: WALL_X_LEFT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H3 },
+      { x: WALL_X_RIGHT_EDGE, y: 0.35, width: WALL_W1, height: WALL_H3 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -585,11 +601,11 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.25, y: 0.22, width: WALL_W1, height: WALL_H1 },
-      { x: 0.75, y: 0.22, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.22, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.22, width: WALL_W1, height: WALL_H1 },
       { x: 0.50, y: 0.38, width: WALL_W2, height: WALL_H1 },
-      { x: 0.25, y: 0.52, width: WALL_W1, height: WALL_H1 },
-      { x: 0.75, y: 0.52, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.52, width: WALL_W1, height: WALL_H1 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.52, width: WALL_W1, height: WALL_H1 },
     ],
     playerSpawnSafeRadius: 0.25,
   },
@@ -608,8 +624,8 @@ export const CHOKEPOINT_LAYOUTS: RoomLayout[] = [
     ],
     safeZones: [{ x: 0.5, y: 0.90, radius: 0.15 }],
     walls: [
-      { x: 0.20, y: 0.38, width: WALL_W1, height: WALL_H5 },
-      { x: 0.80, y: 0.38, width: WALL_W1, height: WALL_H5 },
+      { x: WALL_X_LEFT_PASSAGE, y: 0.38, width: WALL_W1, height: WALL_H5 },
+      { x: WALL_X_RIGHT_PASSAGE, y: 0.38, width: WALL_W1, height: WALL_H5 },
     ],
     playerSpawnSafeRadius: 0.22,
   },
