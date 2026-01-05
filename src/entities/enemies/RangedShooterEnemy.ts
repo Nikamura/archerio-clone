@@ -62,7 +62,7 @@ export default class RangedShooterEnemy extends RangedEnemy {
     const preferredDistance = 250
 
     if (!this.isAiming) {
-      const baseSpeed = 60
+      const baseSpeed = 50
       const speed = baseSpeed * this.speedMultiplier
       if (distanceToPlayer > preferredDistance + 50) {
         // Move closer with wall avoidance
@@ -111,7 +111,7 @@ export default class RangedShooterEnemy extends RangedEnemy {
   }
 
   private shoot(time: number, targetX: number, targetY: number) {
-    const baseSpeed = 350 // Faster bullets for better chance to hit
+    const baseSpeed = 300 // Faster bullets for better chance to hit
 
     // Calculate predictive aim
     const predicted = this.calculatePredictiveTarget(targetX, targetY, baseSpeed)
