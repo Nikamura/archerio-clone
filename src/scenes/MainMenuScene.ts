@@ -156,7 +156,7 @@ export default class MainMenuScene extends Phaser.Scene {
           },
         },
       ],
-      columns: 5,
+      columns: 6,
       depth: 10,
     })
   }

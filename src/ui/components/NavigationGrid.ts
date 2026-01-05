@@ -27,9 +27,9 @@ export interface NavigationGridResult {
   destroy: () => void
 }
 
-const ITEM_SIZE = 60
-const ITEM_GAP = 8
-const LABEL_OFFSET = 8
+const ITEM_SIZE = 48
+const ITEM_GAP = 6
+const LABEL_OFFSET = 6
 const BADGE_COLOR = 0xff4444
 
 /**
@@ -72,7 +72,7 @@ export function createNavigationGrid(config: NavigationGridConfig): NavigationGr
 
     // Icon (centered in the circle)
     const icon = scene.add.text(0, 0, item.icon, {
-      fontSize: '22px',
+      fontSize: '18px',
     })
     icon.setOrigin(0.5)
     itemContainer.add(icon)
@@ -90,14 +90,14 @@ export function createNavigationGrid(config: NavigationGridConfig): NavigationGr
     let badgeText: Phaser.GameObjects.Text | undefined
 
     if (item.badge && item.badge > 0) {
-      badgeContainer = scene.add.container(ITEM_SIZE / 2 - 8, -ITEM_SIZE / 2 + 8)
+      badgeContainer = scene.add.container(ITEM_SIZE / 2 - 6, -ITEM_SIZE / 2 + 6)
       itemContainer.add(badgeContainer)
 
-      const badgeCircle = scene.add.circle(0, 0, 10, BADGE_COLOR)
+      const badgeCircle = scene.add.circle(0, 0, 8, BADGE_COLOR)
       badgeContainer.add(badgeCircle)
 
       badgeText = scene.add.text(0, 0, item.badge > 9 ? '9+' : `${item.badge}`, {
-        fontSize: '10px',
+        fontSize: '9px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
@@ -153,14 +153,14 @@ export function createNavigationGrid(config: NavigationGridConfig): NavigationGr
     if (count > 0) {
       if (!gridItem.badge) {
         const itemContainer = gridItem.container
-        const badgeContainer = scene.add.container(ITEM_SIZE / 2 - 8, -ITEM_SIZE / 2 + 8)
+        const badgeContainer = scene.add.container(ITEM_SIZE / 2 - 6, -ITEM_SIZE / 2 + 6)
         itemContainer.add(badgeContainer)
 
-        const badgeCircle = scene.add.circle(0, 0, 10, BADGE_COLOR)
+        const badgeCircle = scene.add.circle(0, 0, 8, BADGE_COLOR)
         badgeContainer.add(badgeCircle)
 
         const badgeText = scene.add.text(0, 0, count > 9 ? '9+' : `${count}`, {
-          fontSize: '10px',
+          fontSize: '9px',
           color: '#ffffff',
           fontStyle: 'bold',
         })
