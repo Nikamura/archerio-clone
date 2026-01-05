@@ -451,8 +451,8 @@ export class WaypointPathfinder extends Pathfinder {
     } else {
       // Making progress - reset counter and clear waypoints if we have direct path
       this.noProgressFrames = 0
-      const result = super.calculateMovement(fromX, fromY, targetX, targetY, speed)
-      if (result.hasDirectPath && this.waypoints.length > 0) {
+      // Use isPathBlocked directly to avoid redundant full context steering calculation
+      if (this.waypoints.length > 0 && !this.isPathBlocked(fromX, fromY, targetX, targetY)) {
         this.waypoints = []
         this.currentWaypointIndex = 0
       }
@@ -675,12 +675,14 @@ export class WaypointPathfinder extends Pathfinder {
 
   /**
    * Check if a position is blocked by any wall
+   * Uses config.obstaclePadding + extra margin for position checks
    */
   private isPositionBlocked(x: number, y: number): boolean {
     if (!this.wallGroup) return false
 
     const walls = this.wallGroup.getWalls()
-    const padding = 30
+    // Use config padding + small extra margin for position blocking (more conservative than ray checks)
+    const padding = this.config.obstaclePadding + 5
 
     for (const wall of walls) {
       const halfWidth = wall.width / 2 + padding
