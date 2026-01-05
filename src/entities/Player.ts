@@ -273,6 +273,47 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addChainsawOrbit()
   }
 
+  // V2 abilities - Mortal Kombat inspired
+  addBoomerang() {
+    this.stats?.addBoomerang()
+  }
+
+  addFistOfFury() {
+    this.stats?.addFistOfFury()
+  }
+
+  addScorpionPull() {
+    this.stats?.addScorpionPull()
+  }
+
+  addShadowClone() {
+    this.stats?.addShadowClone()
+  }
+
+  addFatality() {
+    this.stats?.addFatality()
+  }
+
+  addUppercut() {
+    this.stats?.addUppercut()
+  }
+
+  addTeleportStrike() {
+    this.stats?.addTeleportStrike()
+  }
+
+  addMeteorShower() {
+    this.stats?.addMeteorShower()
+  }
+
+  addLifesteal() {
+    this.stats?.addLifesteal()
+  }
+
+  addHomingArrows() {
+    this.stats?.addHomingArrows()
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot
   // - Fire Spread: Automatically enabled when player has Fire Damage
@@ -437,6 +478,83 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   hasFireSpread(): boolean {
     return this.stats?.hasFireSpread() ?? false
+  }
+
+  // V2 ability getters - Mortal Kombat inspired
+  isBoomerangEnabled(): boolean {
+    return this.stats?.isBoomerangEnabled() ?? false
+  }
+
+  getFistOfFuryLevel(): number {
+    return this.stats?.getFistOfFuryLevel() ?? 0
+  }
+
+  getFistOfFuryRangeMultiplier(): number {
+    return this.stats?.getFistOfFuryRangeMultiplier() ?? 1.0
+  }
+
+  getFistOfFuryDamageMultiplier(): number {
+    return this.stats?.getFistOfFuryDamageMultiplier() ?? 1.0
+  }
+
+  getScorpionPullChance(): number {
+    return this.stats?.getScorpionPullChance() ?? 0
+  }
+
+  rollScorpionPull(): boolean {
+    return this.stats?.rollScorpionPull() ?? false
+  }
+
+  getShadowCloneCount(): number {
+    return this.stats?.getShadowCloneCount() ?? 0
+  }
+
+  isFatalityEnabled(): boolean {
+    return this.stats?.isFatalityEnabled() ?? false
+  }
+
+  shouldTriggerFatality(enemyHealthPercent: number): boolean {
+    return this.stats?.shouldTriggerFatality(enemyHealthPercent) ?? false
+  }
+
+  isUppercutEnabled(): boolean {
+    return this.stats?.isUppercutEnabled() ?? false
+  }
+
+  getTeleportStrikeChance(): number {
+    return this.stats?.getTeleportStrikeChance() ?? 0
+  }
+
+  rollTeleportStrike(): boolean {
+    return this.stats?.rollTeleportStrike() ?? false
+  }
+
+  getMeteorShowerLevel(): number {
+    return this.stats?.getMeteorShowerLevel() ?? 0
+  }
+
+  getMeteorDamage(): number {
+    return this.stats?.getMeteorDamage() ?? 0
+  }
+
+  getMeteorCooldown(): number {
+    return this.stats?.getMeteorCooldown() ?? 3000
+  }
+
+  getLifestealPercent(): number {
+    return this.stats?.getLifestealPercent() ?? 0
+  }
+
+  getLifestealHeal(damageDealt: number): number {
+    return this.stats?.getLifestealHeal(damageDealt) ?? 0
+  }
+
+  getHomingArrowsLevel(): number {
+    return this.stats?.getHomingArrowsLevel() ?? 0
+  }
+
+  hasHomingArrows(): boolean {
+    return this.stats?.hasHomingArrows() ?? false
   }
 
   // Reset run-based stats

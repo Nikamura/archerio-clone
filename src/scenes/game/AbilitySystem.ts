@@ -127,6 +127,38 @@ export class AbilitySystem {
       case 'bleed':
         this.player.addBleed()
         break
+
+      // V2 abilities - Mortal Kombat inspired
+      case 'boomerang':
+        this.player.addBoomerang()
+        break
+      case 'fist_of_fury':
+        this.player.addFistOfFury()
+        break
+      case 'scorpion_pull':
+        this.player.addScorpionPull()
+        break
+      case 'shadow_clone':
+        this.player.addShadowClone()
+        break
+      case 'fatality':
+        this.player.addFatality()
+        break
+      case 'uppercut':
+        this.player.addUppercut()
+        break
+      case 'teleport_strike':
+        this.player.addTeleportStrike()
+        break
+      case 'meteor_shower':
+        this.player.addMeteorShower()
+        break
+      case 'lifesteal':
+        this.player.addLifesteal()
+        break
+      case 'homing_arrows':
+        this.player.addHomingArrows()
+        break
     }
 
     this.abilitiesGained++

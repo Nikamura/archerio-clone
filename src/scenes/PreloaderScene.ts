@@ -315,6 +315,17 @@ export default class PreloaderScene extends Phaser.Scene {
     // Orbital abilities
     this.load.image('abilityChainsawOrbit', 'assets/sprites/abilities/chainsaw_orbit.png')
     this.load.image('chainsawOrbit', 'assets/sprites/abilities/chainsaw_orbit.png')  // Sprite for in-game visual
+    // V2 abilities - Mortal Kombat inspired (icons use fallback colored circles if files don't exist)
+    this.load.image('abilityBoomerang', 'assets/sprites/abilities/boomerang.png')
+    this.load.image('abilityFistOfFury', 'assets/sprites/abilities/fist_of_fury.png')
+    this.load.image('abilityScorpionPull', 'assets/sprites/abilities/scorpion_pull.png')
+    this.load.image('abilityShadowClone', 'assets/sprites/abilities/shadow_clone.png')
+    this.load.image('abilityFatality', 'assets/sprites/abilities/fatality.png')
+    this.load.image('abilityUppercut', 'assets/sprites/abilities/uppercut.png')
+    this.load.image('abilityTeleportStrike', 'assets/sprites/abilities/teleport_strike.png')
+    this.load.image('abilityMeteorShower', 'assets/sprites/abilities/meteor_shower.png')
+    this.load.image('abilityLifesteal', 'assets/sprites/abilities/lifesteal.png')
+    this.load.image('abilityHomingArrows', 'assets/sprites/abilities/homing_arrows.png')
 
     // Load hero icons
     this.load.image('heroAtreus', 'assets/sprites/ui/hero_atreus.png')

@@ -71,6 +71,18 @@ export class PlayerStats {
   // Orbital abilities
   private chainsawOrbitLevel: number = 0  // Number of chainsaws orbiting player
 
+  // V2 abilities - Mortal Kombat inspired
+  private boomerangEnabled: boolean = false  // Arrows return and hit twice
+  private fistOfFuryLevel: number = 0  // -70% range, +150% damage per level
+  private scorpionPullChance: number = 0  // Chance to pull enemies to player
+  private shadowCloneCount: number = 0  // Number of clones that mimic attacks
+  private fatalityEnabled: boolean = false  // Chance to instant kill low HP enemies
+  private uppercutEnabled: boolean = false  // First hit deals 3x damage with knockback
+  private teleportStrikeChance: number = 0  // Chance to teleport behind enemy
+  private meteorShowerLevel: number = 0  // Number of meteors that rain periodically
+  private lifestealPercent: number = 0  // Percentage of damage healed
+  private homingArrowsLevel: number = 0  // Arrows curve towards enemies
+
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
   // - Fire Spread: Fire Damage enables fire spread on death automatically
@@ -426,6 +438,115 @@ export class PlayerStats {
     return Math.floor(this.getDamage() * 0.5)
   }
 
+  // V2 ability getters - Mortal Kombat inspired
+
+  isBoomerangEnabled(): boolean {
+    return this.boomerangEnabled
+  }
+
+  getFistOfFuryLevel(): number {
+    return this.fistOfFuryLevel
+  }
+
+  /**
+   * Get range multiplier from Fist of Fury (-70% per level)
+   */
+  getFistOfFuryRangeMultiplier(): number {
+    if (this.fistOfFuryLevel <= 0) return 1.0
+    return Math.pow(0.3, this.fistOfFuryLevel)  // -70% per level (0.3^level)
+  }
+
+  /**
+   * Get damage multiplier from Fist of Fury (+150% per level)
+   */
+  getFistOfFuryDamageMultiplier(): number {
+    if (this.fistOfFuryLevel <= 0) return 1.0
+    return 1 + (this.fistOfFuryLevel * 1.5)  // +150% per level
+  }
+
+  getScorpionPullChance(): number {
+    return this.scorpionPullChance
+  }
+
+  /**
+   * Roll for Scorpion pull effect
+   */
+  rollScorpionPull(): boolean {
+    return Math.random() < this.scorpionPullChance
+  }
+
+  getShadowCloneCount(): number {
+    return this.shadowCloneCount
+  }
+
+  isFatalityEnabled(): boolean {
+    return this.fatalityEnabled
+  }
+
+  /**
+   * Check if fatality should trigger (enemy below 15% HP)
+   */
+  shouldTriggerFatality(enemyHealthPercent: number): boolean {
+    return this.fatalityEnabled && enemyHealthPercent < 0.15
+  }
+
+  isUppercutEnabled(): boolean {
+    return this.uppercutEnabled
+  }
+
+  getTeleportStrikeChance(): number {
+    return this.teleportStrikeChance
+  }
+
+  /**
+   * Roll for teleport strike effect
+   */
+  rollTeleportStrike(): boolean {
+    return Math.random() < this.teleportStrikeChance
+  }
+
+  getMeteorShowerLevel(): number {
+    return this.meteorShowerLevel
+  }
+
+  /**
+   * Get meteor damage (50 base + 25 per additional level)
+   */
+  getMeteorDamage(): number {
+    if (this.meteorShowerLevel <= 0) return 0
+    return 50 + (this.meteorShowerLevel - 1) * 25
+  }
+
+  /**
+   * Get meteor cooldown in ms (3000ms base)
+   */
+  getMeteorCooldown(): number {
+    return 3000
+  }
+
+  getLifestealPercent(): number {
+    return this.lifestealPercent
+  }
+
+  /**
+   * Calculate health to heal from lifesteal
+   */
+  getLifestealHeal(damageDealt: number): number {
+    if (this.lifestealPercent <= 0) return 0
+    return Math.floor(damageDealt * this.lifestealPercent)
+  }
+
+  getHomingArrowsLevel(): number {
+    return this.homingArrowsLevel
+  }
+
+  /**
+   * Check if arrows should home towards enemies
+   */
+  hasHomingArrows(): boolean {
+    return this.homingArrowsLevel > 0
+  }
+
   // Conditional damage ability getters (now passive effects)
 
   /**
@@ -702,6 +823,88 @@ export class PlayerStats {
     this.chainsawOrbitLevel++
   }
 
+  // V2 abilities - Mortal Kombat inspired
+
+  /**
+   * Add Boomerang ability (arrows return and hit twice)
+   * Non-stacking: Only need one level
+   */
+  addBoomerang(): void {
+    this.boomerangEnabled = true
+  }
+
+  /**
+   * Add Fist of Fury ability (-70% range, +150% damage)
+   * Stacking: Each level increases damage and decreases range
+   */
+  addFistOfFury(): void {
+    this.fistOfFuryLevel++
+  }
+
+  /**
+   * Add Scorpion Pull ability (20% chance to pull enemies to player)
+   * Stacking: Each level adds +20% pull chance
+   */
+  addScorpionPull(): void {
+    this.scorpionPullChance = Math.min(1, this.scorpionPullChance + 0.20)
+  }
+
+  /**
+   * Add Shadow Clone ability (+1 clone that mimics attacks at 50% damage)
+   * Stacking: Each level adds +1 shadow clone
+   */
+  addShadowClone(): void {
+    this.shadowCloneCount++
+  }
+
+  /**
+   * Add Fatality ability (instant kill enemies below 15% HP)
+   * Non-stacking: Only need one level
+   */
+  addFatality(): void {
+    this.fatalityEnabled = true
+  }
+
+  /**
+   * Add Uppercut ability (first hit deals 3x damage with knockback)
+   * Non-stacking: Only need one level
+   */
+  addUppercut(): void {
+    this.uppercutEnabled = true
+  }
+
+  /**
+   * Add Teleport Strike ability (15% chance to teleport behind enemy)
+   * Stacking: Each level adds +15% teleport chance
+   */
+  addTeleportStrike(): void {
+    this.teleportStrikeChance = Math.min(1, this.teleportStrikeChance + 0.15)
+  }
+
+  /**
+   * Add Meteor Shower ability (meteors rain every 3s dealing 50 damage)
+   * Stacking: Each level adds +25 meteor damage
+   */
+  addMeteorShower(): void {
+    this.meteorShowerLevel++
+  }
+
+  /**
+   * Add Lifesteal ability (heal 5% of damage dealt)
+   * Stacking: Each level adds +5% lifesteal
+   */
+  addLifesteal(): void {
+    this.lifestealPercent += 0.05
+  }
+
+  /**
+   * Add Homing Arrows ability (arrows curve towards enemies)
+   * Stacking: Each level increases homing strength
+   */
+  addHomingArrows(): void {
+    this.homingArrowsLevel++
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
   // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
@@ -770,6 +973,17 @@ export class PlayerStats {
     this.giantLevel = 0
     // Reset orbital abilities
     this.chainsawOrbitLevel = 0
+    // Reset V2 abilities
+    this.boomerangEnabled = false
+    this.fistOfFuryLevel = 0
+    this.scorpionPullChance = 0
+    this.shadowCloneCount = 0
+    this.fatalityEnabled = false
+    this.uppercutEnabled = false
+    this.teleportStrikeChance = 0
+    this.meteorShowerLevel = 0
+    this.lifestealPercent = 0
+    this.homingArrowsLevel = 0
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
@@ -809,6 +1023,17 @@ export class PlayerStats {
     chainsawOrbitLevel: number
     hasFireSpread: boolean
     hasShatter: boolean
+    // V2 abilities
+    boomerangEnabled: boolean
+    fistOfFuryLevel: number
+    scorpionPullChance: number
+    shadowCloneCount: number
+    fatalityEnabled: boolean
+    uppercutEnabled: boolean
+    teleportStrikeChance: number
+    meteorShowerLevel: number
+    lifestealPercent: number
+    homingArrowsLevel: number
   } {
     return {
       health: this.health,
@@ -843,6 +1068,17 @@ export class PlayerStats {
       chainsawOrbitLevel: this.chainsawOrbitLevel,
       hasFireSpread: this.hasFireSpread(),
       hasShatter: this.getShatterLevel() > 0,
+      // V2 abilities
+      boomerangEnabled: this.boomerangEnabled,
+      fistOfFuryLevel: this.fistOfFuryLevel,
+      scorpionPullChance: this.scorpionPullChance,
+      shadowCloneCount: this.shadowCloneCount,
+      fatalityEnabled: this.fatalityEnabled,
+      uppercutEnabled: this.uppercutEnabled,
+      teleportStrikeChance: this.teleportStrikeChance,
+      meteorShowerLevel: this.meteorShowerLevel,
+      lifestealPercent: this.lifestealPercent,
+      homingArrowsLevel: this.homingArrowsLevel,
     }
   }
 }

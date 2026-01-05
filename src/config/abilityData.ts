@@ -197,6 +197,77 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc0000,
     iconKey: 'abilityBleed',
   },
+  // New V2 abilities - Mortal Kombat inspired
+  {
+    id: 'boomerang',
+    name: '🪃 Boomerang',
+    description: 'Arrows return, hit twice',
+    color: 0x8b4513,
+    iconKey: 'abilityBoomerang',
+  },
+  {
+    id: 'fist_of_fury',
+    name: '👊 Fist of Fury',
+    description: '-70% range, +150% damage',
+    color: 0xff4400,
+    iconKey: 'abilityFistOfFury',
+  },
+  {
+    id: 'scorpion_pull',
+    name: '🦂 Get Over Here!',
+    description: '20% pull enemies to you',
+    color: 0xffaa00,
+    iconKey: 'abilityScorpionPull',
+  },
+  {
+    id: 'shadow_clone',
+    name: '👤 Shadow Clone',
+    description: '+1 clone, 50% damage each',
+    color: 0x444466,
+    iconKey: 'abilityShadowClone',
+  },
+  {
+    id: 'fatality',
+    name: '💀 Fatality',
+    description: 'Instant kill <15% HP',
+    color: 0x880000,
+    iconKey: 'abilityFatality',
+  },
+  {
+    id: 'uppercut',
+    name: '⬆️ Uppercut',
+    description: '1st hit 3x dmg, knockback',
+    color: 0xffcc00,
+    iconKey: 'abilityUppercut',
+  },
+  {
+    id: 'teleport_strike',
+    name: '⚡ Teleport Strike',
+    description: '15% teleport behind enemy',
+    color: 0x9900ff,
+    iconKey: 'abilityTeleportStrike',
+  },
+  {
+    id: 'meteor_shower',
+    name: '☄️ Meteor Rain',
+    description: 'Meteors every 3s, 50 dmg',
+    color: 0xff6633,
+    iconKey: 'abilityMeteorShower',
+  },
+  {
+    id: 'lifesteal',
+    name: '🧛 Lifesteal',
+    description: 'Heal 5% of damage dealt',
+    color: 0x990033,
+    iconKey: 'abilityLifesteal',
+  },
+  {
+    id: 'homing_arrows',
+    name: '🎯 Homing Arrows',
+    description: 'Arrows seek enemies',
+    color: 0x00cc99,
+    iconKey: 'abilityHomingArrows',
+  },
 ]
 
 /**
