@@ -69,8 +69,12 @@ const COUPON_STORAGE_KEY = 'aura_archer_coupon_data'
 export const COUPONS: CouponDefinition[] = [
   {
     code: 'BAD_MIGRATION',
-    rewards: [{ type: 'gold', amount: 100000 }],
-    description: '100,000 Gold',
+    rewards: [
+      { type: 'gold', amount: 100000 },
+      { type: 'gems', amount: 600 },
+      { type: 'energy', amount: 100 },
+    ],
+    description: '100K Gold + 600 Gems + 100 Energy',
     teaserDescription: '100,000,000 Gold!!!',
     hasReveal: true,
   },
