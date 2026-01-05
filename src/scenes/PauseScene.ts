@@ -1,12 +1,13 @@
 /**
- * PauseScene - Pause overlay for long runs
+ * PauseScene - Unified pause menu overlay
  *
- * Provides pause functionality with resume, settings access, and quit options.
+ * Provides pause functionality with resume, game options, and quit.
  * Appears as a modal overlay on top of the frozen GameScene.
  */
 
 import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
+import { saveManager } from '../systems/SaveManager'
 
 const DURATION = {
   FAST: 200,
@@ -22,6 +23,8 @@ export default class PauseScene extends Phaser.Scene {
   private overlay!: Phaser.GameObjects.Rectangle
   private modalContainer!: Phaser.GameObjects.Container
   private isClosing: boolean = false
+  private autoLevelIndicator!: Phaser.GameObjects.Arc
+  private autoRoomIndicator!: Phaser.GameObjects.Arc
 
   constructor() {
     super({ key: 'PauseScene' })
@@ -53,7 +56,7 @@ export default class PauseScene extends Phaser.Scene {
 
     // Panel dimensions
     const panelWidth = 280
-    const panelHeight = 240
+    const panelHeight = 340
 
     // Panel background
     const panelBg = this.add.graphics()
@@ -75,31 +78,77 @@ export default class PauseScene extends Phaser.Scene {
     const divider = this.add.rectangle(0, -panelHeight / 2 + 55, panelWidth - 40, 2, 0x444466)
     this.modalContainer.add(divider)
 
-    // Buttons
+    // Buttons and options
     const buttonWidth = 200
     const buttonHeight = 44
-    const buttonStartY = -20
+    const toggleHeight = 36
+    let currentY = -100
 
-    // Resume button
+    // Resume button (green, primary action)
     this.createButton(
-      0, buttonStartY,
+      0, currentY,
       buttonWidth, buttonHeight,
       'RESUME', 0x44aa44,
       () => this.handleResume()
     )
+    currentY += 55
 
-    // Quit to Menu button
+    // Toggle options section
+    const optionsLabel = this.add.text(0, currentY - 5, 'OPTIONS', {
+      fontSize: '11px',
+      color: '#666688',
+      fontStyle: 'bold',
+    }).setOrigin(0.5)
+    this.modalContainer.add(optionsLabel)
+    currentY += 20
+
+    // Auto Level Up toggle
+    this.autoLevelIndicator = this.createToggleRow(
+      0, currentY,
+      buttonWidth, toggleHeight,
+      '⚡ Auto Level Up',
+      saveManager.getAutoLevelUp(),
+      () => {
+        const newState = saveManager.toggleAutoLevelUp()
+        this.autoLevelIndicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
+      }
+    )
+    currentY += toggleHeight + 6
+
+    // Auto Room Advance toggle
+    this.autoRoomIndicator = this.createToggleRow(
+      0, currentY,
+      buttonWidth, toggleHeight,
+      '⏩ Auto Room Advance',
+      saveManager.getAutoRoomAdvance(),
+      () => {
+        const newState = saveManager.toggleAutoRoomAdvance()
+        this.autoRoomIndicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
+      }
+    )
+    currentY += toggleHeight + 15
+
+    // Reset Level button (neutral)
     this.createButton(
-      0, buttonStartY + 60,
+      0, currentY,
+      buttonWidth, toggleHeight,
+      '↺ Reset Level', 0x555577,
+      () => this.handleReset()
+    )
+    currentY += toggleHeight + 10
+
+    // Quit to Menu button (red, destructive)
+    this.createButton(
+      0, currentY,
       buttonWidth, buttonHeight,
       'QUIT TO MENU', 0xaa4444,
       () => this.handleQuit()
     )
 
     // Tip text
-    const tipText = this.add.text(0, panelHeight / 2 - 30, 'Your progress will be saved', {
-      fontSize: '12px',
-      color: '#888888',
+    const tipText = this.add.text(0, panelHeight / 2 - 25, 'Your progress will be saved', {
+      fontSize: '11px',
+      color: '#666666',
     }).setOrigin(0.5)
     this.modalContainer.add(tipText)
 
@@ -118,6 +167,61 @@ export default class PauseScene extends Phaser.Scene {
         this.handleResume()
       }
     })
+  }
+
+  private createToggleRow(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    label: string,
+    initialState: boolean,
+    onToggle: () => void
+  ): Phaser.GameObjects.Arc {
+    const rowContainer = this.add.container(x, y)
+
+    // Row background
+    const bg = this.add.graphics()
+    bg.fillStyle(0x222244, 1)
+    bg.fillRoundedRect(-width / 2, -height / 2, width, height, 6)
+    rowContainer.add(bg)
+
+    // Label text
+    const text = this.add.text(-width / 2 + 15, 0, label, {
+      fontSize: '13px',
+      color: '#cccccc',
+    }).setOrigin(0, 0.5)
+    rowContainer.add(text)
+
+    // Toggle indicator
+    const indicator = this.add.circle(width / 2 - 20, 0, 6, initialState ? 0x00ff88 : 0x444444)
+    rowContainer.add(indicator)
+
+    // Interactive zone
+    const hitArea = this.add.rectangle(0, 0, width, height, 0x000000, 0)
+    hitArea.setInteractive({ useHandCursor: true })
+    rowContainer.add(hitArea)
+
+    // Hover effects
+    hitArea.on('pointerover', () => {
+      bg.clear()
+      bg.fillStyle(0x333366, 1)
+      bg.fillRoundedRect(-width / 2, -height / 2, width, height, 6)
+    })
+
+    hitArea.on('pointerout', () => {
+      bg.clear()
+      bg.fillStyle(0x222244, 1)
+      bg.fillRoundedRect(-width / 2, -height / 2, width, height, 6)
+    })
+
+    hitArea.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      onToggle()
+    })
+
+    this.modalContainer.add(rowContainer)
+    return indicator
   }
 
   private createButton(
@@ -194,6 +298,25 @@ export default class PauseScene extends Phaser.Scene {
       onComplete: () => {
         // Resume GameScene and close PauseScene
         this.scene.resume('GameScene')
+        this.scene.stop('PauseScene')
+      },
+    })
+  }
+
+  private handleReset(): void {
+    if (this.isClosing) return
+    this.isClosing = true
+
+    // Emit reset event for GameScene
+    this.game.events.emit('resetLevel')
+
+    // Animate out
+    this.tweens.add({
+      targets: [this.overlay, this.modalContainer],
+      alpha: 0,
+      duration: DURATION.FAST,
+      ease: EASING.EASE_IN,
+      onComplete: () => {
         this.scene.stop('PauseScene')
       },
     })
