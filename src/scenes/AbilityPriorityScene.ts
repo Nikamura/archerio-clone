@@ -95,7 +95,7 @@ export default class AbilityPriorityScene extends Phaser.Scene {
 
     // Help text
     this.add
-      .text(width / 2, 58, 'Drag to reorder. Tap number to set max level.', {
+      .text(width / 2, 58, 'Drag to reorder. Tap max level, hold to reset.', {
         fontSize: '12px',
         color: '#888888',
       })
@@ -216,7 +216,7 @@ export default class AbilityPriorityScene extends Phaser.Scene {
     // One-time indicator for abilities with maxLevel: 1
     if (ability.maxLevel === 1) {
       const oneTimeBadge = this.add
-        .text(width / 2 - 95, 0, '1x', {
+        .text(width / 2 - 60, 0, '1x', {
           fontSize: '10px',
           color: '#ffaa00',
           fontStyle: 'bold',
@@ -225,42 +225,69 @@ export default class AbilityPriorityScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
       container.add(oneTimeBadge)
-    }
+    } else {
+      // Priority max level selector (only for abilities without fixed maxLevel: 1)
+      const priorityMaxLevel = abilityPriorityManager.getPriorityMaxLevel(ability.id)
+      const maxLevelX = width / 2 - 60
 
-    // Priority max level selector (right side, before priority number)
-    const priorityMaxLevel = abilityPriorityManager.getPriorityMaxLevel(ability.id)
-    const maxLevelX = width / 2 - 60
+      // Background for max level control
+      const maxLevelBg = this.add.rectangle(maxLevelX, 0, 32, 24, 0x3a3a4e)
+      maxLevelBg.setStrokeStyle(1, 0x555555)
+      maxLevelBg.setInteractive({ useHandCursor: true })
+      container.add(maxLevelBg)
 
-    // Background for max level control
-    const maxLevelBg = this.add.rectangle(maxLevelX, 0, 32, 24, 0x3a3a4e)
-    maxLevelBg.setStrokeStyle(1, 0x555555)
-    maxLevelBg.setInteractive({ useHandCursor: true })
-    container.add(maxLevelBg)
+      // Max level text
+      const maxLevelText = this.add
+        .text(maxLevelX, 0, priorityMaxLevel === 0 ? '∞' : `${priorityMaxLevel}`, {
+          fontSize: '12px',
+          color: priorityMaxLevel === 0 ? '#888888' : '#00ff88',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5)
+      maxLevelText.setData('isMaxLevelText', true)
+      container.add(maxLevelText)
 
-    // Max level text
-    const maxLevelText = this.add
-      .text(maxLevelX, 0, priorityMaxLevel === 0 ? '∞' : `${priorityMaxLevel}`, {
-        fontSize: '12px',
-        color: priorityMaxLevel === 0 ? '#888888' : '#00ff88',
-        fontStyle: 'bold',
+      // Track long press for reset to infinity
+      let pressTimer: Phaser.Time.TimerEvent | null = null
+
+      // Click handler to cycle max level, long-press to reset to infinity
+      maxLevelBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation()
+
+        // Start long-press timer (500ms to reset to infinity)
+        pressTimer = this.time.delayedCall(500, () => {
+          // Long press - reset to infinity
+          abilityPriorityManager.setPriorityMaxLevel(ability.id, 0)
+          maxLevelText.setText('∞')
+          maxLevelText.setColor('#888888')
+          audioManager.playMenuSelect()
+          pressTimer = null
+        })
       })
-      .setOrigin(0.5)
-    maxLevelText.setData('isMaxLevelText', true)
-    container.add(maxLevelText)
 
-    // Click handler to cycle max level
-    maxLevelBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation()
-      this.cycleMaxLevel(ability.id, maxLevelText)
-    })
+      maxLevelBg.on('pointerup', () => {
+        if (pressTimer) {
+          // Short press - cycle max level
+          pressTimer.destroy()
+          pressTimer = null
+          this.cycleMaxLevel(ability.id, maxLevelText)
+        }
+      })
 
-    // Hover effects for max level control
-    maxLevelBg.on('pointerover', () => {
-      maxLevelBg.setFillStyle(0x4a4a5e)
-    })
-    maxLevelBg.on('pointerout', () => {
-      maxLevelBg.setFillStyle(0x3a3a4e)
-    })
+      maxLevelBg.on('pointerout', () => {
+        // Cancel long press if pointer leaves
+        if (pressTimer) {
+          pressTimer.destroy()
+          pressTimer = null
+        }
+        maxLevelBg.setFillStyle(0x3a3a4e)
+      })
+
+      // Hover effects for max level control
+      maxLevelBg.on('pointerover', () => {
+        maxLevelBg.setFillStyle(0x4a4a5e)
+      })
+    }
 
     // Priority number (right side)
     const priorityText = this.add
