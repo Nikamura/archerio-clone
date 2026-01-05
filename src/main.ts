@@ -18,6 +18,7 @@ import ShopScene from './scenes/ShopScene'
 import SettingsScene from './scenes/SettingsScene'
 import EncyclopediaScene from './scenes/EncyclopediaScene'
 import AbilityPriorityScene from './scenes/AbilityPriorityScene'
+import CouponScene from './scenes/CouponScene'
 import GameScene from './scenes/GameScene'
 import UIScene from './scenes/UIScene'
 import GameOverScene from './scenes/GameOverScene'
@@ -43,7 +44,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, SettingsScene, EncyclopediaScene, AbilityPriorityScene, GameScene, UIScene, GameOverScene, LevelUpScene, StartingAbilityScene, PauseScene],
+  scene: [BootScene, PreloaderScene, MainMenuScene, HeroesScene, EquipmentScene, TalentsScene, ChestScene, DailyRewardScene, AchievementsScene, ShopScene, SettingsScene, EncyclopediaScene, AbilityPriorityScene, CouponScene, GameScene, UIScene, GameOverScene, LevelUpScene, StartingAbilityScene, PauseScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

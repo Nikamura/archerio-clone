@@ -15,6 +15,9 @@ export default [
       globals: {
         console: 'readonly',
         HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        DOMRect: 'readonly',
         window: 'readonly',
         document: 'readonly',
         Phaser: 'readonly',
