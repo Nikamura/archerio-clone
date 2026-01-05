@@ -1,11 +1,8 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// Use '/archerio-clone/' only for GitHub Pages, '/' for everything else (Netlify, Capacitor)
-const base = process.env.GITHUB_PAGES ? '/archerio-clone/' : '/'
-
 export default defineConfig({
-  base,
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
