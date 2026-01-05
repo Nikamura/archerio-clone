@@ -34,6 +34,70 @@ pnpm run test
 pnpm run generate-sprite "<description>" --type <type> --clean
 ```
 
+## Native App (Capacitor)
+
+The game can be deployed as a native iOS/Android app using Capacitor.
+
+### Development Workflows
+
+**Web browser (fastest iteration):**
+```bash
+pnpm run dev
+```
+
+**Live reload on device (for testing native features):**
+```bash
+# 1. Set your local IP in .env:
+#    CAPACITOR_DEV_SERVER_URL=http://192.168.x.x:3000
+
+# 2. Start dev server and sync
+pnpm run dev          # Terminal 1
+pnpm run cap:sync     # Terminal 2 (once)
+
+# 3. Build & run from Xcode/Android Studio
+pnpm run cap:open:ios
+```
+
+**Production build:**
+```bash
+# Comment out CAPACITOR_DEV_SERVER_URL in .env first!
+pnpm run build:native
+pnpm run cap:open:ios   # or cap:open:android
+```
+
+### Environment Variables (.env)
+
+```bash
+# Capacitor live reload - comment out for production builds
+CAPACITOR_DEV_SERVER_URL=http://192.168.x.x:3000
+```
+
+### Native Build Requirements
+
+**iOS:**
+- macOS with Xcode 16+
+- Xcode Command Line Tools
+- Apple Developer account for device testing
+
+**Android:**
+- Android Studio
+- Android SDK API level 22+
+- Java 17+
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `capacitor.config.ts` | Capacitor configuration (app ID, plugins, dev server) |
+| `src/systems/CapacitorManager.ts` | Native lifecycle (status bar, splash, back button) |
+| `src/systems/HapticManager.ts` | Uses Capacitor Haptics for native, falls back to browser API |
+
+### Haptic Feedback
+
+HapticManager automatically uses the proper API based on platform:
+- **Native (iOS/Android)**: Capacitor Haptics with `ImpactStyle.Light/Medium/Heavy`
+- **Web browser**: Falls back to `navigator.vibrate()` API (Android only, iOS Safari doesn't support it)
+
 ## Code Quality Requirements
 
 **IMPORTANT:** All code changes must pass linting and TypeScript compilation before being considered complete.

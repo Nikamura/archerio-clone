@@ -6,6 +6,7 @@ import { currencyManager } from '../systems/CurrencyManager'
 import { setDifficulty } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { hapticManager } from '../systems/HapticManager'
+import { capacitorManager } from '../systems/CapacitorManager'
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -22,6 +23,9 @@ export default class BootScene extends Phaser.Scene {
 
     // Load save data and apply settings
     this.initializeSaveData()
+
+    // Initialize Capacitor for native app features (non-blocking)
+    capacitorManager.initialize()
 
     this.scene.start('PreloaderScene')
   }

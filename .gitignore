@@ -33,3 +33,7 @@ coverage/
 
 # Git worktrees
 .worktrees/
+
+# Capacitor native projects (optional - remove if you need custom native code)
+ios/
+android/

@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// Use root path for Netlify, '/archerio-clone/' for GitHub Pages
-const base = process.env.NETLIFY ? '/' : '/archerio-clone/'
+// Use '/archerio-clone/' only for GitHub Pages, '/' for everything else (Netlify, Capacitor)
+const base = process.env.GITHUB_PAGES ? '/archerio-clone/' : '/'
 
 export default defineConfig({
   base,
@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    host: true, // Allow access from network (for Capacitor live reload)
   },
   build: {
     // Phaser is ~1.5MB minified - this is expected for a game engine

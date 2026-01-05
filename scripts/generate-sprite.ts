@@ -13,28 +13,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
+import dotenv from 'dotenv';
 
-// Load .env file first
-function loadEnv(): void {
-  const envPath = path.join(process.cwd(), '.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    for (const line of envContent.split('\n')) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || trimmedLine.startsWith('#')) continue;
-      const eqIndex = trimmedLine.indexOf('=');
-      if (eqIndex > 0) {
-        const key = trimmedLine.slice(0, eqIndex).trim();
-        const value = trimmedLine.slice(eqIndex + 1).trim();
-        if (!process.env[key]) {
-          process.env[key] = value;
-        }
-      }
-    }
-  }
-}
-
-loadEnv();
+dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
