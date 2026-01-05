@@ -4,6 +4,7 @@ import { getEnemySpriteKey } from '../config/themeData'
 import { themeManager } from '../systems/ThemeManager'
 import type WallGroup from '../systems/WallGroup'
 import { StatusEffectSystem } from '../core/StatusEffects'
+import { WaypointPathfinder, type PathfindingConfig } from '../systems/Pathfinding'
 
 /**
  * Result of enemy update call
@@ -58,15 +59,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastHealthBarX: number = 0 // Track last position for cheap updates
   private lastHealthBarY: number = 0
 
-  // Wall avoidance system
+  // Wall avoidance system - uses context-based steering pathfinding
   protected wallGroup: WallGroup | null = null
-  private lastPositionForStuck: { x: number; y: number } = { x: 0, y: 0 }
-  private stuckFrames: number = 0
-  private readonly STUCK_THRESHOLD = 5 // Frames without movement before triggering avoidance
-  private readonly STUCK_DISTANCE_THRESHOLD = 0.5 // Minimum movement per frame
-  private alternateAngle: number | null = null // Current avoidance direction
-  private alternateTimer: number = 0 // Time since avoidance started
-  private readonly ALTERNATE_DURATION = 500 // ms to follow alternate path
+  protected pathfinder: WaypointPathfinder
 
   constructor(
     scene: Phaser.Scene,
@@ -108,7 +103,24 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.healthBar.setDepth(10) // Above everything
     this.healthBar.setVisible(false)
 
+    // Initialize pathfinder with context-based steering
+    this.pathfinder = new WaypointPathfinder(this.getPathfindingConfig())
+
     console.log('Enemy constructor called at', x, y, 'with health:', this.maxHealth)
+  }
+
+  /**
+   * Get pathfinding configuration - can be overridden by subclasses for different behavior
+   */
+  protected getPathfindingConfig(): PathfindingConfig {
+    return {
+      rayCount: 16,
+      rayLength: 60,
+      obstaclePadding: 25,
+      avoidanceWeight: 0.7,
+      seekWeight: 0.3,
+      smoothing: 0.15,
+    }
   }
 
   takeDamage(amount: number): boolean {
@@ -308,6 +320,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.statusEffects.reset()
     // Reset melee attack cooldown
     this.lastMeleeAttackTime = 0
+    // Reset pathfinder state for pooled enemies
+    this.pathfinder.reset()
     this.clearTint()
     // Hide health bar when reset
     if (this.healthBar) {
@@ -423,19 +437,21 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       return effectResult
     }
 
-    // Simple AI: move toward player with wall avoidance
+    // Simple AI: move toward player with wall avoidance using context-based steering
     const baseSpeed = 70
     const speed = baseSpeed * this.speedMultiplier
 
-    if (this.wallGroup) {
-      // Use wall-aware movement
-      const movement = this.calculateMovementWithWallAvoidance(playerX, playerY, speed, time)
-      this.setVelocity(movement.vx, movement.vy)
-    } else {
-      // Fallback to direct movement
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-      this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed)
-    }
+    // Use context-steering pathfinder for smoother, predictive obstacle avoidance
+    const worldBounds = this.scene.physics.world.bounds
+    const movement = this.pathfinder.calculateMovementWithWaypoints(
+      this.x,
+      this.y,
+      playerX,
+      playerY,
+      speed,
+      worldBounds
+    )
+    this.setVelocity(movement.vx, movement.vy)
 
     // Ensure enemy stays within world bounds (extra safety check)
     const body = this.body as Phaser.Physics.Arcade.Body
@@ -460,6 +476,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    */
   setWallGroup(wallGroup: WallGroup): void {
     this.wallGroup = wallGroup
+    this.pathfinder.setWallGroup(wallGroup)
   }
 
   /**
@@ -483,57 +500,6 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       }
     }
     return false
-  }
-
-  /**
-   * Find an alternate direction when blocked by a wall
-   */
-  private findAlternateDirection(
-    blockedAngle: number,
-    playerX: number,
-    playerY: number
-  ): number {
-    // Sample 7 directions offset from the blocked direction
-    const offsets = [
-      Math.PI / 4, // 45 degrees clockwise
-      -Math.PI / 4, // 45 degrees counter-clockwise
-      Math.PI / 2, // 90 degrees clockwise
-      -Math.PI / 2, // 90 degrees counter-clockwise
-      (3 * Math.PI) / 4,
-      (-3 * Math.PI) / 4,
-      Math.PI, // Opposite direction (last resort)
-    ]
-
-    const testDistance = 40 // Pixels ahead to check
-    let bestAngle = blockedAngle
-    let bestScore = -Infinity
-
-    for (const offset of offsets) {
-      const testAngle = blockedAngle + offset
-      const testX = this.x + Math.cos(testAngle) * testDistance
-      const testY = this.y + Math.sin(testAngle) * testDistance
-
-      // Check if test position is blocked by wall
-      if (this.isPositionBlockedByWall(testX, testY)) {
-        continue
-      }
-
-      // Score by how much this direction moves toward player
-      const distBefore = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY)
-      const distAfter = Phaser.Math.Distance.Between(testX, testY, playerX, playerY)
-      const progressScore = distBefore - distAfter // Positive = getting closer
-
-      // Prefer smaller offsets (more direct paths)
-      const offsetPenalty = Math.abs(offset) * 5
-      const score = progressScore - offsetPenalty
-
-      if (score > bestScore) {
-        bestScore = score
-        bestAngle = testAngle
-      }
-    }
-
-    return bestAngle
   }
 
   /**
@@ -579,52 +545,27 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Calculate movement with wall avoidance
+   * Calculate movement with wall avoidance using context-based steering
    * Returns velocity components for wall-aware movement
+   * @deprecated Prefer using pathfinder.calculateMovementWithWaypoints directly in update()
    */
   protected calculateMovementWithWallAvoidance(
     playerX: number,
     playerY: number,
     baseSpeed: number,
-    time: number
+    _time: number
   ): { vx: number; vy: number } {
-    // Direct angle to player
-    const directAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-
-    // Check if currently stuck (position hasn't changed despite velocity)
-    const dx = this.x - this.lastPositionForStuck.x
-    const dy = this.y - this.lastPositionForStuck.y
-    const distMoved = Math.sqrt(dx * dx + dy * dy)
-
-    if (distMoved < this.STUCK_DISTANCE_THRESHOLD && this.body) {
-      this.stuckFrames++
-    } else {
-      this.stuckFrames = 0
-      this.alternateAngle = null // Clear alternate path when moving freely
-    }
-
-    // Update last position
-    this.lastPositionForStuck.x = this.x
-    this.lastPositionForStuck.y = this.y
-
-    // If stuck, find alternate direction
-    if (this.stuckFrames > this.STUCK_THRESHOLD) {
-      if (
-        this.alternateAngle === null ||
-        time - this.alternateTimer > this.ALTERNATE_DURATION
-      ) {
-        this.alternateAngle = this.findAlternateDirection(directAngle, playerX, playerY)
-        this.alternateTimer = time
-      }
-    }
-
-    // Use alternate angle if set, otherwise direct
-    const moveAngle = this.alternateAngle ?? directAngle
-
-    return {
-      vx: Math.cos(moveAngle) * baseSpeed,
-      vy: Math.sin(moveAngle) * baseSpeed,
-    }
+    // Use the new pathfinder for smooth context-based steering
+    const worldBounds = this.scene.physics.world.bounds
+    const result = this.pathfinder.calculateMovementWithWaypoints(
+      this.x,
+      this.y,
+      playerX,
+      playerY,
+      baseSpeed,
+      worldBounds
+    )
+    return { vx: result.vx, vy: result.vy }
   }
 
   destroy(fromScene?: boolean) {
