@@ -16,8 +16,8 @@ const JOYSTICK_CONFIG = {
   BASE_ALPHA: 0.3,
   THUMB_COLOR: 0x4a9eff,
   THUMB_ALPHA: 0.6,
-  // Touch zone - bottom portion of screen (0.5 = bottom 50%)
-  TOUCH_ZONE_TOP_RATIO: 0.5,
+  // Touch zone - 0 = entire screen, 0.5 = bottom 50% only
+  TOUCH_ZONE_TOP_RATIO: 0,
 }
 
 export default class Joystick {
