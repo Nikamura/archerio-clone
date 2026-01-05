@@ -144,6 +144,9 @@ export default class GameScene extends Phaser.Scene {
   private readonly CHAINSAW_ORBIT_PERIOD = 2000  // 2 seconds per full rotation
   private readonly CHAINSAW_HITBOX_RADIUS = 24
 
+  // Meteor shower system
+  private lastMeteorTime: number = 0
+
   // Spirit cat system (Meowgik hero ability)
   private spiritCatPool: SpiritCatPool | null = null
   private spiritCatConfig: SpiritCatConfig | null = null
@@ -2882,6 +2885,189 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Update meteor shower ability - spawn meteors on random enemies
+   */
+  private updateMeteorShower(time: number): void {
+    const meteorLevel = this.player.getMeteorShowerLevel()
+    if (meteorLevel <= 0) return
+
+    const cooldown = this.player.getMeteorCooldown()
+    if (time - this.lastMeteorTime < cooldown) return
+
+    this.lastMeteorTime = time
+
+    // Find active enemies
+    const activeEnemies = (this.combatSystem.getEnemies().getChildren() as Enemy[]).filter(e => e.active)
+    if (activeEnemies.length === 0) return
+
+    // Spawn meteor on random enemy (more meteors at higher levels)
+    const meteorCount = Math.min(meteorLevel, activeEnemies.length)
+    const shuffledEnemies = Phaser.Utils.Array.Shuffle([...activeEnemies])
+
+    for (let i = 0; i < meteorCount; i++) {
+      const targetEnemy = shuffledEnemies[i]
+      this.spawnMeteor(targetEnemy.x, targetEnemy.y)
+    }
+  }
+
+  /**
+   * Spawn a meteor at the specified position
+   */
+  private spawnMeteor(targetX: number, targetY: number): void {
+    const damage = this.player.getMeteorDamage()
+    const impactRadius = 50
+
+    // Create falling meteor visual (starts above screen)
+    const meteor = this.add.graphics()
+    const startY = -50
+    const fallDuration = 500
+
+    // Warning indicator on ground
+    const warning = this.add.graphics()
+    warning.setPosition(targetX, targetY)
+    warning.fillStyle(0xff3300, 0.3)
+    warning.fillCircle(0, 0, impactRadius)
+
+    // Animate meteor falling
+    let progress = 0
+    const startTime = this.time.now
+
+    const fallEvent = this.time.addEvent({
+      delay: 16,
+      repeat: Math.ceil(fallDuration / 16),
+      callback: () => {
+        progress = Math.min(1, (this.time.now - startTime) / fallDuration)
+        const currentY = startY + (targetY - startY) * progress
+        const scale = 0.5 + progress * 0.5
+
+        meteor.clear()
+        meteor.fillStyle(0xff6633, 1)
+        meteor.fillCircle(targetX, currentY, 12 * scale)
+        meteor.fillStyle(0xffff00, 0.8)
+        meteor.fillCircle(targetX, currentY, 8 * scale)
+
+        // Trail effect
+        meteor.fillStyle(0xff3300, 0.5)
+        for (let t = 0; t < 3; t++) {
+          const trailY = currentY - (t + 1) * 15
+          meteor.fillCircle(targetX, trailY, (8 - t * 2) * scale)
+        }
+
+        if (progress >= 1) {
+          meteor.destroy()
+          warning.destroy()
+          fallEvent.destroy()
+
+          // Impact explosion
+          this.createMeteorImpact(targetX, targetY, damage, impactRadius)
+        }
+      }
+    })
+  }
+
+  /**
+   * Create meteor impact explosion and damage enemies
+   */
+  private createMeteorImpact(x: number, y: number, damage: number, radius: number): void {
+    // Visual explosion
+    const explosion = this.add.graphics()
+    explosion.setPosition(x, y)
+
+    let progress = 0
+    const expandDuration = 200
+    const startTime = this.time.now
+
+    const explosionEvent = this.time.addEvent({
+      delay: 16,
+      repeat: Math.ceil(expandDuration / 16),
+      callback: () => {
+        progress = Math.min(1, (this.time.now - startTime) / expandDuration)
+        const currentRadius = radius * progress
+        const alpha = 1 - progress
+
+        explosion.clear()
+        explosion.fillStyle(0xff6600, alpha * 0.7)
+        explosion.fillCircle(0, 0, currentRadius)
+        explosion.fillStyle(0xffff00, alpha * 0.5)
+        explosion.fillCircle(0, 0, currentRadius * 0.6)
+        explosion.fillStyle(0xffffff, alpha * 0.3)
+        explosion.fillCircle(0, 0, currentRadius * 0.3)
+
+        if (progress >= 1) {
+          explosion.destroy()
+          explosionEvent.destroy()
+        }
+      }
+    })
+
+    // Screen shake
+    this.screenShake.onExplosion()
+
+    // Damage enemies in radius
+    const enemies = this.combatSystem.getEnemies().getChildren() as Enemy[]
+    for (const enemy of enemies) {
+      if (!enemy.active) continue
+
+      const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y)
+      if (distance <= radius) {
+        const falloff = 1 - (distance / radius) * 0.3
+        const finalDamage = Math.floor(damage * falloff)
+        const killed = enemy.takeDamage(finalDamage)
+        this.combatSystem.getDamageNumberPool().showEnemyDamage(enemy.x, enemy.y, finalDamage, false)
+
+        if (killed) {
+          this.handleMeteorKill(enemy)
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle enemy killed by meteor
+   */
+  private handleMeteorKill(enemy: Enemy): void {
+    const isBoss = this.boss && enemy === (this.boss as unknown as Enemy)
+    this.enemiesKilled++
+    this.recordKill(enemy, !!isBoss)
+
+    // Bloodthirst heal
+    const bloodthirstHeal = this.player.getBloodthirstHeal()
+    if (bloodthirstHeal > 0) {
+      this.player.heal(bloodthirstHeal)
+      this.updatePlayerHealthUI(this.player)
+    }
+
+    // Death effects
+    this.particles.emitDeath(enemy.x, enemy.y)
+    hapticManager.light()
+
+    // Spawn drops
+    this.spawnDrops(enemy)
+
+    // Add XP
+    const baseXpGain = isBoss ? 10 : 2
+    const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
+    const leveledUp = this.player.addXP(xpGain)
+    this.updateXPUI()
+
+    this.heroXPEarned += isBoss ? 25 : 1
+
+    if (leveledUp) {
+      this.handleLevelUp()
+    }
+
+    if (isBoss) {
+      this.boss = null
+      this.scene.get('UIScene').events.emit('hideBossHealth')
+    }
+
+    enemy.destroy()
+    this.invalidateNearestEnemyCache()
+    this.checkRoomCleared()
+  }
+
+  /**
    * Update spirit cat spawning for Meowgik hero
    */
   private updateSpiritCats(time: number, playerX: number, playerY: number): void {
@@ -3195,6 +3381,9 @@ export default class GameScene extends Phaser.Scene {
 
       // Update chainsaw orbit visual and apply damage
       this.updateChainsawOrbit(time, delta, playerX, playerY)
+
+      // Update meteor shower if player has the ability
+      this.updateMeteorShower(time)
 
       // Spawn spirit cats if playing as Meowgik
       if (this.spiritCatPool && this.spiritCatConfig) {

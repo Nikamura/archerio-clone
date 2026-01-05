@@ -110,6 +110,20 @@ export class CombatSystem {
   }
 
   /**
+   * Get the enemies group
+   */
+  getEnemies(): Phaser.Physics.Arcade.Group {
+    return this.enemies
+  }
+
+  /**
+   * Get the damage number pool
+   */
+  getDamageNumberPool(): DamageNumberPool {
+    return this.damageNumberPool
+  }
+
+  /**
    * Handle player bullet hitting an enemy
    */
   bulletHitEnemy(
@@ -160,8 +174,22 @@ export class CombatSystem {
       damage = Math.floor(damage * this.player.getShatterDamageMultiplier())
     }
 
+    // Fatality: instant kill enemies below 15% HP
+    const enemyHealthPercent = enemySprite.getHealth() / enemySprite.getMaxHealth()
+    if (this.player.shouldTriggerFatality(enemyHealthPercent)) {
+      damage = enemySprite.getHealth() + 1 // Guaranteed kill
+      this.particles.emitCrit(enemySprite.x, enemySprite.y) // Fatality visual
+    }
+
     // Damage enemy
     const killed = enemySprite.takeDamage(damage)
+
+    // Lifesteal: heal player based on damage dealt
+    const lifestealHeal = this.player.getLifestealHeal(damage)
+    if (lifestealHeal > 0) {
+      this.player.heal(lifestealHeal)
+      // Health bar updates automatically in GameScene's update loop
+    }
     audioManager.playHit()
 
     // Show damage number
@@ -246,6 +274,92 @@ export class CombatSystem {
     const lightningChainCount = bullet.getLightningChainCount()
     if (lightningChainCount > 0) {
       this.applyLightningChain(enemy, damage * 0.5, lightningChainCount)
+    }
+
+    // V2 Abilities
+
+    // Knockback: push enemy away from player
+    if (this.player.hasKnockback()) {
+      const knockbackForce = this.player.getKnockbackForce()
+      const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y)
+      enemy.setVelocity(
+        Math.cos(angle) * knockbackForce,
+        Math.sin(angle) * knockbackForce
+      )
+    }
+
+    // Scorpion Pull: pull enemy towards player ("Get over here!")
+    if (this.player.rollScorpionPull()) {
+      const pullForce = 250
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y)
+      enemy.setVelocity(
+        Math.cos(angle) * pullForce,
+        Math.sin(angle) * pullForce
+      )
+      // Visual effect - flash enemy yellow
+      enemy.setTint(0xffaa00)
+      this.scene.time.delayedCall(200, () => {
+        if (enemy.active) enemy.clearTint()
+      })
+    }
+
+    // Rocket Launcher: AOE explosion on hit
+    if (this.player.hasRocketLauncher()) {
+      this.applyRocketExplosion(enemy, damage)
+    }
+  }
+
+  /**
+   * Apply rocket launcher AOE explosion around the hit enemy
+   */
+  private applyRocketExplosion(hitEnemy: Enemy, baseDamage: number): void {
+    const explosionRadius = this.player.getRocketExplosionRadius()
+    const explosionDamagePercent = this.player.getRocketExplosionDamagePercent()
+    const explosionDamage = Math.floor(baseDamage * explosionDamagePercent)
+
+    // Visual explosion effect
+    const explosion = this.scene.add.graphics()
+    explosion.setPosition(hitEnemy.x, hitEnemy.y)
+
+    // Animate explosion
+    let progress = 0
+    const expandDuration = 150
+    const startTime = this.scene.time.now
+
+    const explosionEvent = this.scene.time.addEvent({
+      delay: 16,
+      repeat: Math.ceil(expandDuration / 16),
+      callback: () => {
+        progress = Math.min(1, (this.scene.time.now - startTime) / expandDuration)
+        const currentRadius = explosionRadius * progress
+        const alpha = 1 - progress * 0.7
+
+        explosion.clear()
+        explosion.fillStyle(0xff6600, alpha * 0.6)
+        explosion.fillCircle(0, 0, currentRadius)
+        explosion.fillStyle(0xffff00, alpha * 0.4)
+        explosion.fillCircle(0, 0, currentRadius * 0.5)
+
+        if (progress >= 1) {
+          explosion.destroy()
+          explosionEvent.destroy()
+        }
+      }
+    })
+
+    // Damage all enemies in radius (except the already hit one)
+    const enemies = this.enemies.getChildren() as Enemy[]
+    for (const enemy of enemies) {
+      if (!enemy.active || enemy === hitEnemy) continue
+
+      const distance = Phaser.Math.Distance.Between(hitEnemy.x, hitEnemy.y, enemy.x, enemy.y)
+      if (distance <= explosionRadius) {
+        // Damage falls off with distance
+        const falloff = 1 - (distance / explosionRadius) * 0.5
+        const finalDamage = Math.floor(explosionDamage * falloff)
+        enemy.takeDamage(finalDamage)
+        this.damageNumberPool.showEnemyDamage(enemy.x, enemy.y, finalDamage, false)
+      }
     }
   }
 
