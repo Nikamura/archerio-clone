@@ -8,6 +8,12 @@ import Wall from '../entities/Wall'
 export const WALL_TILE_SIZE = 64
 
 /**
+ * Threshold for detecting parallel lines in intersection calculations.
+ * Lines with cross product below this value are considered parallel.
+ */
+const PARALLEL_LINE_THRESHOLD = 0.0001
+
+/**
  * Snap a value to the nearest multiple of WALL_TILE_SIZE.
  * Minimum value is WALL_TILE_SIZE to ensure walls are always at least 1 tile.
  */
@@ -221,6 +227,11 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * Returns true if NO wall blocks the line, false if any wall blocks it
    */
   hasLineOfSight(x1: number, y1: number, x2: number, y2: number): boolean {
+    // No walls means clear line of sight
+    if (!this.walls || this.walls.length === 0) {
+      return true
+    }
+
     for (const wall of this.walls) {
       if (this.lineIntersectsRect(x1, y1, x2, y2, wall)) {
         return false
@@ -268,8 +279,8 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
     // Also check if either endpoint is inside the rectangle
     // This handles the case where the line is entirely inside the wall
     if (
-      x1 >= left && x1 <= right && y1 >= top && y1 <= bottom ||
-      x2 >= left && x2 <= right && y2 >= top && y2 <= bottom
+      (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) ||
+      (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom)
     ) {
       return true
     }
@@ -294,8 +305,8 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
     // Cross product of direction vectors
     const cross = d1x * d2y - d1y * d2x
 
-    // Lines are parallel if cross product is 0
-    if (Math.abs(cross) < 0.0001) {
+    // Lines are parallel if cross product is near zero
+    if (Math.abs(cross) < PARALLEL_LINE_THRESHOLD) {
       return false
     }
 
