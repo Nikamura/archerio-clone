@@ -18,7 +18,7 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
     // No need to generate it here
   }
 
-  spawn(x: number, y: number, angle: number, speed: number = 200): EnemyBullet | null {
+  spawn(x: number, y: number, angle: number, speed: number = 170): EnemyBullet | null {
     const bullet = this.get(x, y) as EnemyBullet
     if (bullet) {
       bullet.fire(x, y, angle, speed)

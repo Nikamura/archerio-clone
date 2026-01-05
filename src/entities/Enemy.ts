@@ -412,7 +412,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Simple AI: move toward player with wall avoidance
-    const baseSpeed = 80
+    const baseSpeed = 70
     const speed = baseSpeed * this.speedMultiplier
 
     if (this.wallGroup) {

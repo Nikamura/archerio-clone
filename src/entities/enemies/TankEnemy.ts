@@ -159,7 +159,7 @@ export default class TankEnemy extends Enemy {
   private fireSpread() {
     // Fire 8 projectiles in all directions
     const numProjectiles = 8
-    const baseSpeed = 180
+    const baseSpeed = 155
     const speed = baseSpeed * this.projectileSpeedMultiplier
 
     for (let i = 0; i < numProjectiles; i++) {

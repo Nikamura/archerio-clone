@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 
 export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
-  private speed: number = 200
+  private speed: number = 170
   private lifetime: number = 3000 // 3 seconds
   private spawnTime: number = 0
 
@@ -27,7 +27,7 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(false)
   }
 
-  fire(x: number, y: number, angle: number, speed: number = 200) {
+  fire(x: number, y: number, angle: number, speed: number = 170) {
     this.setPosition(x, y)
     this.setActive(true)
     this.setVisible(true)

@@ -214,7 +214,7 @@ export default class BurrowerEnemy extends Enemy {
   private fireSpreadAttack(): void {
     // Fire 6 projectiles in a spread pattern
     const numProjectiles = 6
-    const speed = 150 // Moderate speed
+    const speed = 130 // Moderate speed
 
     for (let i = 0; i < numProjectiles; i++) {
       const angle = (Math.PI * 2 * i) / numProjectiles
