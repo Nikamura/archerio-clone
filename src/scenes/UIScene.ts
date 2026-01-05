@@ -33,6 +33,9 @@ export default class UIScene extends Phaser.Scene {
   private menuPanel!: Phaser.GameObjects.Container
   private isMenuOpen: boolean = false
 
+  // Dedicated pause button (always visible)
+  private pauseButton!: Phaser.GameObjects.Container
+
   // Skills bar (bottom)
   private skillsContainer!: Phaser.GameObjects.Container
 
@@ -165,8 +168,8 @@ export default class UIScene extends Phaser.Scene {
     this.roomText.setStroke('#000000', 3)
     this.hudContainer.add(this.roomText)
 
-    // --- LEVEL BADGE with XP (right side, before menu) ---
-    const levelX = width - 70
+    // --- LEVEL BADGE with XP (right side, before pause button) ---
+    const levelX = width - 100
     this.levelBadge = this.add.container(levelX, 28)
 
     // XP bar background
@@ -199,6 +202,28 @@ export default class UIScene extends Phaser.Scene {
    * Create menu button and slide-out panel
    */
   private createMenuSystem(width: number, _height: number) {
+    // Dedicated pause button (always visible, left of menu)
+    this.pauseButton = this.add.container(width - 56, 28)
+    this.pauseButton.setDepth(50)
+
+    const pauseBg = this.add.circle(0, 0, 14, 0x000000, 0.6)
+    pauseBg.setStrokeStyle(2, 0x666666)
+    pauseBg.setInteractive({ useHandCursor: true })
+    this.pauseButton.add(pauseBg)
+
+    const pauseIcon = this.add.text(0, 0, '⏸', {
+      fontSize: '12px',
+      color: '#ffffff',
+    }).setOrigin(0.5)
+    this.pauseButton.add(pauseIcon)
+
+    // Pause button handlers
+    pauseBg.on('pointerdown', () => {
+      this.game.events.emit('pauseRequested')
+    })
+    pauseBg.on('pointerover', () => pauseBg.setStrokeStyle(2, 0x888888))
+    pauseBg.on('pointerout', () => pauseBg.setStrokeStyle(2, 0x666666))
+
     // Menu button (gear icon)
     this.menuButton = this.add.container(width - 26, 28)
     this.menuButton.setDepth(50)
@@ -222,18 +247,17 @@ export default class UIScene extends Phaser.Scene {
     const panelWidth = 115
     const panelBg = this.add.graphics()
     panelBg.fillStyle(0x111111, 0.95)
-    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 195, 8)
+    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
     panelBg.lineStyle(2, 0x444444)
-    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 195, 8)
+    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
     this.menuPanel.add(panelBg)
 
-    // Menu items
+    // Menu items (pause removed - now has dedicated button)
     const menuItems = [
       { icon: '⚡', label: 'Auto Lv', key: 'autoLevel', y: 25 },
       { icon: '⏩', label: 'Auto Rm', key: 'autoRoom', y: 60 },
-      { icon: '⏸', label: 'Pause', key: 'pause', y: 95 },
-      { icon: '↺', label: 'Reset', key: 'reset', y: 130 },
-      { icon: '🚪', label: 'End Run', key: 'skip', y: 165 },
+      { icon: '↺', label: 'Reset', key: 'reset', y: 95 },
+      { icon: '🚪', label: 'End Run', key: 'skip', y: 130 },
     ]
 
     menuItems.forEach(item => {
@@ -344,10 +368,6 @@ export default class UIScene extends Phaser.Scene {
         row.setData('enabled', newState)
         break
       }
-      case 'pause':
-        this.game.events.emit('pauseRequested')
-        this.closeMenu()
-        break
       case 'reset':
         this.game.events.emit('resetLevel')
         this.closeMenu()
