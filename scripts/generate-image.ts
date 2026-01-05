@@ -93,7 +93,7 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
   const { prompt, width, height } = options;
   const aspectRatio = getAspectRatio(width, height);
 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:predict?key=${GEMINI_API_KEY}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:predict`;
 
   const requestBody = {
     instances: [{ prompt }],
@@ -108,7 +108,10 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
 
   const response = await fetch(apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-goog-api-key': GEMINI_API_KEY!,
+    },
     body: JSON.stringify(requestBody),
   });
 
@@ -136,7 +139,7 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
 async function generateWithGemini(options: GenerateImageOptions): Promise<{ data: string; mimeType: string }> {
   const { prompt, width, height } = options;
 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   const requestBody = {
     contents: [
@@ -157,7 +160,10 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
 
   const response = await fetch(apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-goog-api-key': GEMINI_API_KEY!,
+    },
     body: JSON.stringify(requestBody),
   });
 

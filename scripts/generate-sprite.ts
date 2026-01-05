@@ -344,7 +344,7 @@ function buildSpritePrompt(options: GenerateSpriteOptions, frameDescription?: st
 }
 
 async function callGeminiAPI(prompt: string, referenceImage?: Buffer): Promise<Buffer> {
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   // Build parts array - optionally include reference image
   const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
@@ -379,7 +379,10 @@ NEW POSE REQUIRED: ${prompt}`,
 
   const response = await fetch(apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-goog-api-key': GEMINI_API_KEY!,
+    },
     body: JSON.stringify(requestBody),
   });
 
