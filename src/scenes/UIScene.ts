@@ -1,5 +1,4 @@
 import Phaser from 'phaser'
-import { saveManager } from '../systems/SaveManager'
 import { themeManager } from '../systems/ThemeManager'
 import { ABILITIES, type AbilityData } from './LevelUpScene'
 
@@ -28,13 +27,8 @@ export default class UIScene extends Phaser.Scene {
   private hudContainer!: Phaser.GameObjects.Container
   private isHudVisible: boolean = true
 
-  // Menu system
+  // Menu button (opens unified pause menu)
   private menuButton!: Phaser.GameObjects.Container
-  private menuPanel!: Phaser.GameObjects.Container
-  private isMenuOpen: boolean = false
-
-  // Dedicated pause button (always visible)
-  private pauseButton!: Phaser.GameObjects.Container
 
   // Skills bar (bottom)
   private skillsContainer!: Phaser.GameObjects.Container
@@ -168,8 +162,8 @@ export default class UIScene extends Phaser.Scene {
     this.roomText.setStroke('#000000', 3)
     this.hudContainer.add(this.roomText)
 
-    // --- LEVEL BADGE with XP (right side, before pause button) ---
-    const levelX = width - 100
+    // --- LEVEL BADGE with XP (right side, before menu button) ---
+    const levelX = width - 70
     this.levelBadge = this.add.container(levelX, 28)
 
     // XP bar background
@@ -199,32 +193,10 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Create menu button and slide-out panel
+   * Create unified menu button that opens pause menu
    */
   private createMenuSystem(width: number, _height: number) {
-    // Dedicated pause button (always visible, left of menu)
-    this.pauseButton = this.add.container(width - 56, 28)
-    this.pauseButton.setDepth(50)
-
-    const pauseBg = this.add.circle(0, 0, 14, 0x000000, 0.6)
-    pauseBg.setStrokeStyle(2, 0x666666)
-    pauseBg.setInteractive({ useHandCursor: true })
-    this.pauseButton.add(pauseBg)
-
-    const pauseIcon = this.add.text(0, 0, '⏸', {
-      fontSize: '12px',
-      color: '#ffffff',
-    }).setOrigin(0.5)
-    this.pauseButton.add(pauseIcon)
-
-    // Pause button handlers
-    pauseBg.on('pointerdown', () => {
-      this.game.events.emit('pauseRequested')
-    })
-    pauseBg.on('pointerover', () => pauseBg.setStrokeStyle(2, 0x888888))
-    pauseBg.on('pointerout', () => pauseBg.setStrokeStyle(2, 0x666666))
-
-    // Menu button (gear icon)
+    // Menu button (hamburger icon) - opens unified pause menu
     this.menuButton = this.add.container(width - 26, 28)
     this.menuButton.setDepth(50)
 
@@ -239,144 +211,12 @@ export default class UIScene extends Phaser.Scene {
     }).setOrigin(0.5)
     this.menuButton.add(menuIcon)
 
-    // Menu panel (hidden by default)
-    this.menuPanel = this.add.container(width + 100, 60)
-    this.menuPanel.setDepth(51)
-    this.menuPanel.setAlpha(0)
-
-    const panelWidth = 115
-    const panelBg = this.add.graphics()
-    panelBg.fillStyle(0x111111, 0.95)
-    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
-    panelBg.lineStyle(2, 0x444444)
-    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, 160, 8)
-    this.menuPanel.add(panelBg)
-
-    // Menu items (pause removed - now has dedicated button)
-    const menuItems = [
-      { icon: '⚡', label: 'Auto Lv', key: 'autoLevel', y: 25 },
-      { icon: '⏩', label: 'Auto Rm', key: 'autoRoom', y: 60 },
-      { icon: '↺', label: 'Reset', key: 'reset', y: 95 },
-      { icon: '🚪', label: 'End Run', key: 'skip', y: 130 },
-    ]
-
-    menuItems.forEach(item => {
-      const row = this.add.container(-panelWidth / 2, item.y)
-
-      const rowBg = this.add.rectangle(0, 0, panelWidth - 16, 28, 0x222222, 0)
-      rowBg.setInteractive({ useHandCursor: true })
-      row.add(rowBg)
-
-      const icon = this.add.text(-38, 0, item.icon, { fontSize: '14px' }).setOrigin(0.5)
-      row.add(icon)
-
-      const label = this.add.text(-15, 0, item.label, {
-        fontSize: '12px',
-        color: '#ffffff',
-      }).setOrigin(0, 0.5)
-      row.add(label)
-
-      // Toggle indicators for auto options
-      if (item.key === 'autoLevel' || item.key === 'autoRoom') {
-        const isEnabled = item.key === 'autoLevel'
-          ? saveManager.getAutoLevelUp()
-          : saveManager.getAutoRoomAdvance()
-        const indicator = this.add.circle(42, 0, 4, isEnabled ? 0x00ff88 : 0x444444)
-        row.add(indicator)
-        row.setData('indicator', indicator)
-        row.setData('enabled', isEnabled)
-      }
-
-      // Hover effects
-      rowBg.on('pointerover', () => rowBg.setFillStyle(0x333333, 1))
-      rowBg.on('pointerout', () => rowBg.setFillStyle(0x222222, 0))
-
-      // Click handlers
-      rowBg.on('pointerdown', () => {
-        this.handleMenuAction(item.key, row)
-      })
-
-      this.menuPanel.add(row)
+    // Menu button click handler - emits pause request
+    menuBg.on('pointerdown', () => {
+      this.game.events.emit('pauseRequested')
     })
-
-    // Menu button click handler
-    menuBg.on('pointerdown', () => this.toggleMenu())
     menuBg.on('pointerover', () => menuBg.setStrokeStyle(2, 0x888888))
     menuBg.on('pointerout', () => menuBg.setStrokeStyle(2, 0x666666))
-
-    // Close menu when clicking outside
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.isMenuOpen) {
-        const menuBounds = new Phaser.Geom.Rectangle(width - 120, 50, 120, 170)
-        const buttonBounds = new Phaser.Geom.Rectangle(width - 40, 14, 28, 28)
-        if (!menuBounds.contains(pointer.x, pointer.y) && !buttonBounds.contains(pointer.x, pointer.y)) {
-          this.closeMenu()
-        }
-      }
-    })
-  }
-
-  private toggleMenu() {
-    if (this.isMenuOpen) {
-      this.closeMenu()
-    } else {
-      this.openMenu()
-    }
-  }
-
-  private openMenu() {
-    if (this.isMenuOpen) return
-    this.isMenuOpen = true
-
-    const width = this.cameras.main.width
-    this.tweens.add({
-      targets: this.menuPanel,
-      x: width - 10,
-      alpha: 1,
-      duration: 150,
-      ease: 'Power2.easeOut',
-    })
-  }
-
-  private closeMenu() {
-    if (!this.isMenuOpen) return
-    this.isMenuOpen = false
-
-    const width = this.cameras.main.width
-    this.tweens.add({
-      targets: this.menuPanel,
-      x: width + 100,
-      alpha: 0,
-      duration: 150,
-      ease: 'Power2.easeIn',
-    })
-  }
-
-  private handleMenuAction(key: string, row: Phaser.GameObjects.Container) {
-    switch (key) {
-      case 'autoLevel': {
-        const newState = saveManager.toggleAutoLevelUp()
-        const indicator = row.getData('indicator') as Phaser.GameObjects.Arc
-        indicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
-        row.setData('enabled', newState)
-        break
-      }
-      case 'autoRoom': {
-        const newState = saveManager.toggleAutoRoomAdvance()
-        const indicator = row.getData('indicator') as Phaser.GameObjects.Arc
-        indicator.setFillStyle(newState ? 0x00ff88 : 0x444444)
-        row.setData('enabled', newState)
-        break
-      }
-      case 'reset':
-        this.game.events.emit('resetLevel')
-        this.closeMenu()
-        break
-      case 'skip':
-        this.game.events.emit('skipRun')
-        this.closeMenu()
-        break
-    }
   }
 
   /**
