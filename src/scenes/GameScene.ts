@@ -43,6 +43,7 @@ import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
 import BaseBoss from '../entities/bosses/BaseBoss'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
+import HitboxDebugRenderer from '../systems/HitboxDebugRenderer'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 import WallGroup from '../systems/WallGroup'
 import { SeededRandom } from '../systems/SeededRandom'
@@ -86,6 +87,7 @@ export default class GameScene extends Phaser.Scene {
   private showingTutorial: boolean = false // Tutorial overlay is visible
   private boss: Boss | null = null
   private currentBossType: BossType | null = null // For kill tracking
+  private hitboxDebugRenderer: HitboxDebugRenderer | null = null
   private bossSpawnTime: number = 0 // Track when boss was spawned for kill time metrics
   private runStartTime: number = 0
   private goldEarned: number = 0 // Track gold earned this run
@@ -467,6 +469,11 @@ export default class GameScene extends Phaser.Scene {
       performanceMonitor.createOverlay(this)
     }
 
+    // Initialize hitbox debug renderer (debug mode only)
+    if (this.game.registry.get('debug')) {
+      this.hitboxDebugRenderer = new HitboxDebugRenderer(this)
+    }
+
     // Initialize seeded random for deterministic run
     // Daily challenge uses fixed daily seed, otherwise check for passed seed
     if (this.isDailyChallengeMode) {
@@ -625,6 +632,15 @@ export default class GameScene extends Phaser.Scene {
       const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
       nKey.on('down', () => {
         this.debugSkipLevel()
+      })
+
+      // H key: Toggle hitbox visualization
+      const hKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.H)
+      hKey.on('down', () => {
+        if (this.hitboxDebugRenderer) {
+          const enabled = this.hitboxDebugRenderer.toggle()
+          console.log(`Hitbox debug: ${enabled ? 'ON' : 'OFF'}`)
+        }
       })
     }
 
@@ -3298,6 +3314,20 @@ export default class GameScene extends Phaser.Scene {
         this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
         this.particles.getActiveEmitterCount()
       )
+
+      // Render hitbox debug visualization
+      if (this.hitboxDebugRenderer) {
+        this.hitboxDebugRenderer.render(
+          this.player,
+          this.bulletPool,
+          this.enemyBulletPool,
+          this.enemies,
+          this.boss,
+          this.goldPool,
+          this.healthPool,
+          null // doors - no group, just individual doorSprite
+        )
+      }
     }
   }
 
@@ -3396,6 +3426,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.boss) {
       this.boss.destroy()
       this.boss = null
+    }
+
+    // Clean up hitbox debug renderer
+    if (this.hitboxDebugRenderer) {
+      this.hitboxDebugRenderer.destroy()
+      this.hitboxDebugRenderer = null
     }
 
     // Clean up player
