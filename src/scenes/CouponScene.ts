@@ -271,6 +271,42 @@ export default class CouponScene extends Phaser.Scene {
     }
   }
 
+  private getRewardIcon(type: string): string {
+    switch (type) {
+      case 'gold':
+        return '💰'
+      case 'gems':
+        return '💎'
+      case 'energy':
+        return '⚡'
+      default:
+        return '🎁'
+    }
+  }
+
+  private getRewardColor(type: string): string {
+    switch (type) {
+      case 'gold':
+        return '#FFD700'
+      case 'gems':
+        return '#00FFFF'
+      case 'energy':
+        return '#FFFF00'
+      default:
+        return '#ffffff'
+    }
+  }
+
+  private formatRewardAmount(amount: number): string {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}M`
+    }
+    if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(0)}K`
+    }
+    return amount.toString()
+  }
+
   private showTeaserRevealAnimation(coupon: CouponDefinition, rewards: CouponReward[]) {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
@@ -288,8 +324,8 @@ export default class CouponScene extends Phaser.Scene {
     overlay.setInteractive() // Block clicks
     this.rewardPopup.add(overlay)
 
-    // Popup background
-    const popupBg = this.add.rectangle(0, 0, 300, 250, 0x1a1a2e)
+    // Popup background - sized for up to 3 rewards + sorry text + button
+    const popupBg = this.add.rectangle(0, 0, 300, 280, 0x1a1a2e)
     popupBg.setStrokeStyle(4, 0xffd700)
     this.rewardPopup.add(popupBg)
 
@@ -345,7 +381,7 @@ export default class CouponScene extends Phaser.Scene {
   }
 
   private revealRealReward(
-    coupon: CouponDefinition,
+    _coupon: CouponDefinition,
     rewards: CouponReward[],
     teaserText: Phaser.GameObjects.Text,
     wowText: Phaser.GameObjects.Text
@@ -372,28 +408,55 @@ export default class CouponScene extends Phaser.Scene {
       },
     })
 
-    // Animate teaser text shrinking and changing
+    // Animate teaser text out and show individual rewards with icons
     this.tweens.add({
       targets: teaserText,
       scale: 0.7,
       alpha: 0,
       duration: 300,
       onComplete: () => {
-        teaserText.setText(coupon.description)
-        teaserText.setFontSize('24px')
-        teaserText.setColor('#ffd700')
-        this.tweens.add({
-          targets: teaserText,
-          scale: 1,
-          alpha: 1,
-          duration: 300,
+        // Hide the teaser text
+        teaserText.setVisible(false)
+
+        // Create individual reward lines with icons
+        const startY = -35
+        const lineHeight = 28
+        rewards.forEach((reward, index) => {
+          const icon = this.getRewardIcon(reward.type)
+          const color = this.getRewardColor(reward.type)
+          const amount = this.formatRewardAmount(reward.amount)
+          const y = startY + index * lineHeight
+
+          const rewardLine = this.add
+            .text(0, y, `${icon} +${amount}`, {
+              fontSize: '20px',
+              color: color,
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5)
+            .setAlpha(0)
+            .setScale(0.5)
+
+          this.rewardPopup!.add(rewardLine)
+
+          // Staggered animation for each reward
+          this.tweens.add({
+            targets: rewardLine,
+            alpha: 1,
+            scale: 1,
+            duration: 200,
+            delay: index * 100,
+            ease: 'Back.easeOut',
+          })
         })
       },
     })
 
-    // Add "Sorry!" text
+    // Add "Sorry!" text - adjust Y based on number of rewards
+    const sorryY = -35 + rewards.length * 28 + 15
+    const buttonY = sorryY + 45
     const sorryText = this.add
-      .text(0, 30, '(Sorry about that!)', {
+      .text(0, sorryY, '(Sorry about that!)', {
         fontSize: '14px',
         color: '#aaaaaa',
       })
@@ -401,7 +464,7 @@ export default class CouponScene extends Phaser.Scene {
       .setAlpha(0)
     this.rewardPopup.add(sorryText)
 
-    this.time.delayedCall(600, () => {
+    this.time.delayedCall(600 + rewards.length * 100, () => {
       this.tweens.add({
         targets: sorryText,
         alpha: 1,
@@ -410,18 +473,21 @@ export default class CouponScene extends Phaser.Scene {
     })
 
     // Add OK button
-    this.time.delayedCall(800, () => {
-      this.addCloseButton(rewards)
+    this.time.delayedCall(800 + rewards.length * 100, () => {
+      this.addCloseButton(rewards, buttonY)
     })
   }
 
-  private showRewardAnimation(description: string, rewards: CouponReward[]) {
+  private showRewardAnimation(_description: string, rewards: CouponReward[]) {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
     // Play sound
     audioManager.playLevelUp()
     hapticManager.heavy()
+
+    // Calculate popup height based on number of rewards
+    const popupHeight = 140 + rewards.length * 30
 
     // Create popup
     this.rewardPopup = this.add.container(width / 2, height / 2)
@@ -433,13 +499,13 @@ export default class CouponScene extends Phaser.Scene {
     this.rewardPopup.add(overlay)
 
     // Popup background
-    const popupBg = this.add.rectangle(0, 0, 280, 200, 0x1a1a2e)
+    const popupBg = this.add.rectangle(0, 0, 280, popupHeight, 0x1a1a2e)
     popupBg.setStrokeStyle(3, 0xffd700)
     this.rewardPopup.add(popupBg)
 
     // Title
     const title = this.add
-      .text(0, -60, 'COUPON REDEEMED!', {
+      .text(0, -popupHeight / 2 + 30, 'COUPON REDEEMED!', {
         fontSize: '22px',
         color: '#FFD700',
         fontStyle: 'bold',
@@ -449,15 +515,28 @@ export default class CouponScene extends Phaser.Scene {
       .setOrigin(0.5)
     this.rewardPopup.add(title)
 
-    // Reward display
-    const rewardText = this.add
-      .text(0, -10, description, {
-        fontSize: '20px',
-        color: '#44ff44',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-    this.rewardPopup.add(rewardText)
+    // Display individual rewards with icons
+    const startY = -popupHeight / 2 + 70
+    const lineHeight = 30
+    rewards.forEach((reward, index) => {
+      const icon = this.getRewardIcon(reward.type)
+      const color = this.getRewardColor(reward.type)
+      const amount = this.formatRewardAmount(reward.amount)
+      const y = startY + index * lineHeight
+
+      const rewardLine = this.add
+        .text(0, y, `${icon} +${amount}`, {
+          fontSize: '20px',
+          color: color,
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5)
+
+      this.rewardPopup!.add(rewardLine)
+    })
+
+    // Calculate OK button position
+    const buttonY = popupHeight / 2 - 30
 
     // Animate in
     this.rewardPopup.setScale(0.5)
@@ -470,7 +549,7 @@ export default class CouponScene extends Phaser.Scene {
       duration: 200,
       ease: 'Back.easeOut',
       onComplete: () => {
-        this.addCloseButton(rewards)
+        this.addCloseButton(rewards, buttonY)
       },
     })
 
@@ -478,14 +557,14 @@ export default class CouponScene extends Phaser.Scene {
     this.showParticles()
   }
 
-  private addCloseButton(_rewards: CouponReward[]) {
+  private addCloseButton(_rewards: CouponReward[], buttonY: number = 70) {
     if (!this.rewardPopup) return
 
     // OK button
-    const btnBg = this.add.rectangle(0, 70, 120, 40, 0x4a9eff)
+    const btnBg = this.add.rectangle(0, buttonY, 120, 40, 0x4a9eff)
     btnBg.setStrokeStyle(2, 0x6bb6ff)
     const btnText = this.add
-      .text(0, 70, 'OK', {
+      .text(0, buttonY, 'OK', {
         fontSize: '18px',
         color: '#ffffff',
         fontStyle: 'bold',
