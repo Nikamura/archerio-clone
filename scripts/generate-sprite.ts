@@ -388,6 +388,10 @@ NEW POSE REQUIRED: ${prompt}`,
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Gemini API Error Details:');
+    console.error(`  Status: ${response.status} ${response.statusText}`);
+    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(`  Body: ${errorText}`);
     throw new Error(`API request failed (${response.status}): ${errorText}`);
   }
 

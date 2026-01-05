@@ -117,6 +117,10 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Imagen API Error Details:');
+    console.error(`  Status: ${response.status} ${response.statusText}`);
+    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(`  Body: ${errorText}`);
     throw new Error(`Imagen API request failed (${response.status}): ${errorText}`);
   }
 
@@ -169,6 +173,10 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Gemini API Error Details:');
+    console.error(`  Status: ${response.status} ${response.statusText}`);
+    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(`  Body: ${errorText}`);
     throw new Error(`Gemini API request failed (${response.status}): ${errorText}`);
   }
 
