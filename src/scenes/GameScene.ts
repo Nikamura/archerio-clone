@@ -211,20 +211,28 @@ export default class GameScene extends Phaser.Scene {
     })
 
     // Handle browser visibility changes and focus loss
-    // This prevents stuck input states when user switches apps or screen turns off
+    // Auto-pause game when tab is hidden or window loses focus
     const handleVisibilityChange = () => {
       // Only handle if scene is active and created
       if (document.hidden && this.scene.isActive() && this.player) {
-        console.log('GameScene: Page hidden, resetting joystick state')
+        console.log('GameScene: Page hidden, auto-pausing game')
         this.resetJoystickState()
+        // Auto-pause if not already paused and game is not over
+        if (!this.scene.isPaused('GameScene') && !this.isGameOver) {
+          this.handlePause()
+        }
       }
     }
 
     const handleBlur = () => {
       // Only handle if scene is active and created
       if (this.scene.isActive() && this.player) {
-        console.log('GameScene: Window blur, resetting joystick state')
+        console.log('GameScene: Window blur, auto-pausing game')
         this.resetJoystickState()
+        // Auto-pause if not already paused and game is not over
+        if (!this.scene.isPaused('GameScene') && !this.isGameOver) {
+          this.handlePause()
+        }
       }
     }
 
