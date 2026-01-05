@@ -2255,6 +2255,17 @@ export default class GameScene extends Phaser.Scene {
     // Restart UIScene
     this.scene.launch('UIScene')
 
+    // Re-show boss health bar if we're in a boss room
+    if (this.boss && this.boss.active) {
+      const boss = this.boss
+      const bossDef = getBossDefinition(this.currentBossType as BossId)
+      const bossName = bossDef?.name || this.currentBossType?.replace(/_/g, ' ') || 'Boss'
+      // Delay slightly to ensure UIScene is ready
+      this.time.delayedCall(50, () => {
+        this.scene.get('UIScene').events.emit('showBossHealth', boss.getHealth(), boss.getMaxHealth(), bossName)
+      })
+    }
+
     // Re-initialize input system since it may have been in an inconsistent state
     const gameContainer = this.game.canvas.parentElement
     this.inputSystem = new InputSystem({
