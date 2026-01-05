@@ -2565,8 +2565,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private findNearestEnemy(): Enemy | null {
-    let nearestEnemy: Enemy | null = null
-    let nearestDistance = Infinity
+    let nearestVisibleEnemy: Enemy | null = null
+    let nearestVisibleDistance = Infinity
+    let nearestBlockedEnemy: Enemy | null = null
+    let nearestBlockedDistance = Infinity
 
     const children = this.enemies.getChildren()
 
@@ -2583,7 +2585,6 @@ export default class GameScene extends Phaser.Scene {
     let activeCount = 0
     let inactiveCount = 0
     let bodylessCount = 0
-    let blockedByWallCount = 0
 
     children.forEach((enemy) => {
       const e = enemy as Enemy
@@ -2601,20 +2602,6 @@ export default class GameScene extends Phaser.Scene {
 
       activeCount++
 
-      // Check line of sight if player can't shoot through walls
-      if (!canShootThroughWalls && this.wallGroup) {
-        const hasLineOfSight = this.wallGroup.hasLineOfSight(
-          this.player.x,
-          this.player.y,
-          e.x,
-          e.y
-        )
-        if (!hasLineOfSight) {
-          blockedByWallCount++
-          return // Skip enemies behind walls
-        }
-      }
-
       const distance = Phaser.Math.Distance.Between(
         this.player.x,
         this.player.y,
@@ -2622,15 +2609,31 @@ export default class GameScene extends Phaser.Scene {
         e.y
       )
 
-      if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearestEnemy = e
+      // Check line of sight if player can't shoot through walls
+      const hasLineOfSight = canShootThroughWalls || !this.wallGroup ||
+        this.wallGroup.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)
+
+      if (hasLineOfSight) {
+        // Prioritize enemies with clear line of sight
+        if (distance < nearestVisibleDistance) {
+          nearestVisibleDistance = distance
+          nearestVisibleEnemy = e
+        }
+      } else {
+        // Track nearest blocked enemy as fallback
+        if (distance < nearestBlockedDistance) {
+          nearestBlockedDistance = distance
+          nearestBlockedEnemy = e
+        }
       }
     })
 
+    // Prefer visible enemies, fall back to blocked enemies if none visible
+    const nearestEnemy = nearestVisibleEnemy ?? nearestBlockedEnemy
+
     // Debug: Warn if enemies exist but none are targetable
     if (children.length > 0 && !nearestEnemy) {
-      console.warn(`findNearestEnemy: No target found! Total: ${children.length}, Active: ${activeCount}, Inactive: ${inactiveCount}, No body: ${bodylessCount}, Blocked by wall: ${blockedByWallCount}`)
+      console.warn(`findNearestEnemy: No target found! Total: ${children.length}, Active: ${activeCount}, Inactive: ${inactiveCount}, No body: ${bodylessCount}`)
       // Log details about each enemy in the group
       children.forEach((enemy, i) => {
         const e = enemy as Enemy
