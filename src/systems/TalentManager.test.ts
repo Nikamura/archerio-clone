@@ -60,7 +60,7 @@ describe('TalentManager', () => {
           lastSpinDate: new Date().toISOString().split('T')[0],
         },
       }
-      localStorageMock.setItem('arrow_game_talent_data', JSON.stringify(savedData))
+      localStorageMock.setItem('aura_archer_talent_data', JSON.stringify(savedData))
 
       const newManager = new TalentManager()
       expect(newManager.getTalentLevel(TalentId.IRON_WILL)).toBe(2)

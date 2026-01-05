@@ -49,7 +49,7 @@ describe('ChestManager', () => {
       const savedData = {
         inventory: { wooden: 5, silver: 3, golden: 1 },
       }
-      localStorageMock.setItem('arrow_game_chest_data', JSON.stringify(savedData))
+      localStorageMock.setItem('aura_archer_chest_data', JSON.stringify(savedData))
 
       const newManager = new ChestManager()
       const inventory = newManager.getInventory()

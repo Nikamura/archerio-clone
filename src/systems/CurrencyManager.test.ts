@@ -51,7 +51,7 @@ describe('CurrencyManager', () => {
         currencies: { gold: 500, gems: 50, scrolls: 10, energy: 15 },
         lastEnergyUpdate: Date.now(),
       }
-      localStorageMock.setItem('arrow_game_currency_data', JSON.stringify(savedData))
+      localStorageMock.setItem('aura_archer_currency_data', JSON.stringify(savedData))
 
       const newManager = new CurrencyManager()
       expect(newManager.get('gold')).toBe(500)
