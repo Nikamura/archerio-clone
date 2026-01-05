@@ -308,6 +308,7 @@ export class CombatSystem {
     }
 
     // Normal bullets are destroyed on wall contact
+    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y)
     bulletSprite.deactivate()
   }
 
@@ -321,6 +322,7 @@ export class CombatSystem {
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
     if (!bulletSprite.active) return
 
+    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y)
     bulletSprite.setActive(false)
     bulletSprite.setVisible(false)
   }
