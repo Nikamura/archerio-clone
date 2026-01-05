@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from '../Enemy'
+import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
 
@@ -69,16 +69,17 @@ export default class ChargerEnemy extends Enemy {
     console.log('ChargerEnemy created at', x, y)
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class (only in non-charge phases)
+    let effectResult: EnemyUpdateResult = { died: false, dotDamage: 0 }
     if (this.phase !== 'charging') {
-      const diedFromFire = super.update(time, _delta, playerX, playerY)
-      if (diedFromFire) {
-        return true
+      effectResult = super.update(time, _delta, playerX, playerY)
+      if (effectResult.died) {
+        return effectResult
       }
     }
 
@@ -109,7 +110,7 @@ export default class ChargerEnemy extends Enemy {
     // Update health bar position if visible
     this.updateChargeIndicatorPosition()
 
-    return false
+    return effectResult
   }
 
   private handleIdlePhase(time: number, playerX: number, playerY: number) {

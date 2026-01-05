@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import BaseBoss, { BossOptions } from './BaseBoss'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { EnemyUpdateResult } from '../Enemy'
 
 type LavaGolemPhase = 'idle' | 'lava_pool' | 'meteor_shower' | 'fire_wave'
 
@@ -222,13 +223,13 @@ export default class LavaGolemBoss extends BaseBoss {
     }
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number): boolean {
-    const died = super.update(time, delta, playerX, playerY)
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
+    const effectResult = super.update(time, delta, playerX, playerY)
 
     // Update lava pools - check for expiration and player damage
     this.updateLavaPools(time, playerX, playerY)
 
-    return died
+    return effectResult
   }
 
   private updateLavaPools(time: number, playerX: number, playerY: number): void {

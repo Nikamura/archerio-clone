@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import BaseBoss, { BossOptions } from './BaseBoss'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { EnemyUpdateResult } from '../Enemy'
 
 type InfernoDemonPhase = 'idle' | 'flame_pillars' | 'teleport_dash' | 'enraged_combo'
 
@@ -335,8 +336,8 @@ export default class InfernoDemonBoss extends BaseBoss {
     return died
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number): boolean {
-    const died = super.update(time, delta, playerX, playerY)
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
+    const effectResult = super.update(time, delta, playerX, playerY)
 
     // Update pillar effects
     for (const pillar of this.flamePillars) {
@@ -349,7 +350,7 @@ export default class InfernoDemonBoss extends BaseBoss {
       }
     }
 
-    return died
+    return effectResult
   }
 
   destroy(fromScene?: boolean): void {

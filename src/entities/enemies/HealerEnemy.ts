@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from '../Enemy'
+import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
 
@@ -105,15 +105,15 @@ export default class HealerEnemy extends Enemy {
     }
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
-      return true
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     // Movement: Stay away from player
@@ -170,7 +170,7 @@ export default class HealerEnemy extends Enemy {
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
     }
 
-    return false
+    return effectResult
   }
 
   private performHeal(): void {

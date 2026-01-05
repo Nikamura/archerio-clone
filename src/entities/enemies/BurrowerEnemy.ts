@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy from '../Enemy'
+import Enemy, { EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
@@ -84,16 +84,17 @@ export default class BurrowerEnemy extends Enemy {
     }
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class (but only if not burrowed)
+    let effectResult: EnemyUpdateResult = { died: false, dotDamage: 0 }
     if (this.phase !== 'burrowed' && this.phase !== 'burrowing') {
-      const diedFromFire = super.update(time, _delta, playerX, playerY)
-      if (diedFromFire) {
-        return true
+      effectResult = super.update(time, _delta, playerX, playerY)
+      if (effectResult.died) {
+        return effectResult
       }
     }
 
@@ -121,7 +122,7 @@ export default class BurrowerEnemy extends Enemy {
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
     }
 
-    return false
+    return effectResult
   }
 
   private handleBurrowedPhase(time: number, playerX: number, playerY: number): void {

@@ -6,6 +6,16 @@ import type WallGroup from '../systems/WallGroup'
 import { StatusEffectSystem } from '../core/StatusEffects'
 
 /**
+ * Result of enemy update call
+ */
+export interface EnemyUpdateResult {
+  /** Whether the enemy died from DoT damage */
+  died: boolean
+  /** Amount of DoT damage dealt this tick (for damage text bubbles) */
+  dotDamage: number
+}
+
+/**
  * Options for enemy spawning with difficulty and chapter modifiers
  */
 export interface EnemyOptions {
@@ -347,9 +357,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   /**
    * Update status effects and apply damage
-   * @returns true if enemy died from status effect damage
+   * @returns Object with died status and dotDamage dealt
    */
-  private updateStatusEffects(time: number): boolean {
+  private updateStatusEffects(time: number): { died: boolean; dotDamage: number } {
     // Check if enemy is moving (for bleed damage bonus)
     const body = this.body as Phaser.Physics.Arcade.Body
     const isMoving = body ? (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) : false
@@ -359,7 +369,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Apply DOT damage if any
     if (result.damage > 0) {
       const died = this.takeDamage(result.damage)
-      if (died) return true
+      if (died) {
+        return { died: true, dotDamage: result.damage }
+      }
     }
 
     // Update tint if effects changed
@@ -367,7 +379,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.updateEffectTint()
     }
 
-    return false
+    return { died: false, dotDamage: result.damage }
   }
 
   /**
@@ -394,21 +406,21 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.lastMeleeAttackTime = time
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update all status effects (fire, freeze, poison)
-    const diedFromEffects = this.updateStatusEffects(time)
-    if (diedFromEffects) {
-      return true // Signal to caller that enemy died
+    const effectResult = this.updateStatusEffects(time)
+    if (effectResult.died) {
+      return effectResult // Signal to caller that enemy died from DoT
     }
 
     // If frozen, don't move or act
     if (this.statusEffects.isFrozen()) {
       this.setVelocity(0, 0)
-      return false
+      return effectResult
     }
 
     // Simple AI: move toward player with wall avoidance
@@ -440,7 +452,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.updateHealthBarPosition()
     }
 
-    return false
+    return effectResult
   }
 
   /**

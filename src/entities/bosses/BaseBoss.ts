@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy from '../Enemy'
+import Enemy, { EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { BossDefinition } from '../../config/bossData'
 
@@ -144,9 +144,15 @@ export default abstract class BaseBoss extends Enemy {
   /**
    * Main update loop - handles phase transitions and attack cycling
    */
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
+    }
+
+    // Update status effects (fire, poison, bleed) from parent class
+    const effectResult = super.update(time, delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     // Handle current phase
@@ -155,7 +161,7 @@ export default abstract class BaseBoss extends Enemy {
     // Keep boss within world bounds
     this.clampToWorldBounds()
 
-    return false
+    return effectResult
   }
 
   /**

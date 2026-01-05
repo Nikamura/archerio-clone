@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy from './Enemy'
+import Enemy, { EnemyUpdateResult } from './Enemy'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 
 type BossPhase = 'idle' | 'spread' | 'barrage_aim' | 'barrage_fire' | 'charge_windup' | 'charging'
@@ -111,13 +111,16 @@ export default class Boss extends Enemy {
     return false
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
-    // Note: Boss doesn't call super.update() because it uses its own health system
-    // and fire DOT would need to be integrated with bossHealth
+    // Update status effects (fire, poison, bleed) from parent class
+    const effectResult = super.update(time, delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
+    }
 
     switch (this.phase) {
       case 'idle':
@@ -150,7 +153,7 @@ export default class Boss extends Enemy {
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
     }
 
-    return false
+    return effectResult
   }
 
   private handleIdlePhase(time: number, playerX: number, playerY: number) {

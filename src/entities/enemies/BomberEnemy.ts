@@ -10,7 +10,7 @@
  */
 
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from '../Enemy'
+import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import BombPool from '../../systems/BombPool'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
@@ -67,15 +67,15 @@ export default class BomberEnemy extends Enemy {
     this.onBombExplode = callback
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
-      return true
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     const distanceToPlayer = Phaser.Math.Distance.Between(
@@ -134,7 +134,7 @@ export default class BomberEnemy extends Enemy {
     // Ensure enemy stays within world bounds
     this.clampToWorldBounds(16)
 
-    return false
+    return effectResult
   }
 
   private startWindUp(time: number, playerX: number, playerY: number) {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import BaseBoss, { BossOptions } from './BaseBoss'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { EnemyUpdateResult } from '../Enemy'
 
 type VoidLordPhase = 'idle' | 'darkness_zones' | 'tentacle_attack' | 'phase_shift'
 
@@ -401,13 +402,13 @@ export default class VoidLordBoss extends BaseBoss {
     return super.takeDamage(amount)
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number): boolean {
-    const died = super.update(time, delta, playerX, playerY)
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
+    const effectResult = super.update(time, delta, playerX, playerY)
 
     // Update darkness zones
     this.updateDarknessZones(time, playerX, playerY)
 
-    return died
+    return effectResult
   }
 
   destroy(fromScene?: boolean): void {

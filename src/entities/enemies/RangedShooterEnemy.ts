@@ -9,7 +9,7 @@
 
 import Phaser from 'phaser'
 import RangedEnemy from './RangedEnemy'
-import { EnemyOptions } from '../Enemy'
+import { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
@@ -40,15 +40,15 @@ export default class RangedShooterEnemy extends RangedEnemy {
     console.log('RangedShooterEnemy created at', x, y)
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
-      return true
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     const distanceToPlayer = Phaser.Math.Distance.Between(
@@ -102,7 +102,7 @@ export default class RangedShooterEnemy extends RangedEnemy {
     // Ensure enemy stays within world bounds
     this.clampToWorldBounds(15)
 
-    return false
+    return effectResult
   }
 
   private startAiming(time: number) {

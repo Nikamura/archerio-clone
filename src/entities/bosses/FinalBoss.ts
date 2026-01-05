@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import BaseBoss, { BossOptions } from './BaseBoss'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { EnemyUpdateResult } from '../Enemy'
 
 type FinalBossPhase =
   | 'idle'
@@ -628,8 +629,8 @@ export default class FinalBoss extends BaseBoss {
     this.minions = []
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number): boolean {
-    const died = super.update(time, delta, playerX, playerY)
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
+    const effectResult = super.update(time, delta, playerX, playerY)
 
     // Update minions - make them fire at player
     for (const minion of this.minions) {
@@ -663,7 +664,7 @@ export default class FinalBoss extends BaseBoss {
       }
     }
 
-    return died
+    return effectResult
   }
 
   destroy(fromScene?: boolean): void {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Enemy, { EnemyOptions } from '../Enemy'
+import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
 
@@ -33,20 +33,20 @@ export class MinionEnemy extends Enemy {
     this.setAlpha(0.85)
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
-      return true
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     // Validate player position before calculating angle
     if (!isFinite(playerX) || !isFinite(playerY)) {
-      return false
+      return effectResult
     }
 
     // Rush toward player faster than normal enemies, with wall avoidance
@@ -77,7 +77,7 @@ export class MinionEnemy extends Enemy {
       this.y = worldBounds.centerY
     }
 
-    return false
+    return effectResult
   }
 }
 
@@ -225,17 +225,17 @@ export default class SpawnerEnemy extends Enemy {
     return this.spawnedMinions.length
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
       // When spawner dies, all its minions die too
       this.destroyAllMinions()
-      return true
+      return effectResult
     }
 
     // Slow, cautious movement - try to maintain distance from player
@@ -267,7 +267,7 @@ export default class SpawnerEnemy extends Enemy {
       this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
     }
 
-    return false
+    return effectResult
   }
 
   /**
