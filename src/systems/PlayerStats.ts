@@ -246,7 +246,10 @@ export class PlayerStats {
     // Giant damage bonus
     const giantBonus = this.getGiantDamageMultiplier()
 
-    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus * giantBonus)
+    // Fist of Fury damage bonus (+150% per level)
+    const fistOfFuryBonus = this.getFistOfFuryDamageMultiplier()
+
+    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus * giantBonus * fistOfFuryBonus)
   }
 
   /**

@@ -26,6 +26,16 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set()
 
+  // V2 ability tracking
+  private homingLevel: number = 0  // Homing strength (arrows curve towards enemies)
+  private isBoomerang: boolean = false  // Arrows return to player
+  private playerX: number = 0  // Player position for boomerang return
+  private playerY: number = 0
+  private maxTravelDistance: number = 0  // Distance before boomerang returns
+  private hasReturned: boolean = false  // Whether boomerang has started returning
+  private startX: number = 0  // Starting position for distance tracking
+  private startY: number = 0
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     // Use themed bullet sprite
     const themeAssets = themeManager.getAssets()
@@ -63,12 +73,20 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     bleedDamage?: number
     projectileSprite?: string
     projectileSizeMultiplier?: number
+    // V2 ability options
+    homingLevel?: number
+    isBoomerang?: boolean
+    playerX?: number
+    playerY?: number
+    rangeMultiplier?: number
   }) {
     this.setPosition(x, y)
     this.setActive(true)
     this.setVisible(true)
 
-    this.speed = speed
+    // Apply range multiplier to speed (Fist of Fury reduces range via slower speed)
+    const rangeMultiplier = options?.rangeMultiplier ?? 1.0
+    this.speed = speed * rangeMultiplier
     this.spawnTime = this.scene.time.now
 
     // Reset ability tracking
@@ -88,6 +106,17 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.wallBounceCount = 0
     this.throughWallEnabled = options?.throughWall ?? false
     this.bleedDamage = options?.bleedDamage ?? 0
+
+    // V2 ability tracking
+    this.homingLevel = options?.homingLevel ?? 0
+    this.isBoomerang = options?.isBoomerang ?? false
+    this.playerX = options?.playerX ?? x
+    this.playerY = options?.playerY ?? y
+    this.hasReturned = false
+    this.startX = x
+    this.startY = y
+    // Boomerang max travel distance (reduced by range multiplier)
+    this.maxTravelDistance = 200 * rangeMultiplier
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -109,6 +138,12 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     if (this.isCrit) {
       this.setTint(0xffff00) // Yellow tint for crits
       this.setScale(1.3 * sizeMultiplier)
+    } else if (this.isBoomerang) {
+      this.setTint(0x8b4513) // Brown tint for boomerang
+      this.setScale(sizeMultiplier)
+    } else if (this.homingLevel > 0) {
+      this.setTint(0x00cc99) // Teal tint for homing
+      this.setScale(sizeMultiplier)
     } else if (this.freezeChance > 0) {
       this.setTint(0x66ccff) // Blue tint for ice
       this.setScale(sizeMultiplier)
@@ -136,8 +171,63 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       return
     }
 
+    const body = this.body as Phaser.Physics.Arcade.Body
     const gameWidth = this.scene.scale.width
     const gameHeight = this.scene.scale.height
+
+    // Boomerang: Check if should return to player
+    if (this.isBoomerang && !this.hasReturned) {
+      const travelDistance = Phaser.Math.Distance.Between(this.startX, this.startY, this.x, this.y)
+      if (travelDistance >= this.maxTravelDistance) {
+        this.hasReturned = true
+        // Clear hit enemies so boomerang can hit again on return
+        this.hitEnemies.clear()
+      }
+    }
+
+    // Boomerang: Return to player
+    if (this.isBoomerang && this.hasReturned) {
+      const angleToPlayer = Phaser.Math.Angle.Between(this.x, this.y, this.playerX, this.playerY)
+      const vx = Math.cos(angleToPlayer) * this.speed * 1.5 // Return faster
+      const vy = Math.sin(angleToPlayer) * this.speed * 1.5
+      this.setVelocity(vx, vy)
+      this.setRotation(angleToPlayer)
+
+      // Deactivate when close to player
+      const distToPlayer = Phaser.Math.Distance.Between(this.x, this.y, this.playerX, this.playerY)
+      if (distToPlayer < 30) {
+        this.deactivate()
+        return
+      }
+    }
+
+    // Homing: Curve towards nearest enemy
+    if (this.homingLevel > 0 && !this.hasReturned) {
+      const nearestEnemy = this.findNearestEnemy()
+      if (nearestEnemy) {
+        const angleToEnemy = Phaser.Math.Angle.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y)
+        const currentAngle = Math.atan2(body.velocity.y, body.velocity.x)
+
+        // Calculate turn rate based on homing level (0.05 per level = ~3 degrees per frame)
+        const turnRate = 0.05 * this.homingLevel
+
+        // Smoothly rotate towards enemy
+        let angleDiff = angleToEnemy - currentAngle
+        // Normalize to -PI to PI
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+
+        // Apply turn with clamping
+        const turn = Phaser.Math.Clamp(angleDiff, -turnRate, turnRate)
+        const newAngle = currentAngle + turn
+
+        // Update velocity
+        const vx = Math.cos(newAngle) * this.speed
+        const vy = Math.sin(newAngle) * this.speed
+        this.setVelocity(vx, vy)
+        this.setRotation(newAngle)
+      }
+    }
 
     // Through Wall: Arrows wrap around screen edges
     if (this.throughWallEnabled) {
@@ -151,7 +241,6 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     // Handle wall bouncing
     if (this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces) {
       let bounced = false
-      const body = this.body as Phaser.Physics.Arcade.Body
 
       // Check left/right walls
       if (this.x <= 0 || this.x >= gameWidth) {
@@ -182,6 +271,34 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
         this.deactivate()
       }
     }
+  }
+
+  /**
+   * Find nearest enemy for homing behavior
+   */
+  private findNearestEnemy(): Phaser.GameObjects.Sprite | null {
+    // Access enemies from scene's combat system
+    const gameScene = this.scene as { combatSystem?: { getEnemies: () => Phaser.Physics.Arcade.Group } }
+    if (!gameScene.combatSystem) return null
+
+    const enemies = gameScene.combatSystem.getEnemies().getChildren() as Phaser.GameObjects.Sprite[]
+    let nearest: Phaser.GameObjects.Sprite | null = null
+    let minDist = Infinity
+
+    for (const enemy of enemies) {
+      if (!enemy.active) continue
+      // Skip already hit enemies
+      if (this.hitEnemies.has(enemy)) continue
+
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y)
+      // Only home towards enemies within 300px and ahead of bullet
+      if (dist < minDist && dist < 300) {
+        minDist = dist
+        nearest = enemy
+      }
+    }
+
+    return nearest
   }
 
   deactivate() {

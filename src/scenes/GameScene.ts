@@ -3170,6 +3170,12 @@ export default class GameScene extends Phaser.Scene {
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
       projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,
+      // V2 ability options
+      homingLevel: this.player.getHomingArrowsLevel(),
+      isBoomerang: this.player.isBoomerangEnabled(),
+      playerX: this.player.x,
+      playerY: this.player.y,
+      rangeMultiplier: this.player.getFistOfFuryRangeMultiplier(),
     }
 
     // Main projectile
