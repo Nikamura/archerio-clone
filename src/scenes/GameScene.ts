@@ -3177,8 +3177,14 @@ export default class GameScene extends Phaser.Scene {
       for (let i = 0; i < enemyCount; i++) {
         const e = enemyChildren[i] as Enemy
         if (e && e.active) {
-          const diedFromFire = e.update(time, delta, playerX, playerY)
-          if (diedFromFire) {
+          const updateResult = e.update(time, delta, playerX, playerY)
+
+          // Show DoT damage text bubble if damage was dealt
+          if (updateResult.dotDamage > 0) {
+            this.damageNumberPool.showDotDamage(e.x, e.y, updateResult.dotDamage)
+          }
+
+          if (updateResult.died) {
             enemiesToDestroy.push(e)
           }
         }

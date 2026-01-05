@@ -8,7 +8,7 @@
 
 import Phaser from 'phaser'
 import RangedEnemy from './RangedEnemy'
-import { EnemyOptions } from '../Enemy'
+import { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
 import { themeManager } from '../../systems/ThemeManager'
@@ -45,9 +45,9 @@ export default class SpreaderEnemy extends RangedEnemy {
     console.log('SpreaderEnemy created at', x, y)
   }
 
-  update(time: number, _delta: number, playerX: number, playerY: number): boolean {
+  update(time: number, _delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return false
+      return { died: false, dotDamage: 0 }
     }
 
     // On first update with wall group, validate position and push out of walls
@@ -57,9 +57,9 @@ export default class SpreaderEnemy extends RangedEnemy {
     }
 
     // Update fire DOT from parent class
-    const diedFromFire = super.update(time, _delta, playerX, playerY)
-    if (diedFromFire) {
-      return true
+    const effectResult = super.update(time, _delta, playerX, playerY)
+    if (effectResult.died) {
+      return effectResult
     }
 
     // Handle hopping movement
@@ -84,7 +84,7 @@ export default class SpreaderEnemy extends RangedEnemy {
     // Ensure enemy stays within world bounds
     this.clampToWorldBounds(18)
 
-    return false
+    return effectResult
   }
 
   /**

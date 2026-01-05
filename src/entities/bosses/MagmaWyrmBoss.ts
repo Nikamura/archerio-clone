@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import BaseBoss, { BossOptions } from './BaseBoss'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
+import { EnemyUpdateResult } from '../Enemy'
 
 type MagmaWyrmPhase = 'idle' | 'burrow' | 'emerge' | 'fire_breath' | 'body_slam'
 
@@ -350,15 +351,15 @@ export default class MagmaWyrmBoss extends BaseBoss {
     }
   }
 
-  update(time: number, delta: number, playerX: number, playerY: number): boolean {
-    const died = super.update(time, delta, playerX, playerY)
+  update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
+    const effectResult = super.update(time, delta, playerX, playerY)
 
     // Update segment positions to follow head smoothly
     if (this.phase === 'idle') {
       this.updateSegments()
     }
 
-    return died
+    return effectResult
   }
 
   destroy(fromScene?: boolean): void {
