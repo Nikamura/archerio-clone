@@ -105,15 +105,27 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
 
   console.log(`Using Imagen API (${MODEL})...`);
   console.log(`  Aspect ratio: ${aspectRatio}`);
+  console.log(`  URL: ${apiUrl}`);
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': GEMINI_API_KEY!,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY!,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (fetchError) {
+    console.error('Imagen API Network Error:');
+    console.error(`  URL: ${apiUrl}`);
+    console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
+    if (fetchError instanceof Error && fetchError.cause) {
+      console.error(`  Cause: ${JSON.stringify(fetchError.cause, null, 2)}`);
+    }
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -161,15 +173,27 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
   };
 
   console.log(`Using Gemini API (${MODEL})...`);
+  console.log(`  URL: ${apiUrl}`);
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': GEMINI_API_KEY!,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY!,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (fetchError) {
+    console.error('Gemini API Network Error:');
+    console.error(`  URL: ${apiUrl}`);
+    console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
+    if (fetchError instanceof Error && fetchError.cause) {
+      console.error(`  Cause: ${JSON.stringify(fetchError.cause, null, 2)}`);
+    }
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

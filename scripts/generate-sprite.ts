@@ -377,14 +377,27 @@ NEW POSE REQUIRED: ${prompt}`,
     },
   };
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': GEMINI_API_KEY!,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  console.log(`  URL: ${apiUrl}`);
+
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY!,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (fetchError) {
+    console.error('Gemini API Network Error:');
+    console.error(`  URL: ${apiUrl}`);
+    console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
+    if (fetchError instanceof Error && fetchError.cause) {
+      console.error(`  Cause: ${JSON.stringify(fetchError.cause, null, 2)}`);
+    }
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
