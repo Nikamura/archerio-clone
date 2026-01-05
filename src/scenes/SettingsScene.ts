@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { audioManager } from '../systems/AudioManager'
 import { saveManager, GameSettings, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { hapticManager } from '../systems/HapticManager'
+import { saveExportManager } from '../systems/SaveExportManager'
 import { createBackButton } from '../ui/components/BackButton'
 import { ScrollContainer } from '../ui/components/ScrollContainer'
 
@@ -172,7 +173,11 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Colorblind Mode
     this.createColorblindModeSetting(width, currentY)
-    currentY += rowHeight + 40 // Extra spacing before danger zone
+    currentY += rowHeight + 30 // Extra spacing before save data section
+
+    // Save Data section (export/import)
+    this.createSaveDataSection(width, currentY)
+    currentY += 100 // Account for save data section height
 
     // Danger Zone (collapsible reset section)
     this.createDangerZone(width, currentY)
@@ -338,6 +343,299 @@ export default class SettingsScene extends Phaser.Scene {
 
       buttons.push(button)
     })
+  }
+
+  private createSaveDataSection(width: number, y: number) {
+    const sectionWidth = width - 40
+    const sectionHeight = 90
+    const centerX = width / 2
+
+    // Container
+    const container = this.add.container(centerX, y)
+    this.scrollContainer!.add(container)
+
+    // Background
+    const bg = this.add.rectangle(0, 0, sectionWidth, sectionHeight, 0x1a2a1a)
+    bg.setStrokeStyle(2, 0x44aa44)
+
+    // Title
+    const title = this.add
+      .text(-sectionWidth / 2 + 15, -28, 'Save Data', {
+        fontSize: '14px',
+        color: '#44aa44',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5)
+
+    // Description
+    const desc = this.add
+      .text(-sectionWidth / 2 + 15, -8, 'Export or import your progress', {
+        fontSize: '11px',
+        color: '#888888',
+      })
+      .setOrigin(0, 0.5)
+
+    // Export button
+    const exportBtn = this.add
+      .text(-60, 25, 'Export', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#336633',
+        padding: { x: 20, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+
+    exportBtn.on('pointerover', () => {
+      exportBtn.setStyle({ backgroundColor: '#448844' })
+    })
+
+    exportBtn.on('pointerout', () => {
+      exportBtn.setStyle({ backgroundColor: '#336633' })
+    })
+
+    exportBtn.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      saveExportManager.downloadSave()
+      this.showExportSuccessMessage(width)
+    })
+
+    // Import button
+    const importBtn = this.add
+      .text(60, 25, 'Import', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#335588',
+        padding: { x: 20, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+
+    importBtn.on('pointerover', () => {
+      importBtn.setStyle({ backgroundColor: '#4477aa' })
+    })
+
+    importBtn.on('pointerout', () => {
+      importBtn.setStyle({ backgroundColor: '#335588' })
+    })
+
+    importBtn.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      this.showImportConfirmation(width)
+    })
+
+    container.add([bg, title, desc, exportBtn, importBtn])
+  }
+
+  private showExportSuccessMessage(width: number) {
+    const height = this.cameras.main.height
+
+    // Toast message at bottom
+    const toast = this.add.container(width / 2, height - 120)
+    toast.setDepth(102)
+    toast.setAlpha(0)
+
+    const toastBg = this.add.rectangle(0, 0, 200, 40, 0x336633, 0.95)
+    toastBg.setStrokeStyle(1, 0x44aa44)
+
+    const toastText = this.add
+      .text(0, 0, 'Save exported!', {
+        fontSize: '14px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+
+    toast.add([toastBg, toastText])
+
+    // Fade in, wait, fade out
+    this.tweens.add({
+      targets: toast,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        this.time.delayedCall(1500, () => {
+          this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => toast.destroy(),
+          })
+        })
+      },
+    })
+  }
+
+  private showImportConfirmation(width: number) {
+    const height = this.cameras.main.height
+
+    // Overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+    overlay.setDepth(100)
+    overlay.setInteractive()
+
+    // Dialog container
+    const dialog = this.add.container(width / 2, height / 2)
+    dialog.setDepth(101)
+
+    // Background
+    const bg = this.add.rectangle(0, 0, 300, 200, 0x222233)
+    bg.setStrokeStyle(2, 0x4488cc)
+
+    // Title
+    const title = this.add
+      .text(0, -70, 'Import Save Data', {
+        fontSize: '18px',
+        color: '#4488cc',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    // Warning text
+    const warning = this.add
+      .text(0, -25, 'This will overwrite your\ncurrent progress with the\nimported save data.', {
+        fontSize: '13px',
+        color: '#ffffff',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+
+    // Continue button
+    const continueBtn = this.add
+      .text(-65, 55, 'Continue', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#335588',
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+
+    continueBtn.on('pointerover', () => {
+      continueBtn.setStyle({ backgroundColor: '#4477aa' })
+    })
+
+    continueBtn.on('pointerout', () => {
+      continueBtn.setStyle({ backgroundColor: '#335588' })
+    })
+
+    continueBtn.on('pointerdown', async () => {
+      audioManager.playMenuSelect()
+      overlay.destroy()
+      dialog.destroy()
+      await this.performImport(width)
+    })
+
+    // Cancel button
+    const cancelBtn = this.add
+      .text(65, 55, 'Cancel', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#444444',
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+
+    cancelBtn.on('pointerover', () => {
+      cancelBtn.setStyle({ backgroundColor: '#666666' })
+    })
+
+    cancelBtn.on('pointerout', () => {
+      cancelBtn.setStyle({ backgroundColor: '#444444' })
+    })
+
+    cancelBtn.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      overlay.destroy()
+      dialog.destroy()
+    })
+
+    dialog.add([bg, title, warning, continueBtn, cancelBtn])
+  }
+
+  private async performImport(width: number) {
+    const result = await saveExportManager.pickAndImportFile()
+
+    if (result.success) {
+      this.showImportResultDialog(width, true, `Imported ${result.imported} save entries.\nRestarting game...`)
+    } else if (result.errors.length > 0 && result.errors[0] !== 'File selection cancelled') {
+      const errorMsg = result.errors.slice(0, 3).join('\n')
+      this.showImportResultDialog(width, false, errorMsg)
+    }
+  }
+
+  private showImportResultDialog(width: number, success: boolean, message: string) {
+    const height = this.cameras.main.height
+
+    // Overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+    overlay.setDepth(100)
+    overlay.setInteractive()
+
+    // Dialog container
+    const dialog = this.add.container(width / 2, height / 2)
+    dialog.setDepth(101)
+
+    // Background
+    const bgColor = success ? 0x223322 : 0x332222
+    const borderColor = success ? 0x44aa44 : 0xaa4444
+    const bg = this.add.rectangle(0, 0, 280, 160, bgColor)
+    bg.setStrokeStyle(2, borderColor)
+
+    // Title
+    const titleColor = success ? '#44aa44' : '#aa4444'
+    const titleText = success ? 'Import Successful' : 'Import Failed'
+    const title = this.add
+      .text(0, -50, titleText, {
+        fontSize: '18px',
+        color: titleColor,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+
+    // Message
+    const msg = this.add
+      .text(0, 0, message, {
+        fontSize: '12px',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: 250 },
+      })
+      .setOrigin(0.5)
+
+    // OK button
+    const okBtn = this.add
+      .text(0, 55, 'OK', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: success ? '#336633' : '#663333',
+        padding: { x: 30, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+
+    okBtn.on('pointerover', () => {
+      okBtn.setStyle({ backgroundColor: success ? '#448844' : '#884444' })
+    })
+
+    okBtn.on('pointerout', () => {
+      okBtn.setStyle({ backgroundColor: success ? '#336633' : '#663333' })
+    })
+
+    okBtn.on('pointerdown', () => {
+      audioManager.playMenuSelect()
+      overlay.destroy()
+      dialog.destroy()
+
+      if (success) {
+        // Reload the game to apply imported data
+        window.location.reload()
+      }
+    })
+
+    dialog.add([bg, title, msg, okBtn])
   }
 
   private createToggleSetting(
