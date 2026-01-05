@@ -24,11 +24,11 @@ export interface PathfindingConfig {
   rayLength?: number
   /** Padding around obstacles for safety margin (default: 25) */
   obstaclePadding?: number
-  /** How strongly to avoid obstacles (0-1, default: 0.7) */
+  /** How strongly to avoid obstacles (0-1, default: 0.6) */
   avoidanceWeight?: number
-  /** How strongly to seek the target (0-1, default: 0.3) */
+  /** How strongly to seek the target (0-1, default: 0.4) */
   seekWeight?: number
-  /** Smoothing factor for direction changes (0-1, default: 0.15) */
+  /** Smoothing factor for direction changes (0-1, default: 0.2) */
   smoothing?: number
 }
 
@@ -36,34 +36,33 @@ const DEFAULT_CONFIG: Required<PathfindingConfig> = {
   rayCount: 16,
   rayLength: 60,
   obstaclePadding: 25,
-  avoidanceWeight: 0.7,
-  seekWeight: 0.3,
-  smoothing: 0.15,
+  avoidanceWeight: 0.6,
+  seekWeight: 0.4,
+  smoothing: 0.2,
 }
 
 /**
- * Context-based steering pathfinding system
+ * Context-based steering pathfinding system with momentum and progress tracking
  *
- * Uses a combination of:
- * 1. Ray-casting for obstacle detection
- * 2. Context steering (interest vs danger maps)
- * 3. Smooth direction interpolation
- *
- * This approach is more efficient than A* for real-time games with many agents
- * and provides smoother, more natural-looking movement.
+ * Key improvements over naive context steering:
+ * 1. Direction momentum prevents oscillation between similar-scoring directions
+ * 2. Progress tracking detects circular movement (not just stopped movement)
+ * 3. Corner detection triggers more aggressive escape behavior
+ * 4. Multi-waypoint paths for complex obstacle navigation
  */
 export class Pathfinder {
-  private config: Required<PathfindingConfig>
-  private wallGroup: WallGroup | null = null
+  protected config: Required<PathfindingConfig>
+  protected wallGroup: WallGroup | null = null
 
   // Cached arrays for performance
   private rayAngles: number[] = []
   private interestMap: number[] = []
   private dangerMap: number[] = []
 
-  // Smooth steering state
+  // Smooth steering state with momentum
   private currentAngle: number = 0
   private initialized: boolean = false
+  private lastChosenIndex: number = 0 // For momentum/hysteresis
 
   constructor(config?: PathfindingConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -95,13 +94,6 @@ export class Pathfinder {
 
   /**
    * Calculate the best movement direction using context steering
-   *
-   * @param fromX Current X position
-   * @param fromY Current Y position
-   * @param targetX Target X position (usually player)
-   * @param targetY Target Y position
-   * @param speed Movement speed
-   * @returns Velocity components and path status
    */
   calculateMovement(
     fromX: number,
@@ -132,14 +124,28 @@ export class Pathfinder {
       }
     }
 
+    // If direct path is clear and not too close to walls, go straight
+    if (hasDirectPath && !this.isNearWall(fromX, fromY)) {
+      this.currentAngle = this.lerpAngle(this.currentAngle, targetAngle, this.config.smoothing)
+      return {
+        vx: Math.cos(this.currentAngle) * speed,
+        vy: Math.sin(this.currentAngle) * speed,
+        hasDirectPath: true,
+      }
+    }
+
     // Build interest and danger maps
-    this.buildContextMaps(fromX, fromY, targetAngle)
+    const blockedCount = this.buildContextMaps(fromX, fromY, targetAngle)
 
-    // Find the best direction by combining interest and danger
-    const bestAngle = this.selectBestDirection()
+    // Detect if in corner (many directions blocked)
+    const inCorner = blockedCount >= this.config.rayCount * 0.4
 
-    // Smooth the direction change
-    this.currentAngle = this.lerpAngle(this.currentAngle, bestAngle, this.config.smoothing)
+    // Find the best direction with momentum consideration
+    const bestAngle = this.selectBestDirectionWithMomentum(inCorner)
+
+    // Use adaptive smoothing - less smoothing when in trouble
+    const adaptiveSmoothing = inCorner ? this.config.smoothing * 2 : this.config.smoothing
+    this.currentAngle = this.lerpAngle(this.currentAngle, bestAngle, adaptiveSmoothing)
 
     return {
       vx: Math.cos(this.currentAngle) * speed,
@@ -149,22 +155,52 @@ export class Pathfinder {
   }
 
   /**
-   * Build the interest (attraction to target) and danger (obstacle avoidance) maps
+   * Check if position is near any wall (for early avoidance)
    */
-  private buildContextMaps(fromX: number, fromY: number, targetAngle: number): void {
+  private isNearWall(x: number, y: number): boolean {
+    if (!this.wallGroup) return false
+    const walls = this.wallGroup.getWalls()
+    const nearDistance = 40
+
+    for (const wall of walls) {
+      const halfWidth = wall.width / 2 + nearDistance
+      const halfHeight = wall.height / 2 + nearDistance
+
+      if (
+        x >= wall.x - halfWidth &&
+        x <= wall.x + halfWidth &&
+        y >= wall.y - halfHeight &&
+        y <= wall.y + halfHeight
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Build context maps and return count of blocked directions
+   */
+  private buildContextMaps(fromX: number, fromY: number, targetAngle: number): number {
     const walls = this.wallGroup?.getWalls() ?? []
+    let blockedCount = 0
 
     for (let i = 0; i < this.config.rayCount; i++) {
       const rayAngle = this.rayAngles[i]
 
       // Interest: How much this direction aligns with target direction
-      // Use dot product concept: cos(angle difference) gives 1 for same direction, -1 for opposite
       const angleDiff = this.normalizeAngle(rayAngle - targetAngle)
       this.interestMap[i] = Math.cos(angleDiff) * 0.5 + 0.5 // Normalize to 0-1
 
       // Danger: Cast ray and check for obstacles
       this.dangerMap[i] = this.castRay(fromX, fromY, rayAngle, walls)
+
+      if (this.dangerMap[i] > 0.5) {
+        blockedCount++
+      }
     }
+
+    return blockedCount
   }
 
   /**
@@ -174,14 +210,14 @@ export class Pathfinder {
     const rayLength = this.config.rayLength
     const padding = this.config.obstaclePadding
 
-    // Check multiple points along the ray for more accurate detection
-    const checkPoints = [0.3, 0.6, 1.0] // Check at 30%, 60%, and 100% of ray length
+    // Check multiple points along the ray
+    const checkPoints = [0.25, 0.5, 0.75, 1.0]
+    let maxDanger = 0
 
     for (const t of checkPoints) {
       const checkX = fromX + Math.cos(angle) * rayLength * t
       const checkY = fromY + Math.sin(angle) * rayLength * t
 
-      // Check against each wall
       for (const wall of walls) {
         const halfWidth = wall.width / 2 + padding
         const halfHeight = wall.height / 2 + padding
@@ -192,29 +228,50 @@ export class Pathfinder {
           checkY >= wall.y - halfHeight &&
           checkY <= wall.y + halfHeight
         ) {
-          // Danger increases the closer the obstacle is
-          return 1.0 - t * 0.3 // Earlier hits are more dangerous
+          // Danger is higher for closer obstacles
+          const danger = 1.0 - t * 0.5
+          maxDanger = Math.max(maxDanger, danger)
         }
       }
     }
 
-    return 0 // Clear path
+    return maxDanger
   }
 
   /**
-   * Select the best direction based on combined interest and danger maps
+   * Select best direction with momentum to prevent oscillation
    */
-  private selectBestDirection(): number {
+  private selectBestDirectionWithMomentum(inCorner: boolean): number {
     let bestScore = -Infinity
     let bestIndex = 0
 
-    for (let i = 0; i < this.config.rayCount; i++) {
-      // Combine interest (want to go this way) with inverse danger (don't want to go toward obstacles)
-      const interest = this.interestMap[i] * this.config.seekWeight
-      const safety = (1 - this.dangerMap[i]) * this.config.avoidanceWeight
+    // Momentum bonus - prefer continuing in current direction
+    const momentumBonus = inCorner ? 0.15 : 0.25
 
-      // Boost score for directions that are both interesting AND safe
-      const score = interest * safety + safety * 0.3 // Prioritize safety slightly
+    for (let i = 0; i < this.config.rayCount; i++) {
+      const danger = this.dangerMap[i]
+      const interest = this.interestMap[i]
+
+      // Skip completely blocked directions
+      if (danger >= 0.95) continue
+
+      // Base score: weighted combination of interest and safety
+      const safety = 1 - danger
+      let score = interest * this.config.seekWeight + safety * this.config.avoidanceWeight
+
+      // Momentum bonus for directions close to last chosen direction
+      const indexDiff = Math.min(
+        Math.abs(i - this.lastChosenIndex),
+        this.config.rayCount - Math.abs(i - this.lastChosenIndex)
+      )
+      if (indexDiff <= 2) {
+        score += momentumBonus * (1 - indexDiff / 2)
+      }
+
+      // In corners, heavily penalize directions that don't make progress
+      if (inCorner && interest < 0.3 && safety < 0.8) {
+        score *= 0.5
+      }
 
       if (score > bestScore) {
         bestScore = score
@@ -222,24 +279,27 @@ export class Pathfinder {
       }
     }
 
-    // If all directions are dangerous, find the least dangerous one
+    // Fallback: if no good direction found, find least dangerous
     if (bestScore <= 0) {
       let minDanger = Infinity
       for (let i = 0; i < this.config.rayCount; i++) {
-        if (this.dangerMap[i] < minDanger) {
-          minDanger = this.dangerMap[i]
+        // Prefer directions somewhat toward target even when escaping
+        const adjustedDanger = this.dangerMap[i] - this.interestMap[i] * 0.2
+        if (adjustedDanger < minDanger) {
+          minDanger = adjustedDanger
           bestIndex = i
         }
       }
     }
 
+    this.lastChosenIndex = bestIndex
     return this.rayAngles[bestIndex]
   }
 
   /**
-   * Check if a straight path between two points is blocked by any wall
+   * Check if a straight path between two points is blocked
    */
-  private isPathBlocked(
+  protected isPathBlocked(
     fromX: number,
     fromY: number,
     toX: number,
@@ -250,7 +310,6 @@ export class Pathfinder {
     const walls = this.wallGroup.getWalls()
     const padding = this.config.obstaclePadding
 
-    // Check multiple points along the line
     const steps = 5
     for (let i = 1; i <= steps; i++) {
       const t = i / steps
@@ -278,12 +337,10 @@ export class Pathfinder {
   /**
    * Linearly interpolate between two angles (handling wraparound)
    */
-  private lerpAngle(from: number, to: number, t: number): number {
-    // Normalize both angles
+  protected lerpAngle(from: number, to: number, t: number): number {
     from = this.normalizeAngle(from)
     to = this.normalizeAngle(to)
 
-    // Find the shortest rotation direction
     let diff = to - from
 
     if (diff > Math.PI) {
@@ -298,35 +355,51 @@ export class Pathfinder {
   /**
    * Normalize angle to -PI to PI range
    */
-  private normalizeAngle(angle: number): number {
+  protected normalizeAngle(angle: number): number {
     while (angle > Math.PI) angle -= Math.PI * 2
     while (angle < -Math.PI) angle += Math.PI * 2
     return angle
   }
 
   /**
-   * Reset the pathfinder state (call when enemy is repositioned)
+   * Reset the pathfinder state
    */
   reset(): void {
     this.initialized = false
     this.currentAngle = 0
+    this.lastChosenIndex = 0
   }
 }
 
 /**
- * Advanced pathfinding with waypoint system for navigating around complex obstacles
- * Uses a simple grid-based approach when context steering gets stuck
+ * Advanced pathfinder with progress tracking and multi-waypoint navigation
+ *
+ * Detects when enemy is circling (making no progress toward target)
+ * and generates a path of waypoints to escape and reach the target.
  */
 export class WaypointPathfinder extends Pathfinder {
   private waypoints: { x: number; y: number }[] = []
   private currentWaypointIndex: number = 0
-  private stuckCounter: number = 0
+
+  // Progress tracking - detects circular movement
+  private lastDistanceToTarget: number = Infinity
+  private noProgressFrames: number = 0
+  private readonly NO_PROGRESS_THRESHOLD = 30 // ~0.5 seconds at 60fps
+
+  // Position tracking for stuck detection
   private lastPosition: { x: number; y: number } = { x: 0, y: 0 }
-  private readonly STUCK_THRESHOLD = 10 // Frames without movement
-  private readonly STUCK_DISTANCE = 2 // Minimum pixels to move per frame
+  private stuckFrames: number = 0
+  private readonly STUCK_THRESHOLD = 15
+  private readonly STUCK_DISTANCE = 1.5
+
+  // Escape mode - when truly stuck
+  private escapeMode: boolean = false
+  private escapeAngle: number = 0
+  private escapeFrames: number = 0
+  private readonly ESCAPE_DURATION = 20
 
   /**
-   * Calculate movement with waypoint fallback for stuck situations
+   * Calculate movement with progress tracking and waypoint fallback
    */
   calculateMovementWithWaypoints(
     fromX: number,
@@ -336,41 +409,71 @@ export class WaypointPathfinder extends Pathfinder {
     speed: number,
     worldBounds: Phaser.Geom.Rectangle
   ): PathfindingResult {
-    // Check if stuck
+    const distToTarget = Phaser.Math.Distance.Between(fromX, fromY, targetX, targetY)
+
+    // === ESCAPE MODE: Override everything when truly stuck ===
+    if (this.escapeMode) {
+      this.escapeFrames++
+      if (this.escapeFrames >= this.ESCAPE_DURATION) {
+        this.escapeMode = false
+        this.escapeFrames = 0
+      } else {
+        // Move in escape direction
+        return {
+          vx: Math.cos(this.escapeAngle) * speed,
+          vy: Math.sin(this.escapeAngle) * speed,
+          hasDirectPath: false,
+        }
+      }
+    }
+
+    // === STUCK DETECTION: Not moving at all ===
     const dx = fromX - this.lastPosition.x
     const dy = fromY - this.lastPosition.y
     const distMoved = Math.sqrt(dx * dx + dy * dy)
 
     if (distMoved < this.STUCK_DISTANCE) {
-      this.stuckCounter++
+      this.stuckFrames++
     } else {
-      this.stuckCounter = 0
-      // Clear waypoints if moving freely toward target
-      if (this.waypoints.length > 0) {
-        const distToTarget = Phaser.Math.Distance.Between(fromX, fromY, targetX, targetY)
-        const result = super.calculateMovement(fromX, fromY, targetX, targetY, speed)
-        if (result.hasDirectPath || distToTarget < 50) {
-          this.waypoints = []
-          this.currentWaypointIndex = 0
-        }
+      this.stuckFrames = 0
+    }
+
+    // If truly stuck (not moving), enter escape mode
+    if (this.stuckFrames > this.STUCK_THRESHOLD) {
+      this.triggerEscape(fromX, fromY, targetX, targetY, worldBounds)
+      this.stuckFrames = 0
+    }
+
+    // === PROGRESS TRACKING: Detect circular movement ===
+    if (distToTarget >= this.lastDistanceToTarget - 1) {
+      // Not making progress toward target
+      this.noProgressFrames++
+    } else {
+      // Making progress - reset counter and clear waypoints if we have direct path
+      this.noProgressFrames = 0
+      const result = super.calculateMovement(fromX, fromY, targetX, targetY, speed)
+      if (result.hasDirectPath && this.waypoints.length > 0) {
+        this.waypoints = []
+        this.currentWaypointIndex = 0
       }
     }
 
+    this.lastDistanceToTarget = distToTarget
     this.lastPosition = { x: fromX, y: fromY }
 
-    // If stuck, generate waypoints around the obstacle
-    if (this.stuckCounter > this.STUCK_THRESHOLD && this.waypoints.length === 0) {
-      this.generateWaypoints(fromX, fromY, targetX, targetY, worldBounds)
-      this.stuckCounter = 0
+    // If no progress for too long, generate waypoints
+    if (this.noProgressFrames > this.NO_PROGRESS_THRESHOLD && this.waypoints.length === 0) {
+      this.generateMultiWaypoints(fromX, fromY, targetX, targetY, worldBounds)
+      this.noProgressFrames = 0
     }
 
-    // If we have waypoints, navigate to them
-    if (this.waypoints.length > 0) {
+    // === WAYPOINT NAVIGATION ===
+    if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
       const waypoint = this.waypoints[this.currentWaypointIndex]
       const distToWaypoint = Phaser.Math.Distance.Between(fromX, fromY, waypoint.x, waypoint.y)
 
-      // Move to next waypoint if close enough
-      if (distToWaypoint < 30) {
+      // Reached waypoint - move to next
+      if (distToWaypoint < 25) {
         this.currentWaypointIndex++
         if (this.currentWaypointIndex >= this.waypoints.length) {
           this.waypoints = []
@@ -378,22 +481,21 @@ export class WaypointPathfinder extends Pathfinder {
         }
       }
 
-      // Navigate toward current waypoint
+      // Navigate to current waypoint
       if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
         const wp = this.waypoints[this.currentWaypointIndex]
         return super.calculateMovement(fromX, fromY, wp.x, wp.y, speed)
       }
     }
 
-    // Default: use context steering toward target
+    // === DEFAULT: Context steering toward target ===
     return super.calculateMovement(fromX, fromY, targetX, targetY, speed)
   }
 
   /**
-   * Generate waypoints to navigate around obstacles
-   * Uses a simple "go around" approach - tries perpendicular directions
+   * Trigger escape mode - pick a clear direction and commit to it
    */
-  private generateWaypoints(
+  private triggerEscape(
     fromX: number,
     fromY: number,
     targetX: number,
@@ -401,41 +503,172 @@ export class WaypointPathfinder extends Pathfinder {
     worldBounds: Phaser.Geom.Rectangle
   ): void {
     const directAngle = Phaser.Math.Angle.Between(fromX, fromY, targetX, targetY)
-    const waypointDistance = 80 // Distance to waypoint
 
-    // Try perpendicular directions first (left and right of blocked path)
-    const perpAngles = [
-      directAngle + Math.PI / 2,  // Left
-      directAngle - Math.PI / 2,  // Right
-      directAngle + Math.PI / 4,  // Slight left
-      directAngle - Math.PI / 4,  // Slight right
-      directAngle + Math.PI * 3/4, // Back-left
-      directAngle - Math.PI * 3/4, // Back-right
+    // Try angles in order of preference (toward target first, then perpendicular)
+    const escapeAngles = [
+      directAngle,                    // Toward target
+      directAngle + Math.PI / 4,      // 45° left
+      directAngle - Math.PI / 4,      // 45° right
+      directAngle + Math.PI / 2,      // 90° left
+      directAngle - Math.PI / 2,      // 90° right
+      directAngle + Math.PI * 3 / 4,  // 135° left
+      directAngle - Math.PI * 3 / 4,  // 135° right
+      directAngle + Math.PI,          // Away from target (last resort)
     ]
 
-    // Find a clear waypoint
-    for (const angle of perpAngles) {
-      const wpX = fromX + Math.cos(angle) * waypointDistance
-      const wpY = fromY + Math.sin(angle) * waypointDistance
+    const escapeDistance = 50
 
-      // Check if waypoint is in bounds
+    for (const angle of escapeAngles) {
+      const testX = fromX + Math.cos(angle) * escapeDistance
+      const testY = fromY + Math.sin(angle) * escapeDistance
+
+      // Check bounds
+      if (
+        testX < worldBounds.left + 20 ||
+        testX > worldBounds.right - 20 ||
+        testY < worldBounds.top + 20 ||
+        testY > worldBounds.bottom - 20
+      ) {
+        continue
+      }
+
+      // Check if path is relatively clear
+      if (!this.isPathBlocked(fromX, fromY, testX, testY)) {
+        this.escapeMode = true
+        this.escapeAngle = angle
+        this.escapeFrames = 0
+        return
+      }
+    }
+
+    // Fallback: just pick perpendicular to target
+    this.escapeMode = true
+    this.escapeAngle = directAngle + Math.PI / 2
+    this.escapeFrames = 0
+  }
+
+  /**
+   * Generate multiple waypoints to navigate around obstacles
+   */
+  private generateMultiWaypoints(
+    fromX: number,
+    fromY: number,
+    targetX: number,
+    targetY: number,
+    worldBounds: Phaser.Geom.Rectangle
+  ): void {
+    const directAngle = Phaser.Math.Angle.Between(fromX, fromY, targetX, targetY)
+    const distToTarget = Phaser.Math.Distance.Between(fromX, fromY, targetX, targetY)
+
+    // Try both perpendicular directions
+    const leftAngle = directAngle + Math.PI / 2
+    const rightAngle = directAngle - Math.PI / 2
+
+    const leftPath = this.tryGeneratePath(fromX, fromY, targetX, targetY, leftAngle, worldBounds, distToTarget)
+    const rightPath = this.tryGeneratePath(fromX, fromY, targetX, targetY, rightAngle, worldBounds, distToTarget)
+
+    // Pick the better path (shorter or more waypoints found)
+    if (leftPath.length > 0 && (rightPath.length === 0 || leftPath.length <= rightPath.length)) {
+      this.waypoints = leftPath
+    } else if (rightPath.length > 0) {
+      this.waypoints = rightPath
+    } else {
+      // Fallback: single waypoint in any clear perpendicular direction
+      this.generateFallbackWaypoint(fromX, fromY, directAngle, worldBounds)
+    }
+
+    this.currentWaypointIndex = 0
+  }
+
+  /**
+   * Try to generate a path going around one side of the obstacle
+   */
+  private tryGeneratePath(
+    fromX: number,
+    fromY: number,
+    targetX: number,
+    targetY: number,
+    sideAngle: number,
+    worldBounds: Phaser.Geom.Rectangle,
+    _distToTarget: number
+  ): { x: number; y: number }[] {
+    const waypoints: { x: number; y: number }[] = []
+    const stepDistance = 60
+    const maxWaypoints = 3
+
+    let currentX = fromX
+    let currentY = fromY
+
+    for (let i = 0; i < maxWaypoints; i++) {
+      // Move perpendicular
+      const wpX = currentX + Math.cos(sideAngle) * stepDistance
+      const wpY = currentY + Math.sin(sideAngle) * stepDistance
+
+      // Check bounds
       if (
         wpX < worldBounds.left + 30 ||
         wpX > worldBounds.right - 30 ||
         wpY < worldBounds.top + 30 ||
         wpY > worldBounds.bottom - 30
       ) {
-        continue
+        break
       }
 
-      // Check if waypoint is clear
-      if (!this.isPositionBlocked(wpX, wpY)) {
-        // Check if we can reach it
-        if (!this.isPathBlockedBetween(fromX, fromY, wpX, wpY)) {
-          this.waypoints = [{ x: wpX, y: wpY }]
-          this.currentWaypointIndex = 0
-          return
+      // Check if position is clear
+      if (this.isPositionBlocked(wpX, wpY)) {
+        break
+      }
+
+      // Check if we can reach it from current position
+      if (!this.isPathBlocked(currentX, currentY, wpX, wpY)) {
+        waypoints.push({ x: wpX, y: wpY })
+        currentX = wpX
+        currentY = wpY
+
+        // Check if we now have a clear path to target
+        if (!this.isPathBlocked(wpX, wpY, targetX, targetY)) {
+          break // Success!
         }
+      } else {
+        break
+      }
+    }
+
+    return waypoints
+  }
+
+  /**
+   * Generate a single fallback waypoint when path generation fails
+   */
+  private generateFallbackWaypoint(
+    fromX: number,
+    fromY: number,
+    directAngle: number,
+    worldBounds: Phaser.Geom.Rectangle
+  ): void {
+    const angles = [
+      directAngle + Math.PI / 2,
+      directAngle - Math.PI / 2,
+      directAngle + Math.PI / 4,
+      directAngle - Math.PI / 4,
+      directAngle + Math.PI * 3 / 4,
+      directAngle - Math.PI * 3 / 4,
+    ]
+
+    for (const angle of angles) {
+      const wpX = fromX + Math.cos(angle) * 70
+      const wpY = fromY + Math.sin(angle) * 70
+
+      if (
+        wpX >= worldBounds.left + 30 &&
+        wpX <= worldBounds.right - 30 &&
+        wpY >= worldBounds.top + 30 &&
+        wpY <= worldBounds.bottom - 30 &&
+        !this.isPositionBlocked(wpX, wpY) &&
+        !this.isPathBlocked(fromX, fromY, wpX, wpY)
+      ) {
+        this.waypoints = [{ x: wpX, y: wpY }]
+        return
       }
     }
   }
@@ -444,11 +677,10 @@ export class WaypointPathfinder extends Pathfinder {
    * Check if a position is blocked by any wall
    */
   private isPositionBlocked(x: number, y: number): boolean {
-    const wallGroup = (this as unknown as { wallGroup: WallGroup | null }).wallGroup
-    if (!wallGroup) return false
+    if (!this.wallGroup) return false
 
-    const walls = wallGroup.getWalls()
-    const padding = 25
+    const walls = this.wallGroup.getWalls()
+    const padding = 30
 
     for (const wall of walls) {
       const halfWidth = wall.width / 2 + padding
@@ -468,52 +700,17 @@ export class WaypointPathfinder extends Pathfinder {
   }
 
   /**
-   * Check if path between two points is blocked
-   */
-  private isPathBlockedBetween(
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  ): boolean {
-    const wallGroup = (this as unknown as { wallGroup: WallGroup | null }).wallGroup
-    if (!wallGroup) return false
-
-    const walls = wallGroup.getWalls()
-    const padding = 25
-    const steps = 5
-
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps
-      const checkX = fromX + (toX - fromX) * t
-      const checkY = fromY + (toY - fromY) * t
-
-      for (const wall of walls) {
-        const halfWidth = wall.width / 2 + padding
-        const halfHeight = wall.height / 2 + padding
-
-        if (
-          checkX >= wall.x - halfWidth &&
-          checkX <= wall.x + halfWidth &&
-          checkY >= wall.y - halfHeight &&
-          checkY <= wall.y + halfHeight
-        ) {
-          return true
-        }
-      }
-    }
-
-    return false
-  }
-
-  /**
-   * Reset pathfinder state including waypoints
+   * Reset pathfinder state
    */
   override reset(): void {
     super.reset()
     this.waypoints = []
     this.currentWaypointIndex = 0
-    this.stuckCounter = 0
+    this.lastDistanceToTarget = Infinity
+    this.noProgressFrames = 0
     this.lastPosition = { x: 0, y: 0 }
+    this.stuckFrames = 0
+    this.escapeMode = false
+    this.escapeFrames = 0
   }
 }
