@@ -52,7 +52,7 @@ describe('DailyRewardManager', () => {
         currentDay: 3,
         claimedToday: false, // New day, can claim
       }
-      localStorageMock.setItem('arrow_game_daily_rewards', JSON.stringify(savedData))
+      localStorageMock.setItem('aura_archer_daily_rewards', JSON.stringify(savedData))
 
       const newManager = new DailyRewardManager()
       expect(newManager.getCurrentDay()).toBe(3)

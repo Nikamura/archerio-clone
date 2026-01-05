@@ -583,7 +583,7 @@ describe('SaveManager', () => {
         gold: 500,
         // Missing many fields
       }
-      localStorageMock.setItem('arrow_game_save_data', JSON.stringify(partialData))
+      localStorageMock.setItem('aura_archer_save_data', JSON.stringify(partialData))
 
       const newManager = new SaveManager()
 
@@ -595,7 +595,7 @@ describe('SaveManager', () => {
     })
 
     it('should handle corrupted save data', () => {
-      localStorageMock.setItem('arrow_game_save_data', 'not valid json')
+      localStorageMock.setItem('aura_archer_save_data', 'not valid json')
 
       // Should not throw, should return defaults (1000 gold for new players)
       const newManager = new SaveManager()
