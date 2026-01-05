@@ -13,6 +13,7 @@ export type ParticleType =
   | 'goldCollect'   // Gold pickup sparkle
   | 'heal'          // Health restore effect
   | 'bossDeath'     // Boss death explosion (bigger)
+  | 'wallHit'       // Bullet hitting wall
 
 /**
  * Particle configuration presets
@@ -254,6 +255,19 @@ export class ParticleManager {
           blendMode: Phaser.BlendModes.ADD,
         }
 
+      case 'wallHit':
+        return {
+          key: this.particleTexture,
+          quantity: 5,
+          speed: { min: 30, max: 80 },
+          scale: { start: 0.25, end: 0 },
+          lifespan: 250,
+          alpha: { start: 0.8, end: 0 },
+          tint: [0xaaaaaa, 0x888888, 0xcccccc],
+          gravityY: 60,
+          angle: { min: 0, max: 360 },
+        }
+
       default:
         // Default particles
         return {
@@ -425,6 +439,13 @@ export class ParticleManager {
    */
   emitHeal(x: number, y: number): void {
     this.emit('heal', x, y)
+  }
+
+  /**
+   * Emit wall hit particles when bullet hits a wall
+   */
+  emitWallHit(x: number, y: number): void {
+    this.emit('wallHit', x, y)
   }
 
   /**
