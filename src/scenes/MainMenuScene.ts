@@ -146,6 +146,7 @@ export default class MainMenuScene extends Phaser.Scene {
         { id: 'achievements', icon: '🏆', label: 'Achieve', scene: 'AchievementsScene', badge: achieveBadge },
         { id: 'guide', icon: '📖', label: 'Guide', scene: 'EncyclopediaScene' },
         { id: 'priority', icon: '📋', label: 'Priority', scene: 'AbilityPriorityScene' },
+        { id: 'coupon', icon: '🎟️', label: 'Coupon', scene: 'CouponScene' },
         {
           id: 'settings',
           icon: '⚙️',
