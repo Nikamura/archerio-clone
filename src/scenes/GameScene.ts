@@ -1384,8 +1384,8 @@ export default class GameScene extends Phaser.Scene {
       audioManager.playRoomClear()
       console.log('Room', this.currentRoom, 'cleared!')
 
-      // Clear all enemy bullets to prevent post-clear damage
-      this.enemyBulletPool.clear(true, true)
+      // Note: Enemy bullets intentionally NOT cleared here
+      // Bullets persist until they naturally expire or leave the screen
 
       // Notify chapter manager that room was cleared
       chapterManager.clearRoom()
