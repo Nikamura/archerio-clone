@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
 
     steps:
@@ -40,20 +40,19 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Review this PR and identify ONLY issues that need fixing. Skip praise and positive feedback.
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            Focus on: bugs, security issues, performance problems, violations of CLAUDE.md conventions.
 
-            IMPORTANT: Leave a SINGLE comprehensive comment summarizing all issues found, rather than multiple small inline comments. This keeps the PR discussion clean and reduces noise. Structure your comment with clear sections for different types of feedback.
+            Be brief. For each issue: file:line, what's wrong, how to fix it.
 
-            Use `gh pr comment` with your Bash tool to post your review.
+            STEPS:
+            1. First, delete any previous review comments from claude-code-action[bot] using:
+               gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --jq '.[] | select(.user.login == "claude-code-action[bot]") | .id' | while read id; do gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/$id; done
+            2. Then post ONE comment with all issues found using `gh pr comment`
+            3. If no issues found, post "No issues found." only
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--allowed-tools "Bash(gh api:*),Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 
