@@ -302,7 +302,7 @@ export default class LevelUpScene extends Phaser.Scene {
       const priorityNum = priorityIndex !== -1 ? priorityIndex + 1 : priorityOrder.length + 1
 
       // Determine if this is the highest priority among the shown options
-      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities)
+      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities, this.abilityLevels)
       const isHighestPriority = highestPriority?.id === ability.id
 
       // Combined level and priority display
@@ -454,7 +454,7 @@ export default class LevelUpScene extends Phaser.Scene {
     if (this.isSelecting || this.selectedAbilities.length === 0) return
 
     // Select highest priority ability from the 3 shown options
-    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities)
+    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities, this.abilityLevels)
     if (!priorityAbility) return
 
     const priorityIndex = this.selectedAbilities.findIndex((a) => a.id === priorityAbility.id)
@@ -537,7 +537,7 @@ export default class LevelUpScene extends Phaser.Scene {
       const priorityNum = priorityIndex !== -1 ? priorityIndex + 1 : priorityOrder.length + 1
 
       // Determine if this is the highest priority among the shown options
-      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities)
+      const highestPriority = abilityPriorityManager.getHighestPriorityAbility(this.selectedAbilities, this.abilityLevels)
       const isHighestPriority = highestPriority?.id === ability.id
 
       const priorityText = this.add.text(cardWidth / 2 - 20, 0, `#${priorityNum}`, {

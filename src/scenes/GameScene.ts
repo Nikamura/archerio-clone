@@ -1764,13 +1764,19 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
+    // Build ability levels record from ability system
+    const abilityLevels: Record<string, number> = {}
+    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
+      abilityLevels[ability.id] = ability.level
+    }
+
     // First, randomly select 3 abilities (just like the UI would show)
     // This ensures auto-level-up behavior matches manual timeout behavior
     const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5)
     const randomSubset = shuffled.slice(0, 3)
 
     // Then select highest priority ability from the random subset
-    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(randomSubset)
+    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(randomSubset, abilityLevels)
 
     if (!selectedAbility) {
       console.log('GameScene: No ability could be selected')
