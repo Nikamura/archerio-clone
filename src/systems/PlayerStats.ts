@@ -82,6 +82,8 @@ export class PlayerStats {
   private meteorShowerLevel: number = 0  // Number of meteors that rain periodically
   private lifestealPercent: number = 0  // Percentage of damage healed
   private homingArrowsLevel: number = 0  // Arrows curve towards enemies
+  private knockbackLevel: number = 0  // Push enemies back on hit
+  private rocketLauncherLevel: number = 0  // AOE explosion on hit
 
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
@@ -547,6 +549,52 @@ export class PlayerStats {
     return this.homingArrowsLevel > 0
   }
 
+  getKnockbackLevel(): number {
+    return this.knockbackLevel
+  }
+
+  /**
+   * Get knockback force (100 base + 50 per level)
+   */
+  getKnockbackForce(): number {
+    if (this.knockbackLevel <= 0) return 0
+    return 100 + (this.knockbackLevel - 1) * 50
+  }
+
+  /**
+   * Check if knockback is enabled
+   */
+  hasKnockback(): boolean {
+    return this.knockbackLevel > 0
+  }
+
+  getRocketLauncherLevel(): number {
+    return this.rocketLauncherLevel
+  }
+
+  /**
+   * Get rocket explosion radius (60px base + 20px per additional level)
+   */
+  getRocketExplosionRadius(): number {
+    if (this.rocketLauncherLevel <= 0) return 0
+    return 60 + (this.rocketLauncherLevel - 1) * 20
+  }
+
+  /**
+   * Get rocket explosion damage (50% of arrow damage per level)
+   */
+  getRocketExplosionDamagePercent(): number {
+    if (this.rocketLauncherLevel <= 0) return 0
+    return 0.5 * this.rocketLauncherLevel
+  }
+
+  /**
+   * Check if rocket launcher is enabled
+   */
+  hasRocketLauncher(): boolean {
+    return this.rocketLauncherLevel > 0
+  }
+
   // Conditional damage ability getters (now passive effects)
 
   /**
@@ -905,6 +953,22 @@ export class PlayerStats {
     this.homingArrowsLevel++
   }
 
+  /**
+   * Add Knockback ability (push enemies back on hit)
+   * Stacking: Each level adds +50 knockback force
+   */
+  addKnockback(): void {
+    this.knockbackLevel++
+  }
+
+  /**
+   * Add Rocket Launcher ability (AOE explosion on hit)
+   * Stacking: Each level adds +20px radius and +50% damage
+   */
+  addRocketLauncher(): void {
+    this.rocketLauncherLevel++
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
   // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
@@ -984,6 +1048,8 @@ export class PlayerStats {
     this.meteorShowerLevel = 0
     this.lifestealPercent = 0
     this.homingArrowsLevel = 0
+    this.knockbackLevel = 0
+    this.rocketLauncherLevel = 0
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
@@ -1034,6 +1100,8 @@ export class PlayerStats {
     meteorShowerLevel: number
     lifestealPercent: number
     homingArrowsLevel: number
+    knockbackLevel: number
+    rocketLauncherLevel: number
   } {
     return {
       health: this.health,
@@ -1079,6 +1147,8 @@ export class PlayerStats {
       meteorShowerLevel: this.meteorShowerLevel,
       lifestealPercent: this.lifestealPercent,
       homingArrowsLevel: this.homingArrowsLevel,
+      knockbackLevel: this.knockbackLevel,
+      rocketLauncherLevel: this.rocketLauncherLevel,
     }
   }
 }

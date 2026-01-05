@@ -268,6 +268,20 @@ export const ABILITIES: AbilityData[] = [
     color: 0x00cc99,
     iconKey: 'abilityHomingArrows',
   },
+  {
+    id: 'knockback',
+    name: '💨 Knockback',
+    description: 'Push enemies back on hit',
+    color: 0x6699cc,
+    iconKey: 'abilityKnockback',
+  },
+  {
+    id: 'rocket_launcher',
+    name: '🚀 Rocket Launcher',
+    description: 'AOE explosion on hit, 60px',
+    color: 0xff3300,
+    iconKey: 'abilityRocketLauncher',
+  },
 ]
 
 /**

@@ -159,6 +159,12 @@ export class AbilitySystem {
       case 'homing_arrows':
         this.player.addHomingArrows()
         break
+      case 'knockback':
+        this.player.addKnockback()
+        break
+      case 'rocket_launcher':
+        this.player.addRocketLauncher()
+        break
     }
 
     this.abilitiesGained++

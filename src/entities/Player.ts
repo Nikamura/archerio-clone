@@ -314,6 +314,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addHomingArrows()
   }
 
+  addKnockback() {
+    this.stats?.addKnockback()
+  }
+
+  addRocketLauncher() {
+    this.stats?.addRocketLauncher()
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot
   // - Fire Spread: Automatically enabled when player has Fire Damage
@@ -555,6 +563,34 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   hasHomingArrows(): boolean {
     return this.stats?.hasHomingArrows() ?? false
+  }
+
+  getKnockbackLevel(): number {
+    return this.stats?.getKnockbackLevel() ?? 0
+  }
+
+  getKnockbackForce(): number {
+    return this.stats?.getKnockbackForce() ?? 0
+  }
+
+  hasKnockback(): boolean {
+    return this.stats?.hasKnockback() ?? false
+  }
+
+  getRocketLauncherLevel(): number {
+    return this.stats?.getRocketLauncherLevel() ?? 0
+  }
+
+  getRocketExplosionRadius(): number {
+    return this.stats?.getRocketExplosionRadius() ?? 0
+  }
+
+  getRocketExplosionDamagePercent(): number {
+    return this.stats?.getRocketExplosionDamagePercent() ?? 0
+  }
+
+  hasRocketLauncher(): boolean {
+    return this.stats?.hasRocketLauncher() ?? false
   }
 
   // Reset run-based stats
