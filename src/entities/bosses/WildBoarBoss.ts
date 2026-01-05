@@ -24,9 +24,6 @@ export default class WildBoarBoss extends BaseBoss {
   private readonly maxStompRadius = 150
   private readonly stompSpeed = 400 // pixels per second
 
-  // Summon minions - stored externally via callback
-  private onSpawnMinion?: (x: number, y: number) => void
-
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -42,10 +39,10 @@ export default class WildBoarBoss extends BaseBoss {
   }
 
   /**
-   * Set callback for spawning minions (called by GameScene)
+   * WildBoarBoss spawns minions, so it needs the callback
    */
-  setMinionSpawnCallback(callback: (x: number, y: number) => void): void {
-    this.onSpawnMinion = callback
+  needsMinionSpawnCallback(): boolean {
+    return true
   }
 
   protected selectAttackPhase(pattern: number, _playerX: number, _playerY: number): void {

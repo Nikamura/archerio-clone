@@ -41,6 +41,7 @@ import { talentManager } from '../systems/TalentManager'
 import type { TalentBonuses } from '../config/talentData'
 import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
 import { createBoss, getBossDisplaySize, getBossHitboxRadius } from '../entities/bosses/BossFactory'
+import BaseBoss from '../entities/bosses/BaseBoss'
 import { performanceMonitor } from '../systems/PerformanceMonitor'
 import { getRoomGenerator, type RoomGenerator, type GeneratedRoom, type SpawnPosition } from '../systems/RoomGenerator'
 import WallGroup from '../systems/WallGroup'
@@ -1058,6 +1059,28 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Spawn a minion enemy at the given position (used by bosses that summon minions)
+   * Minions are weaker versions of regular enemies
+   */
+  private spawnMinion(x: number, y: number): void {
+    // Use the existing enemy spawning infrastructure
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
+    const chapterDef = getChapterDefinition(selectedChapter)
+    const roomScaling = getRoomProgressionScaling(this.currentRoom)
+
+    // Minions are weaker than regular enemies (40% HP, 60% damage)
+    const minionOptions: EnemyOptions = {
+      healthMultiplier: this.difficultyConfig.enemyHealthMultiplier * chapterDef.scaling.enemyHpMultiplier * roomScaling.hpMultiplier * 0.4,
+      damageMultiplier: this.difficultyConfig.enemyDamageMultiplier * chapterDef.scaling.enemyDamageMultiplier * roomScaling.damageMultiplier * 0.6,
+      speedMultiplier: 1.3, // Minions are faster
+      enemyType: 'charger',
+    }
+
+    // Spawn using existing method (charger type at specific position)
+    this.spawnEnemyFromPosition({ x, y, enemyType: 'charger' }, minionOptions, false)
+  }
+
+  /**
    * Spawn enemies using positions from the room generator
    */
   private spawnEnemiesFromGeneration(generatedRoom: GeneratedRoom): void {
@@ -1190,6 +1213,11 @@ export default class GameScene extends Phaser.Scene {
 
     this.enemies.add(this.boss)
 
+    // Set up minion spawn callback only for bosses that need it
+    if (newBoss instanceof BaseBoss && newBoss.needsMinionSpawnCallback()) {
+      newBoss.setMinionSpawnCallback((x, y) => this.spawnMinion(x, y))
+    }
+
     // Show dramatic boss name announcement
     this.showBossNameAnnouncement(bossType, false)
 
@@ -1249,6 +1277,11 @@ export default class GameScene extends Phaser.Scene {
     this.boss.setScale(0.85)
 
     this.enemies.add(this.boss)
+
+    // Set up minion spawn callback only for bosses that need it
+    if (newMiniBoss instanceof BaseBoss && newMiniBoss.needsMinionSpawnCallback()) {
+      newMiniBoss.setMinionSpawnCallback((x, y) => this.spawnMinion(x, y))
+    }
 
     // Show dramatic mini-boss name announcement
     this.showBossNameAnnouncement(miniBossType, true)
@@ -2504,6 +2537,12 @@ export default class GameScene extends Phaser.Scene {
    */
   private handlePause(): void {
     if (this.isGameOver) return
+
+    // Check if scene is running before attempting to pause
+    if (!this.scene.isActive('GameScene')) {
+      console.log('GameScene: Cannot pause - scene is not active')
+      return
+    }
 
     console.log('GameScene: Pausing game')
 

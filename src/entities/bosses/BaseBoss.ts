@@ -38,6 +38,9 @@ export default abstract class BaseBoss extends Enemy {
   // Telegraph graphics for attacks
   protected telegraphGraphics: Phaser.GameObjects.Graphics | null = null
 
+  // Minion spawn callback (for bosses that summon minions)
+  protected onSpawnMinion?: (x: number, y: number) => void
+
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -139,6 +142,22 @@ export default abstract class BaseBoss extends Enemy {
       return true // Boss died
     }
     return false
+  }
+
+  /**
+   * Whether this boss needs a minion spawn callback.
+   * Override in subclasses that spawn minions to return true.
+   */
+  needsMinionSpawnCallback(): boolean {
+    return false
+  }
+
+  /**
+   * Set callback for spawning minions (called by GameScene via factory)
+   * Override in subclasses that spawn minions to use this callback
+   */
+  setMinionSpawnCallback(callback: (x: number, y: number) => void): void {
+    this.onSpawnMinion = callback
   }
 
   /**
