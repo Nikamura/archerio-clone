@@ -8,6 +8,12 @@ import Wall from '../entities/Wall'
 export const WALL_TILE_SIZE = 64
 
 /**
+ * Threshold for detecting parallel lines in intersection calculations.
+ * Lines with cross product below this value are considered parallel.
+ */
+const PARALLEL_LINE_THRESHOLD = 0.0001
+
+/**
  * Snap a value to the nearest multiple of WALL_TILE_SIZE.
  * Minimum value is WALL_TILE_SIZE to ensure walls are always at least 1 tile.
  */
@@ -214,5 +220,104 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
       }
     }
     return false
+  }
+
+  /**
+   * Check if there's a clear line of sight between two points
+   * Returns true if NO wall blocks the line, false if any wall blocks it
+   */
+  hasLineOfSight(x1: number, y1: number, x2: number, y2: number): boolean {
+    // No walls means clear line of sight
+    if (!this.walls || this.walls.length === 0) {
+      return true
+    }
+
+    for (const wall of this.walls) {
+      if (this.lineIntersectsRect(x1, y1, x2, y2, wall)) {
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Check if a line segment intersects a rectangle (wall)
+   * Uses line-segment vs rectangle edge intersection checks
+   */
+  private lineIntersectsRect(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    wall: Wall
+  ): boolean {
+    const halfW = wall.width / 2
+    const halfH = wall.height / 2
+    const left = wall.x - halfW
+    const right = wall.x + halfW
+    const top = wall.y - halfH
+    const bottom = wall.y + halfH
+
+    // Check if line segment intersects any of the 4 edges of the rectangle
+    // Left edge
+    if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, top, left, bottom)) {
+      return true
+    }
+    // Right edge
+    if (this.lineSegmentsIntersect(x1, y1, x2, y2, right, top, right, bottom)) {
+      return true
+    }
+    // Top edge
+    if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, top, right, top)) {
+      return true
+    }
+    // Bottom edge
+    if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, bottom, right, bottom)) {
+      return true
+    }
+
+    // Also check if either endpoint is inside the rectangle
+    // This handles the case where the line is entirely inside the wall
+    if (
+      (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) ||
+      (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom)
+    ) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * Check if two line segments intersect
+   * Uses cross product method for efficient intersection detection
+   */
+  private lineSegmentsIntersect(
+    x1: number, y1: number, x2: number, y2: number,  // Line 1
+    x3: number, y3: number, x4: number, y4: number   // Line 2
+  ): boolean {
+    // Calculate direction vectors
+    const d1x = x2 - x1
+    const d1y = y2 - y1
+    const d2x = x4 - x3
+    const d2y = y4 - y3
+
+    // Cross product of direction vectors
+    const cross = d1x * d2y - d1y * d2x
+
+    // Lines are parallel if cross product is near zero
+    if (Math.abs(cross) < PARALLEL_LINE_THRESHOLD) {
+      return false
+    }
+
+    // Calculate parameters t and u
+    const dx = x3 - x1
+    const dy = y3 - y1
+
+    const t = (dx * d2y - dy * d2x) / cross
+    const u = (dx * d1y - dy * d1x) / cross
+
+    // Lines intersect if both parameters are between 0 and 1
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1
   }
 }

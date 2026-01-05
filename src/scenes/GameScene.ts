@@ -2565,8 +2565,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private findNearestEnemy(): Enemy | null {
-    let nearestEnemy: Enemy | null = null
-    let nearestDistance = Infinity
+    let nearestVisibleEnemy: Enemy | null = null
+    let nearestVisibleDistance = Infinity
+    let nearestBlockedEnemy: Enemy | null = null
+    let nearestBlockedDistance = Infinity
 
     const children = this.enemies.getChildren()
 
@@ -2575,6 +2577,9 @@ export default class GameScene extends Phaser.Scene {
       console.warn('findNearestEnemy: Invalid player position', this.player?.x, this.player?.y)
       return null
     }
+
+    // Check if player can shoot through walls
+    const canShootThroughWalls = this.player.isThroughWallEnabled()
 
     // Debug: Log when there are enemies in group but none are targetable
     let activeCount = 0
@@ -2604,11 +2609,27 @@ export default class GameScene extends Phaser.Scene {
         e.y
       )
 
-      if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearestEnemy = e
+      // Check line of sight if player can't shoot through walls
+      const hasLineOfSight = canShootThroughWalls || !this.wallGroup ||
+        this.wallGroup.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)
+
+      if (hasLineOfSight) {
+        // Prioritize enemies with clear line of sight
+        if (distance < nearestVisibleDistance) {
+          nearestVisibleDistance = distance
+          nearestVisibleEnemy = e
+        }
+      } else {
+        // Track nearest blocked enemy as fallback
+        if (distance < nearestBlockedDistance) {
+          nearestBlockedDistance = distance
+          nearestBlockedEnemy = e
+        }
       }
     })
+
+    // Prefer visible enemies, fall back to blocked enemies if none visible
+    const nearestEnemy = nearestVisibleEnemy ?? nearestBlockedEnemy
 
     // Debug: Warn if enemies exist but none are targetable
     if (children.length > 0 && !nearestEnemy) {
