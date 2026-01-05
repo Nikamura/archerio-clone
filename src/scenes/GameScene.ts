@@ -153,7 +153,7 @@ export default class GameScene extends Phaser.Scene {
   private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
 
   // Door spawn configuration - enemies walk in from top of screen
-  private readonly DOOR_SPAWN_CHANCE = 0.35 // 35% chance for each mobile enemy to spawn from top
+  private readonly DOOR_SPAWN_CHANCE = 1.0 // 100% - all mobile enemies spawn from top and walk toward player
   private readonly DOOR_SPAWN_Y = -30 // Spawn above screen edge so they walk in
   // Stationary enemies that should NOT spawn from door (they don't move toward player)
   private readonly STATIONARY_ENEMY_TYPES: string[] = ['spreader', 'spawner']
