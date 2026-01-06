@@ -110,10 +110,38 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Load difficulty configuration
-    this.difficultyConfig = getDifficultyConfig(this.game)
-    console.log('Starting game with difficulty:', this.difficultyConfig.label)
+    this.registerEventListeners()
+    this.initializeGameMode()
+    this.initializePools()
+    this.initializeSystems()
+    this.initializeCollisions()
 
+    // Debug keyboard controls
+    if (this.game.registry.get('debug')) {
+      const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
+      nKey.on('down', () => {
+        this.debugSkipLevel()
+      })
+    }
+
+    // Update UIScene with room info
+    this.roomManager.updateRoomUI()
+
+    // Send initial health to UIScene (player may have bonus HP from equipment/talents)
+    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+
+    // Show tutorial for first-time players
+    if (!saveManager.isTutorialCompleted()) {
+      this.showTutorial()
+    }
+
+    console.log('GameScene: Created')
+  }
+
+  /**
+   * Register all event listeners for game events and browser events
+   */
+  private registerEventListeners(): void {
     // Register shutdown event
     this.events.once('shutdown', this.shutdown, this)
 
@@ -191,6 +219,15 @@ export default class GameScene extends Phaser.Scene {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('blur', handleBlur)
     })
+  }
+
+  /**
+   * Initialize game mode settings, RNG, and error reporting
+   */
+  private initializeGameMode(): void {
+    // Load difficulty configuration
+    this.difficultyConfig = getDifficultyConfig(this.game)
+    console.log('Starting game with difficulty:', this.difficultyConfig.label)
 
     // Check game mode
     this.isEndlessMode = this.game.registry.get('isEndlessMode') === true
@@ -218,6 +255,29 @@ export default class GameScene extends Phaser.Scene {
       errorReporting.trackHeroUsed(selectedHero)
     }
 
+    // Initialize seeded random for deterministic run
+    // Daily challenge uses fixed daily seed, otherwise check for passed seed
+    if (this.isDailyChallengeMode) {
+      const dailySeed = saveManager.getDailyChallengeSeed()
+      this.runRng = new SeededRandom(dailySeed)
+      console.log(`GameScene: Daily Challenge mode - using daily seed`)
+    } else {
+      const passedSeed = this.game.registry.get('runSeed')
+      if (passedSeed) {
+        this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
+        this.game.registry.remove('runSeed') // Clear it for next run
+      } else {
+        this.runRng = new SeededRandom()
+      }
+    }
+    this.runSeedString = this.runRng.getSeedString()
+    console.log(`GameScene: Run seed: ${this.runSeedString}`)
+  }
+
+  /**
+   * Create all object pools (bullets, enemies, gold, health, etc.)
+   */
+  private initializePools(): void {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
@@ -341,6 +401,46 @@ export default class GameScene extends Phaser.Scene {
     this.healthPool = new HealthPool(this)
     this.damageNumberPool = new DamageNumberPool(this)
 
+    // Create enemy physics group
+    this.enemies = this.physics.add.group()
+
+    // Initialize spirit cat pool if playing as Meowgik
+    if (selectedHeroId === 'meowgik') {
+      this.spiritCatPool = new SpiritCatPool(this)
+
+      // Get spirit cat config based on hero level and perks
+      const heroLevel = heroManager.getLevel('meowgik')
+      const unlockedPerks = new Set(heroManager.getUnlockedPerkLevels('meowgik'))
+      const baseAttack = heroStats.attack
+
+      this.spiritCatConfig = getSpiritCatConfig(heroLevel, unlockedPerks, baseAttack)
+      console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
+    }
+  }
+
+  /**
+   * Initialize all game systems (managers, visual effects, etc.)
+   */
+  private initializeSystems(): void {
+    const selectedChapter = chapterManager.getSelectedChapter()
+    const chapterDef = getChapterDefinition(selectedChapter)
+
+    // Create visual effects systems
+    this.screenShake = createScreenShake(this)
+    this.particles = createParticleManager(this)
+    this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
+
+    // Apply graphics quality settings
+    const settings = saveManager.getSettings()
+    this.applyGraphicsQuality(settings.graphicsQuality)
+    this.screenShake.setEnabled(settings.screenShakeEnabled)
+    this.applyColorblindMode(settings.colorblindMode)
+
+    // Initialize performance monitoring (debug mode only)
+    if (this.game.config.physics?.arcade?.debug) {
+      performanceMonitor.createOverlay(this)
+    }
+
     // Initialize drop manager
     this.dropManager = new DropManager({
       scene: this,
@@ -363,58 +463,6 @@ export default class GameScene extends Phaser.Scene {
         this.updatePlayerHitboxForGiant()
       },
     })
-
-    // Initialize spirit cat system if playing as Meowgik
-    if (selectedHeroId === 'meowgik') {
-      this.spiritCatPool = new SpiritCatPool(this)
-
-      // Get spirit cat config based on hero level and perks
-      const heroLevel = heroManager.getLevel('meowgik')
-      const unlockedPerks = new Set(heroManager.getUnlockedPerkLevels('meowgik'))
-      const baseAttack = heroStats.attack
-
-      this.spiritCatConfig = getSpiritCatConfig(heroLevel, unlockedPerks, baseAttack)
-      console.log('GameScene: Meowgik spirit cats initialized:', this.spiritCatConfig)
-    }
-
-    // Wall group is now initialized by SpawnManager
-
-    // Create visual effects systems
-    this.screenShake = createScreenShake(this)
-    this.particles = createParticleManager(this)
-    this.particles.prewarm(10) // Pre-warm particle pool for smoother gameplay
-
-    // Apply graphics quality settings
-    const settings = saveManager.getSettings()
-    this.applyGraphicsQuality(settings.graphicsQuality)
-    this.screenShake.setEnabled(settings.screenShakeEnabled)
-    this.applyColorblindMode(settings.colorblindMode)
-
-    // Initialize performance monitoring (debug mode only)
-    if (this.game.config.physics?.arcade?.debug) {
-      performanceMonitor.createOverlay(this)
-    }
-
-    // Initialize seeded random for deterministic run
-    // Daily challenge uses fixed daily seed, otherwise check for passed seed
-    if (this.isDailyChallengeMode) {
-      const dailySeed = saveManager.getDailyChallengeSeed()
-      this.runRng = new SeededRandom(dailySeed)
-      console.log(`GameScene: Daily Challenge mode - using daily seed`)
-    } else {
-      const passedSeed = this.game.registry.get('runSeed')
-      if (passedSeed) {
-        this.runRng = new SeededRandom(SeededRandom.parseSeed(passedSeed))
-        this.game.registry.remove('runSeed') // Clear it for next run
-      } else {
-        this.runRng = new SeededRandom()
-      }
-    }
-    this.runSeedString = this.runRng.getSeedString()
-    console.log(`GameScene: Run seed: ${this.runSeedString}`)
-
-    // Create enemy physics group
-    this.enemies = this.physics.add.group()
 
     // Initialize SpawnManager (handles enemy/boss spawning and wall generation)
     this.spawnManager = new SpawnManager({
@@ -464,69 +512,6 @@ export default class GameScene extends Phaser.Scene {
       // No starting abilities - spawn enemies immediately
       this.spawnManager.spawnEnemiesForRoom(1, this.isEndlessMode ? 10 : chapterManager.getTotalRooms())
     }
-
-    // Set up collisions
-    this.physics.add.overlap(
-      this.bulletPool,
-      this.enemies,
-      this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
-
-    // Enemy bullets hit player
-    this.physics.add.overlap(
-      this.player,
-      this.enemyBulletPool,
-      this.enemyBulletHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
-
-    // Enemies hit player (melee damage)
-    this.physics.add.overlap(
-      this.player,
-      this.enemies,
-      this.enemyHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
-
-    // Spirit cats hit enemies (Meowgik ability)
-    if (this.spiritCatPool) {
-      this.physics.add.overlap(
-        this.spiritCatPool,
-        this.enemies,
-        this.spiritCatHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-        undefined,
-        this
-      )
-    }
-
-    // Wall collisions - player and enemies collide with walls
-    this.physics.add.collider(this.player, this.spawnManager.getWallGroup())
-    this.physics.add.collider(this.enemies, this.spawnManager.getWallGroup())
-
-    // Enemy-enemy collision - prevents enemies from stacking on each other
-    this.physics.add.collider(this.enemies, this.enemies)
-
-    // Bullets hit walls - bounce or pass through based on abilities
-    this.physics.add.overlap(
-      this.bulletPool,
-      this.spawnManager.getWallGroup(),
-      this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
-
-    // Enemy bullets hit walls
-    this.physics.add.overlap(
-      this.enemyBulletPool,
-      this.spawnManager.getWallGroup(),
-      this.enemyBulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-      undefined,
-      this
-    )
 
     // Initialize input system (handles keyboard + virtual joystick)
     const gameContainer = this.game.canvas.parentElement
@@ -687,27 +672,74 @@ export default class GameScene extends Phaser.Scene {
       getRunSeedString: () => this.runSeedString,
     })
     this.gameModeManager.initialize(this.isEndlessMode, this.isDailyChallengeMode)
+  }
 
-    // Debug keyboard controls
-    if (this.game.registry.get('debug')) {
-      const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N)
-      nKey.on('down', () => {
-        this.debugSkipLevel()
-      })
+  /**
+   * Set up all physics collision and overlap handlers
+   */
+  private initializeCollisions(): void {
+    // Player bullets hit enemies
+    this.physics.add.overlap(
+      this.bulletPool,
+      this.enemies,
+      this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Enemy bullets hit player
+    this.physics.add.overlap(
+      this.player,
+      this.enemyBulletPool,
+      this.enemyBulletHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Enemies hit player (melee damage)
+    this.physics.add.overlap(
+      this.player,
+      this.enemies,
+      this.enemyHitPlayer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
+
+    // Spirit cats hit enemies (Meowgik ability)
+    if (this.spiritCatPool) {
+      this.physics.add.overlap(
+        this.spiritCatPool,
+        this.enemies,
+        this.spiritCatHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+        undefined,
+        this
+      )
     }
 
-    // Update UIScene with room info
-    this.roomManager.updateRoomUI()
+    // Wall collisions - player and enemies collide with walls
+    this.physics.add.collider(this.player, this.spawnManager.getWallGroup())
+    this.physics.add.collider(this.enemies, this.spawnManager.getWallGroup())
 
-    // Send initial health to UIScene (player may have bonus HP from equipment/talents)
-    this.scene.get('UIScene').events.emit('updateHealth', this.player.getHealth(), this.player.getMaxHealth())
+    // Enemy-enemy collision - prevents enemies from stacking on each other
+    this.physics.add.collider(this.enemies, this.enemies)
 
-    // Show tutorial for first-time players
-    if (!saveManager.isTutorialCompleted()) {
-      this.showTutorial()
-    }
+    // Bullets hit walls - bounce or pass through based on abilities
+    this.physics.add.overlap(
+      this.bulletPool,
+      this.spawnManager.getWallGroup(),
+      this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
 
-    console.log('GameScene: Created')
+    // Enemy bullets hit walls
+    this.physics.add.overlap(
+      this.enemyBulletPool,
+      this.spawnManager.getWallGroup(),
+      this.enemyBulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this
+    )
   }
 
   /**
