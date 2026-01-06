@@ -588,6 +588,78 @@ describe('PlayerStats', () => {
         expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.3225)
       })
     })
+
+    describe('Speed Boost', () => {
+      it('increases movement speed by 15%', () => {
+        expect(stats.getMovementSpeedMultiplier()).toBeCloseTo(1.0)
+        stats.addSpeedBoost()
+        expect(stats.getMovementSpeedMultiplier()).toBeCloseTo(1.15)
+      })
+
+      it('also increases attack speed by 5%', () => {
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.0)
+        stats.addSpeedBoost()
+        // 1.0 * 1.05 = 1.05
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.05)
+      })
+
+      it('stacks multiplicatively for both speeds', () => {
+        stats.addSpeedBoost()
+        stats.addSpeedBoost()
+        // Movement: 1.0 * 1.15^2 = 1.3225
+        expect(stats.getMovementSpeedMultiplier()).toBeCloseTo(1.3225)
+        // Attack: 1.0 * 1.05^2 = 1.1025
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.1025)
+      })
+    })
+
+    describe('Lightning Chain', () => {
+      it('adds 2 chain targets per level', () => {
+        expect(stats.getLightningChainCount()).toBe(0)
+        stats.addLightningChain()
+        expect(stats.getLightningChainCount()).toBe(2)
+        stats.addLightningChain()
+        expect(stats.getLightningChainCount()).toBe(4)
+      })
+
+      it('applies 20% damage reduction per chain', () => {
+        // First hit (chain 0): full damage
+        expect(stats.getLightningChainDamageMultiplier(0)).toBeCloseTo(1.0)
+        // First chain (chain 1): 80% damage
+        expect(stats.getLightningChainDamageMultiplier(1)).toBeCloseTo(0.8)
+        // Second chain (chain 2): 64% damage
+        expect(stats.getLightningChainDamageMultiplier(2)).toBeCloseTo(0.64)
+        // Third chain (chain 3): 51.2% damage
+        expect(stats.getLightningChainDamageMultiplier(3)).toBeCloseTo(0.512)
+      })
+    })
+
+    describe('Bouncy Wall', () => {
+      it('adds 2 wall bounces per level', () => {
+        expect(stats.getWallBounces()).toBe(0)
+        stats.addWallBounce()
+        expect(stats.getWallBounces()).toBe(2)
+        stats.addWallBounce()
+        expect(stats.getWallBounces()).toBe(4)
+      })
+
+      it('applies 10% damage bonus per wall bounce', () => {
+        stats.addWallBounce() // Enable wall bounce ability
+        // No bounces: 1.0x damage
+        expect(stats.getWallBounceDamageMultiplier(0)).toBeCloseTo(1.0)
+        // 1 bounce: 1.1x damage
+        expect(stats.getWallBounceDamageMultiplier(1)).toBeCloseTo(1.1)
+        // 2 bounces: 1.2x damage
+        expect(stats.getWallBounceDamageMultiplier(2)).toBeCloseTo(1.2)
+        // 5 bounces: 1.5x damage
+        expect(stats.getWallBounceDamageMultiplier(5)).toBeCloseTo(1.5)
+      })
+
+      it('returns 1.0 if ability not acquired', () => {
+        // Without the ability, no bonus even with bounces
+        expect(stats.getWallBounceDamageMultiplier(3)).toBeCloseTo(1.0)
+      })
+    })
   })
 
   // ============================================

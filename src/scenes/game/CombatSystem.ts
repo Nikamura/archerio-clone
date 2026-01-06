@@ -156,6 +156,13 @@ export class CombatSystem {
       damage = this.player.getPiercingDamage(hitCount)
     }
 
+    // Apply wall bounce damage bonus (+10% per wall bounce)
+    const wallBounceCount = bulletSprite.getWallBounceCount()
+    if (wallBounceCount > 0) {
+      const wallBounceMultiplier = this.player.getWallBounceDamageMultiplier(wallBounceCount)
+      damage = Math.floor(damage * wallBounceMultiplier)
+    }
+
     // Shatter: bonus damage to frozen enemies
     if (enemySprite.isEnemyFrozen() && this.player.getShatterLevel() > 0) {
       damage = Math.floor(damage * this.player.getShatterDamageMultiplier())
@@ -243,10 +250,10 @@ export class CombatSystem {
       enemy.applyBleedDamage(adjustedBleedDamage, 3000) // 3 second bleed
     }
 
-    // Handle lightning chain
+    // Handle lightning chain (pass base damage, method will apply progressive reduction)
     const lightningChainCount = bullet.getLightningChainCount()
     if (lightningChainCount > 0) {
-      this.applyLightningChain(enemy, damage * 0.5, lightningChainCount)
+      this.applyLightningChain(enemy, damage, lightningChainCount)
     }
   }
 
@@ -552,8 +559,9 @@ export class CombatSystem {
 
   /**
    * Apply lightning chain effect to nearby enemies
+   * Damage is reduced by 20% per chain (resistance through bodies)
    */
-  applyLightningChain(source: Enemy, damage: number, chainCount: number): void {
+  applyLightningChain(source: Enemy, baseDamage: number, chainCount: number): void {
     const maxChainDistance = 250 // Increased from 150 to better catch minions
 
     // Find nearby enemies excluding the source
@@ -577,8 +585,8 @@ export class CombatSystem {
 
     const targets = nearbyEnemies.slice(0, chainCount)
 
-    // Apply damage to each target with visual feedback
-    targets.forEach((target) => {
+    // Apply damage to each target with progressive reduction (-20% per chain)
+    targets.forEach((target, chainIndex) => {
       if (!target.active || !target.scene) return
 
       // Draw lightning line from source to target
@@ -587,8 +595,12 @@ export class CombatSystem {
       // Show particle effect at target
       this.particles.emitHit(target.x, target.y)
 
-      // Apply damage
-      const killed = target.takeDamage(Math.floor(damage))
+      // Apply damage with progressive reduction: -20% per chain
+      // chainIndex 0 = first chain = 80% damage, chainIndex 1 = second chain = 64% damage, etc.
+      const damageMultiplier = this.player.getLightningChainDamageMultiplier(chainIndex + 1)
+      const chainDamage = Math.floor(baseDamage * damageMultiplier)
+
+      const killed = target.takeDamage(chainDamage)
 
       if (killed) {
         const isBoss = this.boss && target === (this.boss as unknown as Enemy)
