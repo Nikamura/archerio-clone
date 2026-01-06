@@ -241,6 +241,11 @@ export class RoomManager {
 
     // Set up overlap with player
     const player = this.scene.children.getByName('player') as Phaser.GameObjects.Sprite
+    if (!player) {
+      console.error('RoomManager: Cannot find player to set up door collision!')
+      return
+    }
+
     this.doorCollider = this.scene.physics.add.overlap(
       player,
       this.doorSprite,

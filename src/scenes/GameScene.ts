@@ -377,6 +377,9 @@ export default class GameScene extends Phaser.Scene {
       critDamage: finalCritDamage,
     }, selectedHeroId)
 
+    // Set player name for scene.children.getByName() lookups
+    this.player.setName('player')
+
     // Set dodge chance from equipment
     const totalDodgeChance = (equipStats.dodgeChance ?? 0) * equipmentStatMultiplier
     this.player.setDodgeChance(totalDodgeChance)
