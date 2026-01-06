@@ -559,7 +559,17 @@ export default class SettingsScene extends Phaser.Scene {
     const result = await saveExportManager.pickAndImportFile()
 
     if (result.success) {
-      this.showImportResultDialog(width, true, `Imported ${result.imported} save entries.\nRestarting game...`)
+      // Build success message with any warnings
+      let message = `Imported ${result.imported} save entries.`
+      if (result.warnings.length > 0) {
+        // Filter out the "exported on" info message for the success dialog
+        const importantWarnings = result.warnings.filter((w) => !w.startsWith('Save exported on'))
+        if (importantWarnings.length > 0) {
+          message += `\n\n${importantWarnings.slice(0, 2).join('\n')}`
+        }
+      }
+      message += '\n\nRestarting game...'
+      this.showImportResultDialog(width, true, message)
     } else if (result.errors.length > 0 && result.errors[0] !== 'File selection cancelled') {
       const errorMsg = result.errors.slice(0, 3).join('\n')
       this.showImportResultDialog(width, false, errorMsg)

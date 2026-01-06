@@ -2,8 +2,17 @@
  * SaveExportManager - Handles exporting and importing all game save data
  *
  * Uses JSON per line format (NDJSON) where each line contains:
- * {"key":"storage_key","value":{...data...}}
+ * Line 1 (metadata): {"_meta":true,"version":1,"exportedAt":timestamp,"keys":["key1",...]}
+ * Line 2+: {"key":"storage_key","value":{...data...}}
+ *
+ * Old saves compatibility:
+ * - Missing keys: Managers use default values for missing fields
+ * - Extra keys: Ignored (forwards compatible)
+ * - Version migrations: Handled by individual managers on reload
  */
+
+// Current export format version (increment when format changes)
+const EXPORT_VERSION = 1
 
 // All localStorage keys used by the game
 const ALL_STORAGE_KEYS = [
@@ -22,6 +31,13 @@ const ALL_STORAGE_KEYS = [
   'aura_archer_coupon_data',
 ] as const
 
+export interface SaveMetadata {
+  _meta: true
+  version: number
+  exportedAt: number
+  keys: string[]
+}
+
 export interface SaveLine {
   key: string
   value: unknown
@@ -30,6 +46,8 @@ export interface SaveLine {
 export interface ImportResult {
   success: boolean
   imported: number
+  skipped: number
+  warnings: string[]
   errors: string[]
 }
 
@@ -47,11 +65,13 @@ class SaveExportManager {
 
   /**
    * Export all game data as NDJSON (newline-delimited JSON)
-   * Each line is a JSON object with key and value
+   * First line is metadata, followed by key-value pairs
    */
   exportData(): string {
     const lines: string[] = []
+    const exportedKeys: string[] = []
 
+    // Collect all data
     for (const key of ALL_STORAGE_KEYS) {
       const rawValue = localStorage.getItem(key)
       if (rawValue !== null) {
@@ -59,25 +79,38 @@ class SaveExportManager {
           const value = JSON.parse(rawValue)
           const line: SaveLine = { key, value }
           lines.push(JSON.stringify(line))
+          exportedKeys.push(key)
         } catch {
           // If value isn't valid JSON, store as raw string
           const line: SaveLine = { key, value: rawValue }
           lines.push(JSON.stringify(line))
+          exportedKeys.push(key)
         }
       }
     }
 
-    return lines.join('\n')
+    // Prepend metadata line
+    const metadata: SaveMetadata = {
+      _meta: true,
+      version: EXPORT_VERSION,
+      exportedAt: Date.now(),
+      keys: exportedKeys,
+    }
+
+    return [JSON.stringify(metadata), ...lines].join('\n')
   }
 
   /**
    * Import game data from NDJSON format
-   * Returns result with success status and any errors
+   * Handles both old format (no metadata) and new format (with metadata)
+   * Returns result with success status, warnings, and errors
    */
   importData(data: string): ImportResult {
     const result: ImportResult = {
       success: false,
       imported: 0,
+      skipped: 0,
+      warnings: [],
       errors: [],
     }
 
@@ -88,8 +121,9 @@ class SaveExportManager {
 
     const lines = data.trim().split('\n')
     const validEntries: SaveLine[] = []
+    let metadata: SaveMetadata | null = null
 
-    // Parse and validate all lines first
+    // Parse and validate all lines
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
       if (!line) continue
@@ -97,7 +131,27 @@ class SaveExportManager {
       try {
         const parsed = JSON.parse(line)
 
-        // Validate structure
+        // Check if this is a metadata line
+        if (parsed._meta === true) {
+          metadata = parsed as SaveMetadata
+
+          // Check export format version
+          if (metadata.version > EXPORT_VERSION) {
+            result.warnings.push(
+              `Save from newer version (v${metadata.version}). Some data may not load correctly.`
+            )
+          }
+
+          // Show export date info
+          if (metadata.exportedAt) {
+            const exportDate = new Date(metadata.exportedAt).toLocaleDateString()
+            result.warnings.push(`Save exported on ${exportDate}`)
+          }
+
+          continue
+        }
+
+        // Validate data line structure
         if (typeof parsed !== 'object' || parsed === null) {
           result.errors.push(`Line ${i + 1}: Invalid format - expected object`)
           continue
@@ -118,6 +172,11 @@ class SaveExportManager {
           continue
         }
 
+        // Check if this is a known key (warn but still import unknown keys)
+        if (!ALL_STORAGE_KEYS.includes(parsed.key as typeof ALL_STORAGE_KEYS[number])) {
+          result.warnings.push(`Unknown save key "${parsed.key}" - may be from older/newer version`)
+        }
+
         validEntries.push(parsed as SaveLine)
       } catch (e) {
         result.errors.push(`Line ${i + 1}: Invalid JSON - ${e instanceof Error ? e.message : 'parse error'}`)
@@ -129,6 +188,18 @@ class SaveExportManager {
       return result
     }
 
+    // Check for missing expected keys (compare with metadata or known keys)
+    const importedKeys = new Set(validEntries.map((e) => e.key))
+    const expectedKeys = metadata?.keys ?? ALL_STORAGE_KEYS
+    const missingKeys = expectedKeys.filter((k) => !importedKeys.has(k))
+
+    if (missingKeys.length > 0 && missingKeys.length < expectedKeys.length) {
+      // Only warn if some keys are missing (not all - that could be a fresh save)
+      result.warnings.push(
+        `Missing ${missingKeys.length} save entries - defaults will be used for: ${missingKeys.slice(0, 3).join(', ')}${missingKeys.length > 3 ? '...' : ''}`
+      )
+    }
+
     // Apply all valid entries to localStorage
     for (const entry of validEntries) {
       try {
@@ -137,6 +208,7 @@ class SaveExportManager {
         result.imported++
       } catch (e) {
         result.errors.push(`Failed to save ${entry.key}: ${e instanceof Error ? e.message : 'unknown error'}`)
+        result.skipped++
       }
     }
 
@@ -178,7 +250,7 @@ class SaveExportManager {
       input.onchange = async (e) => {
         const file = (e.target as HTMLInputElement).files?.[0]
         if (!file) {
-          resolve({ success: false, imported: 0, errors: ['No file selected'] })
+          resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['No file selected'] })
           return
         }
 
@@ -190,13 +262,15 @@ class SaveExportManager {
           resolve({
             success: false,
             imported: 0,
+            skipped: 0,
+            warnings: [],
             errors: [`Failed to read file: ${err instanceof Error ? err.message : 'unknown error'}`],
           })
         }
       }
 
       input.oncancel = () => {
-        resolve({ success: false, imported: 0, errors: ['File selection cancelled'] })
+        resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['File selection cancelled'] })
       }
 
       input.click()
