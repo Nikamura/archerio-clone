@@ -25,8 +25,8 @@ export class PlayerStats {
   // Attack speed cap: Maximum 10 attacks per second (with 500ms base fire rate, this means max attack speed of 5.0)
   private static readonly MAX_ATTACK_SPEED = 5.0
 
-  // Dodge cap: Maximum 3% dodge chance (nerfed from 5%)
-  public static readonly MAX_DODGE_CHANCE = 0.03
+  // Dodge cap: Maximum 15% dodge chance (buffed from 3%)
+  public static readonly MAX_DODGE_CHANCE = 0.15
 
   // Ability counters (linear stacking)
   private extraProjectiles: number = 0
@@ -57,7 +57,7 @@ export class PlayerStats {
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
   private damageAuraLevel: number = 0  // AOE damage aura around player
-  private bloodthirstHeal: number = 0  // HP healed per kill
+  private bloodthirstHealPercent: number = 0  // Percentage of max HP healed per kill (caps at 5%)
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability
@@ -212,12 +212,12 @@ export class PlayerStats {
 
   /**
    * Calculate current damage with ability modifiers
-   * Front Arrow reduces damage by 25% per extra projectile
+   * Front Arrow reduces damage by 15% per extra projectile (buffed from 25%)
    * Rage adds +5% damage per 10% missing HP per level
    * Giant adds +40% damage per level
    */
   getDamage(): number {
-    const frontArrowPenalty = Math.pow(0.75, this.extraProjectiles)
+    const frontArrowPenalty = Math.pow(0.85, this.extraProjectiles)
 
     // Calculate rage bonus based on missing HP
     let rageBonus = 1.0
@@ -237,11 +237,11 @@ export class PlayerStats {
 
   /**
    * Calculate current attack speed with ability modifiers
-   * Multishot reduces attack speed by 15% per level
+   * Multishot reduces attack speed by 10% per level (buffed from 15%)
    * Capped at MAX_ATTACK_SPEED (5.0) to limit to 10 attacks per second
    */
   getAttackSpeed(): number {
-    const multishotPenalty = Math.pow(0.85, this.multishotCount)
+    const multishotPenalty = Math.pow(0.90, this.multishotCount)
     const rawAttackSpeed = this.baseAttackSpeed * this.attackSpeedMultiplier * multishotPenalty
     return Math.min(rawAttackSpeed, PlayerStats.MAX_ATTACK_SPEED)
   }
@@ -287,7 +287,7 @@ export class PlayerStats {
   }
 
   setDodgeChance(chance: number): void {
-    this.dodgeChance = Math.min(0.03, Math.max(0, chance))  // Cap at 3% (nerfed from 5%)
+    this.dodgeChance = Math.min(0.15, Math.max(0, chance))  // Cap at 15% (buffed from 3%)
   }
 
   // New V1 ability getters
@@ -301,7 +301,7 @@ export class PlayerStats {
 
   /**
    * Calculate poison damage amount based on current weapon damage
-   * Poison does 5% weapon damage per second
+   * Poison does 10% weapon damage per second per level (buffed from 5%)
    */
   getPoisonDamage(): number {
     if (this.poisonDamagePercent === 0) return 0
@@ -329,6 +329,17 @@ export class PlayerStats {
     return this.lightningChainCount
   }
 
+  /**
+   * Calculate lightning chain damage reduction
+   * Each chain reduces damage by 20% (due to resistance through bodies)
+   * @param chainNumber which enemy this is (0 = first hit, 1 = first chain, etc)
+   * @returns damage multiplier (e.g., 0.8 for first chain, 0.64 for second)
+   */
+  getLightningChainDamageMultiplier(chainNumber: number): number {
+    if (chainNumber <= 0) return 1.0  // First hit does full damage
+    return Math.pow(0.80, chainNumber)  // -20% per chain
+  }
+
   getDiagonalArrows(): number {
     return this.diagonalArrows
   }
@@ -342,21 +353,33 @@ export class PlayerStats {
   }
 
   /**
-   * Get damage aura DPS (10 damage per second per level)
+   * Get damage aura DPS (15% of weapon damage per second per level)
+   * Scales with weapon damage for late-game relevance
    */
   getDamageAuraDPS(): number {
-    return this.damageAuraLevel * 10
+    if (this.damageAuraLevel <= 0) return 0
+    // 15% of weapon damage per second per level
+    return Math.floor(this.getDamage() * 0.15 * this.damageAuraLevel)
   }
 
   /**
-   * Get damage aura radius (80px base)
+   * Get damage aura radius (100px base, buffed from 80px)
    */
   getDamageAuraRadius(): number {
-    return this.damageAuraLevel > 0 ? 80 : 0
+    return this.damageAuraLevel > 0 ? 100 : 0
   }
 
+  /**
+   * Get bloodthirst heal amount (percentage of max HP)
+   * Returns the actual HP amount to heal based on current max HP
+   */
   getBloodthirstHeal(): number {
-    return this.bloodthirstHeal
+    if (this.bloodthirstHealPercent <= 0) return 0
+    return Math.floor(this.maxHealth * this.bloodthirstHealPercent)
+  }
+
+  getBloodthirstHealPercent(): number {
+    return this.bloodthirstHealPercent
   }
 
   getRageLevel(): number {
@@ -376,6 +399,16 @@ export class PlayerStats {
    */
   getWallBounces(): number {
     return this.wallBounceLevel * 2
+  }
+
+  /**
+   * Get wall bounce damage bonus (+10% per bounce)
+   * @param bounceCount number of wall bounces the projectile has done
+   * @returns damage multiplier (e.g., 1.3 for 3 bounces)
+   */
+  getWallBounceDamageMultiplier(bounceCount: number): number {
+    if (this.wallBounceLevel <= 0 || bounceCount <= 0) return 1.0
+    return 1 + (bounceCount * 0.10)  // +10% per bounce
   }
 
   // Devil ability getters
@@ -566,11 +599,11 @@ export class PlayerStats {
   }
 
   /**
-   * Add Poison Shot ability (5% DOT per second, stacks up to 5x)
-   * Stacking: Additive poison damage per level
+   * Add Poison Shot ability (10% DOT per second, stacks up to 5x)
+   * Stacking: Additive poison damage per level (buffed from 5%)
    */
   addPoisonShot(): void {
-    this.poisonDamagePercent += 0.05  // +5% weapon damage per second
+    this.poisonDamagePercent += 0.10  // +10% weapon damage per second (buffed from 5%)
   }
 
   /**
@@ -584,6 +617,7 @@ export class PlayerStats {
   /**
    * Add Lightning Chain ability (chains to 2 additional enemies per level)
    * Stacking: Each level adds +2 chain targets
+   * Damage penalty: -20% per chain (resistance through bodies)
    */
   addLightningChain(): void {
     this.lightningChainCount += 2
@@ -598,27 +632,27 @@ export class PlayerStats {
   }
 
   /**
-   * Add Rear Arrow ability (+1 arrow shooting backwards)
-   * Stacking: Each level adds +1 rear arrow
+   * Add Rear Arrow ability (+2 arrows shooting backwards)
+   * Stacking: Each level adds +2 rear arrows (buffed from +1)
    */
   addRearArrow(): void {
-    this.rearArrows++
+    this.rearArrows += 2
   }
 
   /**
-   * Add Damage Aura ability (10 DPS in 80px radius)
-   * Stacking: Each level adds +10 DPS
+   * Add Damage Aura ability (15% weapon DPS in 100px radius)
+   * Stacking: Each level adds +15% weapon damage per second (scales with damage)
    */
   addDamageAura(): void {
     this.damageAuraLevel++
   }
 
   /**
-   * Add Bloodthirst ability (+2 HP per kill per level)
-   * Stacking: Each level adds +2 HP healed per kill
+   * Add Bloodthirst ability (+1% max HP per kill per level)
+   * Stacking: Each level adds +1% max HP healed per kill (caps at 5%)
    */
   addBloodthirst(): void {
-    this.bloodthirstHeal += 2
+    this.bloodthirstHealPercent = Math.min(0.05, this.bloodthirstHealPercent + 0.01)
   }
 
   /**
@@ -630,24 +664,26 @@ export class PlayerStats {
   }
 
   /**
-   * Add Speed Boost ability (+15% movement speed)
-   * Stacking: Multiplicative (each level multiplies speed by 1.15)
+   * Add Speed Boost ability (+15% movement speed, +5% attack speed)
+   * Stacking: Multiplicative (each level multiplies speed by 1.15, attack speed by 1.05)
+   * Now provides offensive utility alongside defensive mobility
    */
   addSpeedBoost(): void {
     this.movementSpeedMultiplier *= 1.15
+    this.attackSpeedMultiplier *= 1.05  // +5% attack speed bonus
   }
 
   /**
-   * Add Max Health Boost ability (+10% max HP)
-   * Stacking: Multiplicative (each level multiplies max HP by 1.10)
+   * Add Max Health Boost ability (+15% max HP)
+   * Stacking: Multiplicative (each level multiplies max HP by 1.15, buffed from 1.10)
    * Also heals the player by the gained amount
    */
   addMaxHealthBoost(): void {
-    const newMaxHealth = Math.floor(this.maxHealth * 1.10)
+    const newMaxHealth = Math.floor(this.maxHealth * 1.15)  // +15% (buffed from 10%)
     const healthGain = newMaxHealth - this.maxHealth
     this.maxHealth = newMaxHealth
     this.health += healthGain  // Heal by the gained amount
-    this.maxHealthMultiplier *= 1.10
+    this.maxHealthMultiplier *= 1.15  // Buffed from 1.10
   }
 
   getMaxHealthMultiplier(): number {
@@ -655,19 +691,19 @@ export class PlayerStats {
   }
 
   /**
-   * Add Bouncy Wall ability (+2 wall bounces per level)
-   * Stacking: Each level adds +2 wall bounces
+   * Add Bouncy Wall ability (+2 wall bounces per level, +10% damage per bounce)
+   * Stacking: Each level adds +2 wall bounces, damage increases per bounce
    */
   addWallBounce(): void {
     this.wallBounceLevel++
   }
 
   /**
-   * Add Dodge Master ability (+1% dodge chance per level)
-   * Stacking: Additive (capped at 3%, nerfed from 1.5%)
+   * Add Dodge Master ability (+3% dodge chance per level)
+   * Stacking: Additive (capped at 15%, buffed from 3%)
    */
   addDodgeMaster(): void {
-    this.dodgeChance = Math.min(0.03, this.dodgeChance + 0.01)
+    this.dodgeChance = Math.min(0.15, this.dodgeChance + 0.03)  // +3% per level (buffed from 1%)
   }
 
   /**
@@ -759,7 +795,7 @@ export class PlayerStats {
     this.diagonalArrows = 0
     this.rearArrows = 0
     this.damageAuraLevel = 0
-    this.bloodthirstHeal = 0
+    this.bloodthirstHealPercent = 0
     this.rageLevel = 0
     this.movementSpeedMultiplier = 1.0
     this.maxHealthMultiplier = 1.0
@@ -798,7 +834,7 @@ export class PlayerStats {
     diagonalArrows: number
     rearArrows: number
     damageAuraLevel: number
-    bloodthirstHeal: number
+    bloodthirstHealPercent: number
     rageLevel: number
     movementSpeedMultiplier: number
     maxHealthMultiplier: number
@@ -832,7 +868,7 @@ export class PlayerStats {
       diagonalArrows: this.diagonalArrows,
       rearArrows: this.rearArrows,
       damageAuraLevel: this.damageAuraLevel,
-      bloodthirstHeal: this.bloodthirstHeal,
+      bloodthirstHealPercent: this.bloodthirstHealPercent,
       rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
       maxHealthMultiplier: this.maxHealthMultiplier,

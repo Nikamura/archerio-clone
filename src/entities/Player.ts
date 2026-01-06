@@ -439,6 +439,16 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.hasFireSpread() ?? false
   }
 
+  // Lightning chain damage multiplier (progressive reduction per chain)
+  getLightningChainDamageMultiplier(chainNumber: number): number {
+    return this.stats?.getLightningChainDamageMultiplier(chainNumber) ?? 1.0
+  }
+
+  // Wall bounce damage multiplier (bonus damage per bounce)
+  getWallBounceDamageMultiplier(bounceCount: number): number {
+    return this.stats?.getWallBounceDamageMultiplier(bounceCount) ?? 1.0
+  }
+
   // Reset run-based stats
   resetRunStats() {
     this.stats?.resetRunStats()
