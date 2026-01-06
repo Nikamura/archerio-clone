@@ -72,6 +72,7 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ BUG #6 Fixed: Fire spread now requires player ability
 - ✅ BUG #7 Fixed: Phaser collision crash (cleanup order)
 - ✅ BUG #8 Fixed: Player position resets between rooms
+- ✅ BUG #9 Fixed: Phaser collision crash (player name) - ROOT CAUSE
 
 **Code Quality:**
 - ✅ 0 TypeScript errors
@@ -151,15 +152,21 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - **Issue:** Boss rooms might not clear immediately due to pending spawn counter
 - **Fix:** Reset pendingEnemySpawns = 0 in spawnBoss() and spawnMiniBoss() (SpawnManager.ts:464, 533)
 
-**BUG #7: Phaser Collision Crash (✅ FIXED)**
+**BUG #7: Phaser Collision Crash - Cleanup Order (✅ FIXED)**
 - **Issue:** "can't access property 'isParent' of null" crash during room transitions
 - **Cause:** Boss was destroyed as part of enemies.clear() while collision system had references
-- **Fix:** Properly order cleanup - destroy boss explicitly BEFORE enemies.clear() (RoomManager.ts:468-481)
+- **Fix:** Properly order cleanup - destroy boss explicitly BEFORE enemies.clear() (RoomManager.ts:472-481)
 
 **BUG #8: Player Position Not Resetting Between Rooms (✅ FIXED)**
 - **Issue:** Player stayed at same position after room transitions (should reset to bottom)
 - **Cause:** Room transition logic didn't reset player position
-- **Fix:** Added onResetPlayerPosition event handler in RoomManager (RoomManager.ts:32, 330, 373)
+- **Fix:** Added onResetPlayerPosition event handler in RoomManager (RoomManager.ts:32, 335, 378)
+
+**BUG #9: Phaser Collision Crash - Player Name (✅ FIXED - ROOT CAUSE)**
+- **Issue:** "can't access property 'isParent' of null" crash when door spawned
+- **Cause:** RoomManager.spawnDoor() uses getByName('player') but player.name was never set
+- **Fix:** Added player.setName('player') in GameScene.initializePools() (GameScene.ts:381)
+- **Impact:** This was the root cause of the collision crashes - door collider was being set up with null player reference
 
 ---
 
