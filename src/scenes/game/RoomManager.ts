@@ -286,8 +286,20 @@ export class RoomManager {
   private enterDoor(): void {
     if (this.isTransitioning) return
 
+    // Safety check: door must still exist
+    if (!this.doorSprite || !this.doorSprite.active) {
+      console.warn('RoomManager: enterDoor called but door is destroyed')
+      return
+    }
+
     this.isTransitioning = true
     console.log('Entering door to room', this.currentRoom + 1)
+
+    // Immediately destroy door collider to prevent double-triggers during fade
+    if (this.doorCollider) {
+      this.doorCollider.destroy()
+      this.doorCollider = null
+    }
 
     // Fade out
     this.scene.cameras.main.fadeOut(300, 0, 0, 0)

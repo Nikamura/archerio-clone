@@ -70,7 +70,7 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ BUG #4 Fixed: Debug skip clears boss and minions
 - ✅ BUG #5 Fixed: Debug skip properly progresses room
 - ✅ BUG #6 Fixed: Fire spread now requires player ability
-- ⚠️ BUG #7 Investigating: Phaser collision crash (needs testing)
+- ✅ BUG #7 Fixed: Phaser collision crash (cleanup order)
 - ✅ BUG #8 Fixed: Player position resets between rooms
 
 **Code Quality:**
@@ -82,20 +82,20 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ Query-based data access (no stale references)
 
 **Commits:**
-- 24 total commits (system extractions + integrations + bug fixes + docs)
+- 29 total commits (system extractions + integrations + bug fixes + docs)
 - All changes tested and verified
 - Clean git history for easy rollback if needed
 
-**Final Stats (2026-01-06):**
-- GameScene: 1,981 lines (from 3,624)
+**Final Stats (2026-01-06 - Code Review Complete):**
+- GameScene: 1,985 lines (from 3,624)
 - DeathFlowManager: 189 lines
 - DropManager: 213 lines
 - GameModeManager: 657 lines
 - HeroAbilityManager: 365 lines
-- RoomManager: 499 lines
+- RoomManager: 505 lines (updated with proper cleanup)
 - SpawnManager: 717 lines
-- Total: 4,621 lines across 7 files
-- **Bugs Fixed: 5 total (2 original + 3 refactoring-introduced)**
+- Total: 4,631 lines across 7 files
+- **Bugs Fixed: 8 total (2 original + 6 refactoring-introduced)**
 
 ## Code Review vs Main Branch
 
@@ -151,11 +151,10 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - **Issue:** Boss rooms might not clear immediately due to pending spawn counter
 - **Fix:** Reset pendingEnemySpawns = 0 in spawnBoss() and spawnMiniBoss() (SpawnManager.ts:464, 533)
 
-**BUG #7: Phaser Collision Crash (⚠️ NEEDS TESTING)**
-- **Issue:** "can't access property 'isParent' of null" crash when skipping in certain cases
-- **Likely Cause:** Collision system referencing destroyed objects (boss/enemies)
-- **Mitigation:** Boss destruction in debugSkipLevel now properly clears reference
-- **Status:** Needs user testing to verify fix
+**BUG #7: Phaser Collision Crash (✅ FIXED)**
+- **Issue:** "can't access property 'isParent' of null" crash during room transitions
+- **Cause:** Boss was destroyed as part of enemies.clear() while collision system had references
+- **Fix:** Properly order cleanup - destroy boss explicitly BEFORE enemies.clear() (RoomManager.ts:468-481)
 
 **BUG #8: Player Position Not Resetting Between Rooms (✅ FIXED)**
 - **Issue:** Player stayed at same position after room transitions (should reset to bottom)
