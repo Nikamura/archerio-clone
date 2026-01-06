@@ -57,7 +57,7 @@ export class PlayerStats {
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
   private damageAuraLevel: number = 0  // AOE damage aura around player
-  private bloodthirstHeal: number = 0  // HP healed per kill
+  private bloodthirstHealPercent: number = 0  // Percentage of max HP healed per kill (caps at 5%)
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability
@@ -355,8 +355,17 @@ export class PlayerStats {
     return this.damageAuraLevel > 0 ? 80 : 0
   }
 
+  /**
+   * Get bloodthirst heal amount (percentage of max HP)
+   * Returns the actual HP amount to heal based on current max HP
+   */
   getBloodthirstHeal(): number {
-    return this.bloodthirstHeal
+    if (this.bloodthirstHealPercent <= 0) return 0
+    return Math.floor(this.maxHealth * this.bloodthirstHealPercent)
+  }
+
+  getBloodthirstHealPercent(): number {
+    return this.bloodthirstHealPercent
   }
 
   getRageLevel(): number {
@@ -614,11 +623,11 @@ export class PlayerStats {
   }
 
   /**
-   * Add Bloodthirst ability (+2 HP per kill per level)
-   * Stacking: Each level adds +2 HP healed per kill
+   * Add Bloodthirst ability (+1% max HP per kill per level)
+   * Stacking: Each level adds +1% max HP healed per kill (caps at 5%)
    */
   addBloodthirst(): void {
-    this.bloodthirstHeal += 2
+    this.bloodthirstHealPercent = Math.min(0.05, this.bloodthirstHealPercent + 0.01)
   }
 
   /**
@@ -759,7 +768,7 @@ export class PlayerStats {
     this.diagonalArrows = 0
     this.rearArrows = 0
     this.damageAuraLevel = 0
-    this.bloodthirstHeal = 0
+    this.bloodthirstHealPercent = 0
     this.rageLevel = 0
     this.movementSpeedMultiplier = 1.0
     this.maxHealthMultiplier = 1.0
@@ -798,7 +807,7 @@ export class PlayerStats {
     diagonalArrows: number
     rearArrows: number
     damageAuraLevel: number
-    bloodthirstHeal: number
+    bloodthirstHealPercent: number
     rageLevel: number
     movementSpeedMultiplier: number
     maxHealthMultiplier: number
@@ -832,7 +841,7 @@ export class PlayerStats {
       diagonalArrows: this.diagonalArrows,
       rearArrows: this.rearArrows,
       damageAuraLevel: this.damageAuraLevel,
-      bloodthirstHeal: this.bloodthirstHeal,
+      bloodthirstHealPercent: this.bloodthirstHealPercent,
       rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
       maxHealthMultiplier: this.maxHealthMultiplier,

@@ -28,6 +28,7 @@ export interface DamageResult {
 export interface CombatEventHandlers {
   onEnemyKilled: (enemy: Enemy, isBoss: boolean) => void
   onPlayerDamaged: (damage: number) => void
+  onPlayerHealed: (amount: number) => void
   onPlayerDeath: () => void
   onBossHealthUpdate: (health: number, maxHealth: number) => void
   onBossKilled: () => void
@@ -619,6 +620,7 @@ export class CombatSystem {
     const bloodthirstHeal = this.player.getBloodthirstHeal()
     if (bloodthirstHeal > 0) {
       this.player.heal(bloodthirstHeal)
+      this.eventHandlers.onPlayerHealed(bloodthirstHeal)
     }
 
     // Add XP with equipment XP bonus and chapter scaling
