@@ -39,6 +39,7 @@ export default class TalentsScene extends Phaser.Scene {
 
   // Animation state
   private isSpinning: boolean = false
+  private lastTickIndex: number = -1
 
   // Tier colors from requirements
   private readonly TIER_DISPLAY_COLORS: Record<TalentTier, string> = {
@@ -349,20 +350,26 @@ export default class TalentsScene extends Phaser.Scene {
       return
     }
 
-    // Start spin animation
+    // Perform the actual spin FIRST so we know the real result
+    const result = talentManager.spin(currencyManager.get('gold'), (amount) =>
+      currencyManager.spend('gold', amount)
+    )
+
+    // If spin failed, show error and don't animate
+    if (!result.success || !result.talent) {
+      this.showMessage(result.error || 'Spin failed!', '#ff4444')
+      return
+    }
+
+    // Start spin animation with the ACTUAL result
     this.isSpinning = true
     this.updateSpinButtonState()
 
     // Play sound
     audioManager.playMenuSelect()
 
-    // Animate the spin effect
-    this.playSpinAnimation(() => {
-      // Perform the actual spin
-      const result = talentManager.spin(currencyManager.get('gold'), (amount) =>
-        currencyManager.spend('gold', amount)
-      )
-
+    // Animate the spin effect, passing the actual result
+    this.playSpinAnimation(result.talent, () => {
       this.handleSpinResult(result)
     })
   }
@@ -371,15 +378,15 @@ export default class TalentsScene extends Phaser.Scene {
    * Casino-style slot machine spin animation
    * Creates a reel of talents that scrolls and slows down like CS:GO cases
    * Tap to speed up, tap again to skip to reveal
+   * @param actualResult - The actual talent won (spin already performed)
    */
-  private playSpinAnimation(onComplete: () => void) {
+  private playSpinAnimation(actualResult: Talent, onComplete: () => void) {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
     const centerY = height / 2
 
-    // Pre-roll the result so we know what to land on
-    const preRollResult = this.preRollTalent()
-    const resultTalent = preRollResult.talent
+    // Use the actual result from the spin (already performed)
+    const resultTalent = actualResult
     const resultTier = resultTalent.tier
 
     // Skip/speed state
@@ -472,7 +479,6 @@ export default class TalentsScene extends Phaser.Scene {
 
     // Physics-based easing for slot machine feel
     const totalDuration = 4000 // 4 seconds total
-    const spinSound = this.createTickSound()
 
     // Start position
     reel.y = centerY
@@ -584,10 +590,14 @@ export default class TalentsScene extends Phaser.Scene {
         const currentOffset = target.y - centerY
         const currentIndex = Math.floor(-currentOffset / itemHeight)
 
-        // Tick sound and haptic on each item pass
+        // Tick sound and haptic on each item pass (throttle sound to every 3rd item)
         if (currentIndex !== this.lastTickIndex && currentIndex >= 0 && currentIndex < reelItems.length) {
           this.lastTickIndex = currentIndex
-          spinSound.play()
+
+          // Play sound every 3rd item to avoid audio spam
+          if (currentIndex % 3 === 0) {
+            audioManager.playMenuSelect()
+          }
           hapticManager.light()
 
           // Highlight current center item
@@ -622,54 +632,6 @@ export default class TalentsScene extends Phaser.Scene {
       repeat: -1,
     })
 
-  }
-
-  private lastTickIndex: number = -1
-
-  /**
-   * Pre-rolls the talent result before animation
-   * This simulates what talentManager.spin() will return
-   */
-  private preRollTalent(): { talent: Talent; tier: TalentTier } {
-    // Use same logic as TalentManager.rollRandomTalent()
-    const roll = Math.random() * 100
-    let tier: TalentTier
-
-    if (roll < 50) {
-      tier = TalentTier.COMMON
-    } else if (roll < 85) {
-      tier = TalentTier.RARE
-    } else {
-      tier = TalentTier.EPIC
-    }
-
-    // Get talents of this tier that aren't maxed
-    const tierTalents = Object.values(TALENTS).filter((t) => {
-      if (t.tier !== tier) return false
-      const level = talentManager.getTalentLevel(t.id)
-      return level < t.maxLevel
-    })
-
-    // If all in tier are maxed, just pick any from tier for display
-    const availableTalents =
-      tierTalents.length > 0
-        ? tierTalents
-        : Object.values(TALENTS).filter((t) => t.tier === tier)
-
-    const talent = availableTalents[Math.floor(Math.random() * availableTalents.length)]
-    return { talent, tier }
-  }
-
-  /**
-   * Creates a simple tick sound for the slot machine
-   */
-  private createTickSound(): { play: () => void } {
-    // Use existing sound system for tick
-    return {
-      play: () => {
-        audioManager.playMenuSelect()
-      },
-    }
   }
 
   /**
