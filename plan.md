@@ -91,17 +91,27 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 
 ## Bug Fixes During Refactoring
 
-### BUG #1: Inconsistent XP Rewards (✅ FIXED)
-**Before:** Different kill sources awarded different base XP:
-- Bullet kills: base=1 (normal), 10 (boss)
-- DoT/Aura/Chainsaw kills: base=2 (normal), 10 (boss)
+### Original Bugs (✅ FIXED)
 
-**After:** Unified to base=1 for all normal enemy kills in DeathFlowManager.ts:3148
+**BUG #1: Inconsistent XP Rewards**
+- **Before:** Different kill sources awarded different base XP (bullet=1, DOT/aura/chainsaw=2)
+- **After:** Unified to base=1 for all normal enemy kills (DeathFlowManager.ts:148)
 
-### BUG #2: Inconsistent Fire Spread (✅ FIXED)
-**Before:** Fire spread on death only triggered from CombatSystem kills (bullets, spirit cats, lightning). DoT/Aura/Chainsaw deaths did NOT spread fire.
+**BUG #2: Inconsistent Fire Spread**
+- **Before:** Fire spread only worked for bullet kills
+- **After:** ALL kill sources now spread fire via wasOnFire flag (DeathFlowManager.ts:82-86)
 
-**After:** ALL kill sources now spread fire via DeathFlowManager.handleEnemyDeath() checking wasOnFire flag (DeathFlowManager.ts:82-86)
+### Refactoring-Introduced Bugs (✅ FIXED)
+
+**BUG #3: Walls Spawning in Boss Rooms**
+- **Issue:** Boss and mini-boss rooms had walls (should be empty)
+- **Cause:** spawnBoss() and spawnMiniBoss() didn't clear walls
+- **Fix:** Added wallGroup.clearWalls() at start of both methods (SpawnManager.ts:456, 524)
+
+**BUG #4: Debug Skip Only Clearing Minions**
+- **Issue:** Pressing 'N' to skip room only cleared minions, not boss or pending spawns
+- **Cause:** debugSkipLevel() didn't clear boss reference or cancel wave timers
+- **Fix:** Now properly clears enemies, destroys boss, cancels timers (GameScene.ts:1174-1188)
 
 ---
 
