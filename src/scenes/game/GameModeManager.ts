@@ -5,7 +5,7 @@ import type BaseBoss from '../../entities/bosses/BaseBoss'
 import type EnemyBulletPool from '../../systems/EnemyBulletPool'
 import type BombPool from '../../systems/BombPool'
 import type { ParticleManager } from '../../systems/ParticleManager'
-import type { AbilitySystem } from './AbilitySystem'
+import type { AbilitySystem, AcquiredAbility } from './AbilitySystem'
 import type { DropManager } from './DropManager'
 import type InputSystem from './InputSystem'
 import type { DifficultyConfig } from '../../config/difficulty'
@@ -68,7 +68,7 @@ export interface GameModeManagerConfig {
   getCurrentRoom: () => number
   getTotalRooms: () => number
   getEndlessWave: () => number
-  getAcquiredAbilitiesArray: () => string[]
+  getAcquiredAbilitiesArray: () => AcquiredAbility[]
   getRunSeedString: () => string
 }
 
@@ -100,7 +100,7 @@ export class GameModeManager {
   private getCurrentRoom: () => number
   private getTotalRooms: () => number
   private getEndlessWave: () => number
-  private getAcquiredAbilitiesArray: () => string[]
+  private getAcquiredAbilitiesArray: () => AcquiredAbility[]
   private getRunSeedString: () => string
 
   // Game mode state
