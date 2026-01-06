@@ -10,6 +10,11 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+# Cancel in-progress runs when a new run is triggered for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Optional: Filter by PR author
@@ -36,6 +41,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          model: opus
+          update_comment: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -46,11 +53,7 @@ jobs:
 
             Be brief. For each issue: file:line, what's wrong, how to fix it.
 
-            STEPS:
-            1. First, delete any previous review comments from claude-code-action[bot] using:
-               gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --jq '.[] | select(.user.login == "claude-code-action[bot]") | .id' | while read id; do gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/$id; done
-            2. Then post ONE comment with all issues found using `gh pr comment`
-            3. If no issues found, post "No issues found." only
+            If no issues found, respond with "No issues found." only
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
