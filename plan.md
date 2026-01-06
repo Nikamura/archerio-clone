@@ -12,20 +12,23 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - Unified Death Handling: Single code path via DeathFlowManager
 - Organized create(): 6 focused initialization methods
 
-## Progress (Steps 1-5 Complete ✅)
+## Progress (Steps 1-6 Complete ✅)
 
 ✅ **Step 1: DropManager** - Extracted drop spawning, kill tracking (~200 lines) - COMMITTED
 ✅ **Step 2: DeathFlowManager** - Unified all death handling, fixed XP/fire bugs (~190 lines) - COMMITTED
 ✅ **Step 3: Gut CombatSystem** - Removed death logic, now only emits events (~295 lines saved) - COMMITTED
 ✅ **Step 4: HeroAbilityManager** - Extracted chainsaw/aura/spirit cats (~280 lines) - COMMITTED
 ✅ **Step 5: SpawnManager** - Extracted boss/enemy spawning, walls (~702 lines) - COMMITTED
+✅ **Step 6: RoomManager** - Extracted room transitions, doors, cleanup (~500 lines) - COMMITTED
 
-**Current State (After Steps 1-5):**
-- GameScene: ~3,194 lines (down from 3,624 = 430 lines saved)
+**Current State (After Steps 1-6):**
+- GameScene: ~2,694 lines (down from 3,624 = 930 lines saved)
 - CombatSystem: ~550 lines (down from 845)
-- 4 New Systems: ~1,572 lines total
+- 5 New Systems: ~2,072 lines total
 
-**Next Steps:** Extract RoomManager (doors/transitions), GameModeManager (victory/defeat), break up create(), and final cleanup.
+⏳ **Step 7: GameModeManager** - Created file, needs integration (~500 lines) - IN PROGRESS
+
+**Next Steps:** Integrate GameModeManager into GameScene, break up create(), and final cleanup.
 
 ---
 
