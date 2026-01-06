@@ -209,27 +209,27 @@ describe('PlayerStats', () => {
         expect(stats.getExtraProjectiles()).toBe(3)
       })
 
-      it('applies 25% damage penalty per extra projectile', () => {
+      it('applies 15% damage penalty per extra projectile', () => {
         const baseDamage = stats.getDamage() // 10
         stats.addFrontArrow()
-        expect(stats.getDamage()).toBe(Math.floor(baseDamage * 0.75)) // 7
+        expect(stats.getDamage()).toBe(Math.floor(baseDamage * 0.85)) // 8
       })
 
       it('compounds damage penalty correctly', () => {
         // 0 arrows: 10
         expect(stats.getDamage()).toBe(10)
 
-        // 1 arrow: 10 * 0.75 = 7.5 -> 7
+        // 1 arrow: 10 * 0.85 = 8.5 -> 8
+        stats.addFrontArrow()
+        expect(stats.getDamage()).toBe(8)
+
+        // 2 arrows: 10 * 0.85^2 = 7.225 -> 7
         stats.addFrontArrow()
         expect(stats.getDamage()).toBe(7)
 
-        // 2 arrows: 10 * 0.75^2 = 5.625 -> 5
+        // 3 arrows: 10 * 0.85^3 = 6.14125 -> 6
         stats.addFrontArrow()
-        expect(stats.getDamage()).toBe(5)
-
-        // 3 arrows: 10 * 0.75^3 = 4.21875 -> 4
-        stats.addFrontArrow()
-        expect(stats.getDamage()).toBe(4)
+        expect(stats.getDamage()).toBe(6)
       })
     })
 
@@ -246,23 +246,23 @@ describe('PlayerStats', () => {
         expect(stats.getMultishotCount()).toBe(2)
       })
 
-      it('applies 15% attack speed penalty per level', () => {
+      it('applies 10% attack speed penalty per level', () => {
         const baseSpeed = stats.getAttackSpeed() // 1.0
         stats.addMultishot()
-        expect(stats.getAttackSpeed()).toBeCloseTo(baseSpeed * 0.85)
+        expect(stats.getAttackSpeed()).toBeCloseTo(baseSpeed * 0.90)
       })
 
       it('compounds attack speed penalty correctly', () => {
         // 0 multishot: 1.0
         expect(stats.getAttackSpeed()).toBeCloseTo(1.0)
 
-        // 1 multishot: 1.0 * 0.85 = 0.85
+        // 1 multishot: 1.0 * 0.90 = 0.90
         stats.addMultishot()
-        expect(stats.getAttackSpeed()).toBeCloseTo(0.85)
+        expect(stats.getAttackSpeed()).toBeCloseTo(0.90)
 
-        // 2 multishot: 1.0 * 0.85^2 = 0.7225
+        // 2 multishot: 1.0 * 0.90^2 = 0.81
         stats.addMultishot()
-        expect(stats.getAttackSpeed()).toBeCloseTo(0.7225)
+        expect(stats.getAttackSpeed()).toBeCloseTo(0.81)
       })
     })
 
@@ -314,9 +314,9 @@ describe('PlayerStats', () => {
         stats.addDamageBoost(0.30)
         expect(stats.getDamage()).toBe(13)
 
-        // Add Front Arrow: 10 * 1.30 * 0.75 = 9.75 -> 9
+        // Add Front Arrow: 10 * 1.30 * 0.85 = 11.05 -> 11
         stats.addFrontArrow()
-        expect(stats.getDamage()).toBe(9)
+        expect(stats.getDamage()).toBe(11)
       })
 
       it('Multishot penalty applies with Attack Speed Boost', () => {
@@ -324,24 +324,24 @@ describe('PlayerStats', () => {
         stats.addAttackSpeedBoost(0.25)
         expect(stats.getAttackSpeed()).toBeCloseTo(1.25)
 
-        // Add Multishot: 1.25 * 0.85 = 1.0625
+        // Add Multishot: 1.25 * 0.90 = 1.125
         stats.addMultishot()
-        expect(stats.getAttackSpeed()).toBeCloseTo(1.0625)
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.125)
       })
 
       it('all 4 abilities stack together correctly', () => {
         // Add all abilities
-        stats.addFrontArrow() // -25% damage
-        stats.addFrontArrow() // another -25%
-        stats.addMultishot() // -15% attack speed
+        stats.addFrontArrow() // -15% damage
+        stats.addFrontArrow() // another -15%
+        stats.addMultishot() // -10% attack speed
         stats.addAttackSpeedBoost(0.25) // +25% attack speed
         stats.addDamageBoost(0.30) // +30% damage
 
-        // Damage: 10 * 1.30 * 0.75^2 = 10 * 1.30 * 0.5625 = 7.3125 -> 7
-        expect(stats.getDamage()).toBe(7)
+        // Damage: 10 * 1.30 * 0.85^2 = 10 * 1.30 * 0.7225 = 9.3925 -> 9
+        expect(stats.getDamage()).toBe(9)
 
-        // Attack speed: 1.0 * 1.25 * 0.85 = 1.0625
-        expect(stats.getAttackSpeed()).toBeCloseTo(1.0625)
+        // Attack speed: 1.0 * 1.25 * 0.90 = 1.125
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.125)
       })
 
       it('stacking same ability 5 times works', () => {
@@ -349,8 +349,8 @@ describe('PlayerStats', () => {
           stats.addFrontArrow()
         }
         expect(stats.getExtraProjectiles()).toBe(5)
-        // 10 * 0.75^5 = 2.373... -> 2
-        expect(stats.getDamage()).toBe(2)
+        // 10 * 0.85^5 = 4.437... -> 4
+        expect(stats.getDamage()).toBe(4)
 
         for (let i = 0; i < 5; i++) {
           stats.addAttackSpeedBoost(0.25)
@@ -547,27 +547,28 @@ describe('PlayerStats', () => {
     })
 
     describe('Max Health Boost', () => {
-      it('increases max health by 10%', () => {
+      it('increases max health by 15%', () => {
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealth()).toBe(110)
+        // floor(100 * 1.15) = 114 (floating-point: 114.99999...)
+        expect(stats.getMaxHealth()).toBe(114)
       })
 
-      it('stacks multiplicatively (100 -> 110 -> 121 -> 133)', () => {
+      it('stacks multiplicatively (100 -> 114 -> 131 -> 150)', () => {
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealth()).toBe(110)
+        expect(stats.getMaxHealth()).toBe(114)  // floor(100 * 1.15)
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealth()).toBe(121)
+        expect(stats.getMaxHealth()).toBe(131)  // floor(114 * 1.15)
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealth()).toBe(133)
+        expect(stats.getMaxHealth()).toBe(150)  // floor(131 * 1.15)
       })
 
       it('also heals the player by the gained amount', () => {
         stats.takeDamage(50)  // Health is now 50
         expect(stats.getHealth()).toBe(50)
 
-        stats.addMaxHealthBoost()  // Max health goes from 100 to 110, gain is 10
-        expect(stats.getMaxHealth()).toBe(110)
-        expect(stats.getHealth()).toBe(60)  // 50 + 10 = 60
+        stats.addMaxHealthBoost()  // Max health goes from 100 to 114, gain is 14
+        expect(stats.getMaxHealth()).toBe(114)
+        expect(stats.getHealth()).toBe(64)  // 50 + 14 = 64
       })
 
       it('heals correctly when at full health', () => {
@@ -575,16 +576,16 @@ describe('PlayerStats', () => {
         expect(stats.getMaxHealth()).toBe(100)
 
         stats.addMaxHealthBoost()
-        expect(stats.getHealth()).toBe(110)
-        expect(stats.getMaxHealth()).toBe(110)
+        expect(stats.getHealth()).toBe(114)
+        expect(stats.getMaxHealth()).toBe(114)
       })
 
       it('tracks maxHealthMultiplier correctly', () => {
         expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.0)
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.1)
+        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.15)
         stats.addMaxHealthBoost()
-        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.21)
+        expect(stats.getMaxHealthMultiplier()).toBeCloseTo(1.3225)
       })
     })
   })
@@ -654,8 +655,8 @@ describe('PlayerStats', () => {
       expect(snapshot.fireDamagePercent).toBeCloseTo(0.18)
       expect(snapshot.critChance).toBeCloseTo(0.10)
       expect(snapshot.critDamageMultiplier).toBeCloseTo(2.1)
-      // 10 * 1.30 * 0.75 = 9.75 -> 9
-      expect(snapshot.damage).toBe(9)
+      // 10 * 1.30 * 0.85 = 11.05 -> 11
+      expect(snapshot.damage).toBe(11)
       expect(snapshot.attackSpeed).toBeCloseTo(1.0)
     })
   })
