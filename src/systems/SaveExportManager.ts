@@ -14,6 +14,9 @@
 // Current export format version (increment when format changes)
 const EXPORT_VERSION = 1
 
+// Maximum file size for imports (10MB)
+const MAX_IMPORT_SIZE_BYTES = 10 * 1024 * 1024
+
 // All localStorage keys used by the game
 const ALL_STORAGE_KEYS = [
   'aura_archer_save_data',
@@ -162,8 +165,9 @@ class SaveExportManager {
           continue
         }
 
+        // Skip non-game keys silently (file may contain other app data)
         if (!parsed.key.startsWith('aura_archer_')) {
-          result.errors.push(`Line ${i + 1}: Invalid key "${parsed.key}" - must start with "aura_archer_"`)
+          result.skipped++
           continue
         }
 
@@ -207,6 +211,11 @@ class SaveExportManager {
         localStorage.setItem(entry.key, valueString)
         result.imported++
       } catch (e) {
+        // Handle localStorage quota exceeded error
+        if (e instanceof window.DOMException && (e.name === 'QuotaExceededError' || e.code === 22)) {
+          result.errors.push('Storage quota exceeded - not enough space to import save data')
+          break // Stop trying to import more data
+        }
         result.errors.push(`Failed to save ${entry.key}: ${e instanceof Error ? e.message : 'unknown error'}`)
         result.skipped++
       }
@@ -251,6 +260,19 @@ class SaveExportManager {
         const file = (e.target as HTMLInputElement).files?.[0]
         if (!file) {
           resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['No file selected'] })
+          return
+        }
+
+        // Check file size limit
+        if (file.size > MAX_IMPORT_SIZE_BYTES) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+          resolve({
+            success: false,
+            imported: 0,
+            skipped: 0,
+            warnings: [],
+            errors: [`File too large (${sizeMB}MB). Maximum allowed size is 10MB.`],
+          })
           return
         }
 
