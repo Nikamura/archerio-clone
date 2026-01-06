@@ -69,6 +69,7 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ BUG #3 Fixed: Walls no longer spawn in boss rooms
 - ✅ BUG #4 Fixed: Debug skip clears boss and minions
 - ✅ BUG #5 Fixed: Debug skip properly progresses room
+- ✅ BUG #6 Fixed: Fire spread now requires player ability
 
 **Code Quality:**
 - ✅ 0 TypeScript errors
@@ -138,6 +139,15 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - **Issue:** Debug skip cleared enemies but room wouldn't progress to next
 - **Cause:** checkRoomCleared() requires pendingSpawns === 0, but cancelWaveTimers() didn't reset counter
 - **Fix:** Added SpawnManager.resetPendingSpawns() and call it in debugSkipLevel() (SpawnManager.ts:239, GameScene.ts:1186)
+
+**BUG #6: Fire Spread Without Ability**
+- **Issue:** Fire was spreading on enemy death even without player having fire spread ability
+- **Cause:** DeathFlowManager only checked wasOnFire flag, not player.hasFireSpread()
+- **Fix:** Added player.hasFireSpread() check in handleEnemyDeath() (DeathFlowManager.ts:78)
+
+**IMPROVEMENT: Boss Room Pending Spawns**
+- **Issue:** Boss rooms might not clear immediately due to pending spawn counter
+- **Fix:** Reset pendingEnemySpawns = 0 in spawnBoss() and spawnMiniBoss() (SpawnManager.ts:464, 533)
 
 ---
 

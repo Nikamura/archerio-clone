@@ -625,6 +625,13 @@ export default class GameScene extends Phaser.Scene {
           this.player.heal(amount)
           this.updatePlayerHealthUI(this.player)
         },
+        onResetPlayerPosition: () => {
+          // Reset player to bottom center for new room
+          const width = this.cameras.main.width
+          const height = this.cameras.main.height
+          this.player.setPosition(width / 2, height - 100)
+          this.player.setVelocity(0, 0)
+        },
       },
     })
     this.roomManager.initialize()

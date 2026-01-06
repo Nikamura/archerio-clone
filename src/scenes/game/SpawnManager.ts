@@ -461,7 +461,8 @@ export class SpawnManager {
   private spawnBoss(roomNumber: number): void {
     // Clear walls for boss room (boss rooms should be empty)
     this.wallGroup.clearWalls()
-    console.log(`Room ${roomNumber}: Boss room - walls cleared`)
+    this.pendingEnemySpawns = 0 // Boss rooms don't use wave spawns
+    console.log(`Room ${roomNumber}: Boss room - walls cleared, no pending spawns`)
 
     const width = this.scene.cameras.main.width
     const height = this.scene.cameras.main.height
@@ -529,7 +530,8 @@ export class SpawnManager {
   private spawnMiniBoss(roomNumber: number): void {
     // Clear walls for mini-boss room (boss rooms should be empty)
     this.wallGroup.clearWalls()
-    console.log(`Room ${roomNumber}: Mini-boss room - walls cleared`)
+    this.pendingEnemySpawns = 0 // Boss rooms don't use wave spawns
+    console.log(`Room ${roomNumber}: Mini-boss room - walls cleared, no pending spawns`)
 
     const width = this.scene.cameras.main.width
     const height = this.scene.cameras.main.height

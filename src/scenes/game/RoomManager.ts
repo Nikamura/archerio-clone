@@ -29,6 +29,7 @@ export interface RoomManagerEventHandlers {
   onVictory: () => void
   onSpawnEnemies: (roomNumber: number) => void
   onPlayerHealed: (amount: number) => void
+  onResetPlayerPosition: () => void
 }
 
 /**
@@ -325,6 +326,9 @@ export class RoomManager {
     // Clean up current room
     this.cleanupRoom()
 
+    // Reset player position to bottom center for new room
+    this.eventHandlers.onResetPlayerPosition()
+
     // Spawn new enemies
     this.eventHandlers.onSpawnEnemies(this.currentRoom)
 
@@ -364,6 +368,9 @@ export class RoomManager {
 
     // Clean up current room
     this.cleanupRoom()
+
+    // Reset player position to bottom center for new wave
+    this.eventHandlers.onResetPlayerPosition()
 
     // Show wave notification
     this.showEndlessWaveNotification()
