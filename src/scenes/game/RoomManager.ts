@@ -451,7 +451,7 @@ export class RoomManager {
    * Clean up current room (door, enemies, boss state)
    */
   cleanupRoom(): void {
-    // Destroy door
+    // Destroy door first
     if (this.doorSprite) {
       this.doorSprite.destroy()
       this.doorSprite = null
@@ -465,11 +465,19 @@ export class RoomManager {
       this.doorCollider = null
     }
 
-    // Clear pending spawns (handled by SpawnManager)
-    // Reset boss state (handled by SpawnManager)
+    // Cancel pending spawns BEFORE clearing enemies (prevents mid-spawn crashes)
+    this.spawnManager.cancelWaveTimers()
+    this.spawnManager.resetPendingSpawns()
+
+    // Clear boss reference BEFORE clearing enemies group (prevents collision crashes)
+    const boss = this.spawnManager.getBoss()
+    if (boss && boss.active) {
+      boss.destroy()
+      this.spawnManager.setBoss(null)
+    }
     this.scene.scene.get('UIScene').events.emit('hideBossHealth')
 
-    // Destroy all enemies
+    // NOW destroy all enemies (boss already cleared above)
     this.enemies.clear(true, true)
 
     console.log('Room cleaned up')
