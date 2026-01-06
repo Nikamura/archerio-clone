@@ -11,3 +11,8 @@ export {
   type AcquiredAbility,
   type AbilityEventHandlers,
 } from './AbilitySystem'
+export {
+  RoomManager,
+  type RoomManagerConfig,
+  type RoomManagerEventHandlers,
+} from './RoomManager'
