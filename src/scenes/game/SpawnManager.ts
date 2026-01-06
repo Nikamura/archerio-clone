@@ -234,6 +234,13 @@ export class SpawnManager {
   }
 
   /**
+   * Reset pending spawn count (used for debug skip functionality)
+   */
+  resetPendingSpawns(): void {
+    this.pendingEnemySpawns = 0
+  }
+
+  /**
    * Spawn an enemy from a specific position
    */
   private spawnEnemyFromPosition(

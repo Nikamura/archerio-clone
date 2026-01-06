@@ -1181,10 +1181,11 @@ export default class GameScene extends Phaser.Scene {
       this.spawnManager.setBoss(null)
     }
 
-    // Cancel any pending wave spawns
+    // Cancel any pending wave spawns and reset pending count
     this.spawnManager.cancelWaveTimers()
+    this.spawnManager.resetPendingSpawns()
 
-    // Now check if room is cleared (should be since we killed everything)
+    // Now check if room is cleared (should be since we killed everything and cleared pending spawns)
     this.roomManager.checkRoomCleared()
   }
 
