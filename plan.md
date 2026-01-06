@@ -67,7 +67,8 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ BUG #1 Fixed: Unified XP rewards (base=1 for all normal kills)
 - ✅ BUG #2 Fixed: Fire spread now works for ALL kill sources
 - ✅ BUG #3 Fixed: Walls no longer spawn in boss rooms
-- ✅ BUG #4 Fixed: Debug skip now properly clears entire room
+- ✅ BUG #4 Fixed: Debug skip clears boss and minions
+- ✅ BUG #5 Fixed: Debug skip properly progresses room
 
 **Code Quality:**
 - ✅ 0 TypeScript errors
@@ -121,6 +122,11 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - **Issue:** Pressing 'N' to skip room only cleared minions, not boss or pending spawns
 - **Cause:** debugSkipLevel() didn't clear boss reference or cancel wave timers
 - **Fix:** Now properly clears enemies, destroys boss, cancels timers (GameScene.ts:1174-1188)
+
+**BUG #5: Debug Skip Didn't Progress Room**
+- **Issue:** Debug skip cleared enemies but room wouldn't progress to next
+- **Cause:** checkRoomCleared() requires pendingSpawns === 0, but cancelWaveTimers() didn't reset counter
+- **Fix:** Added SpawnManager.resetPendingSpawns() and call it in debugSkipLevel() (SpawnManager.ts:239, GameScene.ts:1186)
 
 ---
 
