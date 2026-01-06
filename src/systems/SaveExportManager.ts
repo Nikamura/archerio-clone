@@ -227,36 +227,57 @@ class SaveExportManager {
 
   /**
    * Download save data as a file
+   * Returns true on success, false on failure (e.g., CSP blocking blob URLs)
    */
-  downloadSave(): void {
-    const data = this.exportData()
-    const blob = new window.Blob([data], { type: 'application/x-ndjson' })
-    const url = window.URL.createObjectURL(blob)
+  downloadSave(): boolean {
+    try {
+      const data = this.exportData()
+      const blob = new window.Blob([data], { type: 'application/x-ndjson' })
+      const url = window.URL.createObjectURL(blob)
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const filename = `aura-archer-save-${timestamp}.ndjson`
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const filename = `aura-archer-save-${timestamp}.ndjson`
 
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-    window.URL.revokeObjectURL(url)
+      window.URL.revokeObjectURL(url)
+      return true
+    } catch (e) {
+      console.error('Failed to create save download:', e)
+      return false
+    }
   }
 
   /**
    * Trigger file picker for importing save data
    * Returns a promise that resolves with import result
+   * Includes timeout to prevent memory leaks if file picker is abandoned
    */
   pickAndImportFile(): Promise<ImportResult> {
     return new Promise((resolve) => {
+      let resolved = false
       const input = document.createElement('input')
       input.type = 'file'
       input.accept = '.ndjson,.json,.txt'
 
+      // Timeout to prevent memory leaks if neither onchange/oncancel fires
+      const timeout = window.setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['File selection cancelled'] })
+        }
+      }, 60000) // 1 minute timeout
+
       input.onchange = async (e) => {
+        window.clearTimeout(timeout)
+        if (resolved) return
+        resolved = true
+
         const file = (e.target as HTMLInputElement).files?.[0]
         if (!file) {
           resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['No file selected'] })
@@ -292,6 +313,9 @@ class SaveExportManager {
       }
 
       input.oncancel = () => {
+        window.clearTimeout(timeout)
+        if (resolved) return
+        resolved = true
         resolve({ success: false, imported: 0, skipped: 0, warnings: [], errors: ['File selection cancelled'] })
       }
 

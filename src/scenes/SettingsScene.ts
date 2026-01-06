@@ -396,8 +396,12 @@ export default class SettingsScene extends Phaser.Scene {
 
     exportBtn.on('pointerdown', () => {
       audioManager.playMenuSelect()
-      saveExportManager.downloadSave()
-      this.showExportSuccessMessage(width)
+      const success = saveExportManager.downloadSave()
+      if (success) {
+        this.showExportSuccessMessage(width)
+      } else {
+        this.showExportErrorMessage(width)
+      }
     })
 
     // Import button
@@ -455,6 +459,46 @@ export default class SettingsScene extends Phaser.Scene {
       ease: 'Power2',
       onComplete: () => {
         this.time.delayedCall(1500, () => {
+          this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => toast.destroy(),
+          })
+        })
+      },
+    })
+  }
+
+  private showExportErrorMessage(width: number) {
+    const height = this.cameras.main.height
+
+    // Toast message at bottom
+    const toast = this.add.container(width / 2, height - 120)
+    toast.setDepth(102)
+    toast.setAlpha(0)
+
+    const toastBg = this.add.rectangle(0, 0, 220, 40, 0x663333, 0.95)
+    toastBg.setStrokeStyle(1, 0xaa4444)
+
+    const toastText = this.add
+      .text(0, 0, 'Export failed', {
+        fontSize: '14px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+
+    toast.add([toastBg, toastText])
+
+    // Fade in, wait, fade out
+    this.tweens.add({
+      targets: toast,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        this.time.delayedCall(2000, () => {
           this.tweens.add({
             targets: toast,
             alpha: 0,
@@ -556,23 +600,28 @@ export default class SettingsScene extends Phaser.Scene {
   }
 
   private async performImport(width: number) {
-    const result = await saveExportManager.pickAndImportFile()
+    try {
+      const result = await saveExportManager.pickAndImportFile()
 
-    if (result.success) {
-      // Build success message with any warnings
-      let message = `Imported ${result.imported} save entries.`
-      if (result.warnings.length > 0) {
-        // Filter out the "exported on" info message for the success dialog
-        const importantWarnings = result.warnings.filter((w) => !w.startsWith('Save exported on'))
-        if (importantWarnings.length > 0) {
-          message += `\n\n${importantWarnings.slice(0, 2).join('\n')}`
+      if (result.success) {
+        // Build success message with any warnings
+        let message = `Imported ${result.imported} save entries.`
+        if (result.warnings.length > 0) {
+          // Filter out the "exported on" info message for the success dialog
+          const importantWarnings = result.warnings.filter((w) => !w.startsWith('Save exported on'))
+          if (importantWarnings.length > 0) {
+            message += `\n\n${importantWarnings.slice(0, 2).join('\n')}`
+          }
         }
+        message += '\n\nRestarting game...'
+        this.showImportResultDialog(width, true, message)
+      } else if (result.errors.length > 0 && result.errors[0] !== 'File selection cancelled') {
+        const errorMsg = result.errors.slice(0, 3).join('\n')
+        this.showImportResultDialog(width, false, errorMsg)
       }
-      message += '\n\nRestarting game...'
-      this.showImportResultDialog(width, true, message)
-    } else if (result.errors.length > 0 && result.errors[0] !== 'File selection cancelled') {
-      const errorMsg = result.errors.slice(0, 3).join('\n')
-      this.showImportResultDialog(width, false, errorMsg)
+    } catch (error) {
+      console.error('Import error:', error)
+      this.showImportResultDialog(width, false, 'Unexpected error during import')
     }
   }
 
