@@ -27,9 +27,17 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - CombatSystem: ~810 lines
 - 6 New Systems: ~2,625 lines total (DropManager, DeathFlowManager, HeroAbilityManager, SpawnManager, RoomManager, GameModeManager)
 
-**NOTE:** All 6 system managers have been CREATED and build successfully, but GameScene still contains the old methods. The integration (removing old methods, wiring managers) is the final cleanup step.
+**NOTE:** All 6 system managers have been CREATED and build successfully. GameScene still contains the old methods that need to be removed.
 
-**Next Steps:** Final integration to remove old methods from GameScene, break up create(), verify all functionality, update documentation.
+**Integration Strategy:**
+1. SpawnManager, RoomManager, GameModeManager need full integration (import, initialize, remove old methods)
+2. Remove ~1,500 lines of duplicate code from GameScene
+3. Break up create() into focused methods
+4. Final verification and testing
+
+**Estimated Final State:**
+- GameScene: ~800-1,000 lines (down from 3,624 original)
+- Total system lines: ~3,500 lines (well-organized across 6+ files)
 
 ---
 
