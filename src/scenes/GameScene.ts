@@ -604,7 +604,6 @@ export default class GameScene extends Phaser.Scene {
       damageNumberPool: this.damageNumberPool,
       talentBonuses: this.talentBonuses,
       difficultyConfig: this.difficultyConfig,
-      bonusXPMultiplier: this.bonusXPMultiplier,
       eventHandlers: {
         onEnemyKilled: (enemy, isBoss) => this.handleCombatEnemyKilled(enemy, isBoss),
         onPlayerDamaged: (damage) => this.handleCombatPlayerDamaged(damage),

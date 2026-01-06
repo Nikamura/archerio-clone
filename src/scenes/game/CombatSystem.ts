@@ -12,7 +12,7 @@ import type DamageNumberPool from '../../systems/DamageNumberPool'
 import type { TalentBonuses } from '../../config/talentData'
 import type { DifficultyConfig } from '../../config/difficulty'
 import { chapterManager } from '../../systems/ChapterManager'
-import { getChapterDefinition, getXpMultiplierForChapter, getChapterElementalResistances, type ChapterId } from '../../config/chapterData'
+import { getChapterDefinition, getChapterElementalResistances, type ChapterId } from '../../config/chapterData'
 
 /**
  * Damage result from player taking damage
@@ -49,7 +49,6 @@ export interface CombatSystemConfig {
   damageNumberPool: DamageNumberPool
   talentBonuses: TalentBonuses
   difficultyConfig: DifficultyConfig
-  bonusXPMultiplier: number
   eventHandlers: CombatEventHandlers
 }
 
@@ -69,7 +68,6 @@ export class CombatSystem {
   private damageNumberPool: DamageNumberPool
   private talentBonuses: TalentBonuses
   private difficultyConfig: DifficultyConfig
-  private bonusXPMultiplier: number
   private eventHandlers: CombatEventHandlers
 
   private isGameOver: boolean = false
@@ -90,7 +88,6 @@ export class CombatSystem {
     this.damageNumberPool = config.damageNumberPool
     this.talentBonuses = config.talentBonuses
     this.difficultyConfig = config.difficultyConfig
-    this.bonusXPMultiplier = config.bonusXPMultiplier
     this.eventHandlers = config.eventHandlers
   }
 
@@ -610,44 +607,12 @@ export class CombatSystem {
   }
 
   /**
-   * Handle common enemy killed logic
+   * Handle enemy killed - GUTTED to only emit event
+   * All death logic is now in DeathFlowManager (GameScene)
    */
   private handleEnemyKilled(enemy: Enemy, isBoss: boolean): void {
-    // Fire Spread: Spread fire to nearby enemies if dying enemy was on fire
-    if (this.player.hasFireSpread() && enemy.isOnFire()) {
-      this.spreadFireOnDeath(enemy)
-    }
-
-    // Death particles and screen shake
-    if (isBoss) {
-      this.particles.emitBossDeath(enemy.x, enemy.y)
-      this.screenShake.onBossDeath()
-    } else {
-      this.particles.emitDeath(enemy.x, enemy.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-    }
-
-    // Bloodthirst: Heal on kill
-    const bloodthirstHeal = this.player.getBloodthirstHeal()
-    if (bloodthirstHeal > 0) {
-      this.player.heal(bloodthirstHeal)
-      this.eventHandlers.onPlayerHealed(bloodthirstHeal)
-    }
-
-    // Add XP with equipment XP bonus and chapter scaling
-    const baseXpGain = isBoss ? 10 : 1
-    const chapterId = chapterManager.getSelectedChapter()
-    const chapterXpMultiplier = getXpMultiplierForChapter(chapterId)
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
-
-    // Notify event handlers
+    // Just emit the event - GameScene routes to DeathFlowManager
     this.eventHandlers.onEnemyKilled(enemy, isBoss)
-    this.eventHandlers.onXPGained(xpGain)
-
-    if (isBoss) {
-      this.eventHandlers.onBossKilled()
-    }
   }
 
   /**
