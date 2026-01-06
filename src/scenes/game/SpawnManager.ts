@@ -452,6 +452,10 @@ export class SpawnManager {
    * Spawn the final boss for the chapter
    */
   private spawnBoss(roomNumber: number): void {
+    // Clear walls for boss room (boss rooms should be empty)
+    this.wallGroup.clearWalls()
+    console.log(`Room ${roomNumber}: Boss room - walls cleared`)
+
     const width = this.scene.cameras.main.width
     const height = this.scene.cameras.main.height
 
@@ -516,6 +520,10 @@ export class SpawnManager {
    * Spawn a mini-boss (weaker version of boss for mid-game rooms)
    */
   private spawnMiniBoss(roomNumber: number): void {
+    // Clear walls for mini-boss room (boss rooms should be empty)
+    this.wallGroup.clearWalls()
+    console.log(`Room ${roomNumber}: Mini-boss room - walls cleared`)
+
     const width = this.scene.cameras.main.width
     const height = this.scene.cameras.main.height
 

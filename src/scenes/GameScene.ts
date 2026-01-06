@@ -1171,17 +1171,21 @@ export default class GameScene extends Phaser.Scene {
 
     console.log('Debug: Skipping level', this.roomManager.getCurrentRoom())
 
-    // This debug feature no longer works with refactored managers
-    // Just skip to next room manually
-    console.warn('Debug skip level is not fully implemented with new manager architecture')
+    // Clear all enemies (including boss and minions)
+    this.enemies.clear(true, true)
 
-    // For now, just pretend the room is cleared and spawn the door
-    // A better implementation would need to expose more from RoomManager
-    if (!this.roomManager.isCleared()) {
-      // Force clear the room
-      this.enemies.clear(true, true)
-      this.roomManager.checkRoomCleared()
+    // Clear boss reference if there is one
+    const boss = this.spawnManager.getBoss()
+    if (boss && boss.active) {
+      boss.destroy()
+      this.spawnManager.setBoss(null)
     }
+
+    // Cancel any pending wave spawns
+    this.spawnManager.cancelWaveTimers()
+
+    // Now check if room is cleared (should be since we killed everything)
+    this.roomManager.checkRoomCleared()
   }
 
   /**
