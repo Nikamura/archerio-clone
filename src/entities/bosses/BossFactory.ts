@@ -31,11 +31,11 @@ export function createBoss(
   bossType: BossType,
   bulletPool: EnemyBulletPool,
   options?: BossOptions
-): BaseBoss | Boss {
+): BaseBoss {
   switch (bossType) {
     // Chapter 1 - Dark Dungeon
     case 'demon':
-      return new Boss(scene, x, y, bulletPool, options)
+      return new Boss(scene, x, y, bulletPool, options) as unknown as BaseBoss
 
     // Chapter 2 - Forest Ruins
     case 'treant':
@@ -87,7 +87,7 @@ export function createBoss(
 
     default:
       console.warn(`Unknown boss type: ${bossType}, falling back to default boss`)
-      return new Boss(scene, x, y, bulletPool, options)
+      return new Boss(scene, x, y, bulletPool, options) as unknown as BaseBoss
   }
 }
 
