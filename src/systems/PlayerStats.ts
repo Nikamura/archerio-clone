@@ -57,7 +57,7 @@ export class PlayerStats {
   private diagonalArrows: number = 0  // Number of diagonal arrow pairs
   private rearArrows: number = 0  // Number of rear arrows
   private damageAuraLevel: number = 0  // AOE damage aura around player
-  private bloodthirstHealPercent: number = 0  // Percentage of max HP healed per kill (caps at 10%)
+  private bloodthirstHealPercent: number = 0  // Percentage of max HP healed per kill (caps at 5%)
   private rageLevel: number = 0  // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0  // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0  // Max health multiplier from Vitality ability

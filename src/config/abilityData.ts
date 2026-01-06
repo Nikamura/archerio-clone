@@ -119,7 +119,7 @@ export const ABILITIES: AbilityData[] = [
     description: '+1% max HP per kill',
     color: 0xff3333,
     iconKey: 'abilityBloodthirst',
-    maxLevel: 5, // Caps at 5% max HP per kill
+    maxLevel: 5,
   },
   {
     id: 'rage',
