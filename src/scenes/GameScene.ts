@@ -600,6 +600,7 @@ export default class GameScene extends Phaser.Scene {
       eventHandlers: {
         onEnemyKilled: (enemy, isBoss) => this.handleCombatEnemyKilled(enemy, isBoss),
         onPlayerDamaged: (damage) => this.handleCombatPlayerDamaged(damage),
+        onPlayerHealed: (_amount) => this.updatePlayerHealthUI(this.player),
         onPlayerDeath: () => this.handleCombatPlayerDeath(),
         onBossHealthUpdate: (health, maxHealth) => {
           this.scene.get('UIScene').events.emit('updateBossHealth', health, maxHealth)
