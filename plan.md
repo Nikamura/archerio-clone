@@ -51,14 +51,22 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 ## 🏆 Refactoring Success Metrics 🏆
 
 **Line Count Achievement:**
-- GameScene: **1,976 lines** (down from 3,624 = **45% reduction!**)
+- GameScene: **1,980 lines** (down from 3,624 = **45% reduction!**)
 - CombatSystem: 810 lines (down from 845)
-- 6 New Systems: 2,625 lines (clean, focused files)
-- **Total: 5,411 lines** (well-distributed across 8 files)
+- 6 New Systems: 2,633 lines (clean, focused files)
+  - DeathFlowManager: 189 lines
+  - DropManager: 213 lines
+  - GameModeManager: 657 lines
+  - HeroAbilityManager: 365 lines
+  - RoomManager: 499 lines
+  - SpawnManager: 710 lines
+- **Total: 4,613 lines** (well-distributed across 7 files)
 
 **Bug Fixes:**
 - ✅ BUG #1 Fixed: Unified XP rewards (base=1 for all normal kills)
 - ✅ BUG #2 Fixed: Fire spread now works for ALL kill sources
+- ✅ BUG #3 Fixed: Walls no longer spawn in boss rooms
+- ✅ BUG #4 Fixed: Debug skip now properly clears entire room
 
 **Code Quality:**
 - ✅ 0 TypeScript errors
