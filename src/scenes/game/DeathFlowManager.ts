@@ -74,8 +74,8 @@ export class DeathFlowManager {
    * Unified flow ensures consistent behavior regardless of kill source
    */
   handleEnemyDeath(enemy: Enemy, killInfo: KillInfo): void {
-    // 1. Fire spread if enemy was burning (UNIFIED - all sources spread)
-    if (killInfo.wasOnFire && this.spreadFireOnDeath) {
+    // 1. Fire spread if enemy was burning AND player has fire spread ability
+    if (killInfo.wasOnFire && this.player.hasFireSpread() && this.spreadFireOnDeath) {
       this.applyFireSpread(enemy)
     }
 
