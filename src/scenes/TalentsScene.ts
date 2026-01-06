@@ -370,6 +370,7 @@ export default class TalentsScene extends Phaser.Scene {
   /**
    * Casino-style slot machine spin animation
    * Creates a reel of talents that scrolls and slows down like CS:GO cases
+   * Tap to speed up, tap again to skip to reveal
    */
   private playSpinAnimation(onComplete: () => void) {
     const width = this.cameras.main.width
@@ -381,9 +382,22 @@ export default class TalentsScene extends Phaser.Scene {
     const resultTalent = preRollResult.talent
     const resultTier = resultTalent.tier
 
-    // Create dark overlay
+    // Skip/speed state
+    let tapCount = 0
+    let isRevealing = false
+    let reelTween: Phaser.Tweens.Tween | null = null
+    let arrowTween: Phaser.Tweens.Tween | null = null
+
+    // Create dark overlay (interactive for skip)
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
     overlay.setDepth(100)
+    overlay.setInteractive()
+
+    // "Tap to skip" hint
+    const skipHint = this.add.text(width / 2, height - 80, 'Tap to speed up', {
+      fontSize: '14px',
+      color: '#888888',
+    }).setOrigin(0.5).setDepth(103)
 
     // Create the slot machine frame
     const frameWidth = 300
@@ -454,7 +468,6 @@ export default class TalentsScene extends Phaser.Scene {
     }
 
     // Calculate animation parameters
-    const startY = 0
     const endY = -(resultPosition * itemHeight) // Land on result position
 
     // Physics-based easing for slot machine feel
@@ -462,15 +475,111 @@ export default class TalentsScene extends Phaser.Scene {
     const spinSound = this.createTickSound()
 
     // Start position
-    reel.y = centerY + startY
+    reel.y = centerY
+
+    // Cleanup function for all resources
+    const cleanup = () => {
+      overlay.destroy()
+      frame.destroy()
+      reel.destroy()
+      maskShape.destroy()
+      skipHint.destroy()
+    }
+
+    // Reveal function - shows the final result with effects
+    const triggerReveal = () => {
+      if (isRevealing) return
+      isRevealing = true
+
+      // Stop the reel tween and snap to final position
+      if (reelTween) {
+        reelTween.stop()
+      }
+      if (arrowTween) {
+        arrowTween.stop()
+      }
+
+      // Snap reel to final position
+      reel.y = centerY + endY
+      this.lastTickIndex = -1
+
+      // Highlight winning item
+      reelItems.forEach((item, idx) => {
+        if (idx === resultPosition) {
+          item.bg.setFillStyle(0x3a3a5e)
+        } else {
+          item.bg.setFillStyle(0x2a2a3e)
+        }
+      })
+
+      // Hide skip hint
+      skipHint.setVisible(false)
+
+      // Screen shake based on tier
+      this.playTierScreenShake(resultTier)
+
+      // Particle explosion based on tier
+      this.playTierParticles(width / 2, centerY, resultTier)
+
+      // Haptic feedback based on tier
+      this.playTierHaptic(resultTier)
+
+      // Highlight the winning item with glow effect
+      const winningItem = reelItems[resultPosition]
+      this.playWinningGlow(winningItem.bg, winningItem.text, resultTier)
+
+      // Flash the frame border with tier color
+      const tierColorNum = parseInt(this.TIER_DISPLAY_COLORS[resultTier].replace('#', ''), 16)
+      this.tweens.add({
+        targets: frameBg,
+        strokeColor: { from: 0xffffff, to: tierColorNum },
+        duration: 100,
+        yoyo: true,
+        repeat: 3,
+      })
+
+      // Wait for effects then complete (shorter wait if skipped)
+      const waitTime = tapCount >= 2 ? 800 : 1500
+      this.time.delayedCall(waitTime, () => {
+        // Fade out everything
+        this.tweens.add({
+          targets: [overlay, frame, reel, skipHint],
+          alpha: 0,
+          duration: tapCount >= 2 ? 150 : 300,
+          onComplete: () => {
+            cleanup()
+            onComplete()
+          },
+        })
+      })
+    }
+
+    // Handle tap to speed up / skip
+    overlay.on('pointerdown', () => {
+      tapCount++
+      hapticManager.light()
+
+      if (tapCount === 1 && !isRevealing) {
+        // First tap: speed up animation (3x faster)
+        if (reelTween && reelTween.isPlaying()) {
+          reelTween.timeScale = 3
+        }
+        skipHint.setText('Tap again to skip')
+      } else if (tapCount >= 2 && !isRevealing) {
+        // Second tap: skip directly to reveal
+        triggerReveal()
+      }
+    })
 
     // Animate the reel with custom easing (fast start, slow end like CS:GO)
-    this.tweens.add({
+    reelTween = this.tweens.add({
       targets: reel,
       y: centerY + endY,
       duration: totalDuration,
       ease: 'Cubic.easeOut',
       onUpdate: (_tween, target) => {
+        if (isRevealing) return
+
         // Calculate which item is at center
         const currentOffset = target.y - centerY
         const currentIndex = Math.floor(-currentOffset / itemHeight)
@@ -495,53 +604,17 @@ export default class TalentsScene extends Phaser.Scene {
         // Clean up tick tracking
         this.lastTickIndex = -1
 
-        // Dramatic pause before reveal
-        this.time.delayedCall(200, () => {
-          // Screen shake based on tier
-          this.playTierScreenShake(resultTier)
-
-          // Particle explosion based on tier
-          this.playTierParticles(width / 2, centerY, resultTier)
-
-          // Haptic feedback based on tier
-          this.playTierHaptic(resultTier)
-
-          // Highlight the winning item with glow effect
-          const winningItem = reelItems[resultPosition]
-          this.playWinningGlow(winningItem.bg, winningItem.text, resultTier)
-
-          // Flash the frame border with tier color
-          const tierColor = parseInt(this.TIER_DISPLAY_COLORS[resultTier].replace('#', ''), 16)
-          this.tweens.add({
-            targets: frameBg,
-            strokeColor: { from: 0xffffff, to: tierColor },
-            duration: 100,
-            yoyo: true,
-            repeat: 3,
+        // Dramatic pause before reveal (skip if already revealing)
+        if (!isRevealing) {
+          this.time.delayedCall(200, () => {
+            triggerReveal()
           })
-
-          // Wait for effects then complete
-          this.time.delayedCall(1500, () => {
-            // Fade out everything
-            this.tweens.add({
-              targets: [overlay, frame, reel],
-              alpha: 0,
-              duration: 300,
-              onComplete: () => {
-                overlay.destroy()
-                frame.destroy()
-                reel.destroy()
-                maskShape.destroy()
-                onComplete()
-              },
-            })
-          })
-        })
+        }
       },
     })
 
     // Pulsing arrows during spin
-    this.tweens.add({
+    arrowTween = this.tweens.add({
       targets: [leftArrow, rightArrow],
       alpha: { from: 1, to: 0.3 },
       duration: 200,
