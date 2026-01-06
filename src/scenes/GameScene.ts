@@ -10,12 +10,12 @@ import {
   HealerEnemy,
   SpawnerEnemy,
 } from '../entities/enemies'
-import Boss from '../entities/Boss'
 import { InputSystem } from './game/InputSystem'
 import { AbilitySystem } from './game/AbilitySystem'
 import { CombatSystem } from './game/CombatSystem'
 import { DropManager } from './game/DropManager'
 import { DeathFlowManager, type KillInfo } from './game/DeathFlowManager'
+import { HeroAbilityManager } from './game/HeroAbilityManager'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import SpiritCatPool from '../systems/SpiritCatPool'
@@ -61,6 +61,7 @@ export default class GameScene extends Phaser.Scene {
   private combatSystem!: CombatSystem
   private dropManager!: DropManager
   private deathFlowManager!: DeathFlowManager
+  private heroAbilityManager!: HeroAbilityManager
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -87,7 +88,7 @@ export default class GameScene extends Phaser.Scene {
   private isTransitioning: boolean = false
   private isLevelingUp: boolean = false // Player is selecting ability (immune to damage)
   private showingTutorial: boolean = false // Tutorial overlay is visible
-  private boss: Boss | null = null
+  private boss: BaseBoss | null = null
   private currentBossType: BossType | null = null // For kill tracking
   private bossSpawnTime: number = 0 // Track when boss was spawned for kill time metrics
   private runStartTime: number = 0
@@ -119,10 +120,6 @@ export default class GameScene extends Phaser.Scene {
   private nearestEnemyCacheFrame: number = 0
   private readonly NEAREST_ENEMY_CACHE_FRAMES = 3 // Recalculate every 3 frames
 
-  // Damage aura tracking
-  private lastAuraDamageTime: number = 0
-  private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms (2x per second)
-
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses
 
@@ -134,22 +131,9 @@ export default class GameScene extends Phaser.Scene {
   private ironWillActive: boolean = false
   private ironWillBonusHP: number = 0
 
-  // Damage aura visual effect
-  private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null
-
-  // Chainsaw orbit system
-  private chainsawSprites: Phaser.GameObjects.Sprite[] = []
-  private chainsawOrbitAngle: number = 0
-  private lastChainsawDamageTime: number = 0
-  private readonly CHAINSAW_DAMAGE_INTERVAL = 200  // 5 damage ticks per second
-  private readonly CHAINSAW_ORBIT_RADIUS = 100
-  private readonly CHAINSAW_ORBIT_PERIOD = 2000  // 2 seconds per full rotation
-  private readonly CHAINSAW_HITBOX_RADIUS = 24
-
-  // Spirit cat system (Meowgik hero ability)
+  // Spirit cat system (Meowgik hero ability) - still needed for initialization
   private spiritCatPool: SpiritCatPool | null = null
   private spiritCatConfig: SpiritCatConfig | null = null
-  private lastSpiritCatSpawnTime: number = 0
 
   // Weapon projectile config (for changing bullet sprites based on equipped weapon)
   private weaponProjectileConfig: { sprite: string; sizeMultiplier: number } | null = null
@@ -466,10 +450,6 @@ export default class GameScene extends Phaser.Scene {
     this.screenShake.setEnabled(settings.screenShakeEnabled)
     this.applyColorblindMode(settings.colorblindMode)
 
-    // Create damage aura graphics (rendered below player)
-    this.damageAuraGraphics = this.add.graphics()
-    this.damageAuraGraphics.setDepth(this.player.depth - 1)
-
     // Initialize performance monitoring (debug mode only)
     if (this.game.config.physics?.arcade?.debug) {
       performanceMonitor.createOverlay(this)
@@ -650,6 +630,21 @@ export default class GameScene extends Phaser.Scene {
         onLevelUp: () => this.handleLevelUp(),
         onPlayerHealed: (_amount) => this.updatePlayerHealthUI(this.player),
         onEnemyCacheInvalidate: () => this.invalidateNearestEnemyCache(),
+      },
+    })
+
+    // Initialize hero ability manager (hero-specific passives)
+    this.heroAbilityManager = new HeroAbilityManager({
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      particles: this.particles,
+      damageNumberPool: this.damageNumberPool,
+      spiritCatPool: this.spiritCatPool,
+      spiritCatConfig: this.spiritCatConfig,
+      eventHandlers: {
+        onEnemyKilled: (enemy, killInfo) => this.deathFlowManager.handleEnemyDeath(enemy, killInfo),
+        getBoss: () => this.boss,
       },
     })
 
@@ -1226,7 +1221,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Create the appropriate boss using the factory
     const newBoss = createBoss(this, bossX, bossY, bossType, this.enemyBulletPool, bossOptions)
-    this.boss = newBoss as Boss // Type assertion for compatibility
+    this.boss = newBoss
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = bossType // Store for kill tracking
     this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
@@ -1289,7 +1284,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Create the mini-boss using the factory
     const newMiniBoss = createBoss(this, bossX, bossY, miniBossType, this.enemyBulletPool, miniBossOptions)
-    this.boss = newMiniBoss as Boss // Type assertion for compatibility
+    this.boss = newMiniBoss
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = miniBossType // Store for kill tracking
     this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
@@ -2612,241 +2607,10 @@ export default class GameScene extends Phaser.Scene {
     this.cachedNearestEnemy = null
   }
 
-  /**
-   * Update the damage aura visual effect around the player
-   * Shows a pulsing circle when damage aura ability is active
-   */
-  private updateDamageAuraVisual(time: number, playerX: number, playerY: number): void {
-    if (!this.damageAuraGraphics) return
 
-    const auraRadius = this.player.getDamageAuraRadius()
 
-    // Clear previous frame
-    this.damageAuraGraphics.clear()
 
-    // Only draw if player has damage aura ability
-    if (auraRadius <= 0) return
 
-    // Create pulsing effect
-    const pulseSpeed = 0.003 // Pulse speed
-    const pulsePhase = (Math.sin(time * pulseSpeed) + 1) / 2 // 0 to 1
-    const pulseAlpha = 0.15 + pulsePhase * 0.2 // 0.15 to 0.35
-
-    // Outer ring - main aura boundary
-    this.damageAuraGraphics.lineStyle(3, 0xff4400, 0.5 + pulsePhase * 0.3)
-    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius)
-
-    // Inner glow - fills the aura area
-    this.damageAuraGraphics.fillStyle(0xff4400, pulseAlpha * 0.4)
-    this.damageAuraGraphics.fillCircle(playerX, playerY, auraRadius)
-
-    // Inner ring for depth effect
-    this.damageAuraGraphics.lineStyle(2, 0xff6600, 0.3 + pulsePhase * 0.2)
-    this.damageAuraGraphics.strokeCircle(playerX, playerY, auraRadius * 0.7)
-  }
-
-  /**
-   * Apply damage aura to nearby enemies
-   * Deals DPS damage every AURA_DAMAGE_INTERVAL ms to enemies within radius
-   */
-  private applyDamageAura(time: number, playerX: number, playerY: number): void {
-    const auraDPS = this.player.getDamageAuraDPS()
-    if (auraDPS <= 0) return
-
-    // Only apply damage at intervals
-    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return
-    this.lastAuraDamageTime = time
-
-    const auraRadius = this.player.getDamageAuraRadius()
-    // Calculate damage per tick (DPS / 2 since we apply 2x per second)
-    const damagePerTick = Math.floor(auraDPS / 2)
-
-    const enemiesToDestroy: Enemy[] = []
-
-    // Find and damage all enemies within aura radius
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (!e.active) return
-
-      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y)
-      if (distance <= auraRadius) {
-        const killed = e.takeDamage(damagePerTick)
-
-        // Show damage number
-        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false)
-
-        // Visual feedback - emit particles
-        this.particles.emitHit(e.x, e.y)
-
-        if (killed) {
-          enemiesToDestroy.push(e)
-        }
-      }
-    })
-
-    // Handle deaths from aura damage
-    for (const e of enemiesToDestroy) {
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      const killInfo: KillInfo = {
-        source: 'aura',
-        isBoss: !!isBoss,
-        isCrit: false,
-        wasOnFire: e.isOnFire(),
-        position: { x: e.x, y: e.y },
-      }
-
-      this.deathFlowManager.handleEnemyDeath(e, killInfo)
-    }
-  }
-
-  /**
-   * Update chainsaw orbit visual and damage
-   * Chainsaws orbit the player at fixed radius, spinning on their own axis
-   * Each chainsaw level adds +1 chainsaw evenly spaced around orbit
-   */
-  private updateChainsawOrbit(time: number, delta: number, playerX: number, playerY: number): void {
-    const chainsawCount = this.player.getChainsawOrbitCount()
-    if (chainsawCount <= 0) {
-      // No chainsaws, hide any existing sprites
-      this.chainsawSprites.forEach(sprite => sprite.setVisible(false))
-      return
-    }
-
-    // Ensure we have enough sprites for current chainsaw count
-    while (this.chainsawSprites.length < chainsawCount) {
-      const sprite = this.add.sprite(0, 0, 'chainsawOrbit')
-      sprite.setDisplaySize(48, 48)
-      sprite.setDepth(this.player.depth + 1)
-      this.chainsawSprites.push(sprite)
-    }
-
-    // Update orbital angle (2s per full rotation)
-    this.chainsawOrbitAngle += (Math.PI * 2 / this.CHAINSAW_ORBIT_PERIOD) * delta
-
-    // Position and rotate each chainsaw
-    for (let i = 0; i < chainsawCount; i++) {
-      const sprite = this.chainsawSprites[i]
-      if (!sprite) continue
-
-      sprite.setVisible(true)
-
-      // Calculate orbital position (evenly spaced)
-      const angle = this.chainsawOrbitAngle + (Math.PI * 2 * i / chainsawCount)
-      const x = playerX + Math.cos(angle) * this.CHAINSAW_ORBIT_RADIUS
-      const y = playerY + Math.sin(angle) * this.CHAINSAW_ORBIT_RADIUS
-
-      sprite.setPosition(x, y)
-
-      // Spin on own axis (fast rotation for blur effect)
-      sprite.rotation += 0.3
-    }
-
-    // Hide any extra sprites (from previous higher levels if ability was lost)
-    for (let i = chainsawCount; i < this.chainsawSprites.length; i++) {
-      this.chainsawSprites[i].setVisible(false)
-    }
-
-    // Apply damage to enemies within chainsaw hitbox
-    this.applyChainsawDamage(time, playerX, playerY, chainsawCount)
-  }
-
-  /**
-   * Apply chainsaw damage to enemies within hitbox radius of any chainsaw
-   */
-  private applyChainsawDamage(time: number, playerX: number, playerY: number, chainsawCount: number): void {
-    // Only apply damage at intervals
-    if (time - this.lastChainsawDamageTime < this.CHAINSAW_DAMAGE_INTERVAL) return
-    this.lastChainsawDamageTime = time
-
-    const damage = this.player.getChainsawOrbitDamage()
-    if (damage <= 0) return
-
-    const enemiesToDestroy: Enemy[] = []
-    const hitEnemies = new Set<Enemy>()  // Track hit enemies to prevent double damage from multiple chainsaws
-
-    // Check each chainsaw position for enemy collisions
-    for (let i = 0; i < chainsawCount; i++) {
-      const angle = this.chainsawOrbitAngle + (Math.PI * 2 * i / chainsawCount)
-      const chainsawX = playerX + Math.cos(angle) * this.CHAINSAW_ORBIT_RADIUS
-      const chainsawY = playerY + Math.sin(angle) * this.CHAINSAW_ORBIT_RADIUS
-
-      // Find enemies within chainsaw hitbox
-      this.enemies.getChildren().forEach((enemy) => {
-        const e = enemy as Enemy
-        if (!e.active || hitEnemies.has(e)) return
-
-        const distance = Phaser.Math.Distance.Between(chainsawX, chainsawY, e.x, e.y)
-        if (distance <= this.CHAINSAW_HITBOX_RADIUS + 16) {  // +16 for enemy hitbox
-          hitEnemies.add(e)
-
-          const killed = e.takeDamage(damage)
-
-          // Visual feedback
-          this.damageNumberPool.showEnemyDamage(e.x, e.y, damage, false)
-          this.particles.emitHit(e.x, e.y)
-          hapticManager.light()
-
-          if (killed) {
-            enemiesToDestroy.push(e)
-          }
-        }
-      })
-    }
-
-    // Handle deaths from chainsaw damage
-    for (const e of enemiesToDestroy) {
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      const killInfo: KillInfo = {
-        source: 'chainsaw',
-        isBoss: !!isBoss,
-        isCrit: false,
-        wasOnFire: e.isOnFire(),
-        position: { x: e.x, y: e.y },
-      }
-
-      this.deathFlowManager.handleEnemyDeath(e, killInfo)
-    }
-  }
-
-  /**
-   * Update spirit cat spawning for Meowgik hero
-   */
-  private updateSpiritCats(time: number, playerX: number, playerY: number): void {
-    if (!this.spiritCatPool || !this.spiritCatConfig) return
-
-    // Calculate spawn interval from attack speed (attacks per second)
-    const spawnInterval = 1000 / this.spiritCatConfig.attackSpeed
-
-    // Check spawn interval
-    if (time - this.lastSpiritCatSpawnTime < spawnInterval) return
-
-    // Find nearest enemy to target
-    const target = this.getCachedNearestEnemy()
-    if (!target) return
-
-    // Spawn cats around the player
-    const catCount = this.spiritCatConfig.count
-    // Cat damage scales with player's current attack (30% of player damage)
-    // This includes equipment, talents, abilities, and difficulty scaling
-    const catDamage = Math.floor(this.player.getDamage() * 0.3 * this.spiritCatConfig.damageMultiplier)
-    for (let i = 0; i < catCount; i++) {
-      // Spawn in circular pattern around player
-      const spawnAngle = (Math.PI * 2 * i) / catCount + (time * 0.001) // Rotating pattern
-      const spawnDistance = 40
-      const spawnX = playerX + Math.cos(spawnAngle) * spawnDistance
-      const spawnY = playerY + Math.sin(spawnAngle) * spawnDistance
-
-      this.spiritCatPool.spawn(
-        spawnX,
-        spawnY,
-        target,
-        catDamage,
-        this.spiritCatConfig.canCrit
-      )
-    }
-
-    this.lastSpiritCatSpawnTime = time
-  }
 
   /**
    * Handle spirit cat hitting an enemy
@@ -3085,17 +2849,8 @@ export default class GameScene extends Phaser.Scene {
         this.handleEnemyDOTDeath(e)
       }
 
-      // Update damage aura visual and apply damage if player has the ability
-      this.updateDamageAuraVisual(time, playerX, playerY)
-      this.applyDamageAura(time, playerX, playerY)
-
-      // Update chainsaw orbit visual and apply damage
-      this.updateChainsawOrbit(time, delta, playerX, playerY)
-
-      // Spawn spirit cats if playing as Meowgik
-      if (this.spiritCatPool && this.spiritCatConfig) {
-        this.updateSpiritCats(time, playerX, playerY)
-      }
+      // Update hero abilities (aura, chainsaw, spirit cats)
+      this.heroAbilityManager.update(time, delta, playerX, playerY)
 
       // Update gold pickups - check for collection, apply equipment gold bonus
       const baseGoldCollected = this.goldPool.updateAll(playerX, playerY)
@@ -3170,19 +2925,6 @@ export default class GameScene extends Phaser.Scene {
       this.backgroundAnimations = null!
     }
 
-    // Clean up damage aura graphics
-    if (this.damageAuraGraphics) {
-      this.damageAuraGraphics.destroy()
-      this.damageAuraGraphics = null
-    }
-
-    // Clean up chainsaw orbit sprites
-    for (const sprite of this.chainsawSprites) {
-      sprite.destroy()
-    }
-    this.chainsawSprites = []
-    this.chainsawOrbitAngle = 0
-    this.lastChainsawDamageTime = 0
 
     // Clean up pools
     if (this.bulletPool) {

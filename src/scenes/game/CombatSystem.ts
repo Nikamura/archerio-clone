@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import Player from '../../entities/Player'
 import Enemy from '../../entities/Enemy'
-import Boss from '../../entities/Boss'
+import BaseBoss from '../../entities/bosses/BaseBoss'
 import Bullet from '../../entities/Bullet'
 import SpiritCat from '../../entities/SpiritCat'
 import { audioManager } from '../../systems/AudioManager'
@@ -43,7 +43,7 @@ export interface CombatSystemConfig {
   scene: Phaser.Scene
   player: Player
   enemies: Phaser.Physics.Arcade.Group
-  boss: Boss | null
+  boss: BaseBoss | null
   screenShake: ScreenShake
   particles: ParticleManager
   damageNumberPool: DamageNumberPool
@@ -62,7 +62,7 @@ export class CombatSystem {
   private scene: Phaser.Scene
   private player: Player
   private enemies: Phaser.Physics.Arcade.Group
-  private boss: Boss | null
+  private boss: BaseBoss | null
   private screenShake: ScreenShake
   private particles: ParticleManager
   private damageNumberPool: DamageNumberPool
@@ -103,7 +103,7 @@ export class CombatSystem {
   /**
    * Update boss reference
    */
-  setBoss(boss: Boss | null): void {
+  setBoss(boss: BaseBoss | null): void {
     this.boss = boss
   }
 
