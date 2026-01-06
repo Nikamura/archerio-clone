@@ -148,6 +148,41 @@ this.scene.stop('CurrentScene') // Last!
 
 ## Architecture Overview
 
+### GameScene System Architecture
+
+GameScene is an **orchestrator only** (~2,000 lines max). All gameplay logic lives in dedicated systems under `src/scenes/game/`:
+
+| System | Responsibility | Lines |
+|--------|----------------|-------|
+| `CombatSystem` | Damage calculations, collisions, status effects | ~810 |
+| `DeathFlowManager` | Unified enemy death handling | ~189 |
+| `DropManager` | Gold/health drops, kill tracking | ~213 |
+| `HeroAbilityManager` | Chainsaw, spirit cats, damage aura | ~365 |
+| `SpawnManager` | Enemy/boss spawning, waves, walls | ~702 |
+| `RoomManager` | Room transitions, doors, cleanup | ~499 |
+| `GameModeManager` | Endless mode, victory/defeat, respawn | ~657 |
+| `InputSystem` | Keyboard + joystick input | ~270 |
+| `AbilitySystem` | Ability selection and application | ~211 |
+
+**Death Flow (Single Path):**
+All enemy deaths → DeathFlowManager.handleEnemyDeath() → unified particles, XP, drops, cleanup
+
+**Boss State:**
+SpawnManager owns boss reference. Other systems query via spawnManager.getBoss()
+
+**Rules for GameScene:**
+- GameScene ONLY orchestrates systems - no direct gameplay logic
+- New features go in existing systems or new dedicated systems
+- If adding code to GameScene, ask: "Which system should own this?"
+- GameScene should never exceed 2,500 lines
+- Each system follows dependency injection pattern with event handlers
+
+**Adding New Systems:**
+1. Create `src/scenes/game/NewSystem.ts`
+2. Follow the SystemConfig + EventHandlers pattern (see existing systems)
+3. Initialize in GameScene's `initializeSystems()`
+4. Export from `src/scenes/game/index.ts`
+
 ### Tech Stack
 - **Engine**: Phaser 3.6+ with Arcade Physics (fast 2D physics for bullet-hell gameplay)
 - **Build Tool**: Vite
