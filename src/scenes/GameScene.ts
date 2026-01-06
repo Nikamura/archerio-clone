@@ -15,6 +15,7 @@ import { InputSystem } from './game/InputSystem'
 import { AbilitySystem } from './game/AbilitySystem'
 import { CombatSystem } from './game/CombatSystem'
 import { DropManager } from './game/DropManager'
+import { DeathFlowManager, type KillInfo } from './game/DeathFlowManager'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import SpiritCatPool from '../systems/SpiritCatPool'
@@ -26,7 +27,7 @@ import DamageNumberPool from '../systems/DamageNumberPool'
 import { getDifficultyConfig, DifficultyConfig } from '../config/difficulty'
 import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
-import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getXpMultiplierForChapter, getRoomProgressionScaling, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
+import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getRoomProgressionScaling, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { BossId, getBossDefinition } from '../config/bossData'
 import { currencyManager } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
@@ -59,6 +60,7 @@ export default class GameScene extends Phaser.Scene {
   private abilitySystem!: AbilitySystem
   private combatSystem!: CombatSystem
   private dropManager!: DropManager
+  private deathFlowManager!: DeathFlowManager
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -624,6 +626,31 @@ export default class GameScene extends Phaser.Scene {
             this.handleLevelUp()
           }
         },
+      },
+    })
+
+    // Initialize death flow manager (unified enemy death handling)
+    this.deathFlowManager = new DeathFlowManager({
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      particles: this.particles,
+      screenShake: this.screenShake,
+      dropManager: this.dropManager,
+      getBonusXPMultiplier: () => this.bonusXPMultiplier,
+      spreadFireOnDeath: (enemy) => this.combatSystem.spreadFireOnDeath(enemy),
+      eventHandlers: {
+        onRoomClearCheck: () => this.checkRoomCleared(),
+        onBossKilled: () => {
+          this.boss = null
+          this.scene.get('UIScene').events.emit('hideBossHealth')
+        },
+        onXPGained: (_xp) => {
+          this.updateXPUI()
+        },
+        onLevelUp: () => this.handleLevelUp(),
+        onPlayerHealed: (_amount) => this.updatePlayerHealthUI(this.player),
+        onEnemyCacheInvalidate: () => this.invalidateNearestEnemyCache(),
       },
     })
 
@@ -1563,26 +1590,18 @@ export default class GameScene extends Phaser.Scene {
 
   /**
    * Combat event handler: Called when an enemy is killed by CombatSystem
+   * Delegates to DeathFlowManager for unified death handling
    */
   private handleCombatEnemyKilled(enemy: Enemy, isBoss: boolean): void {
-    // Track kill stats and spawn drops
-    this.dropManager.incrementKills()
-    this.dropManager.recordKill(enemy, isBoss)
-    this.dropManager.spawnDrops(enemy)
+    const killInfo: KillInfo = {
+      source: 'bullet',
+      isBoss,
+      isCrit: false,
+      wasOnFire: enemy.isOnFire(),
+      position: { x: enemy.x, y: enemy.y },
+    }
 
-    // Bloodthirst healing is handled by CombatSystem
-
-    // Accumulate hero XP (boss gives 25 hero XP)
-    this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
-
-    // Remove enemy from group and destroy
-    enemy.destroy()
-
-    // Invalidate nearest enemy cache since enemies changed
-    this.invalidateNearestEnemyCache()
-
-    // Check if room is cleared
-    this.checkRoomCleared()
+    this.deathFlowManager.handleEnemyDeath(enemy, killInfo)
   }
 
   /**
@@ -2669,50 +2688,15 @@ export default class GameScene extends Phaser.Scene {
     // Handle deaths from aura damage
     for (const e of enemiesToDestroy) {
       const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-
-      // Track kill stats and spawn drops
-      this.dropManager.incrementKills()
-      this.dropManager.recordKill(e, !!isBoss)
-      this.dropManager.spawnDrops(e)
-
-      // Bloodthirst heal on kill
-      const bloodthirstHeal = this.player.getBloodthirstHeal()
-      if (bloodthirstHeal > 0) {
-        this.player.heal(bloodthirstHeal)
-        this.updatePlayerHealthUI(this.player)
+      const killInfo: KillInfo = {
+        source: 'aura',
+        isBoss: !!isBoss,
+        isCrit: false,
+        wasOnFire: e.isOnFire(),
+        position: { x: e.x, y: e.y },
       }
 
-      // Death particles
-      this.particles.emitDeath(e.x, e.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-
-      // Add XP with equipment XP bonus and chapter scaling
-      const baseXpGain = isBoss ? 10 : 2
-      const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
-      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
-      const leveledUp = this.player.addXP(xpGain)
-      this.updateXPUI()
-
-      // Accumulate hero XP (boss gives 25 hero XP)
-      this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
-
-      if (leveledUp) {
-        this.handleLevelUp()
-      }
-
-      if (isBoss) {
-        this.boss = null
-        this.scene.get('UIScene').events.emit('hideBossHealth')
-      }
-
-      e.destroy()
-      this.invalidateNearestEnemyCache()
-    }
-
-    // Check if room cleared after processing deaths
-    if (enemiesToDestroy.length > 0) {
-      this.checkRoomCleared()
+      this.deathFlowManager.handleEnemyDeath(e, killInfo)
     }
   }
 
@@ -2813,50 +2797,15 @@ export default class GameScene extends Phaser.Scene {
     // Handle deaths from chainsaw damage
     for (const e of enemiesToDestroy) {
       const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-
-      // Track kill stats and spawn drops
-      this.dropManager.incrementKills()
-      this.dropManager.recordKill(e, !!isBoss)
-      this.dropManager.spawnDrops(e)
-
-      // Bloodthirst heal on kill
-      const bloodthirstHeal = this.player.getBloodthirstHeal()
-      if (bloodthirstHeal > 0) {
-        this.player.heal(bloodthirstHeal)
-        this.updatePlayerHealthUI(this.player)
+      const killInfo: KillInfo = {
+        source: 'chainsaw',
+        isBoss: !!isBoss,
+        isCrit: false,
+        wasOnFire: e.isOnFire(),
+        position: { x: e.x, y: e.y },
       }
 
-      // Death particles
-      this.particles.emitDeath(e.x, e.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
-
-      // Add XP with equipment XP bonus and chapter scaling
-      const baseXpGain = isBoss ? 10 : 2
-      const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
-      const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
-      const leveledUp = this.player.addXP(xpGain)
-      this.updateXPUI()
-
-      // Accumulate hero XP (boss gives 25 hero XP)
-      this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
-
-      if (leveledUp) {
-        this.handleLevelUp()
-      }
-
-      if (isBoss) {
-        this.boss = null
-        this.scene.get('UIScene').events.emit('hideBossHealth')
-      }
-
-      e.destroy()
-      this.invalidateNearestEnemyCache()
-    }
-
-    // Check if room cleared after processing deaths
-    if (enemiesToDestroy.length > 0) {
-      this.checkRoomCleared()
+      this.deathFlowManager.handleEnemyDeath(e, killInfo)
     }
   }
 
@@ -3051,56 +3000,19 @@ export default class GameScene extends Phaser.Scene {
 
   /**
    * Handle enemy death from DOT (fire/poison damage)
-   * Extracted for batch processing in update loop
+   * Delegates to DeathFlowManager for unified death handling
    */
   private handleEnemyDOTDeath(e: Enemy): void {
     const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-
-    // Track kill stats and spawn drops
-    this.dropManager.incrementKills()
-    this.dropManager.recordKill(e, !!isBoss)
-    this.dropManager.spawnDrops(e)
-
-    // Bloodthirst: Heal on kill
-    const bloodthirstHeal = this.player.getBloodthirstHeal()
-    if (bloodthirstHeal > 0) {
-      this.player.heal(bloodthirstHeal)
-      this.updatePlayerHealthUI(this.player)
+    const killInfo: KillInfo = {
+      source: 'dot',
+      isBoss: !!isBoss,
+      isCrit: false,
+      wasOnFire: e.isOnFire(),
+      position: { x: e.x, y: e.y },
     }
 
-    // Death particles with fire effect
-    this.particles.emitDeath(e.x, e.y)
-    this.particles.emitFire(e.x, e.y)
-    this.screenShake.onExplosion()
-
-    // Add XP to player with equipment XP bonus and chapter scaling
-    const baseXpGain = isBoss ? 10 : 2
-    const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
-    const leveledUp = this.player.addXP(xpGain)
-    this.updateXPUI()
-
-    // Accumulate hero XP (boss gives 25 hero XP)
-    this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
-
-    if (leveledUp) {
-      this.handleLevelUp()
-    }
-
-    // Clear boss reference if boss died
-    if (isBoss) {
-      this.boss = null
-      this.scene.get('UIScene').events.emit('hideBossHealth')
-    }
-
-    // Remove enemy
-    e.destroy()
-
-    // Invalidate nearest enemy cache since enemies changed
-    this.invalidateNearestEnemyCache()
-
-    // Check if room cleared
-    this.checkRoomCleared()
+    this.deathFlowManager.handleEnemyDeath(e, killInfo)
   }
 
   update(time: number, delta: number) {

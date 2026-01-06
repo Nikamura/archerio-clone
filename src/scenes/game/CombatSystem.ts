@@ -784,8 +784,9 @@ export class CombatSystem {
 
   /**
    * Spread fire to nearby enemies when a burning enemy dies
+   * Public so DeathFlowManager can call it
    */
-  private spreadFireOnDeath(dyingEnemy: Enemy): void {
+  spreadFireOnDeath(dyingEnemy: Enemy): void {
     const spreadRadius = 100 // Radius to spread fire
     const spreadDuration = 3000 // Duration of spread fire (3 seconds)
     const fireDamage = dyingEnemy.getFireDamagePerTick()
