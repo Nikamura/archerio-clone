@@ -11,6 +11,7 @@ import {
 } from '../config/talentData'
 import { ScrollContainer } from '../ui/components/ScrollContainer'
 import { createBackButton } from '../ui/components/BackButton'
+import { hapticManager } from '../systems/HapticManager'
 
 /**
  * TalentsScene - UI for the talent lottery system
@@ -366,54 +367,425 @@ export default class TalentsScene extends Phaser.Scene {
     })
   }
 
+  /**
+   * Casino-style slot machine spin animation
+   * Creates a reel of talents that scrolls and slows down like CS:GO cases
+   */
   private playSpinAnimation(onComplete: () => void) {
-    // Create spinning indicator
     const width = this.cameras.main.width
     const height = this.cameras.main.height
+    const centerY = height / 2
 
-    // Overlay
-    const overlay = this.add.rectangle(
-      width / 2,
-      height / 2,
-      width,
-      height,
-      0x000000,
-      0.7
-    )
+    // Pre-roll the result so we know what to land on
+    const preRollResult = this.preRollTalent()
+    const resultTalent = preRollResult.talent
+    const resultTier = resultTalent.tier
+
+    // Create dark overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
     overlay.setDepth(100)
 
-    // Spinning symbols
-    const symbols = ['?', '!', '*', '+', '#', '@']
-    const spinText = this.add
-      .text(width / 2, height / 2, '?', {
-        fontSize: '64px',
-        color: '#ffffff',
+    // Create the slot machine frame
+    const frameWidth = 300
+    const frameHeight = 100
+    const frame = this.add.container(width / 2, centerY)
+    frame.setDepth(101)
+
+    // Frame background with glow
+    const frameBg = this.add.rectangle(0, 0, frameWidth, frameHeight, 0x1a1a2e)
+    frameBg.setStrokeStyle(3, 0x4a9eff)
+
+    // Selection indicator (the line that shows where it lands)
+    const selectorLine = this.add.rectangle(0, 0, frameWidth - 20, 4, 0xffd700)
+    selectorLine.setAlpha(0.8)
+
+    // Arrow indicators pointing to center
+    const leftArrow = this.add.triangle(-frameWidth / 2 - 15, 0, 0, -10, 0, 10, 15, 0, 0xffd700)
+    const rightArrow = this.add.triangle(frameWidth / 2 + 15, 0, 0, -10, 0, 10, -15, 0, 0xffd700)
+
+    frame.add([frameBg, selectorLine, leftArrow, rightArrow])
+
+    // Create mask for the reel
+    const maskShape = this.make.graphics({ x: 0, y: 0 })
+    maskShape.fillStyle(0xffffff)
+    maskShape.fillRect(width / 2 - frameWidth / 2 + 10, centerY - frameHeight / 2 + 5, frameWidth - 20, frameHeight - 10)
+    const mask = maskShape.createGeometryMask()
+
+    // Create the scrolling reel container
+    const reel = this.add.container(width / 2, centerY)
+    reel.setDepth(102)
+    reel.setMask(mask)
+
+    // Build the reel items - mix of talents with the result placed strategically
+    const itemHeight = 50
+    const allTalents = Object.values(TALENTS)
+    const reelItems: { talent: Talent; text: Phaser.GameObjects.Text; bg: Phaser.GameObjects.Rectangle }[] = []
+
+    // Generate ~40 items for the reel, with result near the end
+    const totalItems = 40
+    const resultPosition = totalItems - 5 // Result lands 5 from end for suspense
+
+    for (let i = 0; i < totalItems; i++) {
+      let talent: Talent
+      if (i === resultPosition) {
+        talent = resultTalent
+      } else {
+        // Random talent, weighted slightly toward showing all types
+        talent = allTalents[Math.floor(Math.random() * allTalents.length)]
+      }
+
+      const yPos = i * itemHeight
+      const tierColor = this.TIER_DISPLAY_COLORS[talent.tier]
+      const tierColorNum = parseInt(tierColor.replace('#', ''), 16)
+
+      // Item background
+      const itemBg = this.add.rectangle(0, yPos, frameWidth - 30, itemHeight - 4, 0x2a2a3e)
+      itemBg.setStrokeStyle(2, tierColorNum)
+
+      // Talent name
+      const itemText = this.add.text(0, yPos, talent.name, {
+        fontSize: '18px',
+        color: tierColor,
         fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setDepth(101)
+      }).setOrigin(0.5)
 
-    // Animate symbol changes
-    let symbolIndex = 0
-    const spinInterval = this.time.addEvent({
-      delay: 80,
-      repeat: 15,
-      callback: () => {
-        symbolIndex = (symbolIndex + 1) % symbols.length
-        spinText.setText(symbols[symbolIndex])
+      reel.add([itemBg, itemText])
+      reelItems.push({ talent, text: itemText, bg: itemBg })
+    }
 
-        // Cycle through colors
-        const colors = ['#ffffff', '#FFD700', '#0066FF', '#AA00FF', '#44ff44']
-        spinText.setColor(colors[symbolIndex % colors.length])
+    // Calculate animation parameters
+    const startY = 0
+    const endY = -(resultPosition * itemHeight) // Land on result position
+
+    // Physics-based easing for slot machine feel
+    const totalDuration = 4000 // 4 seconds total
+    const spinSound = this.createTickSound()
+
+    // Start position
+    reel.y = centerY + startY
+
+    // Animate the reel with custom easing (fast start, slow end like CS:GO)
+    this.tweens.add({
+      targets: reel,
+      y: centerY + endY,
+      duration: totalDuration,
+      ease: 'Cubic.easeOut',
+      onUpdate: (_tween, target) => {
+        // Calculate which item is at center
+        const currentOffset = target.y - centerY
+        const currentIndex = Math.floor(-currentOffset / itemHeight)
+
+        // Tick sound and haptic on each item pass
+        if (currentIndex !== this.lastTickIndex && currentIndex >= 0 && currentIndex < reelItems.length) {
+          this.lastTickIndex = currentIndex
+          spinSound.play()
+          hapticManager.light()
+
+          // Highlight current center item
+          reelItems.forEach((item, idx) => {
+            if (idx === currentIndex) {
+              item.bg.setFillStyle(0x3a3a5e)
+            } else {
+              item.bg.setFillStyle(0x2a2a3e)
+            }
+          })
+        }
+      },
+      onComplete: () => {
+        // Clean up tick tracking
+        this.lastTickIndex = -1
+
+        // Dramatic pause before reveal
+        this.time.delayedCall(200, () => {
+          // Screen shake based on tier
+          this.playTierScreenShake(resultTier)
+
+          // Particle explosion based on tier
+          this.playTierParticles(width / 2, centerY, resultTier)
+
+          // Haptic feedback based on tier
+          this.playTierHaptic(resultTier)
+
+          // Highlight the winning item with glow effect
+          const winningItem = reelItems[resultPosition]
+          this.playWinningGlow(winningItem.bg, winningItem.text, resultTier)
+
+          // Flash the frame border with tier color
+          const tierColor = parseInt(this.TIER_DISPLAY_COLORS[resultTier].replace('#', ''), 16)
+          this.tweens.add({
+            targets: frameBg,
+            strokeColor: { from: 0xffffff, to: tierColor },
+            duration: 100,
+            yoyo: true,
+            repeat: 3,
+          })
+
+          // Wait for effects then complete
+          this.time.delayedCall(1500, () => {
+            // Fade out everything
+            this.tweens.add({
+              targets: [overlay, frame, reel],
+              alpha: 0,
+              duration: 300,
+              onComplete: () => {
+                overlay.destroy()
+                frame.destroy()
+                reel.destroy()
+                maskShape.destroy()
+                onComplete()
+              },
+            })
+          })
+        })
       },
     })
 
-    // Complete animation
-    this.time.delayedCall(1300, () => {
-      spinInterval.destroy()
-      overlay.destroy()
-      spinText.destroy()
-      onComplete()
+    // Pulsing arrows during spin
+    this.tweens.add({
+      targets: [leftArrow, rightArrow],
+      alpha: { from: 1, to: 0.3 },
+      duration: 200,
+      yoyo: true,
+      repeat: -1,
+    })
+
+  }
+
+  private lastTickIndex: number = -1
+
+  /**
+   * Pre-rolls the talent result before animation
+   * This simulates what talentManager.spin() will return
+   */
+  private preRollTalent(): { talent: Talent; tier: TalentTier } {
+    // Use same logic as TalentManager.rollRandomTalent()
+    const roll = Math.random() * 100
+    let tier: TalentTier
+
+    if (roll < 50) {
+      tier = TalentTier.COMMON
+    } else if (roll < 85) {
+      tier = TalentTier.RARE
+    } else {
+      tier = TalentTier.EPIC
+    }
+
+    // Get talents of this tier that aren't maxed
+    const tierTalents = Object.values(TALENTS).filter((t) => {
+      if (t.tier !== tier) return false
+      const level = talentManager.getTalentLevel(t.id)
+      return level < t.maxLevel
+    })
+
+    // If all in tier are maxed, just pick any from tier for display
+    const availableTalents =
+      tierTalents.length > 0
+        ? tierTalents
+        : Object.values(TALENTS).filter((t) => t.tier === tier)
+
+    const talent = availableTalents[Math.floor(Math.random() * availableTalents.length)]
+    return { talent, tier }
+  }
+
+  /**
+   * Creates a simple tick sound for the slot machine
+   */
+  private createTickSound(): { play: () => void } {
+    // Use existing sound system for tick
+    return {
+      play: () => {
+        audioManager.playMenuSelect()
+      },
+    }
+  }
+
+  /**
+   * Screen shake effect scaled by tier rarity
+   */
+  private playTierScreenShake(tier: TalentTier) {
+    let intensity: number
+    let duration: number
+
+    switch (tier) {
+      case TalentTier.EPIC:
+        intensity = 15
+        duration = 500
+        break
+      case TalentTier.RARE:
+        intensity = 8
+        duration = 300
+        break
+      case TalentTier.COMMON:
+      default:
+        intensity = 3
+        duration = 150
+        break
+    }
+
+    this.cameras.main.shake(duration, intensity / 1000)
+  }
+
+  /**
+   * Haptic feedback scaled by tier rarity
+   */
+  private playTierHaptic(tier: TalentTier) {
+    switch (tier) {
+      case TalentTier.EPIC:
+        // Epic gets a dramatic multi-pulse haptic pattern
+        hapticManager.heavy()
+        this.time.delayedCall(100, () => hapticManager.heavy())
+        this.time.delayedCall(200, () => hapticManager.heavy())
+        break
+      case TalentTier.RARE:
+        hapticManager.heavy()
+        break
+      case TalentTier.COMMON:
+      default:
+        hapticManager.medium()
+        break
+    }
+  }
+
+  /**
+   * Particle explosion effect scaled by tier rarity
+   */
+  private playTierParticles(x: number, y: number, tier: TalentTier) {
+    const tierColor = this.TIER_DISPLAY_COLORS[tier]
+    const colorNum = parseInt(tierColor.replace('#', ''), 16)
+
+    let particleCount: number
+    let particleSpeed: number
+    let particleScale: number
+    let additionalColors: number[] = []
+
+    switch (tier) {
+      case TalentTier.EPIC:
+        particleCount = 60
+        particleSpeed = 400
+        particleScale = 1.5
+        additionalColors = [0xffd700, 0xffffff, 0xff00ff] // Gold, white, magenta bursts
+        break
+      case TalentTier.RARE:
+        particleCount = 35
+        particleSpeed = 300
+        particleScale = 1.2
+        additionalColors = [0xffffff, 0x00ffff] // White, cyan
+        break
+      case TalentTier.COMMON:
+      default:
+        particleCount = 15
+        particleSpeed = 200
+        particleScale = 0.8
+        break
+    }
+
+    // Create particle graphics
+    const allColors = [colorNum, ...additionalColors]
+
+    allColors.forEach((color, colorIndex) => {
+      const count = Math.floor(particleCount / allColors.length)
+      const delay = colorIndex * 50 // Stagger colors slightly
+
+      this.time.delayedCall(delay, () => {
+        for (let i = 0; i < count; i++) {
+          const particle = this.add.circle(x, y, 4 * particleScale, color)
+          particle.setDepth(150)
+          particle.setAlpha(1)
+
+          const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5
+          const speed = particleSpeed * (0.5 + Math.random() * 0.5)
+          const vx = Math.cos(angle) * speed
+          const vy = Math.sin(angle) * speed
+
+          this.tweens.add({
+            targets: particle,
+            x: particle.x + vx * 0.5,
+            y: particle.y + vy * 0.5,
+            alpha: 0,
+            scale: { from: particleScale, to: 0 },
+            duration: 800 + Math.random() * 400,
+            ease: 'Quad.easeOut',
+            onComplete: () => particle.destroy(),
+          })
+        }
+      })
+    })
+
+    // Epic tier gets extra sparkle ring
+    if (tier === TalentTier.EPIC) {
+      this.playEpicRingEffect(x, y)
+    }
+  }
+
+  /**
+   * Special ring explosion for epic tier
+   */
+  private playEpicRingEffect(x: number, y: number) {
+    const ring = this.add.circle(x, y, 10, 0xaa00ff, 0)
+    ring.setStrokeStyle(4, 0xaa00ff)
+    ring.setDepth(149)
+
+    this.tweens.add({
+      targets: ring,
+      radius: 150,
+      strokeAlpha: { from: 1, to: 0 },
+      duration: 600,
+      ease: 'Quad.easeOut',
+      onComplete: () => ring.destroy(),
+    })
+
+    // Second delayed ring
+    this.time.delayedCall(150, () => {
+      const ring2 = this.add.circle(x, y, 10, 0xffd700, 0)
+      ring2.setStrokeStyle(3, 0xffd700)
+      ring2.setDepth(149)
+
+      this.tweens.add({
+        targets: ring2,
+        radius: 120,
+        strokeAlpha: { from: 1, to: 0 },
+        duration: 500,
+        ease: 'Quad.easeOut',
+        onComplete: () => ring2.destroy(),
+      })
+    })
+  }
+
+  /**
+   * Glowing highlight effect for the winning talent
+   */
+  private playWinningGlow(bg: Phaser.GameObjects.Rectangle, text: Phaser.GameObjects.Text, tier: TalentTier) {
+    const tierColor = parseInt(this.TIER_DISPLAY_COLORS[tier].replace('#', ''), 16)
+
+    // Pulse the background
+    this.tweens.add({
+      targets: bg,
+      fillColor: { from: 0x2a2a3e, to: tierColor },
+      duration: 200,
+      yoyo: true,
+      repeat: 2,
+    })
+
+    // Scale bounce the text
+    this.tweens.add({
+      targets: text,
+      scale: { from: 1, to: 1.3 },
+      duration: 150,
+      yoyo: true,
+      repeat: 1,
+      ease: 'Bounce.easeOut',
+    })
+
+    // Add glow rectangle behind
+    const glow = this.add.rectangle(bg.x, bg.y, bg.width + 20, bg.height + 20, tierColor, 0.3)
+    glow.setDepth(bg.depth - 1)
+
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0.5, to: 0 },
+      scale: { from: 1, to: 1.5 },
+      duration: 800,
+      onComplete: () => glow.destroy(),
     })
   }
 
