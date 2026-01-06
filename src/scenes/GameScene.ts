@@ -14,6 +14,7 @@ import Boss from '../entities/Boss'
 import { InputSystem } from './game/InputSystem'
 import { AbilitySystem } from './game/AbilitySystem'
 import { CombatSystem } from './game/CombatSystem'
+import { DropManager } from './game/DropManager'
 import BulletPool from '../systems/BulletPool'
 import EnemyBulletPool from '../systems/EnemyBulletPool'
 import SpiritCatPool from '../systems/SpiritCatPool'
@@ -27,7 +28,7 @@ import { audioManager } from '../systems/AudioManager'
 import { chapterManager } from '../systems/ChapterManager'
 import { getChapterDefinition, getRandomBossForChapter, getRandomMiniBossForChapter, getEnemyModifiers, getXpMultiplierForChapter, getRoomProgressionScaling, STANDARD_ROOM_LAYOUT, type BossType, type ChapterId, type EnemyType as ChapterEnemyType } from '../config/chapterData'
 import { BossId, getBossDefinition } from '../config/bossData'
-import { currencyManager, type EnemyType } from '../systems/CurrencyManager'
+import { currencyManager } from '../systems/CurrencyManager'
 import { saveManager, GraphicsQuality, ColorblindMode } from '../systems/SaveManager'
 import { ScreenShake, createScreenShake } from '../systems/ScreenShake'
 import { ParticleManager, createParticleManager } from '../systems/ParticleManager'
@@ -57,6 +58,7 @@ export default class GameScene extends Phaser.Scene {
   private inputSystem!: InputSystem
   private abilitySystem!: AbilitySystem
   private combatSystem!: CombatSystem
+  private dropManager!: DropManager
 
   private bulletPool!: BulletPool
   private enemyBulletPool!: EnemyBulletPool
@@ -75,7 +77,6 @@ export default class GameScene extends Phaser.Scene {
 
   // Game state tracking
   private isGameOver: boolean = false
-  private enemiesKilled: number = 0
   private currentRoom: number = 1
   private totalRooms: number = 20
   private isRoomCleared: boolean = false
@@ -88,8 +89,6 @@ export default class GameScene extends Phaser.Scene {
   private currentBossType: BossType | null = null // For kill tracking
   private bossSpawnTime: number = 0 // Track when boss was spawned for kill time metrics
   private runStartTime: number = 0
-  private goldEarned: number = 0 // Track gold earned this run
-  private heroXPEarned: number = 0 // Track hero XP earned this run
 
   // Endless mode
   private isEndlessMode: boolean = false
@@ -259,7 +258,6 @@ export default class GameScene extends Phaser.Scene {
 
     // Reset game state
     this.isGameOver = false
-    this.enemiesKilled = 0
     this.currentRoom = 1
     this.totalRooms = this.isEndlessMode ? 10 : chapterManager.getTotalRooms() // Endless mode uses 10 rooms per wave
     this.isRoomCleared = false
@@ -267,8 +265,6 @@ export default class GameScene extends Phaser.Scene {
     this.doorText = null
     this.isTransitioning = false
     this.runStartTime = Date.now()
-    this.goldEarned = 0
-    this.heroXPEarned = 0
     this.respawnUsed = false
 
     // Update error reporting context
@@ -410,6 +406,16 @@ export default class GameScene extends Phaser.Scene {
     this.goldPool.setGoldMultiplier(this.difficultyConfig.goldMultiplier) // Apply difficulty gold scaling
     this.healthPool = new HealthPool(this)
     this.damageNumberPool = new DamageNumberPool(this)
+
+    // Initialize drop manager
+    this.dropManager = new DropManager({
+      scene: this,
+      player: this.player,
+      goldPool: this.goldPool,
+      healthPool: this.healthPool,
+      difficultyConfig: this.difficultyConfig,
+    })
+    this.dropManager.reset()
 
     // Initialize ability system
     this.abilitySystem = new AbilitySystem(this.player, {
@@ -1198,6 +1204,7 @@ export default class GameScene extends Phaser.Scene {
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = bossType // Store for kill tracking
     this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
+    this.dropManager.setBossInfo(bossType, this.bossSpawnTime) // Update drop manager for kill tracking
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1260,6 +1267,7 @@ export default class GameScene extends Phaser.Scene {
     this.combatSystem.setBoss(this.boss) // Update CombatSystem reference
     this.currentBossType = miniBossType // Store for kill tracking
     this.bossSpawnTime = Date.now() // Track spawn time for kill time metrics
+    this.dropManager.setBossInfo(miniBossType, this.bossSpawnTime) // Update drop manager for kill tracking
     this.add.existing(this.boss)
     this.physics.add.existing(this.boss)
 
@@ -1431,7 +1439,7 @@ export default class GameScene extends Phaser.Scene {
       // Magnetically collect all remaining gold and health pickups
       const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
       if (collectedGold > 0) {
-        this.goldEarned += collectedGold
+        this.dropManager.addGoldEarned(collectedGold)
         currencyManager.add('gold', collectedGold)
         saveManager.addGold(collectedGold)
       }
@@ -1482,15 +1490,15 @@ export default class GameScene extends Phaser.Scene {
       // Launch victory scene (reusing GameOverScene for now)
       this.scene.launch('GameOverScene', {
         roomsCleared: this.totalRooms,
-        enemiesKilled: this.enemiesKilled,
+        enemiesKilled: this.dropManager.getEnemiesKilled(),
         isVictory: true,
         playTimeMs,
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
+        goldEarned: this.dropManager.getGoldEarned(),
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.heroXPEarned,
+        heroXPEarned: this.dropManager.getHeroXPEarned(),
         chapterId: chapterManager.getSelectedChapter(),
         difficulty: this.difficultyConfig.label.toLowerCase(),
       })
@@ -1554,109 +1562,18 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Determine enemy type for gold drops based on class hierarchy
-   */
-  private getEnemyType(enemy: Enemy): EnemyType {
-    if (enemy instanceof Boss) {
-      return 'boss'
-    }
-    if (enemy instanceof SpreaderEnemy) {
-      return 'spreader'
-    }
-    if (enemy instanceof RangedShooterEnemy) {
-      return 'ranged'
-    }
-    return 'melee'
-  }
-
-  /**
-   * Calculate health potion heal value based on player stats and difficulty
-   * - Scales with player's max health (10% of max HP)
-   * - Reduced slightly on higher difficulties (more enemy damage = less healing)
-   * - Clamped between 15 and 100 HP
-   */
-  private calculateHealthPotionValue(): number {
-    // Base: 10% of player's max health
-    const maxHealth = this.player.getMaxHealth()
-    const baseHeal = Math.round(maxHealth * 0.1)
-
-    // Scale down slightly on harder difficulties (enemyDamage is higher)
-    // Normal difficulty has enemyDamage around 1.0, hard has 1.5+
-    const difficultyMod = Math.max(0.6, 1.0 / this.difficultyConfig.enemyDamageMultiplier)
-    const scaledHeal = Math.round(baseHeal * difficultyMod)
-
-    // Clamp between min 15 and max 100 HP
-    return Math.min(100, Math.max(15, scaledHeal))
-  }
-
-  /**
-   * Convert BossType to BossId for kill tracking
-   * Handles aliases like 'treant' -> 'tree_guardian' and 'frost_giant' -> 'ice_golem'
-   */
-  private normalizeBossType(bossType: BossType): BossId {
-    switch (bossType) {
-      case 'treant':
-        return 'tree_guardian'
-      case 'frost_giant':
-        return 'ice_golem'
-      default:
-        return bossType as BossId
-    }
-  }
-
-  /**
-   * Record a kill for statistics tracking
-   */
-  private recordKill(enemy: Enemy, isBoss: boolean): void {
-    if (isBoss && this.currentBossType) {
-      const bossId = this.normalizeBossType(this.currentBossType)
-      saveManager.recordBossKill(bossId)
-
-      // Track boss kill in Sentry metrics
-      const timeToKillMs = Date.now() - this.bossSpawnTime
-      errorReporting.trackBossKill(bossId, timeToKillMs, chapterManager.getSelectedChapter())
-    } else {
-      const enemyType = enemy.getEnemyType()
-      saveManager.recordEnemyKill(enemyType)
-      errorReporting.trackEnemyKill(enemyType)
-    }
-  }
-
-  /**
-   * Spawn drops at enemy death position (50% gold, 5% health potion)
-   */
-  private spawnDrops(enemy: Enemy): void {
-    const enemyType = this.getEnemyType(enemy)
-
-    // 50% chance to drop gold
-    if (Math.random() < 0.5) {
-      const goldValue = this.goldPool.spawnForEnemy(enemy.x, enemy.y, enemyType)
-      console.log(`Gold spawned: ${goldValue} from ${enemyType}`)
-    }
-
-    // 5% chance to drop health potion (scales with difficulty)
-    if (Math.random() < 0.05) {
-      const healValue = this.calculateHealthPotionValue()
-      this.healthPool.spawn(enemy.x, enemy.y, healValue)
-      console.log(`Health potion spawned: ${healValue} HP`)
-    }
-  }
-
-  /**
    * Combat event handler: Called when an enemy is killed by CombatSystem
    */
   private handleCombatEnemyKilled(enemy: Enemy, isBoss: boolean): void {
-    // Track kill
-    this.enemiesKilled++
-    this.recordKill(enemy, isBoss)
+    // Track kill stats and spawn drops
+    this.dropManager.incrementKills()
+    this.dropManager.recordKill(enemy, isBoss)
+    this.dropManager.spawnDrops(enemy)
 
     // Bloodthirst healing is handled by CombatSystem
 
-    // Spawn gold drop at enemy position
-    this.spawnDrops(enemy)
-
     // Accumulate hero XP (boss gives 25 hero XP)
-    this.heroXPEarned += isBoss ? 25 : 1
+    this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
 
     // Remove enemy from group and destroy
     enemy.destroy()
@@ -2068,7 +1985,7 @@ export default class GameScene extends Phaser.Scene {
     // Collect any remaining pickups before reset
     const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y)
     if (collectedGold > 0) {
-      this.goldEarned += collectedGold
+      this.dropManager.addGoldEarned(collectedGold)
       currencyManager.add('gold', collectedGold)
       saveManager.addGold(collectedGold)
     }
@@ -2152,7 +2069,7 @@ export default class GameScene extends Phaser.Scene {
     this.isGameOver = true
     audioManager.playDeath()
     hapticManager.death() // Haptic feedback for player death
-    console.log('Game Over! Enemies killed:', this.enemiesKilled)
+    console.log('Game Over! Enemies killed:', this.dropManager.getEnemiesKilled())
 
     // Stop LevelUpScene if it's active (handles race condition edge cases)
     if (this.scene.isActive('LevelUpScene')) {
@@ -2203,14 +2120,14 @@ export default class GameScene extends Phaser.Scene {
       // Launch game over scene with stats
       this.scene.launch('GameOverScene', {
         roomsCleared: totalRoomsCleared,
-        enemiesKilled: this.enemiesKilled,
+        enemiesKilled: this.dropManager.getEnemiesKilled(),
         isVictory: false,
         playTimeMs,
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
+        goldEarned: this.dropManager.getGoldEarned(),
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.heroXPEarned,
+        heroXPEarned: this.dropManager.getHeroXPEarned(),
         isEndlessMode: this.isEndlessMode,
         endlessWave: this.endlessWave,
         isDailyChallengeMode: this.isDailyChallengeMode,
@@ -2513,14 +2430,14 @@ export default class GameScene extends Phaser.Scene {
       // Launch game over scene with stats (not a victory, but not a death either)
       this.scene.launch('GameOverScene', {
         roomsCleared: totalRoomsCleared,
-        enemiesKilled: this.enemiesKilled,
+        enemiesKilled: this.dropManager.getEnemiesKilled(),
         isVictory: false,
         playTimeMs,
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
+        goldEarned: this.dropManager.getGoldEarned(),
         runSeed: this.runSeedString,
         acquiredAbilities: this.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.heroXPEarned,
+        heroXPEarned: this.dropManager.getHeroXPEarned(),
         isEndlessMode: this.isEndlessMode,
         endlessWave: this.endlessWave,
         isDailyChallengeMode: this.isDailyChallengeMode,
@@ -2752,8 +2669,11 @@ export default class GameScene extends Phaser.Scene {
     // Handle deaths from aura damage
     for (const e of enemiesToDestroy) {
       const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      this.enemiesKilled++
-      this.recordKill(e, !!isBoss)
+
+      // Track kill stats and spawn drops
+      this.dropManager.incrementKills()
+      this.dropManager.recordKill(e, !!isBoss)
+      this.dropManager.spawnDrops(e)
 
       // Bloodthirst heal on kill
       const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -2767,9 +2687,6 @@ export default class GameScene extends Phaser.Scene {
       this.screenShake.onExplosion()
       hapticManager.light()
 
-      // Spawn drops
-      this.spawnDrops(e)
-
       // Add XP with equipment XP bonus and chapter scaling
       const baseXpGain = isBoss ? 10 : 2
       const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
@@ -2778,7 +2695,7 @@ export default class GameScene extends Phaser.Scene {
       this.updateXPUI()
 
       // Accumulate hero XP (boss gives 25 hero XP)
-      this.heroXPEarned += isBoss ? 25 : 1
+      this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
 
       if (leveledUp) {
         this.handleLevelUp()
@@ -2896,8 +2813,11 @@ export default class GameScene extends Phaser.Scene {
     // Handle deaths from chainsaw damage
     for (const e of enemiesToDestroy) {
       const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      this.enemiesKilled++
-      this.recordKill(e, !!isBoss)
+
+      // Track kill stats and spawn drops
+      this.dropManager.incrementKills()
+      this.dropManager.recordKill(e, !!isBoss)
+      this.dropManager.spawnDrops(e)
 
       // Bloodthirst heal on kill
       const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -2911,9 +2831,6 @@ export default class GameScene extends Phaser.Scene {
       this.screenShake.onExplosion()
       hapticManager.light()
 
-      // Spawn drops
-      this.spawnDrops(e)
-
       // Add XP with equipment XP bonus and chapter scaling
       const baseXpGain = isBoss ? 10 : 2
       const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
@@ -2922,7 +2839,7 @@ export default class GameScene extends Phaser.Scene {
       this.updateXPUI()
 
       // Accumulate hero XP (boss gives 25 hero XP)
-      this.heroXPEarned += isBoss ? 25 : 1
+      this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
 
       if (leveledUp) {
         this.handleLevelUp()
@@ -3138,8 +3055,11 @@ export default class GameScene extends Phaser.Scene {
    */
   private handleEnemyDOTDeath(e: Enemy): void {
     const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-    this.enemiesKilled++
-    this.recordKill(e, !!isBoss)
+
+    // Track kill stats and spawn drops
+    this.dropManager.incrementKills()
+    this.dropManager.recordKill(e, !!isBoss)
+    this.dropManager.spawnDrops(e)
 
     // Bloodthirst: Heal on kill
     const bloodthirstHeal = this.player.getBloodthirstHeal()
@@ -3153,9 +3073,6 @@ export default class GameScene extends Phaser.Scene {
     this.particles.emitFire(e.x, e.y)
     this.screenShake.onExplosion()
 
-    // Spawn gold drop at enemy position
-    this.spawnDrops(e)
-
     // Add XP to player with equipment XP bonus and chapter scaling
     const baseXpGain = isBoss ? 10 : 2
     const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter())
@@ -3164,7 +3081,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateXPUI()
 
     // Accumulate hero XP (boss gives 25 hero XP)
-    this.heroXPEarned += isBoss ? 25 : 1
+    this.dropManager.addHeroXPEarned(isBoss ? 25 : 1)
 
     if (leveledUp) {
       this.handleLevelUp()
@@ -3273,7 +3190,7 @@ export default class GameScene extends Phaser.Scene {
       const baseGoldCollected = this.goldPool.updateAll(playerX, playerY)
       if (baseGoldCollected > 0) {
         const goldCollected = Math.round(baseGoldCollected * this.goldBonusMultiplier)
-        this.goldEarned += goldCollected
+        this.dropManager.addGoldEarned(goldCollected)
         currencyManager.add('gold', goldCollected)
         saveManager.addGold(goldCollected)
         // Gold collect particles at player position
