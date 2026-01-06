@@ -1,7 +1,11 @@
 import Phaser from 'phaser'
 
 /**
- * HitboxDebugRenderer - Draws hitbox outlines for all physics bodies
+ * HitboxDebugRenderer - Draws hitbox outlines and sprite bounds for all physics bodies
+ *
+ * Shows both:
+ * - Solid line: Actual hitbox (collision area)
+ * - Dashed line: Sprite bounds (visual size)
  *
  * Color scheme:
  * - Player: Green (0x00ff00)
@@ -16,6 +20,7 @@ export default class HitboxDebugRenderer {
   private isEnabled: boolean = true
   private lineWidth: number = 1.5
   private alpha: number = 0.8
+  private showSpriteBounds: boolean = true
 
   // Color constants
   private static readonly COLOR_PLAYER = 0x00ff00 // Green
@@ -60,6 +65,14 @@ export default class HitboxDebugRenderer {
   }
 
   /**
+   * Toggle sprite bounds visualization
+   */
+  toggleSpriteBounds(): boolean {
+    this.showSpriteBounds = !this.showSpriteBounds
+    return this.showSpriteBounds
+  }
+
+  /**
    * Render hitboxes for all game objects
    */
   render(
@@ -76,9 +89,9 @@ export default class HitboxDebugRenderer {
 
     this.graphics.clear()
 
-    // Draw player hitbox
+    // Draw player
     if (player?.active && player.body) {
-      this.drawHitbox(player.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_PLAYER)
+      this.drawSpriteDebug(player, HitboxDebugRenderer.COLOR_PLAYER)
     }
 
     // Draw player bullets
@@ -86,7 +99,7 @@ export default class HitboxDebugRenderer {
       playerBullets.getChildren().forEach((child) => {
         const bullet = child as Phaser.Physics.Arcade.Sprite
         if (bullet.active && bullet.body) {
-          this.drawHitbox(bullet.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_PLAYER_BULLET)
+          this.drawSpriteDebug(bullet, HitboxDebugRenderer.COLOR_PLAYER_BULLET)
         }
       })
     }
@@ -96,7 +109,7 @@ export default class HitboxDebugRenderer {
       enemyBullets.getChildren().forEach((child) => {
         const bullet = child as Phaser.Physics.Arcade.Sprite
         if (bullet.active && bullet.body) {
-          this.drawHitbox(bullet.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_ENEMY_BULLET)
+          this.drawSpriteDebug(bullet, HitboxDebugRenderer.COLOR_ENEMY_BULLET)
         }
       })
     }
@@ -106,14 +119,14 @@ export default class HitboxDebugRenderer {
       enemies.getChildren().forEach((child) => {
         const enemy = child as Phaser.Physics.Arcade.Sprite
         if (enemy.active && enemy.body) {
-          this.drawHitbox(enemy.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_ENEMY)
+          this.drawSpriteDebug(enemy, HitboxDebugRenderer.COLOR_ENEMY)
         }
       })
     }
 
     // Draw boss (separate since it may not be in enemies group)
     if (boss?.active && boss.body) {
-      this.drawHitbox(boss.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_BOSS)
+      this.drawSpriteDebug(boss, HitboxDebugRenderer.COLOR_BOSS)
     }
 
     // Draw gold pickups
@@ -121,7 +134,7 @@ export default class HitboxDebugRenderer {
       goldPickups.getChildren().forEach((child) => {
         const pickup = child as Phaser.Physics.Arcade.Sprite
         if (pickup.active && pickup.body) {
-          this.drawHitbox(pickup.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_PICKUP)
+          this.drawSpriteDebug(pickup, HitboxDebugRenderer.COLOR_PICKUP)
         }
       })
     }
@@ -131,7 +144,7 @@ export default class HitboxDebugRenderer {
       healthPickups.getChildren().forEach((child) => {
         const pickup = child as Phaser.Physics.Arcade.Sprite
         if (pickup.active && pickup.body) {
-          this.drawHitbox(pickup.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_PICKUP)
+          this.drawSpriteDebug(pickup, HitboxDebugRenderer.COLOR_PICKUP)
         }
       })
     }
@@ -141,9 +154,88 @@ export default class HitboxDebugRenderer {
       doors.getChildren().forEach((child) => {
         const door = child as Phaser.Physics.Arcade.Sprite
         if (door.active && door.body) {
-          this.drawHitbox(door.body as Phaser.Physics.Arcade.Body, HitboxDebugRenderer.COLOR_DOOR)
+          this.drawSpriteDebug(door, HitboxDebugRenderer.COLOR_DOOR)
         }
       })
+    }
+  }
+
+  /**
+   * Draw both hitbox and sprite bounds for a sprite
+   */
+  private drawSpriteDebug(sprite: Phaser.Physics.Arcade.Sprite, color: number): void {
+    // Draw sprite bounds first (underneath hitbox)
+    if (this.showSpriteBounds) {
+      this.drawSpriteBounds(sprite, color)
+    }
+
+    // Draw hitbox on top
+    this.drawHitbox(sprite.body as Phaser.Physics.Arcade.Body, color)
+  }
+
+  /**
+   * Draw sprite bounds (visual size) with dashed line
+   */
+  private drawSpriteBounds(sprite: Phaser.Physics.Arcade.Sprite, color: number): void {
+    const displayWidth = sprite.displayWidth
+    const displayHeight = sprite.displayHeight
+    const x = sprite.x - displayWidth / 2
+    const y = sprite.y - displayHeight / 2
+
+    // Draw dashed rectangle for sprite bounds (lighter alpha)
+    this.graphics.lineStyle(1, color, this.alpha * 0.4)
+    this.drawDashedRect(x, y, displayWidth, displayHeight, 4, 4)
+  }
+
+  /**
+   * Draw a dashed rectangle
+   */
+  private drawDashedRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    dashLength: number,
+    gapLength: number
+  ): void {
+    // Top edge
+    this.drawDashedLine(x, y, x + width, y, dashLength, gapLength)
+    // Right edge
+    this.drawDashedLine(x + width, y, x + width, y + height, dashLength, gapLength)
+    // Bottom edge
+    this.drawDashedLine(x + width, y + height, x, y + height, dashLength, gapLength)
+    // Left edge
+    this.drawDashedLine(x, y + height, x, y, dashLength, gapLength)
+  }
+
+  /**
+   * Draw a dashed line between two points
+   */
+  private drawDashedLine(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    dashLength: number,
+    gapLength: number
+  ): void {
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    const dashCount = Math.floor(distance / (dashLength + gapLength))
+    const unitX = dx / distance
+    const unitY = dy / distance
+
+    for (let i = 0; i < dashCount; i++) {
+      const startX = x1 + unitX * i * (dashLength + gapLength)
+      const startY = y1 + unitY * i * (dashLength + gapLength)
+      const endX = startX + unitX * dashLength
+      const endY = startY + unitY * dashLength
+
+      this.graphics.beginPath()
+      this.graphics.moveTo(startX, startY)
+      this.graphics.lineTo(endX, endY)
+      this.graphics.strokePath()
     }
   }
 
@@ -188,7 +280,7 @@ export default class HitboxDebugRenderer {
     group.getChildren().forEach((child) => {
       const sprite = child as Phaser.Physics.Arcade.Sprite
       if (sprite.active && sprite.body) {
-        this.drawHitbox(sprite.body as Phaser.Physics.Arcade.Body, color)
+        this.drawSpriteDebug(sprite, color)
       }
     })
   }
@@ -198,7 +290,7 @@ export default class HitboxDebugRenderer {
    */
   renderSprite(sprite: Phaser.Physics.Arcade.Sprite, color: number): void {
     if (!this.isEnabled || !sprite.active || !sprite.body) return
-    this.drawHitbox(sprite.body as Phaser.Physics.Arcade.Body, color)
+    this.drawSpriteDebug(sprite, color)
   }
 
   /**
