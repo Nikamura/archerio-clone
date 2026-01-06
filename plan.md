@@ -69,25 +69,39 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ Query-based data access (no stale references)
 
 **Commits:**
-- 11 total commits (one per step + plan updates)
+- 16 total commits (system extractions + integrations + docs)
 - All changes tested and verified
 - Clean git history for easy rollback if needed
+
+## Code Review vs Main Branch
+
+**Diff Stats:**
+- Files Changed: 16
+- Lines Added: +4,664
+- Lines Removed: -2,190
+- Net: +2,474 lines (well-organized across systems)
+
+**New Files Created (6 managers):**
+- DeathFlowManager.ts, DropManager.ts, GameModeManager.ts
+- HeroAbilityManager.ts, RoomManager.ts, SpawnManager.ts
+
+**Quality:** ✅ Build passes, ✅ Lint passes (0 warnings), ✅ No breaking changes
 
 ---
 
 ## Bug Fixes During Refactoring
 
-### BUG #1: Inconsistent XP Rewards (WILL FIX)
-**Current behavior:** Different kill sources award different base XP:
+### BUG #1: Inconsistent XP Rewards (✅ FIXED)
+**Before:** Different kill sources awarded different base XP:
 - Bullet kills: base=1 (normal), 10 (boss)
 - DoT/Aura/Chainsaw kills: base=2 (normal), 10 (boss)
 
-**Fix:** Unify to base=1 for all normal enemy kills. This was a copy-paste error.
+**After:** Unified to base=1 for all normal enemy kills in DeathFlowManager.ts:3148
 
-### BUG #2: Inconsistent Fire Spread (WILL FIX)
-**Current behavior:** Fire spread on death only triggers from CombatSystem kills (bullets, spirit cats, lightning). DoT/Aura/Chainsaw deaths do NOT spread fire.
+### BUG #2: Inconsistent Fire Spread (✅ FIXED)
+**Before:** Fire spread on death only triggered from CombatSystem kills (bullets, spirit cats, lightning). DoT/Aura/Chainsaw deaths did NOT spread fire.
 
-**Fix:** Unify so ALL kill sources spread fire if the dying enemy was burning.
+**After:** ALL kill sources now spread fire via DeathFlowManager.handleEnemyDeath() checking wasOnFire flag (DeathFlowManager.ts:82-86)
 
 ---
 
