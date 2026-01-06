@@ -70,6 +70,8 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 - ✅ BUG #4 Fixed: Debug skip clears boss and minions
 - ✅ BUG #5 Fixed: Debug skip properly progresses room
 - ✅ BUG #6 Fixed: Fire spread now requires player ability
+- ⚠️ BUG #7 Investigating: Phaser collision crash (needs testing)
+- ✅ BUG #8 Fixed: Player position resets between rooms
 
 **Code Quality:**
 - ✅ 0 TypeScript errors
@@ -148,6 +150,17 @@ Extract **7 major systems** from GameScene, consolidate **4+ scattered death han
 **IMPROVEMENT: Boss Room Pending Spawns**
 - **Issue:** Boss rooms might not clear immediately due to pending spawn counter
 - **Fix:** Reset pendingEnemySpawns = 0 in spawnBoss() and spawnMiniBoss() (SpawnManager.ts:464, 533)
+
+**BUG #7: Phaser Collision Crash (⚠️ NEEDS TESTING)**
+- **Issue:** "can't access property 'isParent' of null" crash when skipping in certain cases
+- **Likely Cause:** Collision system referencing destroyed objects (boss/enemies)
+- **Mitigation:** Boss destruction in debugSkipLevel now properly clears reference
+- **Status:** Needs user testing to verify fix
+
+**BUG #8: Player Position Not Resetting Between Rooms (✅ FIXED)**
+- **Issue:** Player stayed at same position after room transitions (should reset to bottom)
+- **Cause:** Room transition logic didn't reset player position
+- **Fix:** Added onResetPlayerPosition event handler in RoomManager (RoomManager.ts:32, 330, 373)
 
 ---
 
