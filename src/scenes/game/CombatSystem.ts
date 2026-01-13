@@ -214,6 +214,14 @@ export class CombatSystem {
     killed: boolean,
     damage: number
   ): void {
+    // Lightning chain should trigger even if the primary target was killed
+    // It arcs to NEARBY enemies, not the dead one
+    const lightningChainCount = bullet.getLightningChainCount()
+    if (lightningChainCount > 0) {
+      this.applyLightningChain(enemy, damage, lightningChainCount)
+    }
+
+    // Other status effects only apply if enemy survived (can't burn/freeze/poison a corpse)
     if (killed) return
 
     // Get chapter elemental resistances
@@ -248,12 +256,6 @@ export class CombatSystem {
     if (bleedDamage > 0) {
       const adjustedBleedDamage = Math.round(bleedDamage * resistances.bleed)
       enemy.applyBleedDamage(adjustedBleedDamage, 3000) // 3 second bleed
-    }
-
-    // Handle lightning chain (pass base damage, method will apply progressive reduction)
-    const lightningChainCount = bullet.getLightningChainCount()
-    if (lightningChainCount > 0) {
-      this.applyLightningChain(enemy, damage, lightningChainCount)
     }
   }
 
