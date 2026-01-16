@@ -331,7 +331,7 @@ Different chapters have different elemental resistances, encouraging players to 
 **Level Systems:**
 - 20 rooms per chapter with door transitions (mini-boss at 10, boss at 20)
 - XP/leveling with ability selection modal
-- Wall system with 12 layout variations and themed textures
+- Wall system with 12 layout variations
 - Seeded runs for reproducible gameplay
 
 **Polish:**
@@ -379,42 +379,38 @@ Visual test screenshots are saved to `test/screenshots/`
 7. ✅ **Fusion popup shows wrong items** - Fixed: showFusionResultsPopup() displays all items in grid
 8. **Damage aura visual indicator** - Missing visual indicator showing the aura's range and that it's active
 9. ✅ **Chest gives double items** - Fixed: removed duplicate addToInventory call in openAllChests
-10. ✅ **LOTR theme backgrounds not optimized** - Fixed: 93% size reduction (4.9MB to 369KB)
-11. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
-12. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
-13. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
-14. ✅ **Endless mode bosses unkillable at 50% HP** - Fixed: VoidLordBoss.ts line 89 incorrectly set `isPhaseShifting = false` instead of `true` when entering phase shift, causing invincibility race condition
-15. ✅ **Duplicate item attributes not combined** - Fixed: ChestScene now uses getCombinedItemStats() to merge base stats and perk stats
-16. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
-17. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
-18. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
-19. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
-20. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
-21. ✅ **Lightning ability doesn't attack surrounding minions** - Fixed: Increased chain range from 150px to 250px, added visual lightning line effect, ensured minions are properly initialized with setActive(true)
-22. ✅ **Inventory sort buttons trigger item popups when scrolled** - Fixed: Set depth=100 on sort buttons to render above scroll container
-23. ✅ **IceGolemBoss createIceSpike crash (ARROW-GAME-12)** - Fixed: Added guard for destroyed scene/boss in delayedCall callback
+10. ✅ **Inventory items not visible** - Fixed: reset scene state in create() (Phaser reuses instances)
+11. ✅ **Enemies can overlap and hide each other** - Fixed: added enemy-enemy physics collision
+12. ✅ **Auto-shoot stops after level up** - Fixed: removed isLevelingUp check from shootAtEnemy
+13. ✅ **Endless mode bosses unkillable at 50% HP** - Fixed: VoidLordBoss.ts line 89 incorrectly set `isPhaseShifting = false` instead of `true` when entering phase shift, causing invincibility race condition
+14. ✅ **Duplicate item attributes not combined** - Fixed: ChestScene now uses getCombinedItemStats() to merge base stats and perk stats
+15. ✅ **Joystick not working when created on wall** - Fixed: Removed wall blocking check; player movement is already constrained by physics collision
+16. ✅ **Dodge display exceeds 3% cap** - Fixed: UI now shows capped value with "(max)" indicator when dodge exceeds the 3% cap
+17. ✅ **Death Scythe attack speed display inverted** - Fixed: Negative percentage stats no longer scale with rarity/level (they're defining traits)
+18. ✅ **Selling items too cheap** - Fixed: Sell price now returns 30% of invested upgrade gold instead of flat linear bonus
+19. ✅ **Spreader enemies stuck in walls** - Fixed: Spreader now validates position on first update and pushes itself out of walls
+20. ✅ **Lightning ability doesn't attack surrounding minions** - Fixed: Increased chain range from 150px to 250px, added visual lightning line effect, ensured minions are properly initialized with setActive(true)
+21. ✅ **Inventory sort buttons trigger item popups when scrolled** - Fixed: Set depth=100 on sort buttons to render above scroll container
+22. ✅ **IceGolemBoss createIceSpike crash (ARROW-GAME-12)** - Fixed: Added guard for destroyed scene/boss in delayedCall callback
 
 **BALANCE:**
 1. ✅ **Nerf Dodge** - Fixed: Cap reduced from 5% to 3% (MAX_DODGE_CHANCE)
 2. ✅ **Chapter 5 too difficult** - Fixed: Reduced enemy HP from 50x to 30x, boss HP from 60x to 40x, nerfed healer/spawner modifiers
 
 **UPCOMING FEATURES:**
-1. ✅ **Shop theme preview images** - Show actual theme images instead of colors
-2. ✅ **Max attack speed cap** - Cap at 10 attacks per second (MAX_ATTACK_SPEED = 5.0 in PlayerStats)
-3. ✅ **Regenerate skill icons** - All 22 icons regenerated with transparent backgrounds and 1px black border
-4. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
-5. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
-6. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
-7. ✅ **Theme-specific enemy sprites** - 30 themed sprites (10 enemies × 3 themes: Vaporwave, LOTR, Stranger Things), encyclopedia shows themed sprites
-8. ✅ **Pause feature for long runs** - Already implemented: Pause button in gear menu, PauseScene overlay with resume/quit options, game state preservation via scene.pause()
-9. ✅ **Equipment comparison in inventory** - Already implemented: Green up-arrow on items better than equipped, stat comparison with +/- indicators in detail popup
-10. ✅ **Hero stats summary screen** - Added STATS button in HeroesScene showing total combined stats with breakdown by source (H:Hero, E:Equipment, T:Talents, +%:Percentage bonuses)
-11. ✅ **Inventory sorting** - Added sort buttons (★ rarity, Lv level, ⚔ slot type) above inventory grid, defaults to rarity sort
-12. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
-13. ✅ **Theme-specific monster names** - Added themed enemy names to encyclopedia: Vaporwave (GLITCH.exe, N30N_4RCH3R), LOTR (Goblin, Orc Archer), Stranger Things (Demodog, Demogorgon Scout)
-14. ✅ **Animated hero shooting** - Added scale pulse + recoil animation when player shoots (squash/stretch effect with slight positional kickback)
-15. ✅ **Ability priority system** - Players can set priority order for auto-learned abilities via drag-and-drop UI. Highest priority available ability is selected during auto-level-up and timeout scenarios.
-16. **Multiple priority layouts** - Allow players to save up to 4 different ability priority layouts (e.g., "Boss Rush", "Survival", "Speed Run"). First layout free, additional layouts purchasable with gold/gems. Quick-switch between layouts from Priority scene or pre-game.
+1. ✅ **Max attack speed cap** - Cap at 10 attacks per second (MAX_ATTACK_SPEED = 5.0 in PlayerStats)
+2. ✅ **Regenerate skill icons** - All 22 icons regenerated with transparent backgrounds and 1px black border
+3. ✅ **Remove seed system from UI** - Removed from GameOverScene and MainMenuScene
+4. ✅ **Energy refill via ads** - Mock popup with cute cat drawing, gives +1 energy after 3s
+5. ✅ **Add favicon** - Added game favicon using icon.svg in browser tab
+6. ✅ **Pause feature for long runs** - Already implemented: Pause button in gear menu, PauseScene overlay with resume/quit options, game state preservation via scene.pause()
+7. ✅ **Equipment comparison in inventory** - Already implemented: Green up-arrow on items better than equipped, stat comparison with +/- indicators in detail popup
+8. ✅ **Hero stats summary screen** - Added STATS button in HeroesScene showing total combined stats with breakdown by source (H:Hero, E:Equipment, T:Talents, +%:Percentage bonuses)
+9. ✅ **Inventory sorting** - Added sort buttons (★ rarity, Lv level, ⚔ slot type) above inventory grid, defaults to rarity sort
+10. ✅ **Health potion scaling** - Fixed: Potions now heal 10% of max HP, scaled by difficulty (harder = less healing), clamped 15-100 HP
+11. ✅ **Animated hero shooting** - Added scale pulse + recoil animation when player shoots (squash/stretch effect with slight positional kickback)
+12. ✅ **Ability priority system** - Players can set priority order for auto-learned abilities via drag-and-drop UI. Highest priority available ability is selected during auto-level-up and timeout scenarios.
+13. **Multiple priority layouts** - Allow players to save up to 4 different ability priority layouts (e.g., "Boss Rush", "Survival", "Speed Run"). First layout free, additional layouts purchasable with gold/gems. Quick-switch between layouts from Priority scene or pre-game.
 
 **MVP COMPLETE!** All core features implemented. Next step is V1 with equipment and progression systems.
 
@@ -479,7 +475,7 @@ Visual test screenshots are saved to `test/screenshots/`
 
 **Chapter system:**
 - 5 chapters with 20 rooms each (10 combat, 5 angel, 5 boss)
-- Each chapter: new enemy roster, environmental theme, difficulty scaling
+- Each chapter: new enemy roster, unique visuals, difficulty scaling
 - Chapter completion unlocks new abilities in the pool
 - Boss variety: 3 unique bosses per chapter
 
@@ -537,7 +533,6 @@ All V1 features implemented with full localStorage persistence and manager patte
 **Content:**
 - 22 room templates, 20 enemy combinations
 - Chapter-specific enemy modifiers (speed, attack cooldown, projectile speed)
-- 4 themes: Medieval (free), Vaporwave (10000g), Middle-Earth (666g), Upside Down (44 gems)
 
 **V1 COMPLETE!** All features implemented. Ready for V2 monetization and content expansion.
 
@@ -582,9 +577,8 @@ Battle Pass implementation:
 - 10 total chapters (50 rooms each for later chapters)
 - 8 heroes with unique skill trees
 - ✅ Endless mode (10 rooms/wave, 2x difficulty scaling, high score tracking)
-- ✅ Daily Challenge (fixed date-based seed, all players get same challenge)
 - Challenge modes: Special rules with fixed rewards
-- Special events: Limited-time themed content
+- Special events: Limited-time content and challenges
 
 **Social features:**
 - Account system (guest → email → social login)
@@ -617,7 +611,6 @@ Battle Pass implementation:
 
 **Completed:**
 - ✅ Endless Mode: Wave system, 2x difficulty scaling, high score tracking
-- ✅ Daily Challenge: Date-based seed, shared challenge, completion tracking
 - ✅ QoL: Graphics presets, colorblind modes, tutorial, replay with seed
 
 **Remaining:**

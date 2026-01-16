@@ -58,7 +58,6 @@ export interface GameOverData {
   heroXPEarned?: number
   isEndlessMode?: boolean
   endlessWave?: number
-  isDailyChallengeMode?: boolean
   chapterId?: number
   difficulty?: string
   /** Whether player can respawn (one-time use per run) */
@@ -158,7 +157,6 @@ export default class GameOverScene extends Phaser.Scene {
   private isEndlessMode: boolean = false
   private endlessWave: number = 1
   private isNewEndlessHighScore: boolean = false
-  private isDailyChallengeMode: boolean = false
   private canRespawn: boolean = false
   private respawnRoomState: RespawnRoomState | null = null
 
@@ -172,7 +170,6 @@ export default class GameOverScene extends Phaser.Scene {
     this.acquiredAbilities = data?.acquiredAbilities ?? []
     this.isEndlessMode = data?.isEndlessMode ?? false
     this.endlessWave = data?.endlessWave ?? 1
-    this.isDailyChallengeMode = data?.isDailyChallengeMode ?? false
     this.canRespawn = data?.canRespawn ?? false
     this.respawnRoomState = data?.respawnRoomState ?? null
 
@@ -262,7 +259,6 @@ export default class GameOverScene extends Phaser.Scene {
       isVictory,
       isEndlessMode: this.isEndlessMode,
       endlessWave: this.endlessWave,
-      isDailyChallenge: this.isDailyChallengeMode,
       chapterId: selectedChapter,
       difficulty: this.stats.difficulty,
       abilitiesGained: this.stats.abilitiesGained,
@@ -367,10 +363,7 @@ export default class GameOverScene extends Phaser.Scene {
     // Title text - different for each game mode
     let titleText: string
     let titleColor: string
-    if (this.isDailyChallengeMode) {
-      titleText = `DAILY CHALLENGE`
-      titleColor = '#00ddff'
-    } else if (this.isEndlessMode) {
+    if (this.isEndlessMode) {
       titleText = `WAVE ${this.endlessWave}`
       titleColor = this.isNewEndlessHighScore ? '#ffdd00' : '#ff6b35'
     } else {
@@ -387,18 +380,9 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
 
-    // Show wave info for daily challenge or new best for endless
+    // Show new best for endless mode
     let subtitleOffset = 0
-    if (this.isDailyChallengeMode) {
-      this.add
-        .text(width / 2, 95, `Wave ${this.endlessWave} Reached`, {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0.5)
-      subtitleOffset = 20
-    } else if (this.isEndlessMode && this.isNewEndlessHighScore) {
+    if (this.isEndlessMode && this.isNewEndlessHighScore) {
       this.add
         .text(width / 2, 95, 'NEW BEST!', {
           fontSize: '16px',

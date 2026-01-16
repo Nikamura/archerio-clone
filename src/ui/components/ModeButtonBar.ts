@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
 import { audioManager } from '../../systems/AudioManager'
-import { saveManager } from '../../systems/SaveManager'
 
-export type GameMode = 'story' | 'endless' | 'daily'
+export type GameMode = 'story' | 'endless'
 
 export interface ModeButtonBarConfig {
   scene: Phaser.Scene
@@ -23,13 +22,11 @@ export interface ModeButtonBarResult {
 const MODE_LABELS: Record<GameMode, string> = {
   story: 'Story',
   endless: 'Endless',
-  daily: 'Daily',
 }
 
 const MODE_COLORS: Record<GameMode, number> = {
   story: 0x4a9eff,
   endless: 0xff6b35,
-  daily: 0x00ddff,
 }
 
 const BUTTON_WIDTH = 100
@@ -47,20 +44,9 @@ export function createModeButtonBar(config: ModeButtonBarConfig): ModeButtonBarR
   const container = scene.add.container(x, y)
   container.setDepth(depth)
 
-  const modes: GameMode[] = ['story', 'endless', 'daily']
+  const modes: GameMode[] = ['story', 'endless']
   const totalWidth = modes.length * BUTTON_WIDTH + (modes.length - 1) * BUTTON_GAP
   const startX = -totalWidth / 2 + BUTTON_WIDTH / 2
-
-  // Get daily challenge status
-  const dailyCompleted = saveManager.isDailyChallengeCompleted()
-  const dailyStats = saveManager.getDailyChallengeStats()
-
-  const getDisplayLabel = (mode: GameMode): string => {
-    if (mode === 'daily' && dailyCompleted) {
-      return `✓ ${dailyStats.bestWave}`
-    }
-    return MODE_LABELS[mode]
-  }
 
   const buttons: Map<
     GameMode,
@@ -88,7 +74,7 @@ export function createModeButtonBar(config: ModeButtonBarConfig): ModeButtonBarR
     container.add(bg)
 
     // Button text
-    const text = scene.add.text(btnX, 0, getDisplayLabel(mode), {
+    const text = scene.add.text(btnX, 0, MODE_LABELS[mode], {
       fontSize: '13px',
       color: isActive ? '#ffffff' : '#aaaaaa',
       fontStyle: isActive ? 'bold' : 'normal',

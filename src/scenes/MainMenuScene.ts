@@ -115,8 +115,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
   private startGame(mode: GameMode) {
     // Set game mode
-    this.game.registry.set('isEndlessMode', mode === 'endless' || mode === 'daily')
-    this.game.registry.set('isDailyChallengeMode', mode === 'daily')
+    this.game.registry.set('isEndlessMode', mode === 'endless')
 
     transitionToScene(this, 'GameScene', TransitionType.FADE, DURATION.NORMAL)
     this.scene.launch('UIScene')

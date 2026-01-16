@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
 import { audioManager } from '../../systems/AudioManager'
-import { saveManager } from '../../systems/SaveManager'
 
-export type GameMode = 'story' | 'endless' | 'daily'
+export type GameMode = 'story' | 'endless'
 
 export interface ModeSelectorConfig {
   scene: Phaser.Scene
@@ -23,17 +22,15 @@ export interface ModeSelectorResult {
 const MODE_LABELS: Record<GameMode, string> = {
   story: 'Story',
   endless: 'Endless',
-  daily: 'Daily',
 }
 
 const MODE_COLORS: Record<GameMode, number> = {
   story: 0x4a9eff,
   endless: 0xff6b35,
-  daily: 0x00ddff,
 }
 
 /**
- * ModeSelector - Dropdown for selecting game mode (Story/Endless/Daily)
+ * ModeSelector - Dropdown for selecting game mode (Story/Endless)
  */
 export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResult {
   const { scene, x, y, initialMode = 'story', onModeChange, depth = 10 } = config
@@ -44,17 +41,6 @@ export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResu
   const container = scene.add.container(x, y)
   container.setDepth(depth)
 
-  // Get daily challenge status
-  const dailyCompleted = saveManager.isDailyChallengeCompleted()
-  const dailyStats = saveManager.getDailyChallengeStats()
-
-  const getDisplayLabel = (mode: GameMode): string => {
-    if (mode === 'daily' && dailyCompleted) {
-      return `Daily ✓ (Wave ${dailyStats.bestWave})`
-    }
-    return MODE_LABELS[mode]
-  }
-
   // Main button (shows current selection)
   const buttonWidth = 140
   const buttonHeight = 36
@@ -64,7 +50,7 @@ export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResu
   buttonBg.setInteractive({ useHandCursor: true })
   container.add(buttonBg)
 
-  const buttonText = scene.add.text(-10, 0, getDisplayLabel(currentMode), {
+  const buttonText = scene.add.text(-10, 0, MODE_LABELS[currentMode], {
     fontSize: '14px',
     color: '#ffffff',
     fontStyle: 'bold',
@@ -84,7 +70,7 @@ export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResu
   dropdownContainer.setDepth(depth + 100)
   dropdownContainer.setVisible(false)
 
-  const modes: GameMode[] = ['story', 'endless', 'daily']
+  const modes: GameMode[] = ['story', 'endless']
   const optionHeight = 36
 
   // Dropdown background
@@ -100,7 +86,7 @@ export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResu
     optionBg.setInteractive({ useHandCursor: true })
     dropdownContainer.add(optionBg)
 
-    const optionText = scene.add.text(0, optionY, getDisplayLabel(mode), {
+    const optionText = scene.add.text(0, optionY, MODE_LABELS[mode], {
       fontSize: '13px',
       color: '#ffffff',
     })
@@ -174,7 +160,7 @@ export function createModeSelector(config: ModeSelectorConfig): ModeSelectorResu
   const setMode = (mode: GameMode) => {
     currentMode = mode
     buttonBg.setFillStyle(MODE_COLORS[mode])
-    buttonText.setText(getDisplayLabel(mode))
+    buttonText.setText(MODE_LABELS[mode])
     onModeChange?.(mode)
   }
 
