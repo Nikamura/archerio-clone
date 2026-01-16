@@ -1,7 +1,6 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 type ChargerPhase = 'idle' | 'windup' | 'charging' | 'stunned'
 
@@ -45,7 +44,7 @@ export default class ChargerEnemy extends Enemy {
     this.chargeSpeed = 350 * (options?.speedMultiplier ?? 1.0)
 
     // Use themed charger enemy sprite
-    const spriteKey = getEnemySpriteKey('charger', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('charger')
     if (scene.textures.exists(spriteKey)) {
       this.setTexture(spriteKey)
     } else {

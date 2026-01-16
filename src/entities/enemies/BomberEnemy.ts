@@ -13,7 +13,6 @@ import Phaser from 'phaser'
 import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import BombPool from '../../systems/BombPool'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 export default class BomberEnemy extends Enemy {
   private lastThrowTime: number = 0
@@ -51,7 +50,7 @@ export default class BomberEnemy extends Enemy {
     }
 
     // Use themed bomber enemy sprite
-    const spriteKey = getEnemySpriteKey('bomber', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('bomber')
     if (scene.textures.exists(spriteKey)) {
       this.setTexture(spriteKey)
     } else {

@@ -2,7 +2,6 @@ import Phaser from 'phaser'
 import Enemy, { EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 type BurrowerPhase = 'burrowed' | 'surfacing' | 'attacking' | 'burrowing'
 
@@ -38,7 +37,7 @@ export default class BurrowerEnemy extends Enemy {
     this.bulletPool = bulletPool
 
     // Use themed burrower enemy sprite
-    const spriteKey = getEnemySpriteKey('burrower', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('burrower')
     if (scene.textures.exists(spriteKey)) {
       this.setTexture(spriteKey)
     }

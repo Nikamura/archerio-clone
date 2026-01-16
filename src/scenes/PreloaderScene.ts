@@ -156,7 +156,7 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('atreusSprite', 'assets/sprites/player/archer.png')
     this.load.image('helixSprite', 'assets/sprites/player/helix.png')
     this.load.image('meowgikSprite', 'assets/sprites/player/meowgik.png')
-    // Medieval (default) enemy sprites
+    // Enemy sprites
     this.load.image('enemyMelee', 'assets/sprites/enemy/melee_slime.png')
     this.load.image('enemyRanged', 'assets/sprites/enemy/ranged_skeleton.png')
     this.load.image('enemySpreader', 'assets/sprites/enemy/spreader_eye.png')
@@ -167,42 +167,6 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('enemyTank', 'assets/sprites/enemy/tank.png')
     this.load.image('enemyCharger', 'assets/sprites/enemy/charger.png')
     this.load.image('enemyBurrower', 'assets/sprites/enemy/burrower.png')
-
-    // Vaporwave enemy sprites
-    this.load.image('vaporwave_enemyMelee', 'assets/sprites/enemy/vaporwave/melee.png')
-    this.load.image('vaporwave_enemyRanged', 'assets/sprites/enemy/vaporwave/ranged.png')
-    this.load.image('vaporwave_enemySpreader', 'assets/sprites/enemy/vaporwave/spreader.png')
-    this.load.image('vaporwave_enemyHealer', 'assets/sprites/enemy/vaporwave/healer.png')
-    this.load.image('vaporwave_enemySpawner', 'assets/sprites/enemy/vaporwave/spawner.png')
-    this.load.image('vaporwave_enemyMinion', 'assets/sprites/enemy/vaporwave/minion.png')
-    this.load.image('vaporwave_enemyBomber', 'assets/sprites/enemy/vaporwave/bomber.png')
-    this.load.image('vaporwave_enemyTank', 'assets/sprites/enemy/vaporwave/tank.png')
-    this.load.image('vaporwave_enemyCharger', 'assets/sprites/enemy/vaporwave/charger.png')
-    this.load.image('vaporwave_enemyBurrower', 'assets/sprites/enemy/vaporwave/burrower.png')
-
-    // LOTR (Middle-Earth) enemy sprites
-    this.load.image('lotr_enemyMelee', 'assets/sprites/enemy/lotr/melee.png')
-    this.load.image('lotr_enemyRanged', 'assets/sprites/enemy/lotr/ranged.png')
-    this.load.image('lotr_enemySpreader', 'assets/sprites/enemy/lotr/spreader.png')
-    this.load.image('lotr_enemyHealer', 'assets/sprites/enemy/lotr/healer.png')
-    this.load.image('lotr_enemySpawner', 'assets/sprites/enemy/lotr/spawner.png')
-    this.load.image('lotr_enemyMinion', 'assets/sprites/enemy/lotr/minion.png')
-    this.load.image('lotr_enemyBomber', 'assets/sprites/enemy/lotr/bomber.png')
-    this.load.image('lotr_enemyTank', 'assets/sprites/enemy/lotr/tank.png')
-    this.load.image('lotr_enemyCharger', 'assets/sprites/enemy/lotr/charger.png')
-    this.load.image('lotr_enemyBurrower', 'assets/sprites/enemy/lotr/burrower.png')
-
-    // Stranger Things (Upside Down) enemy sprites
-    this.load.image('st_enemyMelee', 'assets/sprites/enemy/strangerThings/melee.png')
-    this.load.image('st_enemyRanged', 'assets/sprites/enemy/strangerThings/ranged.png')
-    this.load.image('st_enemySpreader', 'assets/sprites/enemy/strangerThings/spreader.png')
-    this.load.image('st_enemyHealer', 'assets/sprites/enemy/strangerThings/healer.png')
-    this.load.image('st_enemySpawner', 'assets/sprites/enemy/strangerThings/spawner.png')
-    this.load.image('st_enemyMinion', 'assets/sprites/enemy/strangerThings/minion.png')
-    this.load.image('st_enemyBomber', 'assets/sprites/enemy/strangerThings/bomber.png')
-    this.load.image('st_enemyTank', 'assets/sprites/enemy/strangerThings/tank.png')
-    this.load.image('st_enemyCharger', 'assets/sprites/enemy/strangerThings/charger.png')
-    this.load.image('st_enemyBurrower', 'assets/sprites/enemy/strangerThings/burrower.png')
     this.load.image('bossSprite', 'assets/sprites/boss/demon.png')
     // Chapter 2 - Forest bosses
     this.load.image('boss_tree_guardian', 'assets/sprites/boss/tree_guardian.png')
@@ -240,42 +204,6 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('chapter3Bg', 'assets/backgrounds/chapter3_ice.jpg')
     this.load.image('chapter4Bg', 'assets/backgrounds/chapter4_volcanic.jpg')
     this.load.image('chapter5Bg', 'assets/backgrounds/chapter5_shadow.jpg')
-
-    // Load vaporwave theme assets (per-hero sprites)
-    this.load.image('vaporwave_atreusSprite', 'assets/sprites/player/vaporwave_archer.png')
-    this.load.image('vaporwave_helixSprite', 'assets/sprites/player/vaporwave_helix.png')
-    this.load.image('vaporwave_meowgikSprite', 'assets/sprites/player/vaporwave_meowgik.png')
-    this.load.image('vaporwave_bulletSprite', 'assets/sprites/projectile/vaporwave_arrow.png')
-    this.load.image('vaporwave_menuBg', 'assets/backgrounds/vaporwave_menu.jpg')
-    this.load.image('vaporwave_chapter1Bg', 'assets/backgrounds/vaporwave_chapter1.jpg')
-    this.load.image('vaporwave_chapter2Bg', 'assets/backgrounds/vaporwave_chapter2.jpg')
-    this.load.image('vaporwave_chapter3Bg', 'assets/backgrounds/vaporwave_chapter3.jpg')
-    this.load.image('vaporwave_chapter4Bg', 'assets/backgrounds/vaporwave_chapter4.jpg')
-    this.load.image('vaporwave_chapter5Bg', 'assets/backgrounds/vaporwave_chapter5.jpg')
-
-    // Load LOTR (Middle-Earth) theme assets (per-hero sprites)
-    this.load.image('lotr_atreusSprite', 'assets/sprites/player/lotr_archer.png')
-    this.load.image('lotr_helixSprite', 'assets/sprites/player/lotr_helix.png')
-    this.load.image('lotr_meowgikSprite', 'assets/sprites/player/lotr_meowgik.png')
-    this.load.image('lotr_bulletSprite', 'assets/sprites/projectile/lotr_arrow.png')
-    this.load.image('lotr_menuBg', 'assets/backgrounds/lotr_menu.jpg')
-    this.load.image('lotr_chapter1Bg', 'assets/backgrounds/lotr_chapter1.jpg')
-    this.load.image('lotr_chapter2Bg', 'assets/backgrounds/lotr_chapter2.jpg')
-    this.load.image('lotr_chapter3Bg', 'assets/backgrounds/lotr_chapter3.jpg')
-    this.load.image('lotr_chapter4Bg', 'assets/backgrounds/lotr_chapter4.jpg')
-    this.load.image('lotr_chapter5Bg', 'assets/backgrounds/lotr_chapter5.jpg')
-
-    // Load Stranger Things (Upside Down) theme assets (per-hero sprites)
-    this.load.image('st_atreusSprite', 'assets/sprites/player/st_atreus.png')
-    this.load.image('st_helixSprite', 'assets/sprites/player/st_helix.png')
-    this.load.image('st_meowgikSprite', 'assets/sprites/player/st_meowgik.png')
-    this.load.image('st_bulletSprite', 'assets/sprites/projectile/st_bullet.png')
-    this.load.image('st_menuBg', 'assets/backgrounds/st_menu.jpg')
-    this.load.image('st_chapter1Bg', 'assets/backgrounds/st_chapter1.jpg')
-    this.load.image('st_chapter2Bg', 'assets/backgrounds/st_chapter2.jpg')
-    this.load.image('st_chapter3Bg', 'assets/backgrounds/st_chapter3.jpg')
-    this.load.image('st_chapter4Bg', 'assets/backgrounds/st_chapter4.jpg')
-    this.load.image('st_chapter5Bg', 'assets/backgrounds/st_chapter5.jpg')
 
     // Load background animation particles
     this.load.image('bg_dust', 'assets/backgrounds/overlays/dust.png')
@@ -321,73 +249,27 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image('heroHelix', 'assets/sprites/ui/hero_helix.png')
     this.load.image('heroMeowgik', 'assets/sprites/ui/hero_meowgik.png')
 
-    // Load chapter icons (themed)
-    // Medieval theme
+    // Load chapter icons
     this.load.image('chapter1Icon_medieval', 'assets/sprites/ui/chapter1_icon_medieval.png')
     this.load.image('chapter2Icon_medieval', 'assets/sprites/ui/chapter2_icon_medieval.png')
     this.load.image('chapter3Icon_medieval', 'assets/sprites/ui/chapter3_icon_medieval.png')
     this.load.image('chapter4Icon_medieval', 'assets/sprites/ui/chapter4_icon_medieval.png')
     this.load.image('chapter5Icon_medieval', 'assets/sprites/ui/chapter5_icon_medieval.png')
-    // Vaporwave theme
-    this.load.image('chapter1Icon_vaporwave', 'assets/sprites/ui/chapter1_icon_vaporwave.png')
-    this.load.image('chapter2Icon_vaporwave', 'assets/sprites/ui/chapter2_icon_vaporwave.png')
-    this.load.image('chapter3Icon_vaporwave', 'assets/sprites/ui/chapter3_icon_vaporwave.png')
-    this.load.image('chapter4Icon_vaporwave', 'assets/sprites/ui/chapter4_icon_vaporwave.png')
-    this.load.image('chapter5Icon_vaporwave', 'assets/sprites/ui/chapter5_icon_vaporwave.png')
-    // LOTR theme
-    this.load.image('chapter1Icon_lotr', 'assets/sprites/ui/chapter1_icon_lotr.png')
-    this.load.image('chapter2Icon_lotr', 'assets/sprites/ui/chapter2_icon_lotr.png')
-    this.load.image('chapter3Icon_lotr', 'assets/sprites/ui/chapter3_icon_lotr.png')
-    this.load.image('chapter4Icon_lotr', 'assets/sprites/ui/chapter4_icon_lotr.png')
-    this.load.image('chapter5Icon_lotr', 'assets/sprites/ui/chapter5_icon_lotr.png')
-    // Stranger Things theme
-    this.load.image('chapter1Icon_st', 'assets/sprites/ui/chapter1_icon_st.png')
-    this.load.image('chapter2Icon_st', 'assets/sprites/ui/chapter2_icon_st.png')
-    this.load.image('chapter3Icon_st', 'assets/sprites/ui/chapter3_icon_st.png')
-    this.load.image('chapter4Icon_st', 'assets/sprites/ui/chapter4_icon_st.png')
-    this.load.image('chapter5Icon_st', 'assets/sprites/ui/chapter5_icon_st.png')
     
-    // Load wall textures (chapter-themed)
+    // Load wall textures
     this.load.image('wall_dungeon', 'assets/sprites/walls/wall_dungeon.png')
     this.load.image('wall_forest', 'assets/sprites/walls/wall_forest.png')
     this.load.image('wall_ice', 'assets/sprites/walls/wall_ice.png')
     this.load.image('wall_lava', 'assets/sprites/walls/wall_lava.png')
     this.load.image('wall_shadow', 'assets/sprites/walls/wall_shadow.png')
-    // Vaporwave theme (per-chapter variants)
-    this.load.image('wall_vaporwave_dungeon', 'assets/sprites/walls/wall_vaporwave_dungeon.png')
-    this.load.image('wall_vaporwave_forest', 'assets/sprites/walls/wall_vaporwave_forest.png')
-    this.load.image('wall_vaporwave_ice', 'assets/sprites/walls/wall_vaporwave_ice.png')
-    this.load.image('wall_vaporwave_lava', 'assets/sprites/walls/wall_vaporwave_lava.png')
-    this.load.image('wall_vaporwave_shadow', 'assets/sprites/walls/wall_vaporwave_shadow.png')
-    // LOTR theme (per-chapter variants)
-    this.load.image('wall_lotr_dungeon', 'assets/sprites/walls/wall_lotr_dungeon.png')
-    this.load.image('wall_lotr_forest', 'assets/sprites/walls/wall_lotr_forest.png')
-    this.load.image('wall_lotr_ice', 'assets/sprites/walls/wall_lotr_ice.png')
-    this.load.image('wall_lotr_lava', 'assets/sprites/walls/wall_lotr_lava.png')
-    this.load.image('wall_lotr_shadow', 'assets/sprites/walls/wall_lotr_shadow.png')
-    // Stranger Things theme (per-chapter variants)
-    this.load.image('wall_st_dungeon', 'assets/sprites/walls/wall_st_dungeon.png')
-    this.load.image('wall_st_forest', 'assets/sprites/walls/wall_st_forest.png')
-    this.load.image('wall_st_ice', 'assets/sprites/walls/wall_st_ice.png')
-    this.load.image('wall_st_lava', 'assets/sprites/walls/wall_st_lava.png')
-    this.load.image('wall_st_shadow', 'assets/sprites/walls/wall_st_shadow.png')
 
     // Load chest sprites
     this.load.image('chest_wooden', 'assets/sprites/chest/wooden.png')
     this.load.image('chest_silver', 'assets/sprites/chest/silver.png')
     this.load.image('chest_golden', 'assets/sprites/chest/golden.png')
 
-    // Load theme preview images
-    this.load.image('themePreview_medieval', 'assets/ui/theme_previews/medieval.jpg')
-    this.load.image('themePreview_vaporwave', 'assets/ui/theme_previews/vaporwave.jpg')
-    this.load.image('themePreview_lotr', 'assets/ui/theme_previews/lotr.jpg')
-    this.load.image('themePreview_strangerThings', 'assets/ui/theme_previews/strangerThings.jpg')
-
-    // Load theme-specific play buttons
+    // Load play button
     this.load.image('playButton_medieval', 'assets/sprites/ui/play_button_medieval.png')
-    this.load.image('playButton_vaporwave', 'assets/sprites/ui/play_button_vaporwave.png')
-    this.load.image('playButton_lotr', 'assets/sprites/ui/play_button_lotr.png')
-    this.load.image('playButton_st', 'assets/sprites/ui/play_button_st.png')
 
     // Load equipment sprites
     // Weapons
