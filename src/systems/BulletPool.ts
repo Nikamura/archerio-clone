@@ -1,5 +1,5 @@
-import Phaser from 'phaser'
-import Bullet from '../entities/Bullet'
+import Phaser from "phaser";
+import Bullet from "../entities/Bullet";
 
 export default class BulletPool extends Phaser.Physics.Arcade.Group {
   constructor(scene: Phaser.Scene) {
@@ -7,10 +7,10 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
       classType: Bullet,
       maxSize: 2000, // Increased to handle high fire rate + multiple arrow abilities
       runChildUpdate: true,
-    })
+    });
 
     // Create bullet texture
-    this.createBulletTexture()
+    this.createBulletTexture();
   }
 
   private createBulletTexture() {
@@ -18,28 +18,34 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
     // No need to generate it here
   }
 
-  spawn(x: number, y: number, angle: number, speed: number = 400, options?: {
-    maxPierces?: number
-    maxBounces?: number
-    fireDamage?: number
-    isCrit?: boolean
-    freezeChance?: number
-    poisonDamage?: number
-    lightningChainCount?: number
-    projectileSprite?: string
-    projectileSizeMultiplier?: number
-  }): Bullet | null {
-    let bullet = this.get(x, y) as Bullet | null
+  spawn(
+    x: number,
+    y: number,
+    angle: number,
+    speed: number = 400,
+    options?: {
+      maxPierces?: number;
+      maxBounces?: number;
+      fireDamage?: number;
+      isCrit?: boolean;
+      freezeChance?: number;
+      poisonDamage?: number;
+      lightningChainCount?: number;
+      projectileSprite?: string;
+      projectileSizeMultiplier?: number;
+    },
+  ): Bullet | null {
+    let bullet = this.get(x, y) as Bullet | null;
 
     // If pool is exhausted, recycle the oldest active bullet
     if (!bullet) {
-      bullet = this.recycleOldestBullet()
+      bullet = this.recycleOldestBullet();
     }
 
     if (bullet) {
-      bullet.fire(x, y, angle, speed, options)
+      bullet.fire(x, y, angle, speed, options);
     }
-    return bullet
+    return bullet;
   }
 
   /**
@@ -48,29 +54,29 @@ export default class BulletPool extends Phaser.Physics.Arcade.Group {
    * Only recycles bullets that have lived at least 500ms to prevent visible pop-in.
    */
   private recycleOldestBullet(): Bullet | null {
-    let oldest: Bullet | null = null
-    let oldestSpawnTime = Infinity
-    const currentTime = this.scene.time.now
-    const minLifetime = 500 // Don't recycle bullets younger than 500ms
+    let oldest: Bullet | null = null;
+    let oldestSpawnTime = Infinity;
+    const currentTime = this.scene.time.now;
+    const minLifetime = 500; // Don't recycle bullets younger than 500ms
 
     this.children.iterate((child) => {
-      const bullet = child as Bullet
+      const bullet = child as Bullet;
       if (bullet.active) {
-        const spawnTime = bullet.getSpawnTime()
-        const bulletAge = currentTime - spawnTime
+        const spawnTime = bullet.getSpawnTime();
+        const bulletAge = currentTime - spawnTime;
         // Only consider bullets that have lived long enough
         if (bulletAge >= minLifetime && spawnTime < oldestSpawnTime) {
-          oldestSpawnTime = spawnTime
-          oldest = bullet
+          oldestSpawnTime = spawnTime;
+          oldest = bullet;
         }
       }
-      return true
-    })
+      return true;
+    });
 
     if (oldest !== null) {
-      (oldest as Bullet).deactivate()
-      return oldest
+      (oldest as Bullet).deactivate();
+      return oldest;
     }
-    return null
+    return null;
   }
 }

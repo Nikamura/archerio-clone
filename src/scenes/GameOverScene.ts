@@ -1,16 +1,16 @@
-import Phaser from 'phaser'
-import { audioManager } from '../systems/AudioManager'
-import { saveManager } from '../systems/SaveManager'
-import { achievementManager } from '../systems/AchievementManager'
-import { currencyManager } from '../systems/CurrencyManager'
-import { chestManager } from '../systems/ChestManager'
-import { chapterManager, type ChapterCompletionResult } from '../systems/ChapterManager'
-import { heroManager } from '../systems/HeroManager'
-import type { HeroLevelUpEvent } from '../systems/Hero'
-import { debugToast } from '../systems/DebugToast'
-import { ABILITIES } from './LevelUpScene'
-import { showMockAdPopup } from '../ui/components/MockAdPopup'
-import { errorReporting } from '../systems/ErrorReportingManager'
+import Phaser from "phaser";
+import { audioManager } from "../systems/AudioManager";
+import { saveManager } from "../systems/SaveManager";
+import { achievementManager } from "../systems/AchievementManager";
+import { currencyManager } from "../systems/CurrencyManager";
+import { chestManager } from "../systems/ChestManager";
+import { chapterManager, type ChapterCompletionResult } from "../systems/ChapterManager";
+import { heroManager } from "../systems/HeroManager";
+import type { HeroLevelUpEvent } from "../systems/Hero";
+import { debugToast } from "../systems/DebugToast";
+import { ABILITIES } from "./LevelUpScene";
+import { showMockAdPopup } from "../ui/components/MockAdPopup";
+import { errorReporting } from "../systems/ErrorReportingManager";
 import {
   calculateChestRewards,
   getTotalChests,
@@ -18,52 +18,52 @@ import {
   CHEST_CONFIGS,
   CHEST_ORDER,
   ChestType,
-} from '../data/chestData'
+} from "../data/chestData";
 
 export interface AcquiredAbility {
-  id: string
-  level: number
+  id: string;
+  level: number;
 }
 
 /**
  * Saved enemy state for respawn feature
  */
 export interface EnemyRespawnState {
-  x: number
-  y: number
-  health: number
-  maxHealth: number
-  type: string
+  x: number;
+  y: number;
+  health: number;
+  maxHealth: number;
+  type: string;
 }
 
 /**
  * Room state saved for respawn
  */
 export interface RespawnRoomState {
-  enemies: EnemyRespawnState[]
-  bossHealth?: number
-  bossMaxHealth?: number
+  enemies: EnemyRespawnState[];
+  bossHealth?: number;
+  bossMaxHealth?: number;
 }
 
 export interface GameOverData {
-  roomsCleared: number
-  enemiesKilled: number
-  isVictory?: boolean
-  playTimeMs?: number
-  abilitiesGained?: number
-  bossDefeated?: boolean
-  goldEarned?: number
-  completionResult?: ChapterCompletionResult
-  acquiredAbilities?: AcquiredAbility[]
-  heroXPEarned?: number
-  isEndlessMode?: boolean
-  endlessWave?: number
-  chapterId?: number
-  difficulty?: string
+  roomsCleared: number;
+  enemiesKilled: number;
+  isVictory?: boolean;
+  playTimeMs?: number;
+  abilitiesGained?: number;
+  bossDefeated?: boolean;
+  goldEarned?: number;
+  completionResult?: ChapterCompletionResult;
+  acquiredAbilities?: AcquiredAbility[];
+  heroXPEarned?: number;
+  isEndlessMode?: boolean;
+  endlessWave?: number;
+  chapterId?: number;
+  difficulty?: string;
   /** Whether player can respawn (one-time use per run) */
-  canRespawn?: boolean
+  canRespawn?: boolean;
   /** Saved room state for respawn */
-  respawnRoomState?: RespawnRoomState
+  respawnRoomState?: RespawnRoomState;
 }
 
 /**
@@ -83,40 +83,40 @@ function calculateGoldEarned(
   enemiesKilled: number,
   bossDefeated: boolean,
   endlessWave: number = 1,
-  isEndlessMode: boolean = false
+  isEndlessMode: boolean = false,
 ): number {
   // Approximate 10 gold per regular enemy (weighted average)
-  const baseGold = enemiesKilled * 10
+  const baseGold = enemiesKilled * 10;
 
   // Boss bonus
-  const bossGold = bossDefeated ? 75 : 0
+  const bossGold = bossDefeated ? 75 : 0;
 
-  let totalGold = baseGold + bossGold
+  let totalGold = baseGold + bossGold;
 
   // Apply endless wave multiplier: 50% more gold per wave
   // Wave 1: 1.0x, Wave 2: 1.5x, Wave 3: 2.0x, etc.
   if (isEndlessMode && endlessWave > 1) {
-    const waveMultiplier = 1 + (endlessWave - 1) * 0.5
-    totalGold = Math.floor(totalGold * waveMultiplier)
+    const waveMultiplier = 1 + (endlessWave - 1) * 0.5;
+    totalGold = Math.floor(totalGold * waveMultiplier);
   }
 
-  return totalGold
+  return totalGold;
 }
 
 /**
  * Score breakdown for display
  */
 interface ScoreBreakdown {
-  killPoints: number
-  roomPoints: number
-  goldPoints: number
-  timeBonus: number
-  victoryBonus: number
-  total: number
+  killPoints: number;
+  roomPoints: number;
+  goldPoints: number;
+  timeBonus: number;
+  victoryBonus: number;
+  total: number;
 }
 
 /** Maximum time (5 minutes) for time bonus calculation */
-const MAX_TIME_BONUS_MS = 5 * 60 * 1000
+const MAX_TIME_BONUS_MS = 5 * 60 * 1000;
 
 /**
  * Calculate run score from performance metrics
@@ -126,13 +126,13 @@ function calculateScore(
   roomsCleared: number,
   goldEarned: number,
   playTimeMs: number,
-  isVictory: boolean
+  isVictory: boolean,
 ): ScoreBreakdown {
-  const killPoints = enemiesKilled * 10
-  const roomPoints = roomsCleared * roomsCleared * 25
-  const goldPoints = Math.floor(goldEarned * 0.5)
-  const timeBonus = Math.max(0, Math.floor((MAX_TIME_BONUS_MS - playTimeMs) / 1000) * 2)
-  const victoryBonus = isVictory ? 500 : 0
+  const killPoints = enemiesKilled * 10;
+  const roomPoints = roomsCleared * roomsCleared * 25;
+  const goldPoints = Math.floor(goldEarned * 0.5);
+  const timeBonus = Math.max(0, Math.floor((MAX_TIME_BONUS_MS - playTimeMs) / 1000) * 2);
+  const victoryBonus = isVictory ? 500 : 0;
 
   return {
     killPoints,
@@ -141,50 +141,52 @@ function calculateScore(
     timeBonus,
     victoryBonus,
     total: killPoints + roomPoints + goldPoints + timeBonus + victoryBonus,
-  }
+  };
 }
 
 export default class GameOverScene extends Phaser.Scene {
-  private stats: GameOverData = { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
-  private goldEarned: number = 0
-  private chestRewards: ChestRewards = { wooden: 0, silver: 0, golden: 0 }
-  private rewardsCollected: boolean = false
-  private acquiredAbilities: AcquiredAbility[] = []
-  private scoreBreakdown: ScoreBreakdown | null = null
-  private isNewHighScore: boolean = false
-  private heroXPEarned: number = 0
-  private heroLevelUps: HeroLevelUpEvent[] = []
-  private isEndlessMode: boolean = false
-  private endlessWave: number = 1
-  private isNewEndlessHighScore: boolean = false
-  private canRespawn: boolean = false
-  private respawnRoomState: RespawnRoomState | null = null
+  private stats: GameOverData = { roomsCleared: 0, enemiesKilled: 0, isVictory: false };
+  private goldEarned: number = 0;
+  private chestRewards: ChestRewards = { wooden: 0, silver: 0, golden: 0 };
+  private rewardsCollected: boolean = false;
+  private acquiredAbilities: AcquiredAbility[] = [];
+  private scoreBreakdown: ScoreBreakdown | null = null;
+  private isNewHighScore: boolean = false;
+  private heroXPEarned: number = 0;
+  private heroLevelUps: HeroLevelUpEvent[] = [];
+  private isEndlessMode: boolean = false;
+  private endlessWave: number = 1;
+  private isNewEndlessHighScore: boolean = false;
+  private canRespawn: boolean = false;
+  private respawnRoomState: RespawnRoomState | null = null;
 
   constructor() {
-    super({ key: 'GameOverScene' })
+    super({ key: "GameOverScene" });
   }
 
   init(data: GameOverData) {
-    this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false }
-    this.rewardsCollected = false
-    this.acquiredAbilities = data?.acquiredAbilities ?? []
-    this.isEndlessMode = data?.isEndlessMode ?? false
-    this.endlessWave = data?.endlessWave ?? 1
-    this.canRespawn = data?.canRespawn ?? false
-    this.respawnRoomState = data?.respawnRoomState ?? null
+    this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false };
+    this.rewardsCollected = false;
+    this.acquiredAbilities = data?.acquiredAbilities ?? [];
+    this.isEndlessMode = data?.isEndlessMode ?? false;
+    this.endlessWave = data?.endlessWave ?? 1;
+    this.canRespawn = data?.canRespawn ?? false;
+    this.respawnRoomState = data?.respawnRoomState ?? null;
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
-    const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false
-    this.goldEarned = this.stats.goldEarned ?? calculateGoldEarned(
-      this.stats.enemiesKilled,
-      bossDefeated,
-      this.endlessWave,
-      this.isEndlessMode
-    )
+    const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false;
+    this.goldEarned =
+      this.stats.goldEarned ??
+      calculateGoldEarned(
+        this.stats.enemiesKilled,
+        bossDefeated,
+        this.endlessWave,
+        this.isEndlessMode,
+      );
 
     // Get chapter and difficulty for scaled rewards
-    const chapterId = data?.chapterId ?? chapterManager.getSelectedChapter()
-    const difficulty = data?.difficulty ?? 'normal'
+    const chapterId = data?.chapterId ?? chapterManager.getSelectedChapter();
+    const difficulty = data?.difficulty ?? "normal";
 
     this.chestRewards = calculateChestRewards(
       this.stats.roomsCleared,
@@ -194,8 +196,8 @@ export default class GameOverScene extends Phaser.Scene {
       chapterId,
       difficulty,
       this.endlessWave,
-      this.isEndlessMode
-    )
+      this.isEndlessMode,
+    );
 
     // Calculate score
     this.scoreBreakdown = calculateScore(
@@ -203,29 +205,29 @@ export default class GameOverScene extends Phaser.Scene {
       this.stats.roomsCleared,
       this.goldEarned,
       this.stats.playTimeMs ?? 0,
-      this.stats.isVictory ?? false
-    )
+      this.stats.isVictory ?? false,
+    );
 
     // Check if new high score (regular or endless)
     if (this.isEndlessMode) {
-      const previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0
-      this.isNewEndlessHighScore = this.endlessWave > previousEndlessHighWave
-      this.isNewHighScore = false // Don't track regular high score in endless mode
+      const previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
+      this.isNewEndlessHighScore = this.endlessWave > previousEndlessHighWave;
+      this.isNewHighScore = false; // Don't track regular high score in endless mode
     } else {
-      const previousHighScore = saveManager.getStatistics().highestScore
-      this.isNewHighScore = this.scoreBreakdown.total > previousHighScore
-      this.isNewEndlessHighScore = false
+      const previousHighScore = saveManager.getStatistics().highestScore;
+      this.isNewHighScore = this.scoreBreakdown.total > previousHighScore;
+      this.isNewEndlessHighScore = false;
     }
 
     // Record run statistics to save data
-    this.recordRunStats()
+    this.recordRunStats();
 
     // Process hero XP
-    this.heroXPEarned = data?.heroXPEarned ?? 0
-    this.heroLevelUps = []
+    this.heroXPEarned = data?.heroXPEarned ?? 0;
+    this.heroLevelUps = [];
     if (this.heroXPEarned > 0) {
-      const selectedHeroId = heroManager.getSelectedHeroId()
-      this.heroLevelUps = heroManager.addXP(selectedHeroId, this.heroXPEarned)
+      const selectedHeroId = heroManager.getSelectedHeroId();
+      this.heroLevelUps = heroManager.addXP(selectedHeroId, this.heroXPEarned);
     }
   }
 
@@ -233,10 +235,10 @@ export default class GameOverScene extends Phaser.Scene {
    * Record this run's statistics to persistent save data
    */
   private recordRunStats(): void {
-    const selectedChapter = chapterManager.getSelectedChapter()
-    const isVictory = this.stats.isVictory === true
-    const stars = this.stats.completionResult?.stars ?? 0
-    const score = this.scoreBreakdown?.total ?? 0
+    const selectedChapter = chapterManager.getSelectedChapter();
+    const isVictory = this.stats.isVictory === true;
+    const stars = this.stats.completionResult?.stars ?? 0;
+    const score = this.scoreBreakdown?.total ?? 0;
 
     saveManager.recordRun({
       kills: this.stats.enemiesKilled,
@@ -248,7 +250,7 @@ export default class GameOverScene extends Phaser.Scene {
       score,
       isEndlessMode: this.isEndlessMode,
       endlessWave: this.endlessWave,
-    })
+    });
 
     // Track run completion metrics in Sentry
     errorReporting.trackRunCompleted({
@@ -262,198 +264,193 @@ export default class GameOverScene extends Phaser.Scene {
       chapterId: selectedChapter,
       difficulty: this.stats.difficulty,
       abilitiesGained: this.stats.abilitiesGained,
-    })
+    });
 
     // Track high scores
     if (this.isNewHighScore && this.scoreBreakdown) {
-      const previousHighScore = saveManager.getStatistics().highestScore - score // Approximate previous
-      errorReporting.trackNewHighScore(score, Math.max(0, previousHighScore), 'normal')
+      const previousHighScore = saveManager.getStatistics().highestScore - score; // Approximate previous
+      errorReporting.trackNewHighScore(score, Math.max(0, previousHighScore), "normal");
     }
     if (this.isNewEndlessHighScore) {
-      const previousHighWave = saveManager.getStatistics().endlessHighWave ?? 0
-      errorReporting.trackNewHighScore(this.endlessWave, previousHighWave, 'endless')
+      const previousHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
+      errorReporting.trackNewHighScore(this.endlessWave, previousHighWave, "endless");
     }
 
     // Update chapter progress in SaveManager for persistence (only for normal mode)
     if (!this.isEndlessMode) {
-      saveManager.updateChapterProgress(
-        selectedChapter,
-        this.stats.roomsCleared,
-        isVictory,
-        stars
-      )
+      saveManager.updateChapterProgress(selectedChapter, this.stats.roomsCleared, isVictory, stars);
     }
 
     // Log updated statistics
-    const totalStats = saveManager.getStatistics()
+    const totalStats = saveManager.getStatistics();
     if (this.isEndlessMode) {
       console.log(
-        `GameOverScene: Endless run recorded - Wave ${this.endlessWave}, High Wave: ${totalStats.endlessHighWave ?? 0}`
-      )
+        `GameOverScene: Endless run recorded - Wave ${this.endlessWave}, High Wave: ${totalStats.endlessHighWave ?? 0}`,
+      );
     } else {
       console.log(
-        `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`
-      )
+        `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`,
+      );
     }
 
     // Check achievements after recording stats
-    achievementManager.checkAchievements()
+    achievementManager.checkAchievements();
   }
 
   /**
    * Collect rewards (gold and chests)
    */
   private collectRewards(): void {
-    if (this.rewardsCollected) return
-    this.rewardsCollected = true
+    if (this.rewardsCollected) return;
+    this.rewardsCollected = true;
 
     // Add gold
-    currencyManager.add('gold', this.goldEarned)
+    currencyManager.add("gold", this.goldEarned);
 
     // Add chests
-    chestManager.addChests(this.chestRewards)
+    chestManager.addChests(this.chestRewards);
 
     console.log(
-      `GameOverScene: Rewards collected - Gold: ${this.goldEarned}, Chests: ${getTotalChests(this.chestRewards)}`
-    )
+      `GameOverScene: Rewards collected - Gold: ${this.goldEarned}, Chests: ${getTotalChests(this.chestRewards)}`,
+    );
   }
 
   create() {
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
-    const isVictory = this.stats.isVictory
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const isVictory = this.stats.isVictory;
 
     // Track game end for error context
-    errorReporting.setScene('GameOverScene')
-    errorReporting.addBreadcrumb('game', isVictory ? 'Victory' : 'Game Over', {
+    errorReporting.setScene("GameOverScene");
+    errorReporting.addBreadcrumb("game", isVictory ? "Victory" : "Game Over", {
       roomsCleared: this.stats.roomsCleared,
       enemiesKilled: this.stats.enemiesKilled,
-    })
+    });
 
     // Register shutdown event
-    this.events.once('shutdown', this.shutdown, this)
+    this.events.once("shutdown", this.shutdown, this);
 
     // CRITICAL: Ensure this scene receives input and is on top
-    this.input.enabled = true
-    this.scene.bringToTop()
+    this.input.enabled = true;
+    this.scene.bringToTop();
 
     // Debug: Log any pointer events to diagnose input issues (use once to avoid listener accumulation)
-    this.input.once('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      console.log('GameOverScene: Global pointerdown at', pointer.x, pointer.y)
+    this.input.once("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      console.log("GameOverScene: Global pointerdown at", pointer.x, pointer.y);
 
       // Debug toast for mobile debugging
-      debugToast.logPointer('pointerdown', pointer.x, pointer.y, 'GameOverScene')
+      debugToast.logPointer("pointerdown", pointer.x, pointer.y, "GameOverScene");
 
       // Visual feedback: show a small circle where user tapped (debug mode)
       if (debugToast.enabled) {
-        const circle = this.add.circle(pointer.x, pointer.y, 20, 0xff0000, 0.5)
+        const circle = this.add.circle(pointer.x, pointer.y, 20, 0xff0000, 0.5);
         this.tweens.add({
           targets: circle,
           alpha: 0,
           scale: 2,
           duration: 500,
-          onComplete: () => circle.destroy()
-        })
+          onComplete: () => circle.destroy(),
+        });
       }
-    })
+    });
 
     // Dark overlay background
-    this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0)
+    this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0);
 
     // Title text - different for each game mode
-    let titleText: string
-    let titleColor: string
+    let titleText: string;
+    let titleColor: string;
     if (this.isEndlessMode) {
-      titleText = `WAVE ${this.endlessWave}`
-      titleColor = this.isNewEndlessHighScore ? '#ffdd00' : '#ff6b35'
+      titleText = `WAVE ${this.endlessWave}`;
+      titleColor = this.isNewEndlessHighScore ? "#ffdd00" : "#ff6b35";
     } else {
-      titleText = isVictory ? 'RUN COMPLETE!' : 'GAME OVER'
-      titleColor = isVictory ? '#00ff88' : '#ff4444'
+      titleText = isVictory ? "RUN COMPLETE!" : "GAME OVER";
+      titleColor = isVictory ? "#00ff88" : "#ff4444";
     }
 
     this.add
       .text(width / 2, 60, titleText, {
-        fontSize: '36px',
-        fontFamily: 'Arial',
+        fontSize: "36px",
+        fontFamily: "Arial",
         color: titleColor,
-        fontStyle: 'bold',
+        fontStyle: "bold",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Show new best for endless mode
-    let subtitleOffset = 0
+    let subtitleOffset = 0;
     if (this.isEndlessMode && this.isNewEndlessHighScore) {
       this.add
-        .text(width / 2, 95, 'NEW BEST!', {
-          fontSize: '16px',
-          fontFamily: 'Arial',
-          color: '#ffdd00',
-          fontStyle: 'bold',
+        .text(width / 2, 95, "NEW BEST!", {
+          fontSize: "16px",
+          fontFamily: "Arial",
+          color: "#ffdd00",
+          fontStyle: "bold",
         })
-        .setOrigin(0.5)
-      subtitleOffset = 10
+        .setOrigin(0.5);
+      subtitleOffset = 10;
     }
 
     // Stats section
-    const statsStartY = 120 + subtitleOffset
-    const lineHeight = 32
+    const statsStartY = 120 + subtitleOffset;
+    const lineHeight = 32;
 
     // Rooms cleared
-    const totalRooms = chapterManager.getTotalRooms()
+    const totalRooms = chapterManager.getTotalRooms();
     if (this.isEndlessMode) {
       // Show total rooms cleared across all waves
       this.add
         .text(width / 2, statsStartY, `Rooms Cleared: ${this.stats.roomsCleared}`, {
-          fontSize: '20px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
+          fontSize: "20px",
+          fontFamily: "Arial",
+          color: "#ffffff",
         })
-        .setOrigin(0.5)
+        .setOrigin(0.5);
     } else {
       this.add
         .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/${totalRooms}`, {
-          fontSize: '20px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
+          fontSize: "20px",
+          fontFamily: "Arial",
+          color: "#ffffff",
         })
-        .setOrigin(0.5)
+        .setOrigin(0.5);
     }
 
     // Enemies killed
     this.add
       .text(width / 2, statsStartY + lineHeight, `Enemies: ${this.stats.enemiesKilled}`, {
-        fontSize: '20px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
+        fontSize: "20px",
+        fontFamily: "Arial",
+        color: "#ffffff",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Gold earned (highlighted)
     this.add
       .text(width / 2, statsStartY + lineHeight * 2, `Gold: +${this.goldEarned}`, {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#FFD700', // Gold color
-        fontStyle: 'bold',
+        fontSize: "24px",
+        fontFamily: "Arial",
+        color: "#FFD700", // Gold color
+        fontStyle: "bold",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Hero XP earned
-    let heroXPOffset = 0
+    let heroXPOffset = 0;
     if (this.heroXPEarned > 0) {
       this.add
         .text(width / 2, statsStartY + lineHeight * 2.8, `Hero XP: +${this.heroXPEarned}`, {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: '#88ccff',
+          fontSize: "18px",
+          fontFamily: "Arial",
+          color: "#88ccff",
         })
-        .setOrigin(0.5)
-      heroXPOffset = lineHeight * 0.8
+        .setOrigin(0.5);
+      heroXPOffset = lineHeight * 0.8;
 
       // Hero level-up notification
       if (this.heroLevelUps.length > 0) {
-        const lastLevelUp = this.heroLevelUps[this.heroLevelUps.length - 1]
-        const heroState = heroManager.getHeroState(lastLevelUp.heroId)
+        const lastLevelUp = this.heroLevelUps[this.heroLevelUps.length - 1];
+        const heroState = heroManager.getHeroState(lastLevelUp.heroId);
 
         this.add
           .text(
@@ -461,93 +458,93 @@ export default class GameOverScene extends Phaser.Scene {
             statsStartY + lineHeight * 3.4,
             `${heroState.name} reached Level ${lastLevelUp.newLevel}!`,
             {
-              fontSize: '20px',
-              fontFamily: 'Arial',
-              color: '#00ff88',
-              fontStyle: 'bold',
-            }
+              fontSize: "20px",
+              fontFamily: "Arial",
+              color: "#00ff88",
+              fontStyle: "bold",
+            },
           )
-          .setOrigin(0.5)
-        heroXPOffset += lineHeight * 0.8
+          .setOrigin(0.5);
+        heroXPOffset += lineHeight * 0.8;
 
         // Show new perks if any
         if (lastLevelUp.newPerks.length > 0) {
-          const perkNames = lastLevelUp.newPerks.map((p) => p.name).join(', ')
+          const perkNames = lastLevelUp.newPerks.map((p) => p.name).join(", ");
           this.add
             .text(width / 2, statsStartY + lineHeight * 4, `New Perk: ${perkNames}`, {
-              fontSize: '14px',
-              fontFamily: 'Arial',
-              color: '#ffdd00',
+              fontSize: "14px",
+              fontFamily: "Arial",
+              color: "#ffdd00",
             })
-            .setOrigin(0.5)
-          heroXPOffset += lineHeight * 0.6
+            .setOrigin(0.5);
+          heroXPOffset += lineHeight * 0.6;
         }
       }
     }
 
     // Score display (adjusted for hero XP section)
-    this.displayScore(statsStartY + lineHeight * 3 + heroXPOffset)
+    this.displayScore(statsStartY + lineHeight * 3 + heroXPOffset);
 
     // Chest rewards section (adjusted for hero XP section)
-    const chestsY = statsStartY + lineHeight * 5.5 + heroXPOffset
+    const chestsY = statsStartY + lineHeight * 5.5 + heroXPOffset;
 
     this.add
-      .text(width / 2, chestsY, 'REWARDS', {
-        fontSize: '18px',
-        fontFamily: 'Arial',
-        color: '#aaaaaa',
+      .text(width / 2, chestsY, "REWARDS", {
+        fontSize: "18px",
+        fontFamily: "Arial",
+        color: "#aaaaaa",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Display chest rewards
-    const totalChests = getTotalChests(this.chestRewards)
+    const totalChests = getTotalChests(this.chestRewards);
     if (totalChests > 0) {
-      this.displayChestRewards(chestsY + 35)
+      this.displayChestRewards(chestsY + 35);
     } else {
       this.add
-        .text(width / 2, chestsY + 35, 'No chests earned', {
-          fontSize: '16px',
-          fontFamily: 'Arial',
-          color: '#888888',
+        .text(width / 2, chestsY + 35, "No chests earned", {
+          fontSize: "16px",
+          fontFamily: "Arial",
+          color: "#888888",
         })
-        .setOrigin(0.5)
+        .setOrigin(0.5);
     }
 
     // Skills acquired section
-    const skillsY = chestsY + 110
-    this.displayAcquiredSkills(skillsY)
+    const skillsY = chestsY + 110;
+    this.displayAcquiredSkills(skillsY);
 
     // Continue button
-    const buttonY = height - 100
-    this.createContinueButton(buttonY, isVictory ?? false)
+    const buttonY = height - 100;
+    this.createContinueButton(buttonY, isVictory ?? false);
 
     // Allow keyboard shortcuts
-    this.input.keyboard?.once('keydown-SPACE', () => {
-      this.continueGame()
-    })
+    this.input.keyboard?.once("keydown-SPACE", () => {
+      this.continueGame();
+    });
 
-    this.input.keyboard?.once('keydown-ENTER', () => {
-      this.continueGame()
-    })
+    this.input.keyboard?.once("keydown-ENTER", () => {
+      this.continueGame();
+    });
 
     // Add victory particles if won
     if (isVictory) {
-      this.addVictoryEffect()
+      this.addVictoryEffect();
     }
 
     console.log(
-      `GameOverScene: Created - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`
-    )
+      `GameOverScene: Created - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`,
+    );
 
     // Log scene input state for debugging
     if (debugToast.enabled) {
-      debugToast.show(`Scene: ${this.scene.key}`)
-      debugToast.show(`Input enabled: ${this.input.enabled}`)
-      debugToast.show(`isActive: ${this.scene.isActive()}`)
+      debugToast.show(`Scene: ${this.scene.key}`);
+      debugToast.show(`Input enabled: ${this.input.enabled}`);
+      debugToast.show(`isActive: ${this.scene.isActive()}`);
 
       // List all running scenes
-      const activeScenes = this.scene.manager.getScenes(true).map(s => s.scene.key)
-      debugToast.show(`Active scenes: ${activeScenes.join(', ')}`)
+      const activeScenes = this.scene.manager.getScenes(true).map((s) => s.scene.key);
+      debugToast.show(`Active scenes: ${activeScenes.join(", ")}`);
     }
   }
 
@@ -555,45 +552,45 @@ export default class GameOverScene extends Phaser.Scene {
    * Display score with breakdown
    */
   private displayScore(startY: number): void {
-    const width = this.cameras.main.width
-    if (!this.scoreBreakdown) return
+    const width = this.cameras.main.width;
+    if (!this.scoreBreakdown) return;
 
     // Main score
     const scoreText = this.isNewHighScore
       ? `SCORE: ${this.scoreBreakdown.total.toLocaleString()} - NEW BEST!`
-      : `SCORE: ${this.scoreBreakdown.total.toLocaleString()}`
+      : `SCORE: ${this.scoreBreakdown.total.toLocaleString()}`;
 
-    const scoreColor = this.isNewHighScore ? '#00ff88' : '#ffffff'
+    const scoreColor = this.isNewHighScore ? "#00ff88" : "#ffffff";
 
     this.add
       .text(width / 2, startY, scoreText, {
-        fontSize: this.isNewHighScore ? '26px' : '22px',
-        fontFamily: 'Arial',
+        fontSize: this.isNewHighScore ? "26px" : "22px",
+        fontFamily: "Arial",
         color: scoreColor,
-        fontStyle: 'bold',
+        fontStyle: "bold",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Score breakdown (smaller text)
     const breakdown = [
       `Kills: +${this.scoreBreakdown.killPoints}`,
       `Rooms: +${this.scoreBreakdown.roomPoints}`,
       `Gold: +${this.scoreBreakdown.goldPoints}`,
-    ]
+    ];
     if (this.scoreBreakdown.timeBonus > 0) {
-      breakdown.push(`Speed: +${this.scoreBreakdown.timeBonus}`)
+      breakdown.push(`Speed: +${this.scoreBreakdown.timeBonus}`);
     }
     if (this.scoreBreakdown.victoryBonus > 0) {
-      breakdown.push(`Victory: +${this.scoreBreakdown.victoryBonus}`)
+      breakdown.push(`Victory: +${this.scoreBreakdown.victoryBonus}`);
     }
 
     this.add
-      .text(width / 2, startY + 24, breakdown.join(' | '), {
-        fontSize: '11px',
-        fontFamily: 'Arial',
-        color: '#888888',
+      .text(width / 2, startY + 24, breakdown.join(" | "), {
+        fontSize: "11px",
+        fontFamily: "Arial",
+        color: "#888888",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Personal best (if not new high score)
     if (!this.isNewHighScore && saveManager.getStatistics().highestScore > 0) {
@@ -603,12 +600,12 @@ export default class GameOverScene extends Phaser.Scene {
           startY + 42,
           `Best: ${saveManager.getStatistics().highestScore.toLocaleString()}`,
           {
-            fontSize: '13px',
-            fontFamily: 'Arial',
-            color: '#666666',
-          }
+            fontSize: "13px",
+            fontFamily: "Arial",
+            color: "#666666",
+          },
         )
-        .setOrigin(0.5)
+        .setOrigin(0.5);
     }
   }
 
@@ -616,54 +613,51 @@ export default class GameOverScene extends Phaser.Scene {
    * Display chest rewards with icons and counts
    */
   private displayChestRewards(startY: number): void {
-    const width = this.cameras.main.width
+    const width = this.cameras.main.width;
 
     // Calculate which chests to display
-    const chestsToDisplay: { type: ChestType; count: number }[] = []
+    const chestsToDisplay: { type: ChestType; count: number }[] = [];
 
     for (const type of CHEST_ORDER) {
-      const count = this.chestRewards[type]
+      const count = this.chestRewards[type];
       if (count > 0) {
-        chestsToDisplay.push({ type, count })
+        chestsToDisplay.push({ type, count });
       }
     }
 
-    if (chestsToDisplay.length === 0) return
+    if (chestsToDisplay.length === 0) return;
 
     // Calculate total width for centering
-    const chestDisplayWidth = 70 // Width per chest display
-    const totalWidth = chestsToDisplay.length * chestDisplayWidth
-    const startX = (width - totalWidth) / 2 + chestDisplayWidth / 2
+    const chestDisplayWidth = 70; // Width per chest display
+    const totalWidth = chestsToDisplay.length * chestDisplayWidth;
+    const startX = (width - totalWidth) / 2 + chestDisplayWidth / 2;
 
     chestsToDisplay.forEach((chest, index) => {
-      const x = startX + index * chestDisplayWidth
-      const config = CHEST_CONFIGS[chest.type]
+      const x = startX + index * chestDisplayWidth;
+      const config = CHEST_CONFIGS[chest.type];
 
       // Chest icon (fixed display size for consistent UI)
-      this.add
-        .image(x, startY, config.icon)
-        .setOrigin(0.5)
-        .setDisplaySize(48, 48)
+      this.add.image(x, startY, config.icon).setOrigin(0.5).setDisplaySize(48, 48);
 
       // Count
       this.add
         .text(x, startY + 35, `x${chest.count}`, {
-          fontSize: '18px',
-          fontFamily: 'Arial',
+          fontSize: "18px",
+          fontFamily: "Arial",
           color: config.color,
-          fontStyle: 'bold',
+          fontStyle: "bold",
         })
-        .setOrigin(0.5)
+        .setOrigin(0.5);
 
       // Chest name (small)
       this.add
         .text(x, startY + 55, chest.type.charAt(0).toUpperCase() + chest.type.slice(1), {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#888888',
+          fontSize: "12px",
+          fontFamily: "Arial",
+          color: "#888888",
         })
-        .setOrigin(0.5)
-    })
+        .setOrigin(0.5);
+    });
   }
 
   /**
@@ -671,143 +665,137 @@ export default class GameOverScene extends Phaser.Scene {
    * Returns the total height used by this section
    */
   private displayAcquiredSkills(startY: number): number {
-    const width = this.cameras.main.width
+    const width = this.cameras.main.width;
 
     // If no skills acquired, show message and return minimal height
     if (this.acquiredAbilities.length === 0) {
       this.add
-        .text(width / 2, startY, 'No skills acquired', {
-          fontSize: '14px',
-          fontFamily: 'Arial',
-          color: '#666666',
+        .text(width / 2, startY, "No skills acquired", {
+          fontSize: "14px",
+          fontFamily: "Arial",
+          color: "#666666",
         })
-        .setOrigin(0.5)
-      return 30
+        .setOrigin(0.5);
+      return 30;
     }
 
     // Section title
     this.add
-      .text(width / 2, startY, 'SKILLS', {
-        fontSize: '16px',
-        fontFamily: 'Arial',
-        color: '#aaaaaa',
+      .text(width / 2, startY, "SKILLS", {
+        fontSize: "16px",
+        fontFamily: "Arial",
+        color: "#aaaaaa",
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
 
     // Display skills in a grid (up to 6 per row)
-    const iconSize = 36
-    const iconSpacing = 44
-    const maxPerRow = 6
-    const skillCount = this.acquiredAbilities.length
-    const rows = Math.ceil(skillCount / maxPerRow)
+    const iconSize = 36;
+    const iconSpacing = 44;
+    const maxPerRow = 6;
+    const skillCount = this.acquiredAbilities.length;
+    const rows = Math.ceil(skillCount / maxPerRow);
 
     // Calculate grid dimensions
-    const gridStartY = startY + 28
+    const gridStartY = startY + 28;
 
     this.acquiredAbilities.forEach((acquired, index) => {
       // Find the ability data
-      const abilityData = ABILITIES.find(a => a.id === acquired.id)
-      if (!abilityData) return
+      const abilityData = ABILITIES.find((a) => a.id === acquired.id);
+      if (!abilityData) return;
 
-      const row = Math.floor(index / maxPerRow)
-      const col = index % maxPerRow
+      const row = Math.floor(index / maxPerRow);
+      const col = index % maxPerRow;
 
       // Recalculate X for rows with fewer items (center them)
-      const itemsInRow = Math.min(maxPerRow, skillCount - row * maxPerRow)
-      const rowWidth = itemsInRow * iconSpacing
-      const rowStartX = (width - rowWidth) / 2 + iconSpacing / 2
+      const itemsInRow = Math.min(maxPerRow, skillCount - row * maxPerRow);
+      const rowWidth = itemsInRow * iconSpacing;
+      const rowStartX = (width - rowWidth) / 2 + iconSpacing / 2;
 
-      const x = rowStartX + col * iconSpacing
-      const y = gridStartY + row * (iconSpacing + 8)
+      const x = rowStartX + col * iconSpacing;
+      const y = gridStartY + row * (iconSpacing + 8);
 
       // Skill icon background (colored border)
-      const iconBg = this.add.rectangle(x, y, iconSize + 4, iconSize + 4, 0x222222)
-      iconBg.setStrokeStyle(2, abilityData.color)
+      const iconBg = this.add.rectangle(x, y, iconSize + 4, iconSize + 4, 0x222222);
+      iconBg.setStrokeStyle(2, abilityData.color);
 
       // Skill icon
       if (this.textures.exists(abilityData.iconKey)) {
-        this.add
-          .image(x, y, abilityData.iconKey)
-          .setDisplaySize(iconSize, iconSize)
+        this.add.image(x, y, abilityData.iconKey).setDisplaySize(iconSize, iconSize);
       } else {
         // Fallback: colored circle
-        this.add.circle(x, y, iconSize / 2 - 2, abilityData.color)
+        this.add.circle(x, y, iconSize / 2 - 2, abilityData.color);
       }
 
       // Level badge (bottom-right corner)
       if (acquired.level > 1) {
-        const badgeX = x + iconSize / 2 - 2
-        const badgeY = y + iconSize / 2 - 2
+        const badgeX = x + iconSize / 2 - 2;
+        const badgeY = y + iconSize / 2 - 2;
 
         // Badge background
-        this.add.circle(badgeX, badgeY, 10, 0x000000, 0.9)
+        this.add.circle(badgeX, badgeY, 10, 0x000000, 0.9);
 
         // Level number
         this.add
           .text(badgeX, badgeY, `${acquired.level}`, {
-            fontSize: '12px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold',
+            fontSize: "12px",
+            fontFamily: "Arial",
+            color: "#ffffff",
+            fontStyle: "bold",
           })
-          .setOrigin(0.5)
+          .setOrigin(0.5);
       }
-    })
+    });
 
     // Return total height used (title + rows)
-    return 28 + rows * (iconSpacing + 8)
+    return 28 + rows * (iconSpacing + 8);
   }
 
   /**
    * Create the respawn button (watch ad for second life)
    */
   private createRespawnButton(y: number): void {
-    const width = this.cameras.main.width
-    const buttonWidth = 220
-    const buttonHeight = 50
-    const buttonColor = 0xff9900 // Orange for ad-related button
-    const hoverColor = 0xffaa33
-    const pressColor = 0xcc7700
+    const width = this.cameras.main.width;
+    const buttonWidth = 220;
+    const buttonHeight = 50;
+    const buttonColor = 0xff9900; // Orange for ad-related button
+    const hoverColor = 0xffaa33;
+    const pressColor = 0xcc7700;
 
     const button = this.add
       .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
       .setInteractive({ useHandCursor: true })
-      .setDepth(100)
+      .setDepth(100);
 
     // Play icon (triangle)
-    const playIcon = this.add.graphics()
-    playIcon.fillStyle(0xffffff, 1)
-    playIcon.fillTriangle(
-      width / 2 - 80, y - 8,
-      width / 2 - 80, y + 8,
-      width / 2 - 65, y
-    )
-    playIcon.setDepth(101)
+    const playIcon = this.add.graphics();
+    playIcon.fillStyle(0xffffff, 1);
+    playIcon.fillTriangle(width / 2 - 80, y - 8, width / 2 - 80, y + 8, width / 2 - 65, y);
+    playIcon.setDepth(101);
 
     this.add
-      .text(width / 2 + 10, y, 'SECOND CHANCE', {
-        fontSize: '18px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold',
+      .text(width / 2 + 10, y, "SECOND CHANCE", {
+        fontSize: "18px",
+        fontFamily: "Arial",
+        color: "#ffffff",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
-      .setDepth(101)
+      .setDepth(101);
 
-    button.on('pointerover', () => {
-      button.setFillStyle(hoverColor)
-    })
+    button.on("pointerover", () => {
+      button.setFillStyle(hoverColor);
+    });
 
-    button.on('pointerout', () => {
-      button.setFillStyle(buttonColor)
-    })
+    button.on("pointerout", () => {
+      button.setFillStyle(buttonColor);
+    });
 
-    button.on('pointerdown', () => {
-      console.log('GameOverScene: Respawn button clicked - showing ad')
-      button.setFillStyle(pressColor)
-      audioManager.playMenuSelect()
-      this.showRespawnAd()
-    })
+    button.on("pointerdown", () => {
+      console.log("GameOverScene: Respawn button clicked - showing ad");
+      button.setFillStyle(pressColor);
+      audioManager.playMenuSelect();
+      this.showRespawnAd();
+    });
   }
 
   /**
@@ -816,113 +804,113 @@ export default class GameOverScene extends Phaser.Scene {
   private showRespawnAd(): void {
     showMockAdPopup({
       scene: this,
-      buttonText: 'Respawn',
+      buttonText: "Respawn",
       onComplete: () => {
-        console.log('GameOverScene: Ad complete - triggering respawn')
-        this.triggerRespawn()
-      }
-    })
+        console.log("GameOverScene: Ad complete - triggering respawn");
+        this.triggerRespawn();
+      },
+    });
   }
 
   /**
    * Trigger respawn - resume GameScene with restored player HP
    */
   private triggerRespawn(): void {
-    console.log('GameOverScene: Respawning player in current room')
+    console.log("GameOverScene: Respawning player in current room");
 
     // Emit respawn event to GameScene
-    this.game.events.emit('playerRespawn', this.respawnRoomState)
+    this.game.events.emit("playerRespawn", this.respawnRoomState);
 
     // Stop GameOverScene and let GameScene resume
-    this.scene.stop('GameOverScene')
+    this.scene.stop("GameOverScene");
   }
 
   /**
    * Create the continue button
    */
   private createContinueButton(y: number, isVictory: boolean): void {
-    const width = this.cameras.main.width
-    const buttonWidth = 200
-    const buttonHeight = 50
-    const buttonText = 'MAIN MENU'
-    const buttonColor = isVictory ? 0x00ff88 : 0x4a9eff
+    const width = this.cameras.main.width;
+    const buttonWidth = 200;
+    const buttonHeight = 50;
+    const buttonText = "MAIN MENU";
+    const buttonColor = isVictory ? 0x00ff88 : 0x4a9eff;
 
     // If respawn is available, add respawn button above main menu button
     if (this.canRespawn && !isVictory) {
-      this.createRespawnButton(y - 65)
+      this.createRespawnButton(y - 65);
     }
 
     const button = this.add
       .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
       .setInteractive({ useHandCursor: true })
-      .setDepth(100) // Ensure button is above everything
+      .setDepth(100); // Ensure button is above everything
 
     this.add
       .text(width / 2, y, buttonText, {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold',
+        fontSize: "24px",
+        fontFamily: "Arial",
+        color: "#ffffff",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
-      .setDepth(101) // Text above button
+      .setDepth(101); // Text above button
 
     // Button hover effects
-    const hoverColor = isVictory ? 0x33ffaa : 0x6ab0ff
-    const pressColor = isVictory ? 0x00cc66 : 0x3a8edf
+    const hoverColor = isVictory ? 0x33ffaa : 0x6ab0ff;
+    const pressColor = isVictory ? 0x00cc66 : 0x3a8edf;
 
-    button.on('pointerover', () => {
-      debugToast.show('Button: pointerover')
-      button.setFillStyle(hoverColor)
-    })
+    button.on("pointerover", () => {
+      debugToast.show("Button: pointerover");
+      button.setFillStyle(hoverColor);
+    });
 
-    button.on('pointerout', () => {
-      debugToast.show('Button: pointerout')
-      button.setFillStyle(buttonColor)
-    })
+    button.on("pointerout", () => {
+      debugToast.show("Button: pointerout");
+      button.setFillStyle(buttonColor);
+    });
 
     // Use pointerdown for immediate response on touch devices
-    button.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      console.log('GameOverScene: Button clicked - navigating to MainMenuScene')
-      debugToast.logPointer('Button pointerdown', pointer.x, pointer.y, 'MAIN MENU btn')
-      button.setFillStyle(pressColor)
-      this.continueGame()
-    })
+    button.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      console.log("GameOverScene: Button clicked - navigating to MainMenuScene");
+      debugToast.logPointer("Button pointerdown", pointer.x, pointer.y, "MAIN MENU btn");
+      button.setFillStyle(pressColor);
+      this.continueGame();
+    });
 
     // Log all interactive objects in scene for debugging
     if (debugToast.enabled) {
-      debugToast.logInteractive('MAIN MENU btn', button.x, button.y, buttonWidth, buttonHeight)
+      debugToast.logInteractive("MAIN MENU btn", button.x, button.y, buttonWidth, buttonHeight);
 
       // Add pointerup and pointermove for more debugging
-      button.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-        debugToast.logPointer('Button pointerup', pointer.x, pointer.y)
-      })
+      button.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+        debugToast.logPointer("Button pointerup", pointer.x, pointer.y);
+      });
     }
 
     // Debug: Log if button is interactive
-    console.log('GameOverScene: Continue button created', {
+    console.log("GameOverScene: Continue button created", {
       interactive: button.input?.enabled,
       position: { x: button.x, y: button.y },
-      size: { width: buttonWidth, height: buttonHeight }
-    })
+      size: { width: buttonWidth, height: buttonHeight },
+    });
   }
 
   private addVictoryEffect() {
     // Simple star burst effect
-    const width = this.cameras.main.width
-    const height = this.cameras.main.height
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
 
     for (let i = 0; i < 20; i++) {
       const star = this.add.text(
         Phaser.Math.Between(20, width - 20),
         Phaser.Math.Between(50, height - 100),
-        '\u2605', // Star character
+        "\u2605", // Star character
         {
           fontSize: `${Phaser.Math.Between(16, 32)}px`,
-          color: '#ffdd00',
-        }
-      )
-      star.setAlpha(0)
+          color: "#ffdd00",
+        },
+      );
+      star.setAlpha(0);
 
       this.tweens.add({
         targets: star,
@@ -932,8 +920,8 @@ export default class GameOverScene extends Phaser.Scene {
         delay: i * 100,
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut',
-      })
+        ease: "Sine.easeInOut",
+      });
     }
   }
 
@@ -941,34 +929,34 @@ export default class GameOverScene extends Phaser.Scene {
    * Collect rewards and return to main menu
    */
   private continueGame() {
-    console.log('GameOverScene: continueGame() called')
+    console.log("GameOverScene: continueGame() called");
 
     // Prevent multiple calls
     if (this.rewardsCollected) {
-      console.log('GameOverScene: Already continuing, ignoring duplicate call')
-      return
+      console.log("GameOverScene: Already continuing, ignoring duplicate call");
+      return;
     }
 
     // Collect rewards first
-    this.collectRewards()
+    this.collectRewards();
 
     // Play menu select sound
-    audioManager.playMenuSelect()
+    audioManager.playMenuSelect();
 
     // Stop all tweens to prevent rendering updates during shutdown
-    this.tweens.killAll()
+    this.tweens.killAll();
 
-    console.log('GameOverScene: Returning to main menu...')
+    console.log("GameOverScene: Returning to main menu...");
 
     // If respawn was available, GameScene is paused instead of stopped
     // We need to stop it now since player chose not to respawn
-    if (this.canRespawn && this.scene.isActive('GameScene')) {
-      this.scene.stop('GameScene')
+    if (this.canRespawn && this.scene.isActive("GameScene")) {
+      this.scene.stop("GameScene");
     }
 
     // Return to main menu
     // start() will shut down the current scene (GameOverScene) correctly
-    this.scene.start('MainMenuScene')
+    this.scene.start("MainMenuScene");
   }
 
   /**
@@ -976,9 +964,9 @@ export default class GameOverScene extends Phaser.Scene {
    */
   shutdown() {
     // CRITICAL: Remove all input listeners to prevent accumulation
-    this.input.removeAllListeners()
+    this.input.removeAllListeners();
 
     // Kill all tweens
-    this.tweens.killAll()
+    this.tweens.killAll();
   }
 }

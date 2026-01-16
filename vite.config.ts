@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite'
-import path from 'path'
+import { defineConfig } from "vite";
+import path from "path";
 
 export default defineConfig({
-  base: '/',
+  base: "/",
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {
@@ -19,10 +19,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          phaser: ['phaser'],
-          sentry: ['@sentry/browser'],
+          phaser: ["phaser"],
+          sentry: ["@sentry/browser"],
         },
       },
     },
   },
-})
+});

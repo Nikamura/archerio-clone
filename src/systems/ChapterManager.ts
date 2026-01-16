@@ -25,7 +25,7 @@ import {
   isValidChapterId,
   calculateStarRating,
   calculateChapterRewards as calculateRewardsFromData,
-} from '../config/chapterData'
+} from "../config/chapterData";
 
 // ============================================
 // Type Definitions
@@ -36,15 +36,15 @@ import {
  */
 export interface ChapterRunState {
   /** Current chapter being played */
-  chapterId: ChapterId
+  chapterId: ChapterId;
   /** Current room number (1-20) */
-  currentRoom: number
+  currentRoom: number;
   /** Number of deaths during this run (for star calculation) */
-  deathsDuringRun: number
+  deathsDuringRun: number;
   /** Whether the run is active */
-  isActive: boolean
+  isActive: boolean;
   /** Timestamp when run started */
-  startedAt: number
+  startedAt: number;
 }
 
 /**
@@ -52,17 +52,17 @@ export interface ChapterRunState {
  */
 export interface ChapterProgressData {
   /** Chapter ID */
-  chapterId: ChapterId
+  chapterId: ChapterId;
   /** Highest room reached */
-  highestRoom: number
+  highestRoom: number;
   /** Whether chapter has been completed */
-  completed: boolean
+  completed: boolean;
   /** Best star rating achieved (0-3) */
-  bestStars: 0 | 1 | 2 | 3
+  bestStars: 0 | 1 | 2 | 3;
   /** Number of times completed */
-  completionCount: number
+  completionCount: number;
   /** Best completion time in milliseconds */
-  bestTimeMs: number | null
+  bestTimeMs: number | null;
 }
 
 /**
@@ -70,62 +70,62 @@ export interface ChapterProgressData {
  */
 export interface ChapterSaveData {
   /** Map of chapter ID to progress data */
-  chapterProgress: Record<number, ChapterProgressData>
+  chapterProgress: Record<number, ChapterProgressData>;
   /** Set of unlocked chapter IDs */
-  unlockedChapters: number[]
+  unlockedChapters: number[];
   /** Currently selected chapter for play */
-  selectedChapter: ChapterId
+  selectedChapter: ChapterId;
 }
 
 /**
  * Result of completing a chapter
  */
 export interface ChapterCompletionResult {
-  chapterId: ChapterId
-  stars: 0 | 1 | 2 | 3
-  rewards: ChapterRewards
-  isFirstCompletion: boolean
-  newChapterUnlocked: ChapterId | null
-  completionTimeMs: number
+  chapterId: ChapterId;
+  stars: 0 | 1 | 2 | 3;
+  rewards: ChapterRewards;
+  isFirstCompletion: boolean;
+  newChapterUnlocked: ChapterId | null;
+  completionTimeMs: number;
 }
 
 /**
  * Event types emitted by ChapterManager
  */
 export type ChapterEventType =
-  | 'chapterStarted'
-  | 'chapterCompleted'
-  | 'chapterFailed'
-  | 'roomEntered'
-  | 'roomCleared'
-  | 'chapterUnlocked'
-  | 'starRatingAchieved'
+  | "chapterStarted"
+  | "chapterCompleted"
+  | "chapterFailed"
+  | "roomEntered"
+  | "roomCleared"
+  | "chapterUnlocked"
+  | "starRatingAchieved";
 
 /**
  * Event data passed to listeners
  */
 export interface ChapterEventData {
-  type: ChapterEventType
-  chapterId?: ChapterId
-  roomNumber?: number
-  roomType?: RoomType
-  stars?: 0 | 1 | 2 | 3
-  rewards?: ChapterRewards
-  newChapterUnlocked?: ChapterId
+  type: ChapterEventType;
+  chapterId?: ChapterId;
+  roomNumber?: number;
+  roomType?: RoomType;
+  stars?: 0 | 1 | 2 | 3;
+  rewards?: ChapterRewards;
+  newChapterUnlocked?: ChapterId;
 }
 
 /**
  * Event listener callback type
  */
-export type ChapterEventCallback = (data: ChapterEventData) => void
+export type ChapterEventCallback = (data: ChapterEventData) => void;
 
 // ============================================
 // Constants
 // ============================================
 
 /** Default starting chapter */
-const DEFAULT_CHAPTER: ChapterId = 1
-const CHAPTER_STORAGE_KEY = 'aura_archer_chapter_data'
+const DEFAULT_CHAPTER: ChapterId = 1;
+const CHAPTER_STORAGE_KEY = "aura_archer_chapter_data";
 
 // ============================================
 // ChapterManager Class
@@ -133,31 +133,31 @@ const CHAPTER_STORAGE_KEY = 'aura_archer_chapter_data'
 
 export class ChapterManager {
   /** Progress data for each chapter */
-  private chapterProgress: Map<ChapterId, ChapterProgressData>
+  private chapterProgress: Map<ChapterId, ChapterProgressData>;
 
   /** Set of unlocked chapter IDs */
-  private unlockedChapters: Set<ChapterId>
+  private unlockedChapters: Set<ChapterId>;
 
   /** Currently selected chapter */
-  private selectedChapter: ChapterId
+  private selectedChapter: ChapterId;
 
   /** Current run state (null if no active run) */
-  private currentRun: ChapterRunState | null = null
+  private currentRun: ChapterRunState | null = null;
 
   /** Event listeners */
-  private eventListeners: Map<ChapterEventType, Set<ChapterEventCallback>>
+  private eventListeners: Map<ChapterEventType, Set<ChapterEventCallback>>;
 
   constructor() {
-    this.chapterProgress = new Map()
-    this.unlockedChapters = new Set([1]) // Chapter 1 always unlocked
-    this.selectedChapter = DEFAULT_CHAPTER
-    this.eventListeners = new Map()
+    this.chapterProgress = new Map();
+    this.unlockedChapters = new Set([1]); // Chapter 1 always unlocked
+    this.selectedChapter = DEFAULT_CHAPTER;
+    this.eventListeners = new Map();
 
     // Initialize progress for chapter 1
-    this.initializeChapterProgress(1)
+    this.initializeChapterProgress(1);
 
     // Load from persistent storage
-    this.loadFromStorage()
+    this.loadFromStorage();
   }
 
   /**
@@ -165,14 +165,14 @@ export class ChapterManager {
    */
   private saveToStorage(): void {
     try {
-      const data = this.toSaveData()
-      console.log('ChapterManager: Saving to storage:', { 
+      const data = this.toSaveData();
+      console.log("ChapterManager: Saving to storage:", {
         unlockedChapters: data.unlockedChapters,
-        selectedChapter: data.selectedChapter 
-      })
-      localStorage.setItem(CHAPTER_STORAGE_KEY, JSON.stringify(data))
+        selectedChapter: data.selectedChapter,
+      });
+      localStorage.setItem(CHAPTER_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('ChapterManager: Failed to save data:', error)
+      console.error("ChapterManager: Failed to save data:", error);
     }
   }
 
@@ -181,16 +181,19 @@ export class ChapterManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(CHAPTER_STORAGE_KEY)
+      const stored = localStorage.getItem(CHAPTER_STORAGE_KEY);
       if (stored) {
-        const data = JSON.parse(stored) as ChapterSaveData
-        this.fromSaveData(data)
-        console.log(`ChapterManager: Loaded ${this.unlockedChapters.size} unlocked chapters from storage:`, Array.from(this.unlockedChapters))
+        const data = JSON.parse(stored) as ChapterSaveData;
+        this.fromSaveData(data);
+        console.log(
+          `ChapterManager: Loaded ${this.unlockedChapters.size} unlocked chapters from storage:`,
+          Array.from(this.unlockedChapters),
+        );
       } else {
-        console.log('ChapterManager: No saved data found, starting fresh')
+        console.log("ChapterManager: No saved data found, starting fresh");
       }
     } catch (error) {
-      console.error('ChapterManager: Failed to load data:', error)
+      console.error("ChapterManager: Failed to load data:", error);
     }
   }
 
@@ -203,18 +206,18 @@ export class ChapterManager {
    */
   on(eventType: ChapterEventType, callback: ChapterEventCallback): void {
     if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, new Set())
+      this.eventListeners.set(eventType, new Set());
     }
-    this.eventListeners.get(eventType)!.add(callback)
+    this.eventListeners.get(eventType)!.add(callback);
   }
 
   /**
    * Unsubscribe from chapter events
    */
   off(eventType: ChapterEventType, callback: ChapterEventCallback): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.delete(callback)
+      listeners.delete(callback);
     }
   }
 
@@ -222,9 +225,9 @@ export class ChapterManager {
    * Emit an event to all listeners
    */
   private emit(eventType: ChapterEventType, data: ChapterEventData): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.forEach((callback) => callback(data))
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -236,14 +239,14 @@ export class ChapterManager {
    * Get the currently selected chapter
    */
   getSelectedChapter(): ChapterId {
-    return this.selectedChapter
+    return this.selectedChapter;
   }
 
   /**
    * Get the chapter definition for the selected chapter
    */
   getSelectedChapterDefinition(): ChapterDefinition {
-    return getChapterDefinition(this.selectedChapter)
+    return getChapterDefinition(this.selectedChapter);
   }
 
   /**
@@ -252,34 +255,34 @@ export class ChapterManager {
    */
   selectChapter(chapterId: ChapterId): boolean {
     if (!this.isChapterUnlocked(chapterId)) {
-      console.warn(`ChapterManager: Cannot select locked chapter ${chapterId}`)
-      return false
+      console.warn(`ChapterManager: Cannot select locked chapter ${chapterId}`);
+      return false;
     }
 
-    this.selectedChapter = chapterId
-    this.saveToStorage()
-    return true
+    this.selectedChapter = chapterId;
+    this.saveToStorage();
+    return true;
   }
 
   /**
    * Check if a chapter is unlocked
    */
   isChapterUnlocked(chapterId: ChapterId): boolean {
-    return this.unlockedChapters.has(chapterId)
+    return this.unlockedChapters.has(chapterId);
   }
 
   /**
    * Get all unlocked chapter IDs
    */
   getUnlockedChapters(): ChapterId[] {
-    return Array.from(this.unlockedChapters).sort((a, b) => a - b)
+    return Array.from(this.unlockedChapters).sort((a, b) => a - b);
   }
 
   /**
    * Get the highest unlocked chapter
    */
   getHighestUnlockedChapter(): ChapterId {
-    return Math.max(...this.unlockedChapters) as ChapterId
+    return Math.max(...this.unlockedChapters) as ChapterId;
   }
 
   /**
@@ -287,23 +290,23 @@ export class ChapterManager {
    */
   private unlockChapter(chapterId: ChapterId): boolean {
     if (!isValidChapterId(chapterId)) {
-      return false
+      return false;
     }
 
     if (this.unlockedChapters.has(chapterId)) {
-      return false // Already unlocked
+      return false; // Already unlocked
     }
 
-    this.unlockedChapters.add(chapterId)
-    this.initializeChapterProgress(chapterId)
-    this.saveToStorage()
+    this.unlockedChapters.add(chapterId);
+    this.initializeChapterProgress(chapterId);
+    this.saveToStorage();
 
-    this.emit('chapterUnlocked', {
-      type: 'chapterUnlocked',
+    this.emit("chapterUnlocked", {
+      type: "chapterUnlocked",
       chapterId,
-    })
+    });
 
-    return true
+    return true;
   }
 
   // ============================================
@@ -315,7 +318,7 @@ export class ChapterManager {
    */
   private initializeChapterProgress(chapterId: ChapterId): void {
     if (this.chapterProgress.has(chapterId)) {
-      return
+      return;
     }
 
     this.chapterProgress.set(chapterId, {
@@ -325,37 +328,37 @@ export class ChapterManager {
       bestStars: 0,
       completionCount: 0,
       bestTimeMs: null,
-    })
+    });
   }
 
   /**
    * Get progress for a specific chapter
    */
   getChapterProgress(chapterId: ChapterId): ChapterProgressData | undefined {
-    return this.chapterProgress.get(chapterId)
+    return this.chapterProgress.get(chapterId);
   }
 
   /**
    * Get progress for all chapters
    */
   getAllChapterProgress(): ChapterProgressData[] {
-    return Array.from(this.chapterProgress.values())
+    return Array.from(this.chapterProgress.values());
   }
 
   /**
    * Check if a chapter has been completed
    */
   isChapterCompleted(chapterId: ChapterId): boolean {
-    const progress = this.chapterProgress.get(chapterId)
-    return progress?.completed ?? false
+    const progress = this.chapterProgress.get(chapterId);
+    return progress?.completed ?? false;
   }
 
   /**
    * Get the best star rating for a chapter
    */
   getBestStars(chapterId: ChapterId): 0 | 1 | 2 | 3 {
-    const progress = this.chapterProgress.get(chapterId)
-    return progress?.bestStars ?? 0
+    const progress = this.chapterProgress.get(chapterId);
+    return progress?.bestStars ?? 0;
   }
 
   // ============================================
@@ -367,13 +370,13 @@ export class ChapterManager {
    */
   startChapter(chapterId: ChapterId): boolean {
     if (!this.isChapterUnlocked(chapterId)) {
-      console.warn(`ChapterManager: Cannot start locked chapter ${chapterId}`)
-      return false
+      console.warn(`ChapterManager: Cannot start locked chapter ${chapterId}`);
+      return false;
     }
 
     // End any existing run
     if (this.currentRun?.isActive) {
-      this.endRun(false)
+      this.endRun(false);
     }
 
     this.currentRun = {
@@ -382,43 +385,43 @@ export class ChapterManager {
       deathsDuringRun: 0,
       isActive: true,
       startedAt: Date.now(),
-    }
+    };
 
-    this.emit('chapterStarted', {
-      type: 'chapterStarted',
+    this.emit("chapterStarted", {
+      type: "chapterStarted",
       chapterId,
       roomNumber: 1,
-    })
+    });
 
-    return true
+    return true;
   }
 
   /**
    * Get the current run state
    */
   getCurrentRun(): ChapterRunState | null {
-    return this.currentRun
+    return this.currentRun;
   }
 
   /**
    * Get the current room number
    */
   getCurrentRoom(): number {
-    return this.currentRun?.currentRoom ?? 0
+    return this.currentRun?.currentRoom ?? 0;
   }
 
   /**
    * Get the total rooms in the current chapter
    */
   getTotalRooms(): number {
-    return ROOMS_PER_CHAPTER
+    return ROOMS_PER_CHAPTER;
   }
 
   /**
    * Get room type for a specific room number
    */
   getRoomType(roomNumber: number): RoomType {
-    return getRoomTypeForNumber(roomNumber)
+    return getRoomTypeForNumber(roomNumber);
   }
 
   /**
@@ -426,36 +429,36 @@ export class ChapterManager {
    */
   advanceRoom(): boolean {
     if (!this.currentRun?.isActive) {
-      console.warn('ChapterManager: No active run')
-      return false
+      console.warn("ChapterManager: No active run");
+      return false;
     }
 
-    const nextRoom = this.currentRun.currentRoom + 1
+    const nextRoom = this.currentRun.currentRoom + 1;
 
     if (nextRoom > ROOMS_PER_CHAPTER) {
       // Chapter complete!
-      return false
+      return false;
     }
 
-    this.currentRun.currentRoom = nextRoom
+    this.currentRun.currentRoom = nextRoom;
 
     // Update highest room
-    const progress = this.chapterProgress.get(this.currentRun.chapterId)
+    const progress = this.chapterProgress.get(this.currentRun.chapterId);
     if (progress && nextRoom > progress.highestRoom) {
-      progress.highestRoom = nextRoom
-      this.saveToStorage()
+      progress.highestRoom = nextRoom;
+      this.saveToStorage();
     }
 
-    const roomType = this.getRoomType(nextRoom)
+    const roomType = this.getRoomType(nextRoom);
 
-    this.emit('roomEntered', {
-      type: 'roomEntered',
+    this.emit("roomEntered", {
+      type: "roomEntered",
       chapterId: this.currentRun.chapterId,
       roomNumber: nextRoom,
       roomType,
-    })
+    });
 
-    return true
+    return true;
   }
 
   /**
@@ -463,15 +466,15 @@ export class ChapterManager {
    */
   clearRoom(): void {
     if (!this.currentRun?.isActive) {
-      return
+      return;
     }
 
-    this.emit('roomCleared', {
-      type: 'roomCleared',
+    this.emit("roomCleared", {
+      type: "roomCleared",
       chapterId: this.currentRun.chapterId,
       roomNumber: this.currentRun.currentRoom,
       roomType: this.getRoomType(this.currentRun.currentRoom),
-    })
+    });
   }
 
   /**
@@ -479,7 +482,7 @@ export class ChapterManager {
    */
   recordDeath(): void {
     if (this.currentRun?.isActive) {
-      this.currentRun.deathsDuringRun++
+      this.currentRun.deathsDuringRun++;
     }
   }
 
@@ -492,78 +495,81 @@ export class ChapterManager {
   completeChapter(
     hpRemaining: number,
     maxHp: number,
-    difficultyMultiplier: number = 1.0
+    difficultyMultiplier: number = 1.0,
   ): ChapterCompletionResult | null {
     if (!this.currentRun?.isActive) {
-      console.warn('ChapterManager: No active run to complete')
-      return null
+      console.warn("ChapterManager: No active run to complete");
+      return null;
     }
 
-    const { chapterId, deathsDuringRun, startedAt } = this.currentRun
-    const completionTimeMs = Date.now() - startedAt
+    const { chapterId, deathsDuringRun, startedAt } = this.currentRun;
+    const completionTimeMs = Date.now() - startedAt;
 
     // Calculate star rating
-    const stars = calculateStarRating(true, hpRemaining, maxHp, deathsDuringRun)
+    const stars = calculateStarRating(true, hpRemaining, maxHp, deathsDuringRun);
 
     // Get progress and check if first completion
-    const progress = this.chapterProgress.get(chapterId)!
-    const isFirstCompletion = !progress.completed
+    const progress = this.chapterProgress.get(chapterId)!;
+    const isFirstCompletion = !progress.completed;
 
     // Calculate rewards with difficulty scaling
     const rewards = calculateRewardsFromData(
       chapterId,
       stars as 1 | 2 | 3,
       isFirstCompletion,
-      difficultyMultiplier
-    )
+      difficultyMultiplier,
+    );
 
     // Update progress
-    progress.completed = true
-    progress.completionCount++
-    progress.highestRoom = ROOMS_PER_CHAPTER
+    progress.completed = true;
+    progress.completionCount++;
+    progress.highestRoom = ROOMS_PER_CHAPTER;
 
     if (stars > progress.bestStars) {
-      progress.bestStars = stars
+      progress.bestStars = stars;
     }
 
     if (progress.bestTimeMs === null || completionTimeMs < progress.bestTimeMs) {
-      progress.bestTimeMs = completionTimeMs
+      progress.bestTimeMs = completionTimeMs;
     }
 
     // Check for next chapter unlock
-    let newChapterUnlocked: ChapterId | null = null
+    let newChapterUnlocked: ChapterId | null = null;
     if (chapterId < 5) {
-      const nextChapter = (chapterId + 1) as ChapterId
-      console.log(`ChapterManager: Checking if chapter ${nextChapter} should be unlocked. Currently unlocked:`, Array.from(this.unlockedChapters))
+      const nextChapter = (chapterId + 1) as ChapterId;
+      console.log(
+        `ChapterManager: Checking if chapter ${nextChapter} should be unlocked. Currently unlocked:`,
+        Array.from(this.unlockedChapters),
+      );
       if (!this.unlockedChapters.has(nextChapter)) {
-        console.log(`ChapterManager: Unlocking chapter ${nextChapter}`)
-        this.unlockChapter(nextChapter)
-        newChapterUnlocked = nextChapter
+        console.log(`ChapterManager: Unlocking chapter ${nextChapter}`);
+        this.unlockChapter(nextChapter);
+        newChapterUnlocked = nextChapter;
       } else {
-        console.log(`ChapterManager: Chapter ${nextChapter} already unlocked`)
+        console.log(`ChapterManager: Chapter ${nextChapter} already unlocked`);
       }
     }
 
     // End the run
-    this.currentRun.isActive = false
+    this.currentRun.isActive = false;
 
     // Save persistent progress
-    this.saveToStorage()
+    this.saveToStorage();
 
     // Emit events
-    this.emit('starRatingAchieved', {
-      type: 'starRatingAchieved',
+    this.emit("starRatingAchieved", {
+      type: "starRatingAchieved",
       chapterId,
       stars,
-    })
+    });
 
-    this.emit('chapterCompleted', {
-      type: 'chapterCompleted',
+    this.emit("chapterCompleted", {
+      type: "chapterCompleted",
       chapterId,
       stars,
       rewards,
       newChapterUnlocked: newChapterUnlocked ?? undefined,
-    })
+    });
 
     return {
       chapterId,
@@ -572,7 +578,7 @@ export class ChapterManager {
       isFirstCompletion,
       newChapterUnlocked,
       completionTimeMs,
-    }
+    };
   }
 
   /**
@@ -580,26 +586,26 @@ export class ChapterManager {
    */
   endRun(failed: boolean = true): void {
     if (!this.currentRun?.isActive) {
-      return
+      return;
     }
 
-    const { chapterId, currentRoom } = this.currentRun
+    const { chapterId, currentRoom } = this.currentRun;
 
     // Update highest room if applicable
-    const progress = this.chapterProgress.get(chapterId)
+    const progress = this.chapterProgress.get(chapterId);
     if (progress && currentRoom > progress.highestRoom) {
-      progress.highestRoom = currentRoom
-      this.saveToStorage()
+      progress.highestRoom = currentRoom;
+      this.saveToStorage();
     }
 
-    this.currentRun.isActive = false
+    this.currentRun.isActive = false;
 
     if (failed) {
-      this.emit('chapterFailed', {
-        type: 'chapterFailed',
+      this.emit("chapterFailed", {
+        type: "chapterFailed",
         chapterId,
         roomNumber: currentRoom,
-      })
+      });
     }
   }
 
@@ -611,8 +617,8 @@ export class ChapterManager {
    * Get the enemy pool for a specific chapter
    */
   getEnemyPoolForChapter(chapterId: ChapterId): EnemyType[] {
-    const chapter = CHAPTER_DEFINITIONS[chapterId]
-    return [...chapter.enemyTypes]
+    const chapter = CHAPTER_DEFINITIONS[chapterId];
+    return [...chapter.enemyTypes];
   }
 
   /**
@@ -620,29 +626,29 @@ export class ChapterManager {
    */
   getCurrentEnemyPool(): EnemyType[] {
     if (!this.currentRun) {
-      return this.getEnemyPoolForChapter(this.selectedChapter)
+      return this.getEnemyPoolForChapter(this.selectedChapter);
     }
-    return this.getEnemyPoolForChapter(this.currentRun.chapterId)
+    return this.getEnemyPoolForChapter(this.currentRun.chapterId);
   }
 
   /**
    * Get chapter definition by ID
    */
   getChapterDefinition(chapterId: ChapterId): ChapterDefinition {
-    return CHAPTER_DEFINITIONS[chapterId]
+    return CHAPTER_DEFINITIONS[chapterId];
   }
 
   /**
    * Get the scaling multipliers for a chapter
    */
   getChapterScaling(chapterId: ChapterId): {
-    enemyHpMultiplier: number
-    enemyDamageMultiplier: number
-    extraEnemiesPerRoom: number
-    bossHpMultiplier: number
-    bossDamageMultiplier: number
+    enemyHpMultiplier: number;
+    enemyDamageMultiplier: number;
+    extraEnemiesPerRoom: number;
+    bossHpMultiplier: number;
+    bossDamageMultiplier: number;
   } {
-    return { ...CHAPTER_DEFINITIONS[chapterId].scaling }
+    return { ...CHAPTER_DEFINITIONS[chapterId].scaling };
   }
 
   // ============================================
@@ -653,19 +659,16 @@ export class ChapterManager {
    * Calculate potential rewards for completing a chapter
    * (Used for UI display before completion)
    */
-  calculatePotentialRewards(
-    chapterId: ChapterId,
-    stars: 1 | 2 | 3
-  ): ChapterRewards {
-    const isFirstCompletion = !this.isChapterCompleted(chapterId)
-    return calculateRewardsFromData(chapterId, stars, isFirstCompletion)
+  calculatePotentialRewards(chapterId: ChapterId, stars: 1 | 2 | 3): ChapterRewards {
+    const isFirstCompletion = !this.isChapterCompleted(chapterId);
+    return calculateRewardsFromData(chapterId, stars, isFirstCompletion);
   }
 
   /**
    * Get the star reward multiplier
    */
   getStarMultiplier(stars: 1 | 2 | 3): number {
-    return STAR_REWARD_MULTIPLIERS[stars]
+    return STAR_REWARD_MULTIPLIERS[stars];
   }
 
   // ============================================
@@ -676,17 +679,17 @@ export class ChapterManager {
    * Get data for saving to storage
    */
   toSaveData(): ChapterSaveData {
-    const chapterProgress: Record<number, ChapterProgressData> = {}
+    const chapterProgress: Record<number, ChapterProgressData> = {};
 
     for (const [id, progress] of this.chapterProgress) {
-      chapterProgress[id] = { ...progress }
+      chapterProgress[id] = { ...progress };
     }
 
     return {
       chapterProgress,
       unlockedChapters: Array.from(this.unlockedChapters),
       selectedChapter: this.selectedChapter,
-    }
+    };
   }
 
   /**
@@ -694,27 +697,27 @@ export class ChapterManager {
    */
   fromSaveData(data: ChapterSaveData): void {
     // Clear existing data
-    this.chapterProgress.clear()
-    this.unlockedChapters.clear()
+    this.chapterProgress.clear();
+    this.unlockedChapters.clear();
 
     // Load unlocked chapters
     if (data.unlockedChapters && Array.isArray(data.unlockedChapters)) {
       for (const id of data.unlockedChapters) {
         if (isValidChapterId(id)) {
-          this.unlockedChapters.add(id as ChapterId)
+          this.unlockedChapters.add(id as ChapterId);
         }
       }
     }
 
     // Ensure chapter 1 is always unlocked
     if (!this.unlockedChapters.has(1)) {
-      this.unlockedChapters.add(1)
+      this.unlockedChapters.add(1);
     }
 
     // Load chapter progress
     if (data.chapterProgress) {
       for (const [idStr, progress] of Object.entries(data.chapterProgress)) {
-        const id = parseInt(idStr, 10)
+        const id = parseInt(idStr, 10);
         if (isValidChapterId(id)) {
           this.chapterProgress.set(id as ChapterId, {
             chapterId: id as ChapterId,
@@ -723,14 +726,14 @@ export class ChapterManager {
             bestStars: (progress.bestStars ?? 0) as 0 | 1 | 2 | 3,
             completionCount: progress.completionCount ?? 0,
             bestTimeMs: progress.bestTimeMs ?? null,
-          })
+          });
         }
       }
     }
 
     // Initialize progress for unlocked chapters that don't have progress data
     for (const id of this.unlockedChapters) {
-      this.initializeChapterProgress(id)
+      this.initializeChapterProgress(id);
     }
 
     // Load selected chapter
@@ -739,9 +742,9 @@ export class ChapterManager {
       isValidChapterId(data.selectedChapter) &&
       this.unlockedChapters.has(data.selectedChapter)
     ) {
-      this.selectedChapter = data.selectedChapter
+      this.selectedChapter = data.selectedChapter;
     } else {
-      this.selectedChapter = DEFAULT_CHAPTER
+      this.selectedChapter = DEFAULT_CHAPTER;
     }
   }
 
@@ -749,13 +752,13 @@ export class ChapterManager {
    * Reset all chapter progress
    */
   reset(): void {
-    this.chapterProgress.clear()
-    this.unlockedChapters.clear()
-    this.unlockedChapters.add(1)
-    this.selectedChapter = DEFAULT_CHAPTER
-    this.currentRun = null
-    this.initializeChapterProgress(1)
-    this.saveToStorage()
+    this.chapterProgress.clear();
+    this.unlockedChapters.clear();
+    this.unlockedChapters.add(1);
+    this.selectedChapter = DEFAULT_CHAPTER;
+    this.currentRun = null;
+    this.initializeChapterProgress(1);
+    this.saveToStorage();
   }
 
   // ============================================
@@ -766,23 +769,23 @@ export class ChapterManager {
    * Get a debug snapshot of current state
    */
   getDebugSnapshot(): {
-    selectedChapter: ChapterId
-    unlockedChapters: ChapterId[]
-    currentRun: ChapterRunState | null
-    chapterProgress: ChapterProgressData[]
+    selectedChapter: ChapterId;
+    unlockedChapters: ChapterId[];
+    currentRun: ChapterRunState | null;
+    chapterProgress: ChapterProgressData[];
   } {
-    console.log('ChapterManager Debug Snapshot:')
-    console.log('- Unlocked chapters:', Array.from(this.unlockedChapters))
-    console.log('- Selected chapter:', this.selectedChapter)
-    console.log('- Current run:', this.currentRun)
-    console.log('- LocalStorage value:', localStorage.getItem(CHAPTER_STORAGE_KEY))
-    
+    console.log("ChapterManager Debug Snapshot:");
+    console.log("- Unlocked chapters:", Array.from(this.unlockedChapters));
+    console.log("- Selected chapter:", this.selectedChapter);
+    console.log("- Current run:", this.currentRun);
+    console.log("- LocalStorage value:", localStorage.getItem(CHAPTER_STORAGE_KEY));
+
     return {
       selectedChapter: this.selectedChapter,
       unlockedChapters: this.getUnlockedChapters(),
       currentRun: this.currentRun ? { ...this.currentRun } : null,
       chapterProgress: this.getAllChapterProgress(),
-    }
+    };
   }
 
   /**
@@ -790,9 +793,9 @@ export class ChapterManager {
    */
   forceUnlockChapter(chapterId: ChapterId): void {
     if (isValidChapterId(chapterId)) {
-      this.unlockedChapters.add(chapterId)
-      this.initializeChapterProgress(chapterId)
-      this.saveToStorage()
+      this.unlockedChapters.add(chapterId);
+      this.initializeChapterProgress(chapterId);
+      this.saveToStorage();
     }
   }
 
@@ -800,25 +803,25 @@ export class ChapterManager {
    * Force complete a chapter with given stars (for testing/cheats)
    */
   forceCompleteChapter(chapterId: ChapterId, stars: 1 | 2 | 3): void {
-    if (!isValidChapterId(chapterId)) return
+    if (!isValidChapterId(chapterId)) return;
 
-    this.initializeChapterProgress(chapterId)
-    const progress = this.chapterProgress.get(chapterId)!
+    this.initializeChapterProgress(chapterId);
+    const progress = this.chapterProgress.get(chapterId)!;
 
-    progress.completed = true
-    progress.completionCount++
-    progress.highestRoom = ROOMS_PER_CHAPTER
+    progress.completed = true;
+    progress.completionCount++;
+    progress.highestRoom = ROOMS_PER_CHAPTER;
 
     if (stars > progress.bestStars) {
-      progress.bestStars = stars
+      progress.bestStars = stars;
     }
 
     // Unlock next chapter
     if (chapterId < 5) {
-      this.forceUnlockChapter((chapterId + 1) as ChapterId)
+      this.forceUnlockChapter((chapterId + 1) as ChapterId);
     }
 
-    this.saveToStorage()
+    this.saveToStorage();
   }
 }
 
@@ -827,9 +830,9 @@ export class ChapterManager {
 // ============================================
 
 /** Global singleton instance for use throughout the game */
-export const chapterManager = new ChapterManager()
+export const chapterManager = new ChapterManager();
 
 // Expose to window for debugging in browser console
-if (typeof window !== 'undefined') {
-  ;(window as any).chapterManager = chapterManager
+if (typeof window !== "undefined") {
+  (window as any).chapterManager = chapterManager;
 }

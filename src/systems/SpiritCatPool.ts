@@ -1,6 +1,6 @@
-import Phaser from 'phaser'
-import SpiritCat from '../entities/SpiritCat'
-import Enemy from '../entities/Enemy'
+import Phaser from "phaser";
+import SpiritCat from "../entities/SpiritCat";
+import Enemy from "../entities/Enemy";
 
 export default class SpiritCatPool extends Phaser.Physics.Arcade.Group {
   constructor(scene: Phaser.Scene) {
@@ -8,49 +8,43 @@ export default class SpiritCatPool extends Phaser.Physics.Arcade.Group {
       classType: SpiritCat,
       maxSize: 20, // Max cats at once (3 cats * ~6 cycles visible)
       runChildUpdate: true,
-    })
+    });
   }
 
-  spawn(
-    x: number,
-    y: number,
-    target: Enemy,
-    damage: number,
-    canCrit: boolean
-  ): SpiritCat | null {
-    let cat = this.get(x, y) as SpiritCat | null
+  spawn(x: number, y: number, target: Enemy, damage: number, canCrit: boolean): SpiritCat | null {
+    let cat = this.get(x, y) as SpiritCat | null;
 
     // If pool is exhausted, recycle oldest
     if (!cat) {
-      cat = this.recycleOldest()
+      cat = this.recycleOldest();
     }
 
     if (cat) {
-      cat.fire(x, y, target, damage, canCrit)
+      cat.fire(x, y, target, damage, canCrit);
     }
-    return cat
+    return cat;
   }
 
   private recycleOldest(): SpiritCat | null {
-    let oldest: SpiritCat | null = null
-    let oldestSpawnTime = Infinity
+    let oldest: SpiritCat | null = null;
+    let oldestSpawnTime = Infinity;
 
     this.children.iterate((child) => {
-      const cat = child as SpiritCat
+      const cat = child as SpiritCat;
       if (cat.active) {
-        const spawnTime = cat.getSpawnTime()
+        const spawnTime = cat.getSpawnTime();
         if (spawnTime < oldestSpawnTime) {
-          oldestSpawnTime = spawnTime
-          oldest = cat
+          oldestSpawnTime = spawnTime;
+          oldest = cat;
         }
       }
-      return true
-    })
+      return true;
+    });
 
     if (oldest !== null) {
-      (oldest as SpiritCat).deactivate()
-      return oldest
+      (oldest as SpiritCat).deactivate();
+      return oldest;
     }
-    return null
+    return null;
   }
 }

@@ -1,5 +1,5 @@
-import Phaser from 'phaser'
-import EnemyBullet from '../entities/EnemyBullet'
+import Phaser from "phaser";
+import EnemyBullet from "../entities/EnemyBullet";
 
 export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
   constructor(scene: Phaser.Scene) {
@@ -7,10 +7,10 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
       classType: EnemyBullet,
       maxSize: 1000,
       runChildUpdate: true,
-    })
+    });
 
     // Create enemy bullet texture
-    this.createEnemyBulletTexture()
+    this.createEnemyBulletTexture();
   }
 
   private createEnemyBulletTexture() {
@@ -19,10 +19,10 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
   }
 
   spawn(x: number, y: number, angle: number, speed: number = 170): EnemyBullet | null {
-    const bullet = this.get(x, y) as EnemyBullet
+    const bullet = this.get(x, y) as EnemyBullet;
     if (bullet) {
-      bullet.fire(x, y, angle, speed)
+      bullet.fire(x, y, angle, speed);
     }
-    return bullet
+    return bullet;
   }
 }

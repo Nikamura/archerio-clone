@@ -10,7 +10,7 @@
  * - Handles new abilities added in updates (appended to end)
  */
 
-import { ABILITIES, AbilityData } from '../config/abilityData'
+import { ABILITIES, AbilityData } from "../config/abilityData";
 
 // ============================================
 // Type Definitions
@@ -21,46 +21,46 @@ import { ABILITIES, AbilityData } from '../config/abilityData'
  */
 export interface AbilityPrioritySaveData {
   /** Array of ability IDs in priority order (first = highest priority) */
-  priorityOrder: string[]
+  priorityOrder: string[];
   /** Max level per ability after which it won't be prioritized (0 or undefined = no limit) */
-  priorityMaxLevels?: Record<string, number>
+  priorityMaxLevels?: Record<string, number>;
 }
 
 /**
  * Event types emitted by AbilityPriorityManager
  */
-export type AbilityPriorityEventType = 'priorityChanged'
+export type AbilityPriorityEventType = "priorityChanged";
 
 /**
  * Event listener callback type
  */
-export type AbilityPriorityEventCallback = (priorityOrder: string[]) => void
+export type AbilityPriorityEventCallback = (priorityOrder: string[]) => void;
 
 // ============================================
 // Constants
 // ============================================
 
 /** localStorage key for ability priority data persistence */
-const STORAGE_KEY = 'aura_archer_ability_priority_data'
+const STORAGE_KEY = "aura_archer_ability_priority_data";
 
 // ============================================
 // AbilityPriorityManager Class
 // ============================================
 
 class AbilityPriorityManager {
-  private static _instance: AbilityPriorityManager
+  private static _instance: AbilityPriorityManager;
 
   /** Array of ability IDs in priority order (first = highest priority) */
-  private priorityOrder: string[] = []
+  private priorityOrder: string[] = [];
 
   /** Max level per ability after which it won't be prioritized (0 = no limit) */
-  private priorityMaxLevels: Record<string, number> = {}
+  private priorityMaxLevels: Record<string, number> = {};
 
   /** Event listeners */
-  private listeners: Map<AbilityPriorityEventType, AbilityPriorityEventCallback[]> = new Map()
+  private listeners: Map<AbilityPriorityEventType, AbilityPriorityEventCallback[]> = new Map();
 
   private constructor() {
-    this.loadFromStorage()
+    this.loadFromStorage();
   }
 
   /**
@@ -68,9 +68,9 @@ class AbilityPriorityManager {
    */
   static get instance(): AbilityPriorityManager {
     if (!AbilityPriorityManager._instance) {
-      AbilityPriorityManager._instance = new AbilityPriorityManager()
+      AbilityPriorityManager._instance = new AbilityPriorityManager();
     }
-    return AbilityPriorityManager._instance
+    return AbilityPriorityManager._instance;
   }
 
   // ============================================
@@ -82,7 +82,7 @@ class AbilityPriorityManager {
    * @returns Array of ability IDs in priority order (first = highest)
    */
   getPriorityOrder(): string[] {
-    return [...this.priorityOrder]
+    return [...this.priorityOrder];
   }
 
   /**
@@ -90,9 +90,9 @@ class AbilityPriorityManager {
    * @param order Array of ability IDs in desired priority order
    */
   setPriorityOrder(order: string[]): void {
-    this.priorityOrder = [...order]
-    this.saveToStorage()
-    this.emit('priorityChanged', this.priorityOrder)
+    this.priorityOrder = [...order];
+    this.saveToStorage();
+    this.emit("priorityChanged", this.priorityOrder);
   }
 
   /**
@@ -103,26 +103,26 @@ class AbilityPriorityManager {
    */
   getHighestPriorityAbility(
     availableAbilities: AbilityData[],
-    currentLevels?: Record<string, number>
+    currentLevels?: Record<string, number>,
   ): AbilityData | null {
     if (availableAbilities.length === 0) {
-      return null
+      return null;
     }
 
     // Find the ability with the lowest index in priority order
-    let highestPriority: AbilityData | null = null
-    let highestPriorityIndex = Infinity
+    let highestPriority: AbilityData | null = null;
+    let highestPriorityIndex = Infinity;
 
     for (const ability of availableAbilities) {
-      const priorityIndex = this.priorityOrder.indexOf(ability.id)
+      const priorityIndex = this.priorityOrder.indexOf(ability.id);
 
       // Check if this ability has exceeded its priority max level
       if (currentLevels) {
-        const currentLevel = currentLevels[ability.id] ?? 0
-        const maxLevel = this.priorityMaxLevels[ability.id]
+        const currentLevel = currentLevels[ability.id] ?? 0;
+        const maxLevel = this.priorityMaxLevels[ability.id];
         if (maxLevel && maxLevel > 0 && currentLevel >= maxLevel) {
           // Skip this ability - it has reached its priority max level
-          continue
+          continue;
         }
       }
 
@@ -130,15 +130,15 @@ class AbilityPriorityManager {
         // Ability not in priority list (new ability), treat as lowest priority
         // but still consider it if nothing else is found
         if (highestPriority === null) {
-          highestPriority = ability
+          highestPriority = ability;
         }
       } else if (priorityIndex < highestPriorityIndex) {
-        highestPriorityIndex = priorityIndex
-        highestPriority = ability
+        highestPriorityIndex = priorityIndex;
+        highestPriority = ability;
       }
     }
 
-    return highestPriority
+    return highestPriority;
   }
 
   /**
@@ -147,27 +147,27 @@ class AbilityPriorityManager {
    * @param toIndex The target index
    */
   moveAbility(abilityId: string, toIndex: number): void {
-    const fromIndex = this.priorityOrder.indexOf(abilityId)
-    if (fromIndex === -1) return
+    const fromIndex = this.priorityOrder.indexOf(abilityId);
+    if (fromIndex === -1) return;
 
     // Remove from current position
-    this.priorityOrder.splice(fromIndex, 1)
+    this.priorityOrder.splice(fromIndex, 1);
 
     // Insert at new position
-    this.priorityOrder.splice(toIndex, 0, abilityId)
+    this.priorityOrder.splice(toIndex, 0, abilityId);
 
-    this.saveToStorage()
-    this.emit('priorityChanged', this.priorityOrder)
+    this.saveToStorage();
+    this.emit("priorityChanged", this.priorityOrder);
   }
 
   /**
    * Reset to default priority order (order from ABILITIES array)
    */
   resetToDefault(): void {
-    this.priorityOrder = ABILITIES.map((a) => a.id)
-    this.priorityMaxLevels = {}
-    this.saveToStorage()
-    this.emit('priorityChanged', this.priorityOrder)
+    this.priorityOrder = ABILITIES.map((a) => a.id);
+    this.priorityMaxLevels = {};
+    this.saveToStorage();
+    this.emit("priorityChanged", this.priorityOrder);
   }
 
   /**
@@ -176,7 +176,7 @@ class AbilityPriorityManager {
    * @returns The max level (0 = no limit), or 0 if not set
    */
   getPriorityMaxLevel(abilityId: string): number {
-    return this.priorityMaxLevels[abilityId] ?? 0
+    return this.priorityMaxLevels[abilityId] ?? 0;
   }
 
   /**
@@ -186,11 +186,11 @@ class AbilityPriorityManager {
    */
   setPriorityMaxLevel(abilityId: string, maxLevel: number): void {
     if (maxLevel <= 0) {
-      delete this.priorityMaxLevels[abilityId]
+      delete this.priorityMaxLevels[abilityId];
     } else {
-      this.priorityMaxLevels[abilityId] = maxLevel
+      this.priorityMaxLevels[abilityId] = maxLevel;
     }
-    this.saveToStorage()
+    this.saveToStorage();
   }
 
   /**
@@ -198,14 +198,14 @@ class AbilityPriorityManager {
    * @returns Record of ability ID to max level
    */
   getAllPriorityMaxLevels(): Record<string, number> {
-    return { ...this.priorityMaxLevels }
+    return { ...this.priorityMaxLevels };
   }
 
   /**
    * Get ability data by ID
    */
   getAbilityById(abilityId: string): AbilityData | undefined {
-    return ABILITIES.find((a) => a.id === abilityId)
+    return ABILITIES.find((a) => a.id === abilityId);
   }
 
   /**
@@ -214,7 +214,7 @@ class AbilityPriorityManager {
   getAbilitiesInPriorityOrder(): AbilityData[] {
     return this.priorityOrder
       .map((id) => this.getAbilityById(id))
-      .filter((a): a is AbilityData => a !== undefined)
+      .filter((a): a is AbilityData => a !== undefined);
   }
 
   // ============================================
@@ -226,20 +226,20 @@ class AbilityPriorityManager {
    */
   on(event: AbilityPriorityEventType, callback: AbilityPriorityEventCallback): void {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, [])
+      this.listeners.set(event, []);
     }
-    this.listeners.get(event)!.push(callback)
+    this.listeners.get(event)!.push(callback);
   }
 
   /**
    * Unsubscribe from events
    */
   off(event: AbilityPriorityEventType, callback: AbilityPriorityEventCallback): void {
-    const callbacks = this.listeners.get(event)
+    const callbacks = this.listeners.get(event);
     if (callbacks) {
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(callback);
       if (index !== -1) {
-        callbacks.splice(index, 1)
+        callbacks.splice(index, 1);
       }
     }
   }
@@ -248,9 +248,9 @@ class AbilityPriorityManager {
    * Emit an event
    */
   private emit(event: AbilityPriorityEventType, data: string[]): void {
-    const callbacks = this.listeners.get(event)
+    const callbacks = this.listeners.get(event);
     if (callbacks) {
-      callbacks.forEach((callback) => callback(data))
+      callbacks.forEach((callback) => callback(data));
     }
   }
 
@@ -265,31 +265,31 @@ class AbilityPriorityManager {
     const saveData: AbilityPrioritySaveData = {
       priorityOrder: this.priorityOrder,
       priorityMaxLevels: this.priorityMaxLevels,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
   }
 
   /**
    * Load state from localStorage
    */
   private loadFromStorage(): void {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(STORAGE_KEY);
 
     if (stored) {
       try {
-        const saveData: AbilityPrioritySaveData = JSON.parse(stored)
-        this.priorityOrder = saveData.priorityOrder || []
-        this.priorityMaxLevels = saveData.priorityMaxLevels || {}
+        const saveData: AbilityPrioritySaveData = JSON.parse(stored);
+        this.priorityOrder = saveData.priorityOrder || [];
+        this.priorityMaxLevels = saveData.priorityMaxLevels || {};
 
         // Sync with master ABILITIES list - add any new abilities at the end
-        this.syncWithMasterList()
+        this.syncWithMasterList();
       } catch (e) {
-        console.error('AbilityPriorityManager: Failed to parse saved data', e)
-        this.resetToDefault()
+        console.error("AbilityPriorityManager: Failed to parse saved data", e);
+        this.resetToDefault();
       }
     } else {
       // No saved data, use default order
-      this.resetToDefault()
+      this.resetToDefault();
     }
   }
 
@@ -299,21 +299,21 @@ class AbilityPriorityManager {
    * Removes any abilities that no longer exist
    */
   private syncWithMasterList(): void {
-    const masterIds = new Set(ABILITIES.map((a) => a.id))
-    const currentIds = new Set(this.priorityOrder)
+    const masterIds = new Set(ABILITIES.map((a) => a.id));
+    const currentIds = new Set(this.priorityOrder);
 
     // Remove abilities that no longer exist
-    this.priorityOrder = this.priorityOrder.filter((id) => masterIds.has(id))
+    this.priorityOrder = this.priorityOrder.filter((id) => masterIds.has(id));
 
     // Add new abilities at the end
     for (const ability of ABILITIES) {
       if (!currentIds.has(ability.id)) {
-        this.priorityOrder.push(ability.id)
+        this.priorityOrder.push(ability.id);
       }
     }
 
     // Save the synced list
-    this.saveToStorage()
+    this.saveToStorage();
   }
 
   // ============================================
@@ -324,10 +324,10 @@ class AbilityPriorityManager {
    * Clear all saved data (for testing)
    */
   clearSaveData(): void {
-    localStorage.removeItem(STORAGE_KEY)
-    this.resetToDefault()
+    localStorage.removeItem(STORAGE_KEY);
+    this.resetToDefault();
   }
 }
 
 // Export singleton instance
-export const abilityPriorityManager = AbilityPriorityManager.instance
+export const abilityPriorityManager = AbilityPriorityManager.instance;

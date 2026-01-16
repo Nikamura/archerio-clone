@@ -1,35 +1,35 @@
-import Phaser from 'phaser'
-import { audioManager } from '../../systems/AudioManager'
+import Phaser from "phaser";
+import { audioManager } from "../../systems/AudioManager";
 
 /**
  * Configuration for Button
  */
 export interface ButtonConfig {
-  scene: Phaser.Scene
-  x: number
-  y: number
-  text: string
-  width?: number
-  height?: number
-  backgroundColor?: number
-  hoverColor?: number
-  disabledColor?: number
-  textColor?: string
-  fontSize?: string
-  fontStyle?: string
-  padding?: { x: number; y: number }
-  onClick: () => void
-  disabled?: boolean
-  playSound?: boolean
-  depth?: number
+  scene: Phaser.Scene;
+  x: number;
+  y: number;
+  text: string;
+  width?: number;
+  height?: number;
+  backgroundColor?: number;
+  hoverColor?: number;
+  disabledColor?: number;
+  textColor?: string;
+  fontSize?: string;
+  fontStyle?: string;
+  padding?: { x: number; y: number };
+  onClick: () => void;
+  disabled?: boolean;
+  playSound?: boolean;
+  depth?: number;
 }
 
 export interface ButtonResult {
-  container: Phaser.GameObjects.Container
-  text: Phaser.GameObjects.Text
-  setDisabled: (disabled: boolean) => void
-  setText: (text: string) => void
-  destroy: () => void
+  container: Phaser.GameObjects.Container;
+  text: Phaser.GameObjects.Text;
+  setDisabled: (disabled: boolean) => void;
+  setText: (text: string) => void;
+  destroy: () => void;
 }
 
 /**
@@ -47,91 +47,91 @@ export function createButton(config: ButtonConfig): ButtonResult {
     backgroundColor = 0x444444,
     hoverColor = 0x666666,
     disabledColor = 0x333333,
-    textColor = '#ffffff',
-    fontSize = '16px',
-    fontStyle = 'normal',
+    textColor = "#ffffff",
+    fontSize = "16px",
+    fontStyle = "normal",
     padding = { x: 20, y: 10 },
     onClick,
     disabled = false,
     playSound = true,
     depth = 0,
-  } = config
+  } = config;
 
-  const container = scene.add.container(x, y)
-  container.setDepth(depth)
+  const container = scene.add.container(x, y);
+  container.setDepth(depth);
 
-  let isDisabled = disabled
-  let currentBgColor = disabled ? disabledColor : backgroundColor
+  let isDisabled = disabled;
+  let currentBgColor = disabled ? disabledColor : backgroundColor;
 
   // Create button text with background
   const buttonText = scene.add
     .text(0, 0, text, {
       fontSize,
       fontStyle,
-      color: disabled ? '#666666' : textColor,
-      backgroundColor: `#${currentBgColor.toString(16).padStart(6, '0')}`,
+      color: disabled ? "#666666" : textColor,
+      backgroundColor: `#${currentBgColor.toString(16).padStart(6, "0")}`,
       padding,
     })
-    .setOrigin(0.5)
+    .setOrigin(0.5);
 
-  container.add(buttonText)
+  container.add(buttonText);
 
   // Set interactivity
   if (!disabled) {
-    buttonText.setInteractive({ useHandCursor: true })
+    buttonText.setInteractive({ useHandCursor: true });
   }
 
   // Hover effects
-  buttonText.on('pointerover', () => {
+  buttonText.on("pointerover", () => {
     if (!isDisabled) {
       buttonText.setStyle({
-        backgroundColor: `#${hoverColor.toString(16).padStart(6, '0')}`,
-      })
+        backgroundColor: `#${hoverColor.toString(16).padStart(6, "0")}`,
+      });
     }
-  })
+  });
 
-  buttonText.on('pointerout', () => {
+  buttonText.on("pointerout", () => {
     if (!isDisabled) {
       buttonText.setStyle({
-        backgroundColor: `#${backgroundColor.toString(16).padStart(6, '0')}`,
-      })
+        backgroundColor: `#${backgroundColor.toString(16).padStart(6, "0")}`,
+      });
     }
-  })
+  });
 
   // Click handler
-  buttonText.on('pointerdown', () => {
+  buttonText.on("pointerdown", () => {
     if (!isDisabled) {
       if (playSound) {
-        audioManager.playMenuSelect()
+        audioManager.playMenuSelect();
       }
-      onClick()
+      onClick();
     }
-  })
+  });
 
   // Helper methods
   const setDisabled = (newDisabled: boolean) => {
-    isDisabled = newDisabled
-    currentBgColor = newDisabled ? disabledColor : backgroundColor
+    isDisabled = newDisabled;
+    currentBgColor = newDisabled ? disabledColor : backgroundColor;
 
     buttonText.setStyle({
-      color: newDisabled ? '#666666' : textColor,
-      backgroundColor: `#${currentBgColor.toString(16).padStart(6, '0')}`,
-    })
+      color: newDisabled ? "#666666" : textColor,
+      backgroundColor: `#${currentBgColor.toString(16).padStart(6, "0")}`,
+    });
 
     if (newDisabled) {
-      buttonText.disableInteractive()
+      buttonText.disableInteractive();
     } else {
-      buttonText.setInteractive({ useHandCursor: true })
+      buttonText.setInteractive({ useHandCursor: true });
     }
-  }
+  };
 
   const setText = (newText: string) => {
-    buttonText.setText(newText)
-  }
+    buttonText.setText(newText);
+  };
 
   const destroy = () => {
-    container.destroy()
-  }
+    container.destroy();
+  };
 
   return {
     container,
@@ -139,24 +139,24 @@ export function createButton(config: ButtonConfig): ButtonResult {
     setDisabled,
     setText,
     destroy,
-  }
+  };
 }
 
 /**
  * Configuration for IconButton
  */
 export interface IconButtonConfig {
-  scene: Phaser.Scene
-  x: number
-  y: number
-  icon: string // Emoji or text icon
-  size?: number
-  backgroundColor?: number
-  hoverColor?: number
-  onClick: () => void
-  disabled?: boolean
-  playSound?: boolean
-  depth?: number
+  scene: Phaser.Scene;
+  x: number;
+  y: number;
+  icon: string; // Emoji or text icon
+  size?: number;
+  backgroundColor?: number;
+  hoverColor?: number;
+  onClick: () => void;
+  disabled?: boolean;
+  playSound?: boolean;
+  depth?: number;
 }
 
 /**
@@ -175,74 +175,74 @@ export function createIconButton(config: IconButtonConfig): ButtonResult {
     disabled = false,
     playSound = true,
     depth = 0,
-  } = config
+  } = config;
 
-  const container = scene.add.container(x, y)
-  container.setDepth(depth)
+  const container = scene.add.container(x, y);
+  container.setDepth(depth);
 
-  let isDisabled = disabled
+  let isDisabled = disabled;
 
   // Create circular background
-  const circle = scene.add.circle(0, 0, size / 2, disabled ? 0x333333 : backgroundColor)
-  container.add(circle)
+  const circle = scene.add.circle(0, 0, size / 2, disabled ? 0x333333 : backgroundColor);
+  container.add(circle);
 
   // Create icon text
   const iconText = scene.add
     .text(0, 0, icon, {
       fontSize: `${size * 0.5}px`,
-      color: disabled ? '#666666' : '#ffffff',
+      color: disabled ? "#666666" : "#ffffff",
     })
-    .setOrigin(0.5)
-  container.add(iconText)
+    .setOrigin(0.5);
+  container.add(iconText);
 
   // Set interactivity on circle
   if (!disabled) {
-    circle.setInteractive({ useHandCursor: true })
+    circle.setInteractive({ useHandCursor: true });
   }
 
   // Hover effects
-  circle.on('pointerover', () => {
+  circle.on("pointerover", () => {
     if (!isDisabled) {
-      circle.setFillStyle(hoverColor)
+      circle.setFillStyle(hoverColor);
     }
-  })
+  });
 
-  circle.on('pointerout', () => {
+  circle.on("pointerout", () => {
     if (!isDisabled) {
-      circle.setFillStyle(backgroundColor)
+      circle.setFillStyle(backgroundColor);
     }
-  })
+  });
 
   // Click handler
-  circle.on('pointerdown', () => {
+  circle.on("pointerdown", () => {
     if (!isDisabled) {
       if (playSound) {
-        audioManager.playMenuSelect()
+        audioManager.playMenuSelect();
       }
-      onClick()
+      onClick();
     }
-  })
+  });
 
   // Helper methods
   const setDisabled = (newDisabled: boolean) => {
-    isDisabled = newDisabled
-    circle.setFillStyle(newDisabled ? 0x333333 : backgroundColor)
-    iconText.setColor(newDisabled ? '#666666' : '#ffffff')
+    isDisabled = newDisabled;
+    circle.setFillStyle(newDisabled ? 0x333333 : backgroundColor);
+    iconText.setColor(newDisabled ? "#666666" : "#ffffff");
 
     if (newDisabled) {
-      circle.disableInteractive()
+      circle.disableInteractive();
     } else {
-      circle.setInteractive({ useHandCursor: true })
+      circle.setInteractive({ useHandCursor: true });
     }
-  }
+  };
 
   const setText = (newIcon: string) => {
-    iconText.setText(newIcon)
-  }
+    iconText.setText(newIcon);
+  };
 
   const destroy = () => {
-    container.destroy()
-  }
+    container.destroy();
+  };
 
   return {
     container,
@@ -250,7 +250,7 @@ export function createIconButton(config: IconButtonConfig): ButtonResult {
     setDisabled,
     setText,
     destroy,
-  }
+  };
 }
 
-export default createButton
+export default createButton;

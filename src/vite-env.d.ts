@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SENTRY_DSN: string | undefined
-  readonly VITE_APP_VERSION: string | undefined
-  readonly MODE: string
+  readonly VITE_SENTRY_DSN: string | undefined;
+  readonly VITE_APP_VERSION: string | undefined;
+  readonly MODE: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }

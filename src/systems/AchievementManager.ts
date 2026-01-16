@@ -11,11 +11,11 @@ import {
   AchievementReward,
   ACHIEVEMENTS,
   getAchievementById,
-} from '../config/achievementData'
-import { saveManager } from './SaveManager'
-import { currencyManager } from './CurrencyManager'
-import { equipmentManager } from './EquipmentManager'
-import { talentManager } from './TalentManager'
+} from "../config/achievementData";
+import { saveManager } from "./SaveManager";
+import { currencyManager } from "./CurrencyManager";
+import { equipmentManager } from "./EquipmentManager";
+import { talentManager } from "./TalentManager";
 
 // ============================================
 // Types and Interfaces
@@ -23,55 +23,55 @@ import { talentManager } from './TalentManager'
 
 /** Progress data for a single achievement */
 export interface AchievementProgress {
-  achievementId: string
-  currentValue: number
-  highestCompletedTier: number // -1 if none completed
-  highestClaimedTier: number // -1 if none claimed
+  achievementId: string;
+  currentValue: number;
+  highestCompletedTier: number; // -1 if none completed
+  highestClaimedTier: number; // -1 if none claimed
 }
 
 /** Data structure for save/load persistence */
 export interface AchievementSaveData {
-  claimedTiers: Record<string, number> // achievementId -> highest claimed tier index
-  totalGoldEarned: number
-  totalGemsEarned: number
+  claimedTiers: Record<string, number>; // achievementId -> highest claimed tier index
+  totalGoldEarned: number;
+  totalGemsEarned: number;
 }
 
 /** Event types emitted by AchievementManager */
-export type AchievementEventType = 'achievementUnlocked' | 'rewardClaimed' | 'progressUpdated'
+export type AchievementEventType = "achievementUnlocked" | "rewardClaimed" | "progressUpdated";
 
 /** Event data for achievement events */
 export interface AchievementEventData {
-  achievementId: string
-  tierIndex?: number
-  reward?: AchievementReward
+  achievementId: string;
+  tierIndex?: number;
+  reward?: AchievementReward;
 }
 
 /** Event listener callback type */
-export type AchievementEventCallback = (data: AchievementEventData) => void
+export type AchievementEventCallback = (data: AchievementEventData) => void;
 
 // ============================================
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'aura_archer_achievements'
+const STORAGE_KEY = "aura_archer_achievements";
 
 // ============================================
 // AchievementManager Class
 // ============================================
 
 export class AchievementManager {
-  private claimedTiers: Map<string, number>
-  private totalGoldEarned: number
-  private totalGemsEarned: number
-  private eventListeners: Map<AchievementEventType, Set<AchievementEventCallback>>
+  private claimedTiers: Map<string, number>;
+  private totalGoldEarned: number;
+  private totalGemsEarned: number;
+  private eventListeners: Map<AchievementEventType, Set<AchievementEventCallback>>;
 
   constructor() {
-    this.claimedTiers = new Map()
-    this.totalGoldEarned = 0
-    this.totalGemsEarned = 0
-    this.eventListeners = new Map()
+    this.claimedTiers = new Map();
+    this.totalGoldEarned = 0;
+    this.totalGemsEarned = 0;
+    this.eventListeners = new Map();
 
-    this.loadFromStorage()
+    this.loadFromStorage();
   }
 
   // ============================================
@@ -83,19 +83,19 @@ export class AchievementManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (!stored) return
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
 
-      const data = JSON.parse(stored) as AchievementSaveData
+      const data = JSON.parse(stored) as AchievementSaveData;
 
       if (data.claimedTiers) {
-        this.claimedTiers = new Map(Object.entries(data.claimedTiers))
+        this.claimedTiers = new Map(Object.entries(data.claimedTiers));
       }
 
-      this.totalGoldEarned = data.totalGoldEarned ?? 0
-      this.totalGemsEarned = data.totalGemsEarned ?? 0
+      this.totalGoldEarned = data.totalGoldEarned ?? 0;
+      this.totalGemsEarned = data.totalGemsEarned ?? 0;
     } catch (error) {
-      console.warn('AchievementManager: Failed to load from storage:', error)
+      console.warn("AchievementManager: Failed to load from storage:", error);
     }
   }
 
@@ -108,10 +108,10 @@ export class AchievementManager {
         claimedTiers: Object.fromEntries(this.claimedTiers),
         totalGoldEarned: this.totalGoldEarned,
         totalGemsEarned: this.totalGemsEarned,
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('AchievementManager: Failed to save to storage:', error)
+      console.warn("AchievementManager: Failed to save to storage:", error);
     }
   }
 
@@ -124,18 +124,18 @@ export class AchievementManager {
    */
   on(eventType: AchievementEventType, callback: AchievementEventCallback): void {
     if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, new Set())
+      this.eventListeners.set(eventType, new Set());
     }
-    this.eventListeners.get(eventType)!.add(callback)
+    this.eventListeners.get(eventType)!.add(callback);
   }
 
   /**
    * Unsubscribe from achievement events
    */
   off(eventType: AchievementEventType, callback: AchievementEventCallback): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.delete(callback)
+      listeners.delete(callback);
     }
   }
 
@@ -143,9 +143,9 @@ export class AchievementManager {
    * Emit an event to all listeners
    */
   private emit(eventType: AchievementEventType, data: AchievementEventData): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.forEach((callback) => callback(data))
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -157,33 +157,33 @@ export class AchievementManager {
    * Get the current value for an achievement's tracked stat
    */
   private getStatValue(statKey: string): number {
-    const stats = saveManager.getStatistics()
-    const heroes = saveManager.getAllHeroes()
+    const stats = saveManager.getStatistics();
+    const heroes = saveManager.getAllHeroes();
 
     switch (statKey) {
-      case 'totalKills':
-        return stats.totalKills
-      case 'totalRuns':
-        return stats.totalRuns
-      case 'bossesDefeated':
-        return stats.bossesDefeated
-      case 'totalPlayTimeMinutes':
+      case "totalKills":
+        return stats.totalKills;
+      case "totalRuns":
+        return stats.totalRuns;
+      case "bossesDefeated":
+        return stats.bossesDefeated;
+      case "totalPlayTimeMinutes":
         // Convert milliseconds to minutes
-        return Math.floor(stats.totalPlayTimeMs / 60000)
-      case 'unlockedHeroes':
+        return Math.floor(stats.totalPlayTimeMs / 60000);
+      case "unlockedHeroes":
         // Count unlocked heroes
-        return Object.values(heroes).filter((h) => h.unlocked).length
-      case 'equippedSlots': {
+        return Object.values(heroes).filter((h) => h.unlocked).length;
+      case "equippedSlots": {
         // Count equipped slots from EquipmentManager (not SaveManager)
-        const allEquipped = equipmentManager.getAllEquipped()
-        return Object.values(allEquipped).filter((item) => item !== null).length
+        const allEquipped = equipmentManager.getAllEquipped();
+        return Object.values(allEquipped).filter((item) => item !== null).length;
       }
-      case 'unlockedTalents':
+      case "unlockedTalents":
         // Count unique talents from TalentManager (not SaveManager)
-        return talentManager.getAllUnlockedTalents().length
+        return talentManager.getAllUnlockedTalents().length;
       default:
-        console.warn(`AchievementManager: Unknown stat key "${statKey}"`)
-        return 0
+        console.warn(`AchievementManager: Unknown stat key "${statKey}"`);
+        return 0;
     }
   }
 
@@ -195,19 +195,19 @@ export class AchievementManager {
    * Get progress for a specific achievement
    */
   getProgress(achievementId: string): AchievementProgress | null {
-    const achievement = getAchievementById(achievementId)
-    if (!achievement) return null
+    const achievement = getAchievementById(achievementId);
+    if (!achievement) return null;
 
-    const currentValue = this.getStatValue(achievement.statKey)
-    const highestClaimedTier = this.claimedTiers.get(achievementId) ?? -1
+    const currentValue = this.getStatValue(achievement.statKey);
+    const highestClaimedTier = this.claimedTiers.get(achievementId) ?? -1;
 
     // Calculate highest completed tier
-    let highestCompletedTier = -1
+    let highestCompletedTier = -1;
     for (let i = 0; i < achievement.tiers.length; i++) {
       if (currentValue >= achievement.tiers[i].requirement) {
-        highestCompletedTier = i
+        highestCompletedTier = i;
       } else {
-        break
+        break;
       }
     }
 
@@ -216,7 +216,7 @@ export class AchievementManager {
       currentValue,
       highestCompletedTier,
       highestClaimedTier,
-    }
+    };
   }
 
   /**
@@ -224,47 +224,50 @@ export class AchievementManager {
    */
   getAllProgress(): AchievementProgress[] {
     return ACHIEVEMENTS.map((a) => this.getProgress(a.id)).filter(
-      (p): p is AchievementProgress => p !== null
-    )
+      (p): p is AchievementProgress => p !== null,
+    );
   }
 
   /**
    * Get list of achievements with unclaimed rewards
    */
   getUnclaimedRewards(): { achievement: Achievement; unclaimedTiers: number[] }[] {
-    const unclaimed: { achievement: Achievement; unclaimedTiers: number[] }[] = []
+    const unclaimed: { achievement: Achievement; unclaimedTiers: number[] }[] = [];
 
     for (const achievement of ACHIEVEMENTS) {
-      const progress = this.getProgress(achievement.id)
-      if (!progress) continue
+      const progress = this.getProgress(achievement.id);
+      if (!progress) continue;
 
-      const unclaimedTiers: number[] = []
+      const unclaimedTiers: number[] = [];
       for (let i = 0; i <= progress.highestCompletedTier; i++) {
         if (i > progress.highestClaimedTier) {
-          unclaimedTiers.push(i)
+          unclaimedTiers.push(i);
         }
       }
 
       if (unclaimedTiers.length > 0) {
-        unclaimed.push({ achievement, unclaimedTiers })
+        unclaimed.push({ achievement, unclaimedTiers });
       }
     }
 
-    return unclaimed
+    return unclaimed;
   }
 
   /**
    * Check if there are any unclaimed rewards
    */
   hasUnclaimedRewards(): boolean {
-    return this.getUnclaimedRewards().length > 0
+    return this.getUnclaimedRewards().length > 0;
   }
 
   /**
    * Get count of total unclaimed rewards
    */
   getUnclaimedRewardsCount(): number {
-    return this.getUnclaimedRewards().reduce((total, item) => total + item.unclaimedTiers.length, 0)
+    return this.getUnclaimedRewards().reduce(
+      (total, item) => total + item.unclaimedTiers.length,
+      0,
+    );
   }
 
   // ============================================
@@ -277,22 +280,22 @@ export class AchievementManager {
    */
   checkAchievements(): void {
     for (const achievement of ACHIEVEMENTS) {
-      const progress = this.getProgress(achievement.id)
-      if (!progress) continue
+      const progress = this.getProgress(achievement.id);
+      if (!progress) continue;
 
-      const highestClaimedTier = this.claimedTiers.get(achievement.id) ?? -1
+      const highestClaimedTier = this.claimedTiers.get(achievement.id) ?? -1;
 
       // Check for newly completed tiers
       for (let i = highestClaimedTier + 1; i <= progress.highestCompletedTier; i++) {
         // Only emit for newly discovered completions (not previously seen)
-        this.emit('achievementUnlocked', {
+        this.emit("achievementUnlocked", {
           achievementId: achievement.id,
           tierIndex: i,
-        })
+        });
       }
     }
 
-    this.emit('progressUpdated', { achievementId: '' })
+    this.emit("progressUpdated", { achievementId: "" });
   }
 
   // ============================================
@@ -306,63 +309,65 @@ export class AchievementManager {
    * @returns true if claim was successful
    */
   claimReward(achievementId: string, tierIndex: number): boolean {
-    const achievement = getAchievementById(achievementId)
+    const achievement = getAchievementById(achievementId);
     if (!achievement) {
-      console.warn(`AchievementManager: Unknown achievement "${achievementId}"`)
-      return false
+      console.warn(`AchievementManager: Unknown achievement "${achievementId}"`);
+      return false;
     }
 
     if (tierIndex < 0 || tierIndex >= achievement.tiers.length) {
-      console.warn(`AchievementManager: Invalid tier index ${tierIndex} for "${achievementId}"`)
-      return false
+      console.warn(`AchievementManager: Invalid tier index ${tierIndex} for "${achievementId}"`);
+      return false;
     }
 
-    const progress = this.getProgress(achievementId)
-    if (!progress) return false
+    const progress = this.getProgress(achievementId);
+    if (!progress) return false;
 
     // Check if tier is completed
     if (tierIndex > progress.highestCompletedTier) {
-      console.warn(`AchievementManager: Tier ${tierIndex} not yet completed for "${achievementId}"`)
-      return false
+      console.warn(
+        `AchievementManager: Tier ${tierIndex} not yet completed for "${achievementId}"`,
+      );
+      return false;
     }
 
     // Check if tier is already claimed
     if (tierIndex <= progress.highestClaimedTier) {
-      console.warn(`AchievementManager: Tier ${tierIndex} already claimed for "${achievementId}"`)
-      return false
+      console.warn(`AchievementManager: Tier ${tierIndex} already claimed for "${achievementId}"`);
+      return false;
     }
 
     // Get reward
-    const tier = achievement.tiers[tierIndex]
-    const reward = tier.reward
+    const tier = achievement.tiers[tierIndex];
+    const reward = tier.reward;
 
     // Award currencies
     if (reward.gold && reward.gold > 0) {
-      currencyManager.add('gold', reward.gold)
-      this.totalGoldEarned += reward.gold
+      currencyManager.add("gold", reward.gold);
+      this.totalGoldEarned += reward.gold;
     }
     if (reward.gems && reward.gems > 0) {
-      currencyManager.add('gems', reward.gems)
-      this.totalGemsEarned += reward.gems
+      currencyManager.add("gems", reward.gems);
+      this.totalGemsEarned += reward.gems;
     }
 
     // Update claimed tier
-    this.claimedTiers.set(achievementId, tierIndex)
-    this.saveToStorage()
+    this.claimedTiers.set(achievementId, tierIndex);
+    this.saveToStorage();
 
     // Emit event
-    this.emit('rewardClaimed', {
+    this.emit("rewardClaimed", {
       achievementId,
       tierIndex,
       reward,
-    })
+    });
 
     console.log(
       `AchievementManager: Claimed "${achievement.name}" tier ${tierIndex + 1} - ` +
-        `Gold: ${reward.gold ?? 0}, Gems: ${reward.gems ?? 0}`
-    )
+        `Gold: ${reward.gold ?? 0}, Gems: ${reward.gems ?? 0}`,
+    );
 
-    return true
+    return true;
   }
 
   /**
@@ -370,40 +375,40 @@ export class AchievementManager {
    * @returns Total rewards claimed
    */
   claimAllRewardsForAchievement(achievementId: string): AchievementReward {
-    const achievement = getAchievementById(achievementId)
-    if (!achievement) return { gold: 0, gems: 0 }
+    const achievement = getAchievementById(achievementId);
+    if (!achievement) return { gold: 0, gems: 0 };
 
-    const progress = this.getProgress(achievementId)
-    if (!progress) return { gold: 0, gems: 0 }
+    const progress = this.getProgress(achievementId);
+    if (!progress) return { gold: 0, gems: 0 };
 
-    let totalGold = 0
-    let totalGems = 0
+    let totalGold = 0;
+    let totalGems = 0;
 
     for (let i = progress.highestClaimedTier + 1; i <= progress.highestCompletedTier; i++) {
       if (this.claimReward(achievementId, i)) {
-        const tier = achievement.tiers[i]
-        totalGold += tier.reward.gold ?? 0
-        totalGems += tier.reward.gems ?? 0
+        const tier = achievement.tiers[i];
+        totalGold += tier.reward.gold ?? 0;
+        totalGems += tier.reward.gems ?? 0;
       }
     }
 
-    return { gold: totalGold, gems: totalGems }
+    return { gold: totalGold, gems: totalGems };
   }
 
   /**
    * Claim all available rewards across all achievements
    */
   claimAllRewards(): AchievementReward {
-    let totalGold = 0
-    let totalGems = 0
+    let totalGold = 0;
+    let totalGems = 0;
 
     for (const achievement of ACHIEVEMENTS) {
-      const reward = this.claimAllRewardsForAchievement(achievement.id)
-      totalGold += reward.gold ?? 0
-      totalGems += reward.gems ?? 0
+      const reward = this.claimAllRewardsForAchievement(achievement.id);
+      totalGold += reward.gold ?? 0;
+      totalGems += reward.gems ?? 0;
     }
 
-    return { gold: totalGold, gems: totalGems }
+    return { gold: totalGold, gems: totalGems };
   }
 
   // ============================================
@@ -414,14 +419,14 @@ export class AchievementManager {
    * Get total gold earned from achievements
    */
   getTotalGoldEarned(): number {
-    return this.totalGoldEarned
+    return this.totalGoldEarned;
   }
 
   /**
    * Get total gems earned from achievements
    */
   getTotalGemsEarned(): number {
-    return this.totalGemsEarned
+    return this.totalGemsEarned;
   }
 
   // ============================================
@@ -436,7 +441,7 @@ export class AchievementManager {
       claimedTiers: Object.fromEntries(this.claimedTiers),
       totalGoldEarned: this.totalGoldEarned,
       totalGemsEarned: this.totalGemsEarned,
-    }
+    };
   }
 
   /**
@@ -444,21 +449,21 @@ export class AchievementManager {
    */
   fromSaveData(data: AchievementSaveData): void {
     if (data.claimedTiers) {
-      this.claimedTiers = new Map(Object.entries(data.claimedTiers))
+      this.claimedTiers = new Map(Object.entries(data.claimedTiers));
     }
-    this.totalGoldEarned = data.totalGoldEarned ?? 0
-    this.totalGemsEarned = data.totalGemsEarned ?? 0
-    this.saveToStorage()
+    this.totalGoldEarned = data.totalGoldEarned ?? 0;
+    this.totalGemsEarned = data.totalGemsEarned ?? 0;
+    this.saveToStorage();
   }
 
   /**
    * Reset all achievement progress
    */
   reset(): void {
-    this.claimedTiers.clear()
-    this.totalGoldEarned = 0
-    this.totalGemsEarned = 0
-    this.saveToStorage()
+    this.claimedTiers.clear();
+    this.totalGoldEarned = 0;
+    this.totalGemsEarned = 0;
+    this.saveToStorage();
   }
 }
 
@@ -466,4 +471,4 @@ export class AchievementManager {
 // Singleton Instance
 // ============================================
 
-export const achievementManager = new AchievementManager()
+export const achievementManager = new AchievementManager();

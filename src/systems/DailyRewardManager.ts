@@ -4,49 +4,46 @@
  * No Phaser dependencies - fully unit testable.
  */
 
-import { currencyManager } from './CurrencyManager'
+import { currencyManager } from "./CurrencyManager";
 
 // ============================================
 // Types and Interfaces
 // ============================================
 
 /** Reward types that can be given */
-export type RewardType = 'gold' | 'gems' | 'energy'
+export type RewardType = "gold" | "gems" | "energy";
 
 /** Single reward entry */
 export interface Reward {
-  type: RewardType
-  amount: number
+  type: RewardType;
+  amount: number;
 }
 
 /** Daily reward configuration */
 export interface DailyReward {
-  day: number // 1-7
-  rewards: Reward[]
-  description: string
+  day: number; // 1-7
+  rewards: Reward[];
+  description: string;
 }
 
 /** Save data structure for persistence */
 export interface DailyRewardSaveData {
-  lastClaimTimestamp: number | null
-  currentDay: number // 1-7
-  claimedToday: boolean
+  lastClaimTimestamp: number | null;
+  currentDay: number; // 1-7
+  claimedToday: boolean;
 }
 
 /** Event types emitted by DailyRewardManager */
-export type DailyRewardEventType =
-  | 'rewardClaimed'
-  | 'streakReset'
-  | 'cycleCompleted'
+export type DailyRewardEventType = "rewardClaimed" | "streakReset" | "cycleCompleted";
 
 /** Event listener callback type */
-export type DailyRewardEventCallback = (data: DailyRewardEventData) => void
+export type DailyRewardEventCallback = (data: DailyRewardEventData) => void;
 
 /** Event data passed to listeners */
 export interface DailyRewardEventData {
-  day: number
-  rewards?: Reward[]
-  streakBroken?: boolean
+  day: number;
+  rewards?: Reward[];
+  streakBroken?: boolean;
 }
 
 // ============================================
@@ -54,16 +51,16 @@ export interface DailyRewardEventData {
 // ============================================
 
 /** LocalStorage key for daily reward data */
-const DAILY_REWARD_STORAGE_KEY = 'aura_archer_daily_rewards'
+const DAILY_REWARD_STORAGE_KEY = "aura_archer_daily_rewards";
 
 /** Maximum hours allowed between claims before streak resets (48 hours) */
-const STREAK_TIMEOUT_HOURS = 48
+const STREAK_TIMEOUT_HOURS = 48;
 
 /** Milliseconds in an hour */
-const MS_PER_HOUR = 60 * 60 * 1000
+const MS_PER_HOUR = 60 * 60 * 1000;
 
 /** Maximum energy value for full refill */
-const MAX_ENERGY = 20
+const MAX_ENERGY = 20;
 
 /**
  * Daily reward configuration for 7-day cycle
@@ -72,57 +69,57 @@ const MAX_ENERGY = 20
 export const DAILY_REWARDS: DailyReward[] = [
   {
     day: 1,
-    rewards: [{ type: 'gold', amount: 100 }],
-    description: '100 Gold',
+    rewards: [{ type: "gold", amount: 100 }],
+    description: "100 Gold",
   },
   {
     day: 2,
-    rewards: [{ type: 'gold', amount: 200 }],
-    description: '200 Gold',
+    rewards: [{ type: "gold", amount: 200 }],
+    description: "200 Gold",
   },
   {
     day: 3,
-    rewards: [{ type: 'gems', amount: 10 }],
-    description: '10 Gems',
+    rewards: [{ type: "gems", amount: 10 }],
+    description: "10 Gems",
   },
   {
     day: 4,
-    rewards: [{ type: 'gold', amount: 500 }],
-    description: '500 Gold',
+    rewards: [{ type: "gold", amount: 500 }],
+    description: "500 Gold",
   },
   {
     day: 5,
-    rewards: [{ type: 'gems', amount: 20 }],
-    description: '20 Gems',
+    rewards: [{ type: "gems", amount: 20 }],
+    description: "20 Gems",
   },
   {
     day: 6,
-    rewards: [{ type: 'gold', amount: 1000 }],
-    description: '1000 Gold',
+    rewards: [{ type: "gold", amount: 1000 }],
+    description: "1000 Gold",
   },
   {
     day: 7,
     rewards: [
-      { type: 'gems', amount: 50 },
-      { type: 'energy', amount: MAX_ENERGY },
+      { type: "gems", amount: 50 },
+      { type: "energy", amount: MAX_ENERGY },
     ],
-    description: '50 Gems + Full Energy',
+    description: "50 Gems + Full Energy",
   },
-]
+];
 
 // ============================================
 // DailyRewardManager Class
 // ============================================
 
 export class DailyRewardManager {
-  private lastClaimTimestamp: number | null = null
-  private currentDay: number = 1
-  private claimedToday: boolean = false
-  private eventListeners: Map<DailyRewardEventType, Set<DailyRewardEventCallback>> = new Map()
+  private lastClaimTimestamp: number | null = null;
+  private currentDay: number = 1;
+  private claimedToday: boolean = false;
+  private eventListeners: Map<DailyRewardEventType, Set<DailyRewardEventCallback>> = new Map();
 
   constructor() {
-    this.loadFromStorage()
-    this.checkStreakStatus()
+    this.loadFromStorage();
+    this.checkStreakStatus();
   }
 
   // ============================================
@@ -134,17 +131,17 @@ export class DailyRewardManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(DAILY_REWARD_STORAGE_KEY)
+      const stored = localStorage.getItem(DAILY_REWARD_STORAGE_KEY);
       if (!stored) {
-        return
+        return;
       }
 
-      const data = JSON.parse(stored) as DailyRewardSaveData
-      this.lastClaimTimestamp = data.lastClaimTimestamp ?? null
-      this.currentDay = data.currentDay ?? 1
-      this.claimedToday = data.claimedToday ?? false
+      const data = JSON.parse(stored) as DailyRewardSaveData;
+      this.lastClaimTimestamp = data.lastClaimTimestamp ?? null;
+      this.currentDay = data.currentDay ?? 1;
+      this.claimedToday = data.claimedToday ?? false;
     } catch (error) {
-      console.warn('DailyRewardManager: Failed to load from storage:', error)
+      console.warn("DailyRewardManager: Failed to load from storage:", error);
     }
   }
 
@@ -157,10 +154,10 @@ export class DailyRewardManager {
         lastClaimTimestamp: this.lastClaimTimestamp,
         currentDay: this.currentDay,
         claimedToday: this.claimedToday,
-      }
-      localStorage.setItem(DAILY_REWARD_STORAGE_KEY, JSON.stringify(data))
+      };
+      localStorage.setItem(DAILY_REWARD_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('DailyRewardManager: Failed to save to storage:', error)
+      console.warn("DailyRewardManager: Failed to save to storage:", error);
     }
   }
 
@@ -173,18 +170,18 @@ export class DailyRewardManager {
    */
   on(eventType: DailyRewardEventType, callback: DailyRewardEventCallback): void {
     if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, new Set())
+      this.eventListeners.set(eventType, new Set());
     }
-    this.eventListeners.get(eventType)!.add(callback)
+    this.eventListeners.get(eventType)!.add(callback);
   }
 
   /**
    * Unsubscribe from daily reward events
    */
   off(eventType: DailyRewardEventType, callback: DailyRewardEventCallback): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.delete(callback)
+      listeners.delete(callback);
     }
   }
 
@@ -192,9 +189,9 @@ export class DailyRewardManager {
    * Emit an event to all listeners
    */
   private emit(eventType: DailyRewardEventType, data: DailyRewardEventData): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.forEach(callback => callback(data))
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -209,39 +206,39 @@ export class DailyRewardManager {
   private checkStreakStatus(currentTime: number = Date.now()): void {
     if (this.lastClaimTimestamp === null) {
       // First time player - no streak to check
-      return
+      return;
     }
 
-    const hoursSinceLastClaim = (currentTime - this.lastClaimTimestamp) / MS_PER_HOUR
+    const hoursSinceLastClaim = (currentTime - this.lastClaimTimestamp) / MS_PER_HOUR;
 
     // Reset streak if more than 48 hours have passed
     if (hoursSinceLastClaim > STREAK_TIMEOUT_HOURS) {
-      this.resetStreak()
-      this.emit('streakReset', { day: 1, streakBroken: true })
-      return
+      this.resetStreak();
+      this.emit("streakReset", { day: 1, streakBroken: true });
+      return;
     }
 
     // Check if it's a new day (past midnight)
-    const lastClaimDate = new Date(this.lastClaimTimestamp)
-    const currentDate = new Date(currentTime)
+    const lastClaimDate = new Date(this.lastClaimTimestamp);
+    const currentDate = new Date(currentTime);
 
     // Compare dates (ignore time)
     const lastClaimDay = new Date(
       lastClaimDate.getFullYear(),
       lastClaimDate.getMonth(),
-      lastClaimDate.getDate()
-    ).getTime()
+      lastClaimDate.getDate(),
+    ).getTime();
 
     const currentDay = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      currentDate.getDate()
-    ).getTime()
+      currentDate.getDate(),
+    ).getTime();
 
     // If it's a different day, reset claimedToday
     if (currentDay > lastClaimDay) {
-      this.claimedToday = false
-      this.saveToStorage()
+      this.claimedToday = false;
+      this.saveToStorage();
     }
   }
 
@@ -249,10 +246,10 @@ export class DailyRewardManager {
    * Reset streak back to day 1
    */
   private resetStreak(): void {
-    this.currentDay = 1
-    this.claimedToday = false
-    this.lastClaimTimestamp = null
-    this.saveToStorage()
+    this.currentDay = 1;
+    this.claimedToday = false;
+    this.lastClaimTimestamp = null;
+    this.saveToStorage();
   }
 
   /**
@@ -260,8 +257,8 @@ export class DailyRewardManager {
    */
   canClaimToday(currentTime: number = Date.now()): boolean {
     // Re-check streak status to handle edge cases
-    this.checkStreakStatus(currentTime)
-    return !this.claimedToday
+    this.checkStreakStatus(currentTime);
+    return !this.claimedToday;
   }
 
   /**
@@ -271,65 +268,65 @@ export class DailyRewardManager {
   claimReward(currentTime: number = Date.now()): Reward[] | null {
     // Verify claim is valid
     if (!this.canClaimToday(currentTime)) {
-      return null
+      return null;
     }
 
     // Get today's reward
-    const dailyReward = this.getDailyReward(this.currentDay)
+    const dailyReward = this.getDailyReward(this.currentDay);
     if (!dailyReward) {
-      console.error('DailyRewardManager: Invalid day configuration')
-      return null
+      console.error("DailyRewardManager: Invalid day configuration");
+      return null;
     }
 
     // Grant rewards
-    const grantedRewards: Reward[] = []
+    const grantedRewards: Reward[] = [];
     for (const reward of dailyReward.rewards) {
-      currencyManager.add(reward.type, reward.amount)
-      grantedRewards.push({ ...reward })
+      currencyManager.add(reward.type, reward.amount);
+      grantedRewards.push({ ...reward });
     }
 
     // Update state
-    this.lastClaimTimestamp = currentTime
-    this.claimedToday = true
+    this.lastClaimTimestamp = currentTime;
+    this.claimedToday = true;
 
     // Emit event
-    this.emit('rewardClaimed', {
+    this.emit("rewardClaimed", {
       day: this.currentDay,
       rewards: grantedRewards,
-    })
+    });
 
     // Check if cycle completed (day 7)
     if (this.currentDay === 7) {
-      this.emit('cycleCompleted', { day: 7 })
+      this.emit("cycleCompleted", { day: 7 });
     }
 
     // Advance to next day (wrap around after day 7)
-    this.currentDay = this.currentDay >= 7 ? 1 : this.currentDay + 1
+    this.currentDay = this.currentDay >= 7 ? 1 : this.currentDay + 1;
 
-    this.saveToStorage()
+    this.saveToStorage();
 
-    return grantedRewards
+    return grantedRewards;
   }
 
   /**
    * Get the current day in the 7-day cycle (1-7)
    */
   getCurrentDay(): number {
-    return this.currentDay
+    return this.currentDay;
   }
 
   /**
    * Get the reward configuration for a specific day
    */
   getDailyReward(day: number): DailyReward | undefined {
-    return DAILY_REWARDS.find(r => r.day === day)
+    return DAILY_REWARDS.find((r) => r.day === day);
   }
 
   /**
    * Get all daily rewards configuration
    */
   getAllDailyRewards(): DailyReward[] {
-    return [...DAILY_REWARDS]
+    return [...DAILY_REWARDS];
   }
 
   /**
@@ -340,12 +337,12 @@ export class DailyRewardManager {
   isDayClaimed(day: number): boolean {
     // Days before currentDay have been claimed in this cycle
     if (day < this.currentDay) {
-      return true
+      return true;
     }
     // currentDay and future days have NOT been claimed yet
     // Note: claimedToday is used by canClaimToday() to prevent multiple claims per day,
     // but for display purposes, currentDay is always the "next day to claim"
-    return false
+    return false;
   }
 
   /**
@@ -354,40 +351,40 @@ export class DailyRewardManager {
    */
   getTimeUntilNextClaim(currentTime: number = Date.now()): number {
     if (this.canClaimToday(currentTime)) {
-      return 0
+      return 0;
     }
 
     if (this.lastClaimTimestamp === null) {
-      return 0
+      return 0;
     }
 
     // Calculate time until midnight
-    const currentDate = new Date(currentTime)
+    const currentDate = new Date(currentTime);
     const tomorrow = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      currentDate.getDate() + 1
-    )
+      currentDate.getDate() + 1,
+    );
 
-    return tomorrow.getTime() - currentTime
+    return tomorrow.getTime() - currentTime;
   }
 
   /**
    * Get formatted time until next claim (HH:MM:SS or "Available!")
    */
   getFormattedTimeUntilNextClaim(currentTime: number = Date.now()): string {
-    const timeMs = this.getTimeUntilNextClaim(currentTime)
+    const timeMs = this.getTimeUntilNextClaim(currentTime);
 
     if (timeMs === 0) {
-      return 'Available!'
+      return "Available!";
     }
 
-    const totalSeconds = Math.ceil(timeMs / 1000)
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
+    const totalSeconds = Math.ceil(timeMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
   /**
@@ -397,9 +394,9 @@ export class DailyRewardManager {
     // If we haven't claimed today, the streak is currentDay - 1
     // If we have claimed today, the streak includes today
     if (this.lastClaimTimestamp === null) {
-      return 0
+      return 0;
     }
-    return this.claimedToday ? this.currentDay : this.currentDay - 1
+    return this.claimedToday ? this.currentDay : this.currentDay - 1;
   }
 
   // ============================================
@@ -414,29 +411,29 @@ export class DailyRewardManager {
       lastClaimTimestamp: this.lastClaimTimestamp,
       currentDay: this.currentDay,
       claimedToday: this.claimedToday,
-    }
+    };
   }
 
   /**
    * Load data from storage
    */
   fromSaveData(data: DailyRewardSaveData): void {
-    this.lastClaimTimestamp = data.lastClaimTimestamp ?? null
-    this.currentDay = data.currentDay ?? 1
-    this.claimedToday = data.claimedToday ?? false
+    this.lastClaimTimestamp = data.lastClaimTimestamp ?? null;
+    this.currentDay = data.currentDay ?? 1;
+    this.claimedToday = data.claimedToday ?? false;
 
     // Re-check streak status after loading
-    this.checkStreakStatus()
+    this.checkStreakStatus();
   }
 
   /**
    * Reset all daily reward data (for testing or new game)
    */
   reset(): void {
-    this.lastClaimTimestamp = null
-    this.currentDay = 1
-    this.claimedToday = false
-    this.saveToStorage()
+    this.lastClaimTimestamp = null;
+    this.currentDay = 1;
+    this.claimedToday = false;
+    this.saveToStorage();
   }
 
   // ============================================
@@ -447,12 +444,12 @@ export class DailyRewardManager {
    * Get a snapshot of current state for debugging
    */
   getDebugSnapshot(): {
-    currentDay: number
-    claimedToday: boolean
-    lastClaimTimestamp: number | null
-    canClaim: boolean
-    timeUntilNextClaim: string
-    streakLength: number
+    currentDay: number;
+    claimedToday: boolean;
+    lastClaimTimestamp: number | null;
+    canClaim: boolean;
+    timeUntilNextClaim: string;
+    streakLength: number;
   } {
     return {
       currentDay: this.currentDay,
@@ -461,7 +458,7 @@ export class DailyRewardManager {
       canClaim: this.canClaimToday(),
       timeUntilNextClaim: this.getFormattedTimeUntilNextClaim(),
       streakLength: this.getStreakLength(),
-    }
+    };
   }
 }
 
@@ -470,4 +467,4 @@ export class DailyRewardManager {
 // ============================================
 
 /** Global singleton instance for use throughout the game */
-export const dailyRewardManager = new DailyRewardManager()
+export const dailyRewardManager = new DailyRewardManager();

@@ -1,24 +1,24 @@
-import Phaser from 'phaser'
-import { audioManager } from '../../systems/AudioManager'
+import Phaser from "phaser";
+import { audioManager } from "../../systems/AudioManager";
 
 /**
  * Configuration for BackButton
  */
 export interface BackButtonConfig {
-  scene: Phaser.Scene
-  x?: number
-  y?: number
-  targetScene?: string
-  onBack?: () => void
-  text?: string
-  depth?: number
-  width?: number
-  height?: number
-  backgroundColor?: number
-  hoverColor?: number
-  textColor?: string
-  fontSize?: string
-  playSound?: boolean
+  scene: Phaser.Scene;
+  x?: number;
+  y?: number;
+  targetScene?: string;
+  onBack?: () => void;
+  text?: string;
+  depth?: number;
+  width?: number;
+  height?: number;
+  backgroundColor?: number;
+  hoverColor?: number;
+  textColor?: string;
+  fontSize?: string;
+  playSound?: boolean;
 }
 
 /**
@@ -34,58 +34,58 @@ export function createBackButton(config: BackButtonConfig): Phaser.GameObjects.C
     y = scene.cameras.main.height - 25,
     targetScene,
     onBack,
-    text = '< BACK',
+    text = "< BACK",
     depth = 20,
     backgroundColor = 0x444444,
     hoverColor = 0x666666,
-    textColor = '#ffffff',
-    fontSize = '16px',
+    textColor = "#ffffff",
+    fontSize = "16px",
     playSound = true,
-  } = config
+  } = config;
 
-  const container = scene.add.container(x, y)
-  container.setDepth(depth)
+  const container = scene.add.container(x, y);
+  container.setDepth(depth);
 
   // Create button text with background
   const buttonText = scene.add
     .text(0, 0, text, {
       fontSize,
       color: textColor,
-      backgroundColor: `#${backgroundColor.toString(16).padStart(6, '0')}`,
+      backgroundColor: `#${backgroundColor.toString(16).padStart(6, "0")}`,
       padding: { x: 20, y: 8 },
     })
     .setOrigin(0.5)
-    .setInteractive({ useHandCursor: true })
+    .setInteractive({ useHandCursor: true });
 
-  container.add(buttonText)
+  container.add(buttonText);
 
   // Hover effects
-  buttonText.on('pointerover', () => {
+  buttonText.on("pointerover", () => {
     buttonText.setStyle({
-      backgroundColor: `#${hoverColor.toString(16).padStart(6, '0')}`,
-    })
-  })
+      backgroundColor: `#${hoverColor.toString(16).padStart(6, "0")}`,
+    });
+  });
 
-  buttonText.on('pointerout', () => {
+  buttonText.on("pointerout", () => {
     buttonText.setStyle({
-      backgroundColor: `#${backgroundColor.toString(16).padStart(6, '0')}`,
-    })
-  })
+      backgroundColor: `#${backgroundColor.toString(16).padStart(6, "0")}`,
+    });
+  });
 
   // Click handler
-  buttonText.on('pointerdown', () => {
+  buttonText.on("pointerdown", () => {
     if (playSound) {
-      audioManager.playMenuSelect()
+      audioManager.playMenuSelect();
     }
 
     if (onBack) {
-      onBack()
+      onBack();
     } else if (targetScene) {
-      scene.scene.start(targetScene)
+      scene.scene.start(targetScene);
     }
-  })
+  });
 
-  return container
+  return container;
 }
 
 /**
@@ -97,17 +97,17 @@ export function createBackButtonFooter(
   height: number,
   footerHeight: number = 50,
   backgroundColor: number = 0x1a1a2e,
-  depth: number = 20
+  depth: number = 20,
 ): Phaser.GameObjects.Rectangle {
   const footer = scene.add.rectangle(
     width / 2,
     height - footerHeight / 2,
     width,
     footerHeight,
-    backgroundColor
-  )
-  footer.setDepth(depth)
-  return footer
+    backgroundColor,
+  );
+  footer.setDepth(depth);
+  return footer;
 }
 
-export default createBackButton
+export default createBackButton;

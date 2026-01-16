@@ -8,7 +8,7 @@
  * - Event emitting for UI updates
  */
 
-import { ChestType, ChestRewards, CHEST_ORDER } from '../data/chestData'
+import { ChestType, ChestRewards, CHEST_ORDER } from "../data/chestData";
 
 // ============================================
 // Types
@@ -18,63 +18,63 @@ import { ChestType, ChestRewards, CHEST_ORDER } from '../data/chestData'
  * Chest inventory state
  */
 export interface ChestInventory {
-  wooden: number
-  silver: number
-  golden: number
+  wooden: number;
+  silver: number;
+  golden: number;
 }
 
 /**
  * Event types emitted by ChestManager
  */
-export type ChestEventType = 'chestAdded' | 'chestRemoved' | 'inventoryChanged'
+export type ChestEventType = "chestAdded" | "chestRemoved" | "inventoryChanged";
 
 /**
  * Event callback type
  */
-export type ChestEventCallback = (data: ChestEventData) => void
+export type ChestEventCallback = (data: ChestEventData) => void;
 
 /**
  * Event data passed to listeners
  */
 export interface ChestEventData {
-  chestType?: ChestType
-  amount?: number
-  inventory: ChestInventory
+  chestType?: ChestType;
+  amount?: number;
+  inventory: ChestInventory;
 }
 
 /**
  * Save data structure for persistence
  */
 export interface ChestSaveData {
-  inventory: ChestInventory
+  inventory: ChestInventory;
 }
 
 // ============================================
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'aura_archer_chest_data'
+const STORAGE_KEY = "aura_archer_chest_data";
 
 const DEFAULT_INVENTORY: ChestInventory = {
   wooden: 0,
   silver: 0,
   golden: 0,
-}
+};
 
 // ============================================
 // ChestManager Class
 // ============================================
 
 export class ChestManager {
-  private inventory: ChestInventory
-  private eventListeners: Map<ChestEventType, Set<ChestEventCallback>>
+  private inventory: ChestInventory;
+  private eventListeners: Map<ChestEventType, Set<ChestEventCallback>>;
 
   constructor() {
-    this.inventory = { ...DEFAULT_INVENTORY }
-    this.eventListeners = new Map()
+    this.inventory = { ...DEFAULT_INVENTORY };
+    this.eventListeners = new Map();
 
     // Load persisted data on initialization
-    this.loadFromStorage()
+    this.loadFromStorage();
   }
 
   // ============================================
@@ -86,21 +86,21 @@ export class ChestManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        return
+        return;
       }
 
-      const data = JSON.parse(stored) as ChestSaveData
+      const data = JSON.parse(stored) as ChestSaveData;
       if (data.inventory) {
         this.inventory = {
           wooden: data.inventory.wooden ?? 0,
           silver: data.inventory.silver ?? 0,
           golden: data.inventory.golden ?? 0,
-        }
+        };
       }
     } catch (error) {
-      console.warn('ChestManager: Failed to load from storage:', error)
+      console.warn("ChestManager: Failed to load from storage:", error);
     }
   }
 
@@ -111,10 +111,10 @@ export class ChestManager {
     try {
       const data: ChestSaveData = {
         inventory: { ...this.inventory },
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('ChestManager: Failed to save to storage:', error)
+      console.warn("ChestManager: Failed to save to storage:", error);
     }
   }
 
@@ -127,18 +127,18 @@ export class ChestManager {
    */
   on(eventType: ChestEventType, callback: ChestEventCallback): void {
     if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, new Set())
+      this.eventListeners.set(eventType, new Set());
     }
-    this.eventListeners.get(eventType)!.add(callback)
+    this.eventListeners.get(eventType)!.add(callback);
   }
 
   /**
    * Unsubscribe from chest events
    */
   off(eventType: ChestEventType, callback: ChestEventCallback): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.delete(callback)
+      listeners.delete(callback);
     }
   }
 
@@ -146,9 +146,9 @@ export class ChestManager {
    * Emit an event to all listeners
    */
   private emit(eventType: ChestEventType, data: ChestEventData): void {
-    const listeners = this.eventListeners.get(eventType)
+    const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.forEach((callback) => callback(data))
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -161,51 +161,51 @@ export class ChestManager {
    */
   addChest(type: ChestType, amount: number = 1): void {
     if (amount <= 0) {
-      console.warn('ChestManager.addChest: amount must be positive')
-      return
+      console.warn("ChestManager.addChest: amount must be positive");
+      return;
     }
 
-    this.inventory[type] += amount
+    this.inventory[type] += amount;
 
-    this.emit('chestAdded', {
+    this.emit("chestAdded", {
       chestType: type,
       amount,
       inventory: { ...this.inventory },
-    })
+    });
 
-    this.emit('inventoryChanged', {
+    this.emit("inventoryChanged", {
       inventory: { ...this.inventory },
-    })
+    });
 
-    this.saveToStorage()
+    this.saveToStorage();
   }
 
   /**
    * Add multiple chest types at once (from rewards)
    */
   addChests(rewards: ChestRewards): void {
-    let changed = false
+    let changed = false;
 
     for (const type of CHEST_ORDER) {
-      const amount = rewards[type]
+      const amount = rewards[type];
       if (amount > 0) {
-        this.inventory[type] += amount
-        changed = true
+        this.inventory[type] += amount;
+        changed = true;
 
-        this.emit('chestAdded', {
+        this.emit("chestAdded", {
           chestType: type,
           amount,
           inventory: { ...this.inventory },
-        })
+        });
       }
     }
 
     if (changed) {
-      this.emit('inventoryChanged', {
+      this.emit("inventoryChanged", {
         inventory: { ...this.inventory },
-      })
+      });
 
-      this.saveToStorage()
+      this.saveToStorage();
     }
   }
 
@@ -215,56 +215,56 @@ export class ChestManager {
    */
   removeChest(type: ChestType, amount: number = 1): boolean {
     if (amount <= 0) {
-      console.warn('ChestManager.removeChest: amount must be positive')
-      return false
+      console.warn("ChestManager.removeChest: amount must be positive");
+      return false;
     }
 
     if (this.inventory[type] < amount) {
-      return false
+      return false;
     }
 
-    this.inventory[type] -= amount
+    this.inventory[type] -= amount;
 
-    this.emit('chestRemoved', {
+    this.emit("chestRemoved", {
       chestType: type,
       amount,
       inventory: { ...this.inventory },
-    })
+    });
 
-    this.emit('inventoryChanged', {
+    this.emit("inventoryChanged", {
       inventory: { ...this.inventory },
-    })
+    });
 
-    this.saveToStorage()
-    return true
+    this.saveToStorage();
+    return true;
   }
 
   /**
    * Get the count of a specific chest type
    */
   getChestCount(type: ChestType): number {
-    return this.inventory[type]
+    return this.inventory[type];
   }
 
   /**
    * Get all chest counts
    */
   getInventory(): ChestInventory {
-    return { ...this.inventory }
+    return { ...this.inventory };
   }
 
   /**
    * Get total number of chests owned
    */
   getTotalChests(): number {
-    return this.inventory.wooden + this.inventory.silver + this.inventory.golden
+    return this.inventory.wooden + this.inventory.silver + this.inventory.golden;
   }
 
   /**
    * Check if player has at least one chest of a type
    */
   hasChest(type: ChestType): boolean {
-    return this.inventory[type] > 0
+    return this.inventory[type] > 0;
   }
 
   // ============================================
@@ -277,7 +277,7 @@ export class ChestManager {
   toSaveData(): ChestSaveData {
     return {
       inventory: { ...this.inventory },
-    }
+    };
   }
 
   /**
@@ -289,24 +289,24 @@ export class ChestManager {
         wooden: data.inventory.wooden ?? 0,
         silver: data.inventory.silver ?? 0,
         golden: data.inventory.golden ?? 0,
-      }
+      };
     }
 
-    this.emit('inventoryChanged', {
+    this.emit("inventoryChanged", {
       inventory: { ...this.inventory },
-    })
+    });
   }
 
   /**
    * Reset all chests
    */
   reset(): void {
-    this.inventory = { ...DEFAULT_INVENTORY }
-    this.saveToStorage()
+    this.inventory = { ...DEFAULT_INVENTORY };
+    this.saveToStorage();
 
-    this.emit('inventoryChanged', {
+    this.emit("inventoryChanged", {
       inventory: { ...this.inventory },
-    })
+    });
   }
 
   // ============================================
@@ -317,13 +317,13 @@ export class ChestManager {
    * Get a snapshot for debugging
    */
   getDebugSnapshot(): {
-    inventory: ChestInventory
-    totalChests: number
+    inventory: ChestInventory;
+    totalChests: number;
   } {
     return {
       inventory: this.getInventory(),
       totalChests: this.getTotalChests(),
-    }
+    };
   }
 }
 
@@ -334,4 +334,4 @@ export class ChestManager {
 /**
  * Global singleton instance
  */
-export const chestManager = new ChestManager()
+export const chestManager = new ChestManager();

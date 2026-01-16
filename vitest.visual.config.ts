@@ -1,5 +1,5 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
-import viteConfig from './vite.config'
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config";
 
 /**
  * Visual test configuration
@@ -12,10 +12,10 @@ export default mergeConfig(
   defineConfig({
     test: {
       globals: true,
-      environment: 'node', // Visual tests use Puppeteer, not jsdom
-      include: ['test/visual.test.ts'],
+      environment: "node", // Visual tests use Puppeteer, not jsdom
+      include: ["test/visual.test.ts"],
       testTimeout: 60000, // Visual tests need more time
       hookTimeout: 30000,
     },
-  })
-)
+  }),
+);

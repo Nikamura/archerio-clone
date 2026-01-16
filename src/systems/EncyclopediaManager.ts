@@ -8,16 +8,16 @@
  * Uses singleton pattern for global access throughout the game.
  */
 
-import { ChapterId, EnemyType } from '../config/chapterData'
-import { BossId, BOSS_DEFINITIONS } from '../config/bossData'
-import { getEnemyIntroChapter } from '../config/encyclopediaData'
-import { chapterManager } from './ChapterManager'
+import { ChapterId, EnemyType } from "../config/chapterData";
+import { BossId, BOSS_DEFINITIONS } from "../config/bossData";
+import { getEnemyIntroChapter } from "../config/encyclopediaData";
+import { chapterManager } from "./ChapterManager";
 
 // ============================================
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'aura_archer_encyclopedia_data'
+const STORAGE_KEY = "aura_archer_encyclopedia_data";
 
 // ============================================
 // Type Definitions
@@ -28,7 +28,7 @@ const STORAGE_KEY = 'aura_archer_encyclopedia_data'
  */
 export interface EncyclopediaSaveData {
   /** Version for migration support */
-  version: number
+  version: number;
 }
 
 // ============================================
@@ -36,20 +36,20 @@ export interface EncyclopediaSaveData {
 // ============================================
 
 class EncyclopediaManager {
-  private static _instance: EncyclopediaManager
+  private static _instance: EncyclopediaManager;
 
   /**
    * Get singleton instance
    */
   static get instance(): EncyclopediaManager {
     if (!EncyclopediaManager._instance) {
-      EncyclopediaManager._instance = new EncyclopediaManager()
+      EncyclopediaManager._instance = new EncyclopediaManager();
     }
-    return EncyclopediaManager._instance
+    return EncyclopediaManager._instance;
   }
 
   private constructor() {
-    this.loadFromStorage()
+    this.loadFromStorage();
   }
 
   // ============================================
@@ -61,8 +61,8 @@ class EncyclopediaManager {
    * Enemy is unlocked when player has reached the chapter where it's introduced
    */
   isEnemyUnlocked(enemyType: EnemyType): boolean {
-    const introChapter = getEnemyIntroChapter(enemyType)
-    return this.isChapterReached(introChapter)
+    const introChapter = getEnemyIntroChapter(enemyType);
+    return this.isChapterReached(introChapter);
   }
 
   /**
@@ -70,9 +70,9 @@ class EncyclopediaManager {
    * Boss is unlocked when player has reached its chapter
    */
   isBossUnlocked(bossId: BossId): boolean {
-    const boss = BOSS_DEFINITIONS[bossId]
-    if (!boss) return false
-    return this.isChapterReached(boss.chapter)
+    const boss = BOSS_DEFINITIONS[bossId];
+    if (!boss) return false;
+    return this.isChapterReached(boss.chapter);
   }
 
   /**
@@ -80,7 +80,7 @@ class EncyclopediaManager {
    * Chapter 1 is always unlocked
    */
   private isChapterReached(chapterId: ChapterId): boolean {
-    return chapterManager.isChapterUnlocked(chapterId)
+    return chapterManager.isChapterUnlocked(chapterId);
   }
 
   // ============================================
@@ -91,16 +91,25 @@ class EncyclopediaManager {
    * Get count of unlocked enemies
    */
   getUnlockedEnemyCount(): number {
-    const enemyTypes: EnemyType[] = ['melee', 'ranged', 'spreader', 'bomber', 'tank', 'charger', 'healer', 'spawner']
-    return enemyTypes.filter((type) => this.isEnemyUnlocked(type)).length
+    const enemyTypes: EnemyType[] = [
+      "melee",
+      "ranged",
+      "spreader",
+      "bomber",
+      "tank",
+      "charger",
+      "healer",
+      "spawner",
+    ];
+    return enemyTypes.filter((type) => this.isEnemyUnlocked(type)).length;
   }
 
   /**
    * Get count of unlocked bosses
    */
   getUnlockedBossCount(): number {
-    const bossIds = Object.keys(BOSS_DEFINITIONS) as BossId[]
-    return bossIds.filter((id) => this.isBossUnlocked(id)).length
+    const bossIds = Object.keys(BOSS_DEFINITIONS) as BossId[];
+    return bossIds.filter((id) => this.isBossUnlocked(id)).length;
   }
 
   // ============================================
@@ -115,10 +124,10 @@ class EncyclopediaManager {
     try {
       const data: EncyclopediaSaveData = {
         version: 1,
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('EncyclopediaManager: Failed to save data:', error)
+      console.error("EncyclopediaManager: Failed to save data:", error);
     }
   }
 
@@ -127,14 +136,14 @@ class EncyclopediaManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const data = JSON.parse(stored) as EncyclopediaSaveData
+        const data = JSON.parse(stored) as EncyclopediaSaveData;
         // Future: handle migrations based on version
-        console.log('EncyclopediaManager: Loaded from storage, version:', data.version)
+        console.log("EncyclopediaManager: Loaded from storage, version:", data.version);
       }
     } catch (error) {
-      console.error('EncyclopediaManager: Failed to load data:', error)
+      console.error("EncyclopediaManager: Failed to load data:", error);
     }
   }
 
@@ -142,7 +151,7 @@ class EncyclopediaManager {
    * Reset all encyclopedia data
    */
   reset(): void {
-    this.saveToStorage()
+    this.saveToStorage();
   }
 }
 
@@ -150,9 +159,9 @@ class EncyclopediaManager {
 // Singleton Export
 // ============================================
 
-export const encyclopediaManager = EncyclopediaManager.instance
+export const encyclopediaManager = EncyclopediaManager.instance;
 
 // Expose to window for debugging
-if (typeof window !== 'undefined') {
-  ;(window as never as Record<string, unknown>).encyclopediaManager = encyclopediaManager
+if (typeof window !== "undefined") {
+  (window as never as Record<string, unknown>).encyclopediaManager = encyclopediaManager;
 }

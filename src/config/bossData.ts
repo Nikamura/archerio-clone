@@ -3,7 +3,7 @@
  * Defines all boss types with their attack patterns, stats, and visual properties.
  */
 
-import { ChapterId } from './chapterData'
+import { ChapterId } from "./chapterData";
 
 // ============================================
 // Type Definitions
@@ -14,71 +14,71 @@ import { ChapterId } from './chapterData'
  */
 export type BossId =
   // Chapter 1 - Dark Dungeon
-  | 'demon'
+  | "demon"
   // Chapter 2 - Forest Ruins
-  | 'tree_guardian'
-  | 'wild_boar'
-  | 'forest_spirit'
+  | "tree_guardian"
+  | "wild_boar"
+  | "forest_spirit"
   // Chapter 3 - Frozen Caves
-  | 'ice_golem'
-  | 'frost_wyrm'
-  | 'crystal_guardian'
+  | "ice_golem"
+  | "frost_wyrm"
+  | "crystal_guardian"
   // Chapter 4 - Volcanic Depths
-  | 'lava_golem'
-  | 'magma_wyrm'
-  | 'inferno_demon'
+  | "lava_golem"
+  | "magma_wyrm"
+  | "inferno_demon"
   // Chapter 5 - Shadow Realm
-  | 'void_lord'
-  | 'nightmare'
-  | 'final_boss'
+  | "void_lord"
+  | "nightmare"
+  | "final_boss";
 
 /**
  * Attack pattern types
  */
 export type AttackPatternType =
   // Universal patterns
-  | 'idle'
+  | "idle"
   // Chapter 1 - Demon
-  | 'spread'
-  | 'barrage'
-  | 'charge'
+  | "spread"
+  | "barrage"
+  | "charge"
   // Chapter 2 - Forest
-  | 'vine_whip'
-  | 'root_trap'
-  | 'leaf_storm'
-  | 'fast_charge'
-  | 'ground_stomp'
-  | 'summon_minions'
-  | 'teleport'
-  | 'homing_orbs'
-  | 'mirror_images'
+  | "vine_whip"
+  | "root_trap"
+  | "leaf_storm"
+  | "fast_charge"
+  | "ground_stomp"
+  | "summon_minions"
+  | "teleport"
+  | "homing_orbs"
+  | "mirror_images"
   // Chapter 3 - Ice
-  | 'ice_breath'
-  | 'ice_spikes'
-  | 'shield_reflect'
-  | 'dive_attack'
-  | 'ice_barrage'
-  | 'freezing_roar'
-  | 'laser_beam'
-  | 'spawn_turrets'
-  | 'crystal_shatter'
+  | "ice_breath"
+  | "ice_spikes"
+  | "shield_reflect"
+  | "dive_attack"
+  | "ice_barrage"
+  | "freezing_roar"
+  | "laser_beam"
+  | "spawn_turrets"
+  | "crystal_shatter";
 
 /**
  * Boss base stats
  */
 export interface BossBaseStats {
   /** Base health (before chapter/difficulty multipliers) */
-  baseHealth: number
+  baseHealth: number;
   /** Base contact damage */
-  baseDamage: number
+  baseDamage: number;
   /** Base movement speed */
-  baseSpeed: number
+  baseSpeed: number;
   /** Attack cooldown in ms */
-  attackCooldown: number
+  attackCooldown: number;
   /** XP reward */
-  xpReward: number
+  xpReward: number;
   /** Gold reward range [min, max] */
-  goldReward: [number, number]
+  goldReward: [number, number];
 }
 
 /**
@@ -86,13 +86,13 @@ export interface BossBaseStats {
  */
 export interface BossVisuals {
   /** Sprite texture key (or 'generated' for placeholder) */
-  textureKey: string
+  textureKey: string;
   /** Display size in pixels */
-  displaySize: number
+  displaySize: number;
   /** Hitbox radius */
-  hitboxRadius: number
+  hitboxRadius: number;
   /** Tint color for placeholder (when no sprite exists) */
-  placeholderColor: number
+  placeholderColor: number;
 }
 
 /**
@@ -100,23 +100,23 @@ export interface BossVisuals {
  */
 export interface BossDefinition {
   /** Unique boss ID */
-  id: BossId
+  id: BossId;
   /** Display name */
-  name: string
+  name: string;
   /** Short description */
-  description: string
+  description: string;
   /** Which chapter this boss appears in */
-  chapter: ChapterId
+  chapter: ChapterId;
   /** Whether this is a main boss (vs mini-boss or alternative) */
-  isMainBoss: boolean
+  isMainBoss: boolean;
   /** Order within chapter (1 = first boss, 2 = second, etc.) */
-  orderInChapter: number
+  orderInChapter: number;
   /** Base stats */
-  stats: BossBaseStats
+  stats: BossBaseStats;
   /** Visual configuration */
-  visuals: BossVisuals
+  visuals: BossVisuals;
   /** Attack pattern sequence */
-  attackPatterns: AttackPatternType[]
+  attackPatterns: AttackPatternType[];
 }
 
 // ============================================
@@ -128,9 +128,9 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
   // Chapter 1 - Dark Dungeon
   // ==========================================
   demon: {
-    id: 'demon',
-    name: 'Demon Lord',
-    description: 'Ancient demon awakened from its slumber.',
+    id: "demon",
+    name: "Demon Lord",
+    description: "Ancient demon awakened from its slumber.",
     chapter: 1,
     isMainBoss: true,
     orderInChapter: 1,
@@ -143,21 +143,21 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [120, 240],
     },
     visuals: {
-      textureKey: 'bossSprite',
+      textureKey: "bossSprite",
       displaySize: 64,
       hitboxRadius: 25,
       placeholderColor: 0x990000,
     },
-    attackPatterns: ['spread', 'barrage', 'charge'],
+    attackPatterns: ["spread", "barrage", "charge"],
   },
 
   // ==========================================
   // Chapter 2 - Forest Ruins
   // ==========================================
   tree_guardian: {
-    id: 'tree_guardian',
-    name: 'Tree Guardian',
-    description: 'Ancient plant spirit protecting the forest ruins.',
+    id: "tree_guardian",
+    name: "Tree Guardian",
+    description: "Ancient plant spirit protecting the forest ruins.",
     chapter: 2,
     isMainBoss: true,
     orderInChapter: 1,
@@ -170,18 +170,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [150, 275],
     },
     visuals: {
-      textureKey: 'boss_tree_guardian',
+      textureKey: "boss_tree_guardian",
       displaySize: 72,
       hitboxRadius: 30,
       placeholderColor: 0x228b22,
     },
-    attackPatterns: ['vine_whip', 'root_trap', 'leaf_storm'],
+    attackPatterns: ["vine_whip", "root_trap", "leaf_storm"],
   },
 
   wild_boar: {
-    id: 'wild_boar',
-    name: 'Wild Boar King',
-    description: 'Massive boar that rules the forest beasts.',
+    id: "wild_boar",
+    name: "Wild Boar King",
+    description: "Massive boar that rules the forest beasts.",
     chapter: 2,
     isMainBoss: false,
     orderInChapter: 2,
@@ -194,18 +194,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [135, 250],
     },
     visuals: {
-      textureKey: 'boss_wild_boar',
+      textureKey: "boss_wild_boar",
       displaySize: 64,
       hitboxRadius: 26,
       placeholderColor: 0x8b4513,
     },
-    attackPatterns: ['fast_charge', 'ground_stomp', 'summon_minions'],
+    attackPatterns: ["fast_charge", "ground_stomp", "summon_minions"],
   },
 
   forest_spirit: {
-    id: 'forest_spirit',
-    name: 'Forest Spirit',
-    description: 'Ethereal being of pure nature magic.',
+    id: "forest_spirit",
+    name: "Forest Spirit",
+    description: "Ethereal being of pure nature magic.",
     chapter: 2,
     isMainBoss: false,
     orderInChapter: 3,
@@ -218,21 +218,21 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [160, 290],
     },
     visuals: {
-      textureKey: 'boss_forest_spirit',
+      textureKey: "boss_forest_spirit",
       displaySize: 56,
       hitboxRadius: 22,
       placeholderColor: 0x98fb98,
     },
-    attackPatterns: ['teleport', 'homing_orbs', 'mirror_images'],
+    attackPatterns: ["teleport", "homing_orbs", "mirror_images"],
   },
 
   // ==========================================
   // Chapter 3 - Frozen Caves
   // ==========================================
   ice_golem: {
-    id: 'ice_golem',
-    name: 'Ice Golem',
-    description: 'Massive construct of living ice.',
+    id: "ice_golem",
+    name: "Ice Golem",
+    description: "Massive construct of living ice.",
     chapter: 3,
     isMainBoss: true,
     orderInChapter: 1,
@@ -245,18 +245,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [190, 350],
     },
     visuals: {
-      textureKey: 'boss_ice_golem',
+      textureKey: "boss_ice_golem",
       displaySize: 80,
       hitboxRadius: 35,
       placeholderColor: 0x87ceeb,
     },
-    attackPatterns: ['ice_breath', 'ice_spikes', 'shield_reflect'],
+    attackPatterns: ["ice_breath", "ice_spikes", "shield_reflect"],
   },
 
   frost_wyrm: {
-    id: 'frost_wyrm',
-    name: 'Frost Wyrm',
-    description: 'Dragon-like creature of the frozen depths.',
+    id: "frost_wyrm",
+    name: "Frost Wyrm",
+    description: "Dragon-like creature of the frozen depths.",
     chapter: 3,
     isMainBoss: false,
     orderInChapter: 2,
@@ -269,18 +269,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [175, 325],
     },
     visuals: {
-      textureKey: 'boss_frost_wyrm',
+      textureKey: "boss_frost_wyrm",
       displaySize: 72,
       hitboxRadius: 28,
       placeholderColor: 0x4169e1,
     },
-    attackPatterns: ['dive_attack', 'ice_barrage', 'freezing_roar'],
+    attackPatterns: ["dive_attack", "ice_barrage", "freezing_roar"],
   },
 
   crystal_guardian: {
-    id: 'crystal_guardian',
-    name: 'Crystal Guardian',
-    description: 'Ancient guardian made of magical crystals.',
+    id: "crystal_guardian",
+    name: "Crystal Guardian",
+    description: "Ancient guardian made of magical crystals.",
     chapter: 3,
     isMainBoss: false,
     orderInChapter: 3,
@@ -293,21 +293,21 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [200, 375],
     },
     visuals: {
-      textureKey: 'boss_crystal_guardian',
+      textureKey: "boss_crystal_guardian",
       displaySize: 68,
       hitboxRadius: 28,
       placeholderColor: 0xe0ffff,
     },
-    attackPatterns: ['laser_beam', 'spawn_turrets', 'crystal_shatter'],
+    attackPatterns: ["laser_beam", "spawn_turrets", "crystal_shatter"],
   },
 
   // ==========================================
   // Chapter 4 - Volcanic Depths (Placeholder)
   // ==========================================
   magma_wyrm: {
-    id: 'magma_wyrm',
-    name: 'Magma Wyrm',
-    description: 'Serpentine beast born from lava flows.',
+    id: "magma_wyrm",
+    name: "Magma Wyrm",
+    description: "Serpentine beast born from lava flows.",
     chapter: 4,
     isMainBoss: true,
     orderInChapter: 1,
@@ -320,18 +320,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [250, 440],
     },
     visuals: {
-      textureKey: 'boss_magma_wyrm',
+      textureKey: "boss_magma_wyrm",
       displaySize: 80,
       hitboxRadius: 32,
       placeholderColor: 0xff4500,
     },
-    attackPatterns: ['spread', 'charge', 'barrage'],
+    attackPatterns: ["spread", "charge", "barrage"],
   },
 
   inferno_demon: {
-    id: 'inferno_demon',
-    name: 'Inferno Demon',
-    description: 'Demon lord born of pure volcanic fury.',
+    id: "inferno_demon",
+    name: "Inferno Demon",
+    description: "Demon lord born of pure volcanic fury.",
     chapter: 4,
     isMainBoss: false,
     orderInChapter: 2,
@@ -344,18 +344,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [225, 400],
     },
     visuals: {
-      textureKey: 'boss_inferno_demon',
+      textureKey: "boss_inferno_demon",
       displaySize: 80,
       hitboxRadius: 32,
       placeholderColor: 0xff6600,
     },
-    attackPatterns: ['spread', 'barrage', 'charge'],
+    attackPatterns: ["spread", "barrage", "charge"],
   },
 
   lava_golem: {
-    id: 'lava_golem',
-    name: 'Lava Golem',
-    description: 'Molten rock given terrible life.',
+    id: "lava_golem",
+    name: "Lava Golem",
+    description: "Molten rock given terrible life.",
     chapter: 4,
     isMainBoss: false,
     orderInChapter: 3,
@@ -368,21 +368,21 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [250, 475],
     },
     visuals: {
-      textureKey: 'boss_lava_golem',
+      textureKey: "boss_lava_golem",
       displaySize: 84,
       hitboxRadius: 36,
       placeholderColor: 0xcc3300,
     },
-    attackPatterns: ['spread', 'charge', 'barrage'],
+    attackPatterns: ["spread", "charge", "barrage"],
   },
 
   // ==========================================
   // Chapter 5 - Shadow Realm (Placeholder)
   // ==========================================
   void_lord: {
-    id: 'void_lord',
-    name: 'Void Lord',
-    description: 'Master of the shadow realm.',
+    id: "void_lord",
+    name: "Void Lord",
+    description: "Master of the shadow realm.",
     chapter: 5,
     isMainBoss: true,
     orderInChapter: 1,
@@ -395,18 +395,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [375, 625],
     },
     visuals: {
-      textureKey: 'boss_void_lord',
+      textureKey: "boss_void_lord",
       displaySize: 88,
       hitboxRadius: 38,
       placeholderColor: 0x4b0082,
     },
-    attackPatterns: ['spread', 'barrage', 'charge'],
+    attackPatterns: ["spread", "barrage", "charge"],
   },
 
   final_boss: {
-    id: 'final_boss',
-    name: 'The Void Incarnate',
-    description: 'Ultimate manifestation of shadow and chaos.',
+    id: "final_boss",
+    name: "The Void Incarnate",
+    description: "Ultimate manifestation of shadow and chaos.",
     chapter: 5,
     isMainBoss: false,
     orderInChapter: 2,
@@ -419,18 +419,18 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [500, 750],
     },
     visuals: {
-      textureKey: 'boss_final_boss',
+      textureKey: "boss_final_boss",
       displaySize: 96,
       hitboxRadius: 40,
       placeholderColor: 0x1a0033,
     },
-    attackPatterns: ['spread', 'charge', 'barrage'],
+    attackPatterns: ["spread", "charge", "barrage"],
   },
 
   nightmare: {
-    id: 'nightmare',
-    name: 'Nightmare',
-    description: 'Living manifestation of fear itself.',
+    id: "nightmare",
+    name: "Nightmare",
+    description: "Living manifestation of fear itself.",
     chapter: 5,
     isMainBoss: false,
     orderInChapter: 3,
@@ -443,14 +443,14 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
       goldReward: [350, 600],
     },
     visuals: {
-      textureKey: 'boss_nightmare',
+      textureKey: "boss_nightmare",
       displaySize: 72,
       hitboxRadius: 28,
       placeholderColor: 0x2d0047,
     },
-    attackPatterns: ['spread', 'barrage', 'charge'],
+    attackPatterns: ["spread", "barrage", "charge"],
   },
-}
+};
 
 // ============================================
 // Utility Functions
@@ -460,7 +460,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
  * Get boss definition by ID
  */
 export function getBossDefinition(bossId: BossId): BossDefinition {
-  return BOSS_DEFINITIONS[bossId]
+  return BOSS_DEFINITIONS[bossId];
 }
 
 /**
@@ -469,7 +469,7 @@ export function getBossDefinition(bossId: BossId): BossDefinition {
 export function getBossesForChapter(chapterId: ChapterId): BossDefinition[] {
   return Object.values(BOSS_DEFINITIONS)
     .filter((boss) => boss.chapter === chapterId)
-    .sort((a, b) => a.orderInChapter - b.orderInChapter)
+    .sort((a, b) => a.orderInChapter - b.orderInChapter);
 }
 
 /**
@@ -477,33 +477,33 @@ export function getBossesForChapter(chapterId: ChapterId): BossDefinition[] {
  */
 export function getMainBossForChapter(chapterId: ChapterId): BossDefinition | undefined {
   return Object.values(BOSS_DEFINITIONS).find(
-    (boss) => boss.chapter === chapterId && boss.isMainBoss
-  )
+    (boss) => boss.chapter === chapterId && boss.isMainBoss,
+  );
 }
 
 /**
  * Get a random boss for a chapter (for variety)
  */
 export function getRandomBossForChapter(chapterId: ChapterId): BossDefinition {
-  const chapterBosses = getBossesForChapter(chapterId)
+  const chapterBosses = getBossesForChapter(chapterId);
   if (chapterBosses.length === 0) {
     // Fallback to demon if no bosses defined for chapter
-    return BOSS_DEFINITIONS.demon
+    return BOSS_DEFINITIONS.demon;
   }
-  const randomIndex = Math.floor(Math.random() * chapterBosses.length)
-  return chapterBosses[randomIndex]
+  const randomIndex = Math.floor(Math.random() * chapterBosses.length);
+  return chapterBosses[randomIndex];
 }
 
 /**
  * Get all boss IDs
  */
 export function getAllBossIds(): BossId[] {
-  return Object.keys(BOSS_DEFINITIONS) as BossId[]
+  return Object.keys(BOSS_DEFINITIONS) as BossId[];
 }
 
 /**
  * Check if a boss ID is valid
  */
 export function isValidBossId(id: string): id is BossId {
-  return id in BOSS_DEFINITIONS
+  return id in BOSS_DEFINITIONS;
 }

@@ -1,4 +1,4 @@
-import Phaser from 'phaser'
+import Phaser from "phaser";
 
 /**
  * HealthPickup - A collectible health potion that spawns when enemies die (5% chance).
@@ -10,94 +10,94 @@ import Phaser from 'phaser'
  * - Red/pink glow for visibility
  */
 export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
-  private healValue: number = 0
-  private spawnTime: number = 0
-  private lifetime: number = 10000 // 10 seconds before despawn
-  private collectRadius: number = 50 // Auto-collect when player is within this distance
-  private magnetRadius: number = 80 // Start pulling toward player at this distance
-  private magnetSpeed: number = 300 // Speed when being pulled toward player
+  private healValue: number = 0;
+  private spawnTime: number = 0;
+  private lifetime: number = 10000; // 10 seconds before despawn
+  private collectRadius: number = 50; // Auto-collect when player is within this distance
+  private magnetRadius: number = 80; // Start pulling toward player at this distance
+  private magnetSpeed: number = 300; // Speed when being pulled toward player
 
   // Animation state
-  private isCollected: boolean = false
-  private floatTween: Phaser.Tweens.Tween | null = null
-  private pulseTween: Phaser.Tweens.Tween | null = null
+  private isCollected: boolean = false;
+  private floatTween: Phaser.Tweens.Tween | null = null;
+  private pulseTween: Phaser.Tweens.Tween | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     // Use placeholder texture, will be created dynamically if not exists
-    super(scene, x, y, 'healthPotion')
-    scene.add.existing(this)
-    scene.physics.add.existing(this)
+    super(scene, x, y, "healthPotion");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
 
     // Set display size for the health potion
-    this.setDisplaySize(20, 20)
+    this.setDisplaySize(20, 20);
 
     // Set up physics body
     if (this.body) {
-      const displaySize = 20
-      const radius = 10
-      const offset = (displaySize - radius * 2) / 2
-      this.body.setSize(displaySize, displaySize)
-      this.body.setCircle(radius, offset, offset)
+      const displaySize = 20;
+      const radius = 10;
+      const offset = (displaySize - radius * 2) / 2;
+      this.body.setSize(displaySize, displaySize);
+      this.body.setCircle(radius, offset, offset);
     }
 
-    this.setActive(false)
-    this.setVisible(false)
+    this.setActive(false);
+    this.setVisible(false);
   }
 
   /**
    * Spawn health pickup at a position with a heal value
    */
   spawn(x: number, y: number, value: number): void {
-    this.setPosition(x, y)
-    this.setActive(true)
-    this.setVisible(true)
+    this.setPosition(x, y);
+    this.setActive(true);
+    this.setVisible(true);
 
-    this.healValue = value
-    this.spawnTime = this.scene.time.now
-    this.isCollected = false
+    this.healValue = value;
+    this.spawnTime = this.scene.time.now;
+    this.isCollected = false;
 
     // Reset visual state
-    this.setAlpha(1)
-    this.setScale(1)
-    this.clearTint()
+    this.setAlpha(1);
+    this.setScale(1);
+    this.clearTint();
 
     // Stop any existing tweens
     if (this.floatTween) {
-      this.floatTween.stop()
-      this.floatTween = null
+      this.floatTween.stop();
+      this.floatTween = null;
     }
     if (this.pulseTween) {
-      this.pulseTween.stop()
-      this.pulseTween = null
+      this.pulseTween.stop();
+      this.pulseTween = null;
     }
 
     // Spawn animation: small upward arc
-    const startY = y
+    const startY = y;
     this.scene.tweens.add({
       targets: this,
       y: startY - 25,
       duration: 250,
-      ease: 'Quad.easeOut',
+      ease: "Quad.easeOut",
       onComplete: () => {
         // Fall back down slightly
         this.scene.tweens.add({
           targets: this,
           y: startY - 8,
           duration: 200,
-          ease: 'Bounce.easeOut',
+          ease: "Bounce.easeOut",
           onComplete: () => {
-            this.startIdleAnimation()
+            this.startIdleAnimation();
           },
-        })
+        });
       },
-    })
+    });
   }
 
   /**
    * Start subtle idle animations (float and pulse)
    */
   private startIdleAnimation(): void {
-    if (!this.active) return
+    if (!this.active) return;
 
     // Gentle floating animation
     this.floatTween = this.scene.tweens.add({
@@ -106,8 +106,8 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
       duration: 900,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
+      ease: "Sine.easeInOut",
+    });
 
     // Pulsing glow effect
     this.pulseTween = this.scene.tweens.add({
@@ -118,8 +118,8 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
       duration: 600,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
+      ease: "Sine.easeInOut",
+    });
   }
 
   /**
@@ -127,22 +127,22 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
    * @returns The heal value of this pickup
    */
   collect(): number {
-    if (this.isCollected) return 0
+    if (this.isCollected) return 0;
 
-    this.isCollected = true
+    this.isCollected = true;
 
     // Stop idle animations
     if (this.floatTween) {
-      this.floatTween.stop()
-      this.floatTween = null
+      this.floatTween.stop();
+      this.floatTween = null;
     }
     if (this.pulseTween) {
-      this.pulseTween.stop()
-      this.pulseTween = null
+      this.pulseTween.stop();
+      this.pulseTween = null;
     }
 
     // Collection animation: scale up and fade out with green flash
-    this.setTint(0x00ff00)
+    this.setTint(0x00ff00);
     this.scene.tweens.add({
       targets: this,
       scaleX: 1.8,
@@ -150,13 +150,13 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
       alpha: 0,
       y: this.y - 25,
       duration: 250,
-      ease: 'Quad.easeOut',
+      ease: "Quad.easeOut",
       onComplete: () => {
-        this.deactivate()
+        this.deactivate();
       },
-    })
+    });
 
-    return this.healValue
+    return this.healValue;
   }
 
   /**
@@ -165,20 +165,20 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
   deactivate(): void {
     // Stop tweens
     if (this.floatTween) {
-      this.floatTween.stop()
-      this.floatTween = null
+      this.floatTween.stop();
+      this.floatTween = null;
     }
     if (this.pulseTween) {
-      this.pulseTween.stop()
-      this.pulseTween = null
+      this.pulseTween.stop();
+      this.pulseTween = null;
     }
 
-    this.setActive(false)
-    this.setVisible(false)
-    this.setVelocity(0, 0)
-    this.healValue = 0
-    this.isCollected = false
-    this.clearTint()
+    this.setActive(false);
+    this.setVisible(false);
+    this.setVelocity(0, 0);
+    this.healValue = 0;
+    this.isCollected = false;
+    this.clearTint();
   }
 
   /**
@@ -188,9 +188,9 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
    * @returns The heal value if collected, 0 otherwise
    */
   updatePickup(playerX: number, playerY: number): number {
-    if (!this.active || this.isCollected) return 0
+    if (!this.active || this.isCollected) return 0;
 
-    const time = this.scene.time.now
+    const time = this.scene.time.now;
 
     // Check for despawn (10 seconds)
     if (time - this.spawnTime > this.lifetime) {
@@ -200,53 +200,50 @@ export default class HealthPickup extends Phaser.Physics.Arcade.Sprite {
         alpha: 0,
         duration: 300,
         onComplete: () => {
-          this.deactivate()
+          this.deactivate();
         },
-      })
-      return 0
+      });
+      return 0;
     }
 
     // Flash when about to expire (last 2 seconds)
     if (time - this.spawnTime > this.lifetime - 2000) {
-      const flashRate = Math.sin((time - this.spawnTime) * 0.02) > 0
-      this.setAlpha(flashRate ? 1 : 0.4)
+      const flashRate = Math.sin((time - this.spawnTime) * 0.02) > 0;
+      this.setAlpha(flashRate ? 1 : 0.4);
     }
 
     // Calculate distance to player
-    const distance = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY)
+    const distance = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY);
 
     // Auto-collect when within collect radius
     if (distance <= this.collectRadius) {
-      return this.collect()
+      return this.collect();
     }
 
     // Magnetic pull when within magnet radius
     if (distance <= this.magnetRadius && distance > this.collectRadius) {
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-      const pullStrength = 1 - (distance / this.magnetRadius) // Stronger pull when closer
-      const speed = this.magnetSpeed * pullStrength
-      this.setVelocity(
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed
-      )
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY);
+      const pullStrength = 1 - distance / this.magnetRadius; // Stronger pull when closer
+      const speed = this.magnetSpeed * pullStrength;
+      this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
     } else {
-      this.setVelocity(0, 0)
+      this.setVelocity(0, 0);
     }
 
-    return 0
+    return 0;
   }
 
   /**
    * Get the heal value of this pickup
    */
   getValue(): number {
-    return this.healValue
+    return this.healValue;
   }
 
   /**
    * Check if this pickup has been collected
    */
   isPickedUp(): boolean {
-    return this.isCollected
+    return this.isCollected;
   }
 }

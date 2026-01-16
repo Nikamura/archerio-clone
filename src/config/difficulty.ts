@@ -4,35 +4,35 @@
  */
 
 export enum DifficultyLevel {
-  EASY = 'easy',
-  NORMAL = 'normal',
-  HARD = 'hard',
-  INSANITY = 'insanity',
+  EASY = "easy",
+  NORMAL = "normal",
+  HARD = "hard",
+  INSANITY = "insanity",
 }
 
 export interface DifficultyConfig {
   // Player modifiers
-  playerMaxHealth: number
-  playerDamage: number
-  playerAttackSpeed: number
+  playerMaxHealth: number;
+  playerDamage: number;
+  playerAttackSpeed: number;
 
   // Enemy modifiers
-  enemyHealthMultiplier: number
-  enemyDamageMultiplier: number
-  enemySpawnMultiplier: number
-  extraEnemyCount: number // Flat bonus enemies added per room
+  enemyHealthMultiplier: number;
+  enemyDamageMultiplier: number;
+  enemySpawnMultiplier: number;
+  extraEnemyCount: number; // Flat bonus enemies added per room
 
   // Boss modifiers
-  bossHealthMultiplier: number
-  bossDamageMultiplier: number
+  bossHealthMultiplier: number;
+  bossDamageMultiplier: number;
 
   // Reward modifiers (effort:reward principle - harder = more gold)
-  goldMultiplier: number
+  goldMultiplier: number;
 
   // Display
-  label: string
-  description: string
-  color: string
+  label: string;
+  description: string;
+  color: string;
 }
 
 export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
@@ -56,9 +56,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     goldMultiplier: 0.7, // -30% gold
 
     // Display
-    label: 'EASY',
-    description: 'For beginners - more health, weaker enemies',
-    color: '#00ff00',
+    label: "EASY",
+    description: "For beginners - more health, weaker enemies",
+    color: "#00ff00",
   },
   [DifficultyLevel.NORMAL]: {
     // Balanced stats (default)
@@ -80,9 +80,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     goldMultiplier: 1.0,
 
     // Display
-    label: 'NORMAL',
-    description: 'Balanced challenge',
-    color: '#cc8800',
+    label: "NORMAL",
+    description: "Balanced challenge",
+    color: "#cc8800",
   },
   [DifficultyLevel.HARD]: {
     // Player nerfs
@@ -104,9 +104,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     goldMultiplier: 1.5, // +50% gold
 
     // Display
-    label: 'HARD',
-    description: 'For veterans - tough enemies, less health',
-    color: '#ff0000',
+    label: "HARD",
+    description: "For veterans - tough enemies, less health",
+    color: "#ff0000",
   },
   [DifficultyLevel.INSANITY]: {
     // Player nerfs (harder than hard mode)
@@ -128,31 +128,31 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     goldMultiplier: 2.5, // +150% gold (was 2.0)
 
     // Display
-    label: 'INSANITY',
-    description: 'True chaos - 15 extra monsters, 80% tougher enemies',
-    color: '#ff00ff',
+    label: "INSANITY",
+    description: "True chaos - 15 extra monsters, 80% tougher enemies",
+    color: "#ff00ff",
   },
-}
+};
 
 /**
  * Get the current difficulty level from the game registry.
  * Defaults to NORMAL if not set.
  */
 export function getCurrentDifficulty(game: Phaser.Game): DifficultyLevel {
-  return (game.registry.get('difficulty') as DifficultyLevel) || DifficultyLevel.NORMAL
+  return (game.registry.get("difficulty") as DifficultyLevel) || DifficultyLevel.NORMAL;
 }
 
 /**
  * Set the difficulty level in the game registry.
  */
 export function setDifficulty(game: Phaser.Game, difficulty: DifficultyLevel): void {
-  game.registry.set('difficulty', difficulty)
+  game.registry.set("difficulty", difficulty);
 }
 
 /**
  * Get the configuration for the current difficulty level.
  */
 export function getDifficultyConfig(game: Phaser.Game): DifficultyConfig {
-  const difficulty = getCurrentDifficulty(game)
-  return DIFFICULTY_CONFIGS[difficulty]
+  const difficulty = getCurrentDifficulty(game);
+  return DIFFICULTY_CONFIGS[difficulty];
 }

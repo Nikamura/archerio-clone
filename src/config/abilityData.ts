@@ -4,205 +4,205 @@
  */
 
 export interface AbilityData {
-  id: string
-  name: string
-  description: string
-  color: number
-  iconKey: string
-  maxLevel?: number // Maximum level for this ability (undefined = unlimited stacking)
+  id: string;
+  name: string;
+  description: string;
+  color: number;
+  iconKey: string;
+  maxLevel?: number; // Maximum level for this ability (undefined = unlimited stacking)
 }
 
 export const ABILITIES: AbilityData[] = [
   // Original 8 abilities
   {
-    id: 'front_arrow',
-    name: 'Front Arrow +1',
-    description: '-15% damage',
+    id: "front_arrow",
+    name: "Front Arrow +1",
+    description: "-15% damage",
     color: 0x44aaff,
-    iconKey: 'abilityFrontArrow',
+    iconKey: "abilityFrontArrow",
   },
   {
-    id: 'multishot',
-    name: 'Multishot',
-    description: '-10% attack speed',
+    id: "multishot",
+    name: "Multishot",
+    description: "-10% attack speed",
     color: 0xff6644,
-    iconKey: 'abilityMultishot',
+    iconKey: "abilityMultishot",
   },
   {
-    id: 'attack_speed',
-    name: 'Attack Speed',
-    description: '+25% speed',
+    id: "attack_speed",
+    name: "Attack Speed",
+    description: "+25% speed",
     color: 0xffdd00,
-    iconKey: 'abilityAttackSpeed',
+    iconKey: "abilityAttackSpeed",
   },
   {
-    id: 'attack_boost',
-    name: 'Attack Boost',
-    description: '+30% damage',
+    id: "attack_boost",
+    name: "Attack Boost",
+    description: "+30% damage",
     color: 0xff4488,
-    iconKey: 'abilityAttackBoost',
+    iconKey: "abilityAttackBoost",
   },
   {
-    id: 'piercing',
-    name: 'Piercing',
-    description: 'Pass through enemies',
+    id: "piercing",
+    name: "Piercing",
+    description: "Pass through enemies",
     color: 0x00ffaa,
-    iconKey: 'abilityPiercing',
+    iconKey: "abilityPiercing",
   },
   {
-    id: 'ricochet',
-    name: 'Ricochet',
-    description: 'Bounce 3x',
+    id: "ricochet",
+    name: "Ricochet",
+    description: "Bounce 3x",
     color: 0x88ff88,
-    iconKey: 'abilityRicochet',
+    iconKey: "abilityRicochet",
   },
   {
-    id: 'fire_damage',
-    name: 'Fire',
-    description: '18% DOT, spreads on death',
+    id: "fire_damage",
+    name: "Fire",
+    description: "18% DOT, spreads on death",
     color: 0xff6600,
-    iconKey: 'abilityFireDamage',
+    iconKey: "abilityFireDamage",
   },
   {
-    id: 'crit_boost',
-    name: 'Critical',
-    description: '+10% crit, +40% dmg',
+    id: "crit_boost",
+    name: "Critical",
+    description: "+10% crit, +40% dmg",
     color: 0xffff00,
-    iconKey: 'abilityCrit',
+    iconKey: "abilityCrit",
   },
   // New 8 abilities for V1
   {
-    id: 'ice_shot',
-    name: 'Ice Shot',
-    description: '15% freeze, +50% dmg frozen',
+    id: "ice_shot",
+    name: "Ice Shot",
+    description: "15% freeze, +50% dmg frozen",
     color: 0x66ccff,
-    iconKey: 'abilityIceShot',
+    iconKey: "abilityIceShot",
   },
   {
-    id: 'poison_shot',
-    name: 'Poison',
-    description: '10% DOT, stacks 5x',
+    id: "poison_shot",
+    name: "Poison",
+    description: "10% DOT, stacks 5x",
     color: 0x66ff66,
-    iconKey: 'abilityPoisonShot',
+    iconKey: "abilityPoisonShot",
   },
   {
-    id: 'lightning_chain',
-    name: 'Lightning',
-    description: 'Chain +2, -20% dmg/chain',
+    id: "lightning_chain",
+    name: "Lightning",
+    description: "Chain +2, -20% dmg/chain",
     color: 0x9966ff,
-    iconKey: 'abilityLightningChain',
+    iconKey: "abilityLightningChain",
   },
   {
-    id: 'diagonal_arrows',
-    name: 'Diagonal Arrows',
-    description: '+2 arrows at 30°',
+    id: "diagonal_arrows",
+    name: "Diagonal Arrows",
+    description: "+2 arrows at 30°",
     color: 0xff9966,
-    iconKey: 'abilityDiagonalArrows',
+    iconKey: "abilityDiagonalArrows",
   },
   {
-    id: 'rear_arrow',
-    name: 'Rear Arrow',
-    description: '+2 backwards',
+    id: "rear_arrow",
+    name: "Rear Arrow",
+    description: "+2 backwards",
     color: 0x6699ff,
-    iconKey: 'abilityRearArrow',
+    iconKey: "abilityRearArrow",
   },
   {
-    id: 'damage_aura',
-    name: 'Damage Aura',
-    description: '15% weapon DPS, 100px radius',
+    id: "damage_aura",
+    name: "Damage Aura",
+    description: "15% weapon DPS, 100px radius",
     color: 0xff6666,
-    iconKey: 'abilityDamageAura',
+    iconKey: "abilityDamageAura",
   },
   {
-    id: 'bloodthirst',
-    name: 'Bloodthirst',
-    description: '+1% max HP per kill',
+    id: "bloodthirst",
+    name: "Bloodthirst",
+    description: "+1% max HP per kill",
     color: 0xff3333,
-    iconKey: 'abilityBloodthirst',
+    iconKey: "abilityBloodthirst",
     maxLevel: 5,
   },
   {
-    id: 'rage',
-    name: 'Rage',
-    description: '+5% dmg per 10% HP lost',
+    id: "rage",
+    name: "Rage",
+    description: "+5% dmg per 10% HP lost",
     color: 0xcc0000,
-    iconKey: 'abilityRage',
+    iconKey: "abilityRage",
   },
   {
-    id: 'speed_boost',
-    name: 'Speed Boost',
-    description: '+15% move, +5% attack speed',
+    id: "speed_boost",
+    name: "Speed Boost",
+    description: "+15% move, +5% attack speed",
     color: 0x00ffff,
-    iconKey: 'abilitySpeedBoost',
+    iconKey: "abilitySpeedBoost",
   },
   {
-    id: 'max_health',
-    name: 'Vitality',
-    description: '+15% max HP',
+    id: "max_health",
+    name: "Vitality",
+    description: "+15% max HP",
     color: 0x22cc66,
-    iconKey: 'abilityMaxHealth',
+    iconKey: "abilityMaxHealth",
   },
   {
-    id: 'bouncy_wall',
-    name: 'Bouncy Wall',
-    description: '+2 bounces, +10% dmg/bounce',
+    id: "bouncy_wall",
+    name: "Bouncy Wall",
+    description: "+2 bounces, +10% dmg/bounce",
     color: 0x88ccff,
-    iconKey: 'abilityBouncyWall',
+    iconKey: "abilityBouncyWall",
   },
   {
-    id: 'dodge_master',
-    name: 'Dodge Master',
-    description: '+3% dodge chance',
+    id: "dodge_master",
+    name: "Dodge Master",
+    description: "+3% dodge chance",
     color: 0xaaaaff,
-    iconKey: 'abilityDodgeMaster',
+    iconKey: "abilityDodgeMaster",
   },
   // Devil abilities (powerful but with HP cost or risk)
   {
-    id: 'extra_life',
-    name: 'Extra Life',
-    description: 'Revive once at 30% HP',
+    id: "extra_life",
+    name: "Extra Life",
+    description: "Revive once at 30% HP",
     color: 0xff3366,
-    iconKey: 'abilityExtraLife',
+    iconKey: "abilityExtraLife",
     maxLevel: 1, // Can only have 1 extra life at a time
   },
   {
-    id: 'through_wall',
-    name: 'Through Wall',
-    description: 'Arrows pass through walls',
+    id: "through_wall",
+    name: "Through Wall",
+    description: "Arrows pass through walls",
     color: 0x9933ff,
-    iconKey: 'abilityThroughWall',
+    iconKey: "abilityThroughWall",
     maxLevel: 1, // Non-stacking ability
   },
   {
-    id: 'giant',
-    name: 'Giant',
-    description: '+40% damage, larger hitbox',
+    id: "giant",
+    name: "Giant",
+    description: "+40% damage, larger hitbox",
     color: 0xcc3300,
-    iconKey: 'abilityGiant',
+    iconKey: "abilityGiant",
   },
   // Orbital abilities
   {
-    id: 'chainsaw_orbit',
-    name: 'Chainsaw Orbit',
-    description: 'Spinning saw deals damage',
+    id: "chainsaw_orbit",
+    name: "Chainsaw Orbit",
+    description: "Spinning saw deals damage",
     color: 0xcc4400,
-    iconKey: 'abilityChainsawOrbit',
+    iconKey: "abilityChainsawOrbit",
   },
   // Note: Shatter and Fire Spread are now passive effects:
   // - Ice Shot: Frozen enemies take +50% damage (shatter is built-in)
   // - Fire Damage: Burning enemies spread fire on death (fire spread is built-in)
   {
-    id: 'bleed',
-    name: 'Bleed',
-    description: '10% DOT, 2x if moving',
+    id: "bleed",
+    name: "Bleed",
+    description: "10% DOT, 2x if moving",
     color: 0xcc0000,
-    iconKey: 'abilityBleed',
+    iconKey: "abilityBleed",
   },
-]
+];
 
 /**
  * Get ability data by ID
  */
 export function getAbilityById(abilityId: string): AbilityData | undefined {
-  return ABILITIES.find((a) => a.id === abilityId)
+  return ABILITIES.find((a) => a.id === abilityId);
 }

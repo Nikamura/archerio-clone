@@ -1,60 +1,60 @@
-import Phaser from 'phaser'
-import { saveManager } from './SaveManager'
+import Phaser from "phaser";
+import { saveManager } from "./SaveManager";
 
-export type DamageNumberType = 'normal' | 'crit' | 'player' | 'heal' | 'dot' | 'dodge'
+export type DamageNumberType = "normal" | "crit" | "player" | "heal" | "dot" | "dodge";
 
 interface DamageNumberConfig {
-  color: string
-  fontSize: string
-  scale: number
-  duration: number
-  floatDistance: number
+  color: string;
+  fontSize: string;
+  scale: number;
+  duration: number;
+  floatDistance: number;
 }
 
 const DAMAGE_CONFIGS: Record<DamageNumberType, DamageNumberConfig> = {
   normal: {
-    color: '#ffffff',
-    fontSize: '14px',
+    color: "#ffffff",
+    fontSize: "14px",
     scale: 1,
     duration: 800,
     floatDistance: 30,
   },
   crit: {
-    color: '#ffaa00',
-    fontSize: '18px',
+    color: "#ffaa00",
+    fontSize: "18px",
     scale: 1.3,
     duration: 1000,
     floatDistance: 40,
   },
   player: {
-    color: '#ff4444',
-    fontSize: '16px',
+    color: "#ff4444",
+    fontSize: "16px",
     scale: 1.2,
     duration: 900,
     floatDistance: 35,
   },
   heal: {
-    color: '#44ff44',
-    fontSize: '14px',
+    color: "#44ff44",
+    fontSize: "14px",
     scale: 1,
     duration: 800,
     floatDistance: 30,
   },
   dot: {
-    color: '#ff8800',
-    fontSize: '12px',
+    color: "#ff8800",
+    fontSize: "12px",
     scale: 0.9,
     duration: 600,
     floatDistance: 20,
   },
   dodge: {
-    color: '#00ffff',
-    fontSize: '16px',
+    color: "#00ffff",
+    fontSize: "16px",
     scale: 1.2,
     duration: 800,
     floatDistance: 35,
   },
-}
+};
 
 /**
  * DamageNumberPool - Manages floating damage number text objects.
@@ -62,13 +62,13 @@ const DAMAGE_CONFIGS: Record<DamageNumberType, DamageNumberConfig> = {
  * Supports different damage types with unique visual styles.
  */
 export default class DamageNumberPool {
-  private scene: Phaser.Scene
-  private textPool: Phaser.GameObjects.Text[] = []
-  private maxTexts: number = 30
+  private scene: Phaser.Scene;
+  private textPool: Phaser.GameObjects.Text[] = [];
+  private maxTexts: number = 30;
 
   constructor(scene: Phaser.Scene) {
-    this.scene = scene
-    this.createTextPool()
+    this.scene = scene;
+    this.createTextPool();
   }
 
   /**
@@ -76,17 +76,17 @@ export default class DamageNumberPool {
    */
   private createTextPool(): void {
     for (let i = 0; i < this.maxTexts; i++) {
-      const text = this.scene.add.text(0, 0, '', {
-        fontSize: '14px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-        stroke: '#000000',
+      const text = this.scene.add.text(0, 0, "", {
+        fontSize: "14px",
+        fontStyle: "bold",
+        color: "#ffffff",
+        stroke: "#000000",
         strokeThickness: 3,
-      })
-      text.setOrigin(0.5, 0.5)
-      text.setDepth(150) // Above most game objects
-      text.setVisible(false)
-      this.textPool.push(text)
+      });
+      text.setOrigin(0.5, 0.5);
+      text.setDepth(150); // Above most game objects
+      text.setVisible(false);
+      this.textPool.push(text);
     }
   }
 
@@ -96,10 +96,10 @@ export default class DamageNumberPool {
   private getAvailableText(): Phaser.GameObjects.Text | null {
     for (const text of this.textPool) {
       if (!text.visible) {
-        return text
+        return text;
       }
     }
-    return null
+    return null;
   }
 
   /**
@@ -109,35 +109,35 @@ export default class DamageNumberPool {
    * @param damage The damage amount to display
    * @param type The type of damage (affects color/size)
    */
-  show(x: number, y: number, damage: number, type: DamageNumberType = 'normal'): void {
+  show(x: number, y: number, damage: number, type: DamageNumberType = "normal"): void {
     // Check if damage numbers are enabled in settings
-    const settings = saveManager.getSettings()
-    if (!settings.showDamageNumbers) return
+    const settings = saveManager.getSettings();
+    if (!settings.showDamageNumbers) return;
 
-    const text = this.getAvailableText()
-    if (!text) return
+    const text = this.getAvailableText();
+    if (!text) return;
 
-    const config = DAMAGE_CONFIGS[type]
+    const config = DAMAGE_CONFIGS[type];
 
     // Add slight random offset to prevent stacking
-    const offsetX = Phaser.Math.Between(-10, 10)
-    const offsetY = Phaser.Math.Between(-5, 5)
+    const offsetX = Phaser.Math.Between(-10, 10);
+    const offsetY = Phaser.Math.Between(-5, 5);
 
-    text.setPosition(x + offsetX, y + offsetY)
-    text.setText(type === 'dodge' ? 'DODGE' : type === 'heal' ? `+${damage}` : `${damage}`)
+    text.setPosition(x + offsetX, y + offsetY);
+    text.setText(type === "dodge" ? "DODGE" : type === "heal" ? `+${damage}` : `${damage}`);
     text.setStyle({
       fontSize: config.fontSize,
-      fontStyle: 'bold',
+      fontStyle: "bold",
       color: config.color,
-      stroke: '#000000',
+      stroke: "#000000",
       strokeThickness: 3,
-    })
-    text.setScale(config.scale)
-    text.setVisible(true)
-    text.setAlpha(1)
+    });
+    text.setScale(config.scale);
+    text.setVisible(true);
+    text.setAlpha(1);
 
     // Stop any existing tweens on this text
-    this.scene.tweens.killTweensOf(text)
+    this.scene.tweens.killTweensOf(text);
 
     // Animate: float up, scale pulse, and fade out
     this.scene.tweens.add({
@@ -145,21 +145,21 @@ export default class DamageNumberPool {
       y: y + offsetY - config.floatDistance,
       alpha: 0,
       duration: config.duration,
-      ease: 'Quad.easeOut',
+      ease: "Quad.easeOut",
       onComplete: () => {
-        text.setVisible(false)
+        text.setVisible(false);
       },
-    })
+    });
 
     // Add scale punch effect for crits
-    if (type === 'crit') {
+    if (type === "crit") {
       this.scene.tweens.add({
         targets: text,
         scale: config.scale * 1.2,
         duration: 100,
         yoyo: true,
-        ease: 'Quad.easeOut',
-      })
+        ease: "Quad.easeOut",
+      });
     }
   }
 
@@ -167,42 +167,42 @@ export default class DamageNumberPool {
    * Show damage dealt to an enemy
    */
   showEnemyDamage(x: number, y: number, damage: number, isCrit: boolean = false): void {
-    this.show(x, y, damage, isCrit ? 'crit' : 'normal')
+    this.show(x, y, damage, isCrit ? "crit" : "normal");
   }
 
   /**
    * Show damage dealt to the player
    */
   showPlayerDamage(x: number, y: number, damage: number): void {
-    this.show(x, y, damage, 'player')
+    this.show(x, y, damage, "player");
   }
 
   /**
    * Show healing amount
    */
   showHeal(x: number, y: number, amount: number): void {
-    this.show(x, y, amount, 'heal')
+    this.show(x, y, amount, "heal");
   }
 
   /**
    * Show damage over time (fire, poison)
    */
   showDotDamage(x: number, y: number, damage: number): void {
-    this.show(x, y, damage, 'dot')
+    this.show(x, y, damage, "dot");
   }
 
   /**
    * Show dodge text when player dodges an attack
    */
   showDodge(x: number, y: number): void {
-    this.show(x, y, 0, 'dodge')
+    this.show(x, y, 0, "dodge");
   }
 
   /**
    * Get count of active damage numbers
    */
   getActiveCount(): number {
-    return this.textPool.filter((text) => text.visible).length
+    return this.textPool.filter((text) => text.visible).length;
   }
 
   /**
@@ -210,9 +210,9 @@ export default class DamageNumberPool {
    */
   cleanup(): void {
     this.textPool.forEach((text) => {
-      this.scene.tweens.killTweensOf(text)
-      text.setVisible(false)
-    })
+      this.scene.tweens.killTweensOf(text);
+      text.setVisible(false);
+    });
   }
 
   /**
@@ -220,9 +220,9 @@ export default class DamageNumberPool {
    */
   destroy(): void {
     this.textPool.forEach((text) => {
-      this.scene.tweens.killTweensOf(text)
-      text.destroy()
-    })
-    this.textPool = []
+      this.scene.tweens.killTweensOf(text);
+      text.destroy();
+    });
+    this.textPool = [];
   }
 }

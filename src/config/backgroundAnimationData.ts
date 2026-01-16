@@ -5,55 +5,54 @@
  * without causing motion sickness. All effects are intentionally slow and subtle.
  */
 
-
 /**
  * Particle direction types
  */
-export type ParticleDirection = 'up' | 'down' | 'drift'
+export type ParticleDirection = "up" | "down" | "drift";
 
 /**
  * Particle configuration for floating background effects
  */
 export interface ParticleConfig {
-  enabled: boolean
-  texture: string // Asset key for particle texture
+  enabled: boolean;
+  texture: string; // Asset key for particle texture
   tint: {
-    medieval: number[] // Tint colors for medieval theme
-    vaporwave: number[] // Tint colors for vaporwave theme
-  }
+    medieval: number[]; // Tint colors for medieval theme
+    vaporwave: number[]; // Tint colors for vaporwave theme
+  };
   count: {
-    low: number // Particle count at LOW quality (disabled)
-    medium: number // Particle count at MEDIUM quality
-    high: number // Particle count at HIGH quality
-  }
-  speed: { min: number; max: number } // Very slow: 3-20 px/sec
-  alpha: { start: number; end: number }
-  scale: { start: number; end: number }
-  lifespan: number // Long: 8000-15000ms
-  direction: ParticleDirection
+    low: number; // Particle count at LOW quality (disabled)
+    medium: number; // Particle count at MEDIUM quality
+    high: number; // Particle count at HIGH quality
+  };
+  speed: { min: number; max: number }; // Very slow: 3-20 px/sec
+  alpha: { start: number; end: number };
+  scale: { start: number; end: number };
+  lifespan: number; // Long: 8000-15000ms
+  direction: ParticleDirection;
 }
 
 /**
  * Color shift configuration for ambient background tinting
  */
 export interface ColorShiftConfig {
-  enabled: boolean
+  enabled: boolean;
   colors: {
-    medieval: number[] // Color cycle for medieval theme
-    vaporwave: number[] // Color cycle for vaporwave theme
-  }
-  duration: number // Time per color transition (6000-15000ms)
-  intensity: number // Tint strength 0.0-0.3 (subtle)
+    medieval: number[]; // Color cycle for medieval theme
+    vaporwave: number[]; // Color cycle for vaporwave theme
+  };
+  duration: number; // Time per color transition (6000-15000ms)
+  intensity: number; // Tint strength 0.0-0.3 (subtle)
 }
 
 /**
  * Complete animation configuration for a chapter
  */
 export interface ChapterAnimationConfig {
-  chapterId: number
-  name: string
-  particles: ParticleConfig
-  colorShift: ColorShiftConfig
+  chapterId: number;
+  name: string;
+  particles: ParticleConfig;
+  colorShift: ColorShiftConfig;
 }
 
 /**
@@ -63,10 +62,10 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
   // Chapter 1 - Dark Dungeon
   {
     chapterId: 1,
-    name: 'Dark Dungeon',
+    name: "Dark Dungeon",
     particles: {
       enabled: true,
-      texture: 'bg_dust',
+      texture: "bg_dust",
       tint: {
         medieval: [0x888888, 0x666666, 0xaaaaaa],
         vaporwave: [0x00ffff, 0xff00ff, 0x9999ff],
@@ -76,7 +75,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       alpha: { start: 0.6, end: 0 },
       scale: { start: 0.3, end: 0.1 },
       lifespan: 12000,
-      direction: 'drift',
+      direction: "drift",
     },
     colorShift: {
       enabled: true,
@@ -92,10 +91,10 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
   // Chapter 2 - Forest Ruins
   {
     chapterId: 2,
-    name: 'Forest Ruins',
+    name: "Forest Ruins",
     particles: {
       enabled: true,
-      texture: 'bg_pollen',
+      texture: "bg_pollen",
       tint: {
         medieval: [0x99ff66, 0xffff99, 0xffffff],
         vaporwave: [0x00ffcc, 0x66ff99, 0xccffff],
@@ -105,7 +104,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       alpha: { start: 0.7, end: 0 },
       scale: { start: 0.25, end: 0.1 },
       lifespan: 15000,
-      direction: 'drift',
+      direction: "drift",
     },
     colorShift: {
       enabled: false, // Forest keeps natural colors
@@ -121,10 +120,10 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
   // Chapter 3 - Frozen Caves
   {
     chapterId: 3,
-    name: 'Frozen Caves',
+    name: "Frozen Caves",
     particles: {
       enabled: true,
-      texture: 'bg_snowflake',
+      texture: "bg_snowflake",
       tint: {
         medieval: [0xffffff, 0xccddff, 0xeeeeff],
         vaporwave: [0x66ffff, 0xffffff, 0xccffff],
@@ -134,7 +133,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       alpha: { start: 0.8, end: 0 },
       scale: { start: 0.2, end: 0.05 },
       lifespan: 10000,
-      direction: 'down',
+      direction: "down",
     },
     colorShift: {
       enabled: true,
@@ -150,10 +149,10 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
   // Chapter 4 - Volcanic Depths
   {
     chapterId: 4,
-    name: 'Volcanic Depths',
+    name: "Volcanic Depths",
     particles: {
       enabled: true,
-      texture: 'bg_ember',
+      texture: "bg_ember",
       tint: {
         medieval: [0xff4400, 0xff6600, 0xffaa00],
         vaporwave: [0xff0066, 0xff00ff, 0xff6699],
@@ -163,7 +162,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       alpha: { start: 0.9, end: 0 },
       scale: { start: 0.2, end: 0.05 },
       lifespan: 8000,
-      direction: 'up',
+      direction: "up",
     },
     colorShift: {
       enabled: true,
@@ -179,10 +178,10 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
   // Chapter 5 - Shadow Realm
   {
     chapterId: 5,
-    name: 'Shadow Realm',
+    name: "Shadow Realm",
     particles: {
       enabled: true,
-      texture: 'bg_shadow',
+      texture: "bg_shadow",
       tint: {
         medieval: [0x6600cc, 0x9933ff, 0x330066],
         vaporwave: [0x9900ff, 0xff00ff, 0x6600ff],
@@ -192,7 +191,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       alpha: { start: 0.7, end: 0 },
       scale: { start: 0.35, end: 0.1 },
       lifespan: 10000,
-      direction: 'drift',
+      direction: "drift",
     },
     colorShift: {
       enabled: true,
@@ -204,27 +203,27 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
       intensity: 0.18,
     },
   },
-]
+];
 
 /**
  * Get animation configuration for a specific chapter
  */
 export function getChapterAnimationConfig(chapterId: number): ChapterAnimationConfig | undefined {
-  return CHAPTER_ANIMATION_CONFIGS.find((config) => config.chapterId === chapterId)
+  return CHAPTER_ANIMATION_CONFIGS.find((config) => config.chapterId === chapterId);
 }
 
 /**
  * Get particle tint colors (medieval theme)
  */
 export function getParticleTints(config: ParticleConfig, _themeId: string): number[] {
-  return config.tint.medieval
+  return config.tint.medieval;
 }
 
 /**
  * Get color shift colors (medieval theme)
  */
 export function getColorShiftColors(config: ColorShiftConfig, _themeId: string): number[] {
-  return config.colors.medieval
+  return config.colors.medieval;
 }
 
 /**
@@ -232,7 +231,7 @@ export function getColorShiftColors(config: ColorShiftConfig, _themeId: string):
  */
 export function getParticleCount(
   config: ParticleConfig,
-  quality: 'low' | 'medium' | 'high'
+  quality: "low" | "medium" | "high",
 ): number {
-  return config.count[quality]
+  return config.count[quality];
 }

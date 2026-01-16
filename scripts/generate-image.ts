@@ -15,14 +15,14 @@
  *   - gemini-2.0-flash-exp (Gemini with image output capability)
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import dotenv from 'dotenv';
+import * as fs from "fs";
+import * as path from "path";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const MODEL = process.env.GEMINI_MODEL || 'imagen-3.0-generate-002';
+const MODEL = process.env.GEMINI_MODEL || "imagen-3.0-generate-002";
 
 interface GenerateImageOptions {
   prompt: string;
@@ -62,15 +62,17 @@ interface GeminiResponse {
 
 function getAspectRatio(width: number, height: number): string {
   const ratio = width / height;
-  if (Math.abs(ratio - 1) < 0.1) return '1:1';
-  if (Math.abs(ratio - 16 / 9) < 0.1) return '16:9';
-  if (Math.abs(ratio - 9 / 16) < 0.1) return '9:16';
-  if (Math.abs(ratio - 4 / 3) < 0.1) return '4:3';
-  if (Math.abs(ratio - 3 / 4) < 0.1) return '3:4';
-  return '1:1'; // default
+  if (Math.abs(ratio - 1) < 0.1) return "1:1";
+  if (Math.abs(ratio - 16 / 9) < 0.1) return "16:9";
+  if (Math.abs(ratio - 9 / 16) < 0.1) return "9:16";
+  if (Math.abs(ratio - 4 / 3) < 0.1) return "4:3";
+  if (Math.abs(ratio - 3 / 4) < 0.1) return "3:4";
+  return "1:1"; // default
 }
 
-async function generateWithImagen(options: GenerateImageOptions): Promise<{ data: string; mimeType: string }> {
+async function generateWithImagen(
+  options: GenerateImageOptions,
+): Promise<{ data: string; mimeType: string }> {
   const { prompt, width, height } = options;
   const aspectRatio = getAspectRatio(width, height);
 
@@ -91,15 +93,15 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
   let response: Response;
   try {
     response = await fetch(apiUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY!,
+        "Content-Type": "application/json",
+        "X-goog-api-key": GEMINI_API_KEY!,
       },
       body: JSON.stringify(requestBody),
     });
   } catch (fetchError) {
-    console.error('Imagen API Network Error:');
+    console.error("Imagen API Network Error:");
     console.error(`  URL: ${apiUrl}`);
     console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
     if (fetchError instanceof Error && fetchError.cause) {
@@ -110,9 +112,11 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Imagen API Error Details:');
+    console.error("Imagen API Error Details:");
     console.error(`  Status: ${response.status} ${response.statusText}`);
-    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(
+      `  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`,
+    );
     console.error(`  Body: ${errorText}`);
     throw new Error(`Imagen API request failed (${response.status}): ${errorText}`);
   }
@@ -124,16 +128,18 @@ async function generateWithImagen(options: GenerateImageOptions): Promise<{ data
   }
 
   if (!data.predictions || data.predictions.length === 0) {
-    throw new Error('No predictions in Imagen response');
+    throw new Error("No predictions in Imagen response");
   }
 
   return {
     data: data.predictions[0].bytesBase64Encoded,
-    mimeType: data.predictions[0].mimeType || 'image/png',
+    mimeType: data.predictions[0].mimeType || "image/png",
   };
 }
 
-async function generateWithGemini(options: GenerateImageOptions): Promise<{ data: string; mimeType: string }> {
+async function generateWithGemini(
+  options: GenerateImageOptions,
+): Promise<{ data: string; mimeType: string }> {
   const { prompt, width, height } = options;
 
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -149,7 +155,7 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
       },
     ],
     generationConfig: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ["TEXT", "IMAGE"],
     },
   };
 
@@ -159,15 +165,15 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
   let response: Response;
   try {
     response = await fetch(apiUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY!,
+        "Content-Type": "application/json",
+        "X-goog-api-key": GEMINI_API_KEY!,
       },
       body: JSON.stringify(requestBody),
     });
   } catch (fetchError) {
-    console.error('Gemini API Network Error:');
+    console.error("Gemini API Network Error:");
     console.error(`  URL: ${apiUrl}`);
     console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
     if (fetchError instanceof Error && fetchError.cause) {
@@ -178,9 +184,11 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini API Error Details:');
+    console.error("Gemini API Error Details:");
     console.error(`  Status: ${response.status} ${response.statusText}`);
-    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(
+      `  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`,
+    );
     console.error(`  Body: ${errorText}`);
     throw new Error(`Gemini API request failed (${response.status}): ${errorText}`);
   }
@@ -193,16 +201,16 @@ async function generateWithGemini(options: GenerateImageOptions): Promise<{ data
 
   const parts = data.candidates?.[0]?.content?.parts;
   if (!parts) {
-    throw new Error('No content in Gemini response');
+    throw new Error("No content in Gemini response");
   }
 
-  const imagePart = parts.find((part) => part.inlineData?.mimeType?.startsWith('image/'));
+  const imagePart = parts.find((part) => part.inlineData?.mimeType?.startsWith("image/"));
   if (!imagePart?.inlineData) {
     const textPart = parts.find((part) => part.text);
     if (textPart?.text) {
-      console.log('Model text response:', textPart.text);
+      console.log("Model text response:", textPart.text);
     }
-    throw new Error('No image data in Gemini response');
+    throw new Error("No image data in Gemini response");
   }
 
   return {
@@ -215,7 +223,7 @@ async function generateImage(options: GenerateImageOptions): Promise<string> {
   const { prompt, width, height, outputPath } = options;
 
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY environment variable is not set. Add it to your .env file.');
+    throw new Error("GEMINI_API_KEY environment variable is not set. Add it to your .env file.");
   }
 
   console.log(`Generating image...`);
@@ -224,14 +232,15 @@ async function generateImage(options: GenerateImageOptions): Promise<string> {
   console.log(`  Model: ${MODEL}`);
 
   // Choose API based on model name
-  const isImagen = MODEL.startsWith('imagen');
+  const isImagen = MODEL.startsWith("imagen");
   const result = isImagen ? await generateWithImagen(options) : await generateWithGemini(options);
 
-  const extension = result.mimeType.split('/')[1] || 'png';
+  const extension = result.mimeType.split("/")[1] || "png";
 
   // Determine output path
   const timestamp = Date.now();
-  const finalOutputPath = outputPath || path.join('assets', 'generated', `image_${timestamp}.${extension}`);
+  const finalOutputPath =
+    outputPath || path.join("assets", "generated", `image_${timestamp}.${extension}`);
 
   // Ensure output directory exists
   const outputDir = path.dirname(finalOutputPath);
@@ -240,7 +249,7 @@ async function generateImage(options: GenerateImageOptions): Promise<string> {
   }
 
   // Save image
-  const imageBuffer = Buffer.from(result.data, 'base64');
+  const imageBuffer = Buffer.from(result.data, "base64");
   fs.writeFileSync(finalOutputPath, imageBuffer);
 
   console.log(`Image saved to: ${finalOutputPath}`);
@@ -274,13 +283,13 @@ Examples:
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     printUsage();
     process.exit(0);
   }
 
   // Parse arguments
-  let prompt = '';
+  let prompt = "";
   let width = 512;
   let height = 512;
   let outputPath: string | undefined;
@@ -289,7 +298,7 @@ async function main(): Promise<void> {
   while (i < args.length) {
     const arg = args[i];
 
-    if (arg === '--output' || arg === '-o') {
+    if (arg === "--output" || arg === "-o") {
       outputPath = args[++i];
     } else if (!prompt) {
       prompt = arg;
@@ -302,7 +311,7 @@ async function main(): Promise<void> {
   }
 
   if (!prompt) {
-    console.error('Error: Prompt is required');
+    console.error("Error: Prompt is required");
     printUsage();
     process.exit(1);
   }
@@ -310,7 +319,7 @@ async function main(): Promise<void> {
   try {
     await generateImage({ prompt, width, height, outputPath });
   } catch (error) {
-    console.error('Error generating image:', error instanceof Error ? error.message : error);
+    console.error("Error generating image:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }

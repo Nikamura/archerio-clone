@@ -1,47 +1,47 @@
-import Phaser from 'phaser'
-import Wall from '../entities/Wall'
+import Phaser from "phaser";
+import Wall from "../entities/Wall";
 
 /**
  * Wall texture tile size in pixels.
  * All wall dimensions are snapped to multiples of this value for proper texture alignment.
  */
-export const WALL_TILE_SIZE = 64
+export const WALL_TILE_SIZE = 64;
 
 /**
  * Threshold for detecting parallel lines in intersection calculations.
  * Lines with cross product below this value are considered parallel.
  */
-const PARALLEL_LINE_THRESHOLD = 0.0001
+const PARALLEL_LINE_THRESHOLD = 0.0001;
 
 /**
  * Snap a value to the nearest multiple of WALL_TILE_SIZE.
  * Minimum value is WALL_TILE_SIZE to ensure walls are always at least 1 tile.
  */
 function snapToTileSize(value: number): number {
-  const snapped = Math.round(value / WALL_TILE_SIZE) * WALL_TILE_SIZE
-  return Math.max(WALL_TILE_SIZE, snapped)
+  const snapped = Math.round(value / WALL_TILE_SIZE) * WALL_TILE_SIZE;
+  return Math.max(WALL_TILE_SIZE, snapped);
 }
 
 /**
  * Wall configuration for room layouts
  */
 export interface WallConfig {
-  x: number // Normalized X position (0-1)
-  y: number // Normalized Y position (0-1)
-  width: number // Normalized width (0-1)
-  height: number // Normalized height (0-1)
+  x: number; // Normalized X position (0-1)
+  y: number; // Normalized Y position (0-1)
+  width: number; // Normalized width (0-1)
+  height: number; // Normalized height (0-1)
 }
 
 /**
  * Wall texture mapping for chapters (default theme)
  */
 const CHAPTER_WALL_TEXTURES: Record<number, string> = {
-  1: 'wall_dungeon',
-  2: 'wall_forest',
-  3: 'wall_ice',
-  4: 'wall_lava',
-  5: 'wall_shadow',
-}
+  1: "wall_dungeon",
+  2: "wall_forest",
+  3: "wall_ice",
+  4: "wall_lava",
+  5: "wall_shadow",
+};
 
 /**
  * Border colors for each chapter to make walls stand out from backgrounds
@@ -52,41 +52,41 @@ const CHAPTER_BORDER_COLORS: Record<number, number> = {
   3: 0x1a3a5a, // Dark blue for ice
   4: 0x4a1a0a, // Dark red-brown for lava
   5: 0x2a1a3a, // Dark purple for shadow
-}
+};
 
 /**
  * Wall texture mapping for purchasable themes (per-chapter variants)
  */
 const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
   vaporwave: {
-    1: 'wall_vaporwave_dungeon',
-    2: 'wall_vaporwave_forest',
-    3: 'wall_vaporwave_ice',
-    4: 'wall_vaporwave_lava',
-    5: 'wall_vaporwave_shadow',
+    1: "wall_vaporwave_dungeon",
+    2: "wall_vaporwave_forest",
+    3: "wall_vaporwave_ice",
+    4: "wall_vaporwave_lava",
+    5: "wall_vaporwave_shadow",
   },
   lotr: {
-    1: 'wall_lotr_dungeon',
-    2: 'wall_lotr_forest',
-    3: 'wall_lotr_ice',
-    4: 'wall_lotr_lava',
-    5: 'wall_lotr_shadow',
+    1: "wall_lotr_dungeon",
+    2: "wall_lotr_forest",
+    3: "wall_lotr_ice",
+    4: "wall_lotr_lava",
+    5: "wall_lotr_shadow",
   },
   strangerThings: {
-    1: 'wall_st_dungeon',
-    2: 'wall_st_forest',
-    3: 'wall_st_ice',
-    4: 'wall_st_lava',
-    5: 'wall_st_shadow',
+    1: "wall_st_dungeon",
+    2: "wall_st_forest",
+    3: "wall_st_ice",
+    4: "wall_st_lava",
+    5: "wall_st_shadow",
   },
   dungeon: {
-    1: 'wall_dungeon',
-    2: 'wall_dungeon',
-    3: 'wall_dungeon',
-    4: 'wall_dungeon',
-    5: 'wall_dungeon',
+    1: "wall_dungeon",
+    2: "wall_dungeon",
+    3: "wall_dungeon",
+    4: "wall_dungeon",
+    5: "wall_dungeon",
   },
-}
+};
 
 /**
  * WallGroup - Manages all walls in the current room
@@ -98,26 +98,26 @@ const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
  * - Supports themed wall textures
  */
 export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
-  private screenWidth: number
-  private screenHeight: number
-  private wallColor: number = 0x444444
-  private borderColor: number = 0x222222
-  private textureKey: string | undefined
-  private chapterId: number = 1
-  private themeName: string | undefined
-  private walls: Wall[] = []
+  private screenWidth: number;
+  private screenHeight: number;
+  private wallColor: number = 0x444444;
+  private borderColor: number = 0x222222;
+  private textureKey: string | undefined;
+  private chapterId: number = 1;
+  private themeName: string | undefined;
+  private walls: Wall[] = [];
 
   constructor(scene: Phaser.Scene, screenWidth: number, screenHeight: number) {
-    super(scene.physics.world, scene)
-    this.screenWidth = screenWidth
-    this.screenHeight = screenHeight
+    super(scene.physics.world, scene);
+    this.screenWidth = screenWidth;
+    this.screenHeight = screenHeight;
   }
 
   /**
    * Set wall color based on chapter theme (fallback for no texture)
    */
   setColor(color: number): void {
-    this.wallColor = color
+    this.wallColor = color;
   }
 
   /**
@@ -125,9 +125,9 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * @param chapterId Chapter ID (1-5)
    */
   setTexture(chapterId: number | string): void {
-    if (typeof chapterId === 'number') {
-      this.chapterId = chapterId
-      this.updateTextureKey()
+    if (typeof chapterId === "number") {
+      this.chapterId = chapterId;
+      this.updateTextureKey();
     }
   }
 
@@ -136,8 +136,8 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * Theme walls override chapter-based walls
    */
   setTheme(themeName: string | undefined): void {
-    this.themeName = themeName
-    this.updateTextureKey()
+    this.themeName = themeName;
+    this.updateTextureKey();
   }
 
   /**
@@ -146,13 +146,13 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private updateTextureKey(): void {
     if (this.themeName && THEME_WALL_TEXTURES[this.themeName]) {
       // Use theme-specific texture for current chapter
-      this.textureKey = THEME_WALL_TEXTURES[this.themeName][this.chapterId]
+      this.textureKey = THEME_WALL_TEXTURES[this.themeName][this.chapterId];
     } else {
       // Use default chapter texture
-      this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId]
+      this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId];
     }
     // Update border color for chapter
-    this.borderColor = CHAPTER_BORDER_COLORS[this.chapterId] || 0x222222
+    this.borderColor = CHAPTER_BORDER_COLORS[this.chapterId] || 0x222222;
   }
 
   /**
@@ -161,23 +161,32 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    */
   createWalls(configs: WallConfig[]): void {
     // Clear existing walls
-    this.clearWalls()
+    this.clearWalls();
 
     for (const config of configs) {
       // Convert normalized coordinates to screen coordinates
       // Snap width and height to tile size multiples for texture alignment
-      const width = snapToTileSize(config.width * this.screenWidth)
-      const height = snapToTileSize(config.height * this.screenHeight)
+      const width = snapToTileSize(config.width * this.screenWidth);
+      const height = snapToTileSize(config.height * this.screenHeight);
 
       // Calculate position (center of wall) and snap to half-tile for better alignment
-      const halfTile = WALL_TILE_SIZE / 2
-      const x = Math.round((config.x * this.screenWidth) / halfTile) * halfTile
-      const y = Math.round((config.y * this.screenHeight) / halfTile) * halfTile
+      const halfTile = WALL_TILE_SIZE / 2;
+      const x = Math.round((config.x * this.screenWidth) / halfTile) * halfTile;
+      const y = Math.round((config.y * this.screenHeight) / halfTile) * halfTile;
 
-      const wall = new Wall(this.scene, x, y, width, height, this.wallColor, this.textureKey, this.borderColor)
-      this.walls.push(wall)
+      const wall = new Wall(
+        this.scene,
+        x,
+        y,
+        width,
+        height,
+        this.wallColor,
+        this.textureKey,
+        this.borderColor,
+      );
+      this.walls.push(wall);
       // Add the physics object to the StaticGroup for collision detection
-      this.add(wall.getPhysicsObject())
+      this.add(wall.getPhysicsObject());
     }
   }
 
@@ -187,26 +196,26 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   clearWalls(): void {
     // Destroy wall containers (which destroys their children)
     for (const wall of this.walls) {
-      wall.destroy()
+      wall.destroy();
     }
-    this.walls = []
+    this.walls = [];
     // Clear the physics group
-    this.clear(true, true)
+    this.clear(true, true);
   }
 
   /**
    * Update screen dimensions
    */
   setDimensions(width: number, height: number): void {
-    this.screenWidth = width
-    this.screenHeight = height
+    this.screenWidth = width;
+    this.screenHeight = height;
   }
 
   /**
    * Get all walls as an array
    */
   getWalls(): Wall[] {
-    return this.walls
+    return this.walls;
   }
 
   /**
@@ -216,10 +225,10 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   containsPoint(x: number, y: number): boolean {
     for (const wall of this.walls) {
       if (wall.containsPoint(x, y)) {
-        return true
+        return true;
       }
     }
-    return false
+    return false;
   }
 
   /**
@@ -229,51 +238,45 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   hasLineOfSight(x1: number, y1: number, x2: number, y2: number): boolean {
     // No walls means clear line of sight
     if (!this.walls || this.walls.length === 0) {
-      return true
+      return true;
     }
 
     for (const wall of this.walls) {
       if (this.lineIntersectsRect(x1, y1, x2, y2, wall)) {
-        return false
+        return false;
       }
     }
-    return true
+    return true;
   }
 
   /**
    * Check if a line segment intersects a rectangle (wall)
    * Uses line-segment vs rectangle edge intersection checks
    */
-  private lineIntersectsRect(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    wall: Wall
-  ): boolean {
-    const halfW = wall.width / 2
-    const halfH = wall.height / 2
-    const left = wall.x - halfW
-    const right = wall.x + halfW
-    const top = wall.y - halfH
-    const bottom = wall.y + halfH
+  private lineIntersectsRect(x1: number, y1: number, x2: number, y2: number, wall: Wall): boolean {
+    const halfW = wall.width / 2;
+    const halfH = wall.height / 2;
+    const left = wall.x - halfW;
+    const right = wall.x + halfW;
+    const top = wall.y - halfH;
+    const bottom = wall.y + halfH;
 
     // Check if line segment intersects any of the 4 edges of the rectangle
     // Left edge
     if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, top, left, bottom)) {
-      return true
+      return true;
     }
     // Right edge
     if (this.lineSegmentsIntersect(x1, y1, x2, y2, right, top, right, bottom)) {
-      return true
+      return true;
     }
     // Top edge
     if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, top, right, top)) {
-      return true
+      return true;
     }
     // Bottom edge
     if (this.lineSegmentsIntersect(x1, y1, x2, y2, left, bottom, right, bottom)) {
-      return true
+      return true;
     }
 
     // Also check if either endpoint is inside the rectangle
@@ -282,10 +285,10 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
       (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) ||
       (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom)
     ) {
-      return true
+      return true;
     }
 
-    return false
+    return false;
   }
 
   /**
@@ -293,31 +296,37 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
    * Uses cross product method for efficient intersection detection
    */
   private lineSegmentsIntersect(
-    x1: number, y1: number, x2: number, y2: number,  // Line 1
-    x3: number, y3: number, x4: number, y4: number   // Line 2
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number, // Line 1
+    x3: number,
+    y3: number,
+    x4: number,
+    y4: number, // Line 2
   ): boolean {
     // Calculate direction vectors
-    const d1x = x2 - x1
-    const d1y = y2 - y1
-    const d2x = x4 - x3
-    const d2y = y4 - y3
+    const d1x = x2 - x1;
+    const d1y = y2 - y1;
+    const d2x = x4 - x3;
+    const d2y = y4 - y3;
 
     // Cross product of direction vectors
-    const cross = d1x * d2y - d1y * d2x
+    const cross = d1x * d2y - d1y * d2x;
 
     // Lines are parallel if cross product is near zero
     if (Math.abs(cross) < PARALLEL_LINE_THRESHOLD) {
-      return false
+      return false;
     }
 
     // Calculate parameters t and u
-    const dx = x3 - x1
-    const dy = y3 - y1
+    const dx = x3 - x1;
+    const dy = y3 - y1;
 
-    const t = (dx * d2y - dy * d2x) / cross
-    const u = (dx * d1y - dy * d1x) / cross
+    const t = (dx * d2y - dy * d2x) / cross;
+    const u = (dx * d1y - dy * d1x) / cross;
 
     // Lines intersect if both parameters are between 0 and 1
-    return t >= 0 && t <= 1 && u >= 0 && u <= 1
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
   }
 }

@@ -1,56 +1,61 @@
-import Phaser from 'phaser'
-import Player from '../../entities/Player'
-import Enemy from '../../entities/Enemy'
-import Boss from '../../entities/Boss'
-import Bullet from '../../entities/Bullet'
-import SpiritCat from '../../entities/SpiritCat'
-import { audioManager } from '../../systems/AudioManager'
-import { hapticManager } from '../../systems/HapticManager'
-import type { ScreenShake } from '../../systems/ScreenShake'
-import type { ParticleManager } from '../../systems/ParticleManager'
-import type DamageNumberPool from '../../systems/DamageNumberPool'
-import type { TalentBonuses } from '../../config/talentData'
-import type { DifficultyConfig } from '../../config/difficulty'
-import { chapterManager } from '../../systems/ChapterManager'
-import { getChapterDefinition, getXpMultiplierForChapter, getChapterElementalResistances, type ChapterId } from '../../config/chapterData'
+import Phaser from "phaser";
+import Player from "../../entities/Player";
+import Enemy from "../../entities/Enemy";
+import Boss from "../../entities/Boss";
+import Bullet from "../../entities/Bullet";
+import SpiritCat from "../../entities/SpiritCat";
+import { audioManager } from "../../systems/AudioManager";
+import { hapticManager } from "../../systems/HapticManager";
+import type { ScreenShake } from "../../systems/ScreenShake";
+import type { ParticleManager } from "../../systems/ParticleManager";
+import type DamageNumberPool from "../../systems/DamageNumberPool";
+import type { TalentBonuses } from "../../config/talentData";
+import type { DifficultyConfig } from "../../config/difficulty";
+import { chapterManager } from "../../systems/ChapterManager";
+import {
+  getChapterDefinition,
+  getXpMultiplierForChapter,
+  getChapterElementalResistances,
+  type ChapterId,
+} from "../../config/chapterData";
 
 /**
  * Damage result from player taking damage
  */
 export interface DamageResult {
-  damaged: boolean
-  dodged: boolean
+  damaged: boolean;
+  dodged: boolean;
 }
 
 /**
  * Combat event handlers interface
  */
 export interface CombatEventHandlers {
-  onEnemyKilled: (enemy: Enemy, isBoss: boolean) => void
-  onPlayerDamaged: (damage: number) => void
-  onPlayerHealed: (amount: number) => void
-  onPlayerDeath: () => void
-  onBossHealthUpdate: (health: number, maxHealth: number) => void
-  onBossKilled: () => void
-  onLevelUp: () => void
-  onXPGained: (xp: number) => void
+  onEnemyKilled: (enemy: Enemy, isBoss: boolean) => void;
+  onPlayerDamaged: (damage: number) => void;
+  onPlayerHealed: (amount: number) => void;
+  onPlayerDeath: () => void;
+  onBossHealthUpdate: (health: number, maxHealth: number) => void;
+  onBossKilled: () => void;
+  onLevelUp: () => void;
+  onXPGained: (xp: number) => void;
 }
 
 /**
  * Combat system configuration
  */
 export interface CombatSystemConfig {
-  scene: Phaser.Scene
-  player: Player
-  enemies: Phaser.Physics.Arcade.Group
-  boss: Boss | null
-  screenShake: ScreenShake
-  particles: ParticleManager
-  damageNumberPool: DamageNumberPool
-  talentBonuses: TalentBonuses
-  difficultyConfig: DifficultyConfig
-  bonusXPMultiplier: number
-  eventHandlers: CombatEventHandlers
+  scene: Phaser.Scene;
+  player: Player;
+  enemies: Phaser.Physics.Arcade.Group;
+  boss: Boss | null;
+  screenShake: ScreenShake;
+  particles: ParticleManager;
+  damageNumberPool: DamageNumberPool;
+  talentBonuses: TalentBonuses;
+  difficultyConfig: DifficultyConfig;
+  bonusXPMultiplier: number;
+  eventHandlers: CombatEventHandlers;
 }
 
 /**
@@ -60,54 +65,54 @@ export interface CombatSystemConfig {
  * Manages bullet-enemy, bullet-wall, enemy-player, and bomb collisions.
  */
 export class CombatSystem {
-  private scene: Phaser.Scene
-  private player: Player
-  private enemies: Phaser.Physics.Arcade.Group
-  private boss: Boss | null
-  private screenShake: ScreenShake
-  private particles: ParticleManager
-  private damageNumberPool: DamageNumberPool
-  private talentBonuses: TalentBonuses
-  private difficultyConfig: DifficultyConfig
-  private bonusXPMultiplier: number
-  private eventHandlers: CombatEventHandlers
+  private scene: Phaser.Scene;
+  private player: Player;
+  private enemies: Phaser.Physics.Arcade.Group;
+  private boss: Boss | null;
+  private screenShake: ScreenShake;
+  private particles: ParticleManager;
+  private damageNumberPool: DamageNumberPool;
+  private talentBonuses: TalentBonuses;
+  private difficultyConfig: DifficultyConfig;
+  private bonusXPMultiplier: number;
+  private eventHandlers: CombatEventHandlers;
 
-  private isGameOver: boolean = false
-  private isLevelingUp: boolean = false
-  private isTransitioning: boolean = false
+  private isGameOver: boolean = false;
+  private isLevelingUp: boolean = false;
+  private isTransitioning: boolean = false;
 
   // Damage aura tracking
-  private lastAuraDamageTime: number = 0
-  private readonly AURA_DAMAGE_INTERVAL = 500 // Apply damage every 500ms
+  private lastAuraDamageTime: number = 0;
+  private readonly AURA_DAMAGE_INTERVAL = 500; // Apply damage every 500ms
 
   constructor(config: CombatSystemConfig) {
-    this.scene = config.scene
-    this.player = config.player
-    this.enemies = config.enemies
-    this.boss = config.boss
-    this.screenShake = config.screenShake
-    this.particles = config.particles
-    this.damageNumberPool = config.damageNumberPool
-    this.talentBonuses = config.talentBonuses
-    this.difficultyConfig = config.difficultyConfig
-    this.bonusXPMultiplier = config.bonusXPMultiplier
-    this.eventHandlers = config.eventHandlers
+    this.scene = config.scene;
+    this.player = config.player;
+    this.enemies = config.enemies;
+    this.boss = config.boss;
+    this.screenShake = config.screenShake;
+    this.particles = config.particles;
+    this.damageNumberPool = config.damageNumberPool;
+    this.talentBonuses = config.talentBonuses;
+    this.difficultyConfig = config.difficultyConfig;
+    this.bonusXPMultiplier = config.bonusXPMultiplier;
+    this.eventHandlers = config.eventHandlers;
   }
 
   /**
    * Update game state flags
    */
   setGameState(isGameOver: boolean, isLevelingUp: boolean, isTransitioning: boolean): void {
-    this.isGameOver = isGameOver
-    this.isLevelingUp = isLevelingUp
-    this.isTransitioning = isTransitioning
+    this.isGameOver = isGameOver;
+    this.isLevelingUp = isLevelingUp;
+    this.isTransitioning = isTransitioning;
   }
 
   /**
    * Update boss reference
    */
   setBoss(boss: Boss | null): void {
-    this.boss = boss
+    this.boss = boss;
   }
 
   /**
@@ -115,93 +120,98 @@ export class CombatSystem {
    */
   bulletHitEnemy(
     bullet: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
+    enemy: Phaser.GameObjects.GameObject,
   ): void {
-    if (this.isGameOver || this.isTransitioning) return
+    if (this.isGameOver || this.isTransitioning) return;
 
-    const bulletSprite = bullet as Bullet
-    const enemySprite = enemy as Enemy
+    const bulletSprite = bullet as Bullet;
+    const enemySprite = enemy as Enemy;
 
     // Skip if bullet is already inactive
     if (!bulletSprite.active) {
-      return
+      return;
     }
 
     // Skip if bullet has already hit this enemy (prevents duplicate collisions during piercing)
     if (bulletSprite.hasHitEnemy(enemy)) {
-      return
+      return;
     }
 
     // IMPORTANT: Immediately mark this enemy as hit to prevent duplicate damage
     // when physics system detects multiple overlaps in the same frame
-    bulletSprite.markEnemyAsHit(enemy)
+    bulletSprite.markEnemyAsHit(enemy);
 
     // For non-piercing bullets, deactivate immediately to prevent hitting multiple enemies
     if (bulletSprite.getMaxPierces() === 0 && bulletSprite.getMaxBounces() === 0) {
-      bulletSprite.setActive(false)
-      bulletSprite.setVisible(false)
+      bulletSprite.setActive(false);
+      bulletSprite.setVisible(false);
     }
 
     // Calculate damage based on bullet properties
-    let damage = this.player.getDamage()
+    let damage = this.player.getDamage();
 
     // Check for critical hit
     if (bulletSprite.isCriticalHit()) {
-      damage = this.player.getDamageWithCrit(true)
+      damage = this.player.getDamageWithCrit(true);
     }
 
     // Apply piercing damage reduction if bullet has hit enemies before
-    const hitCount = bulletSprite.getHitCount()
+    const hitCount = bulletSprite.getHitCount();
     if (hitCount > 0 && bulletSprite.getMaxPierces() > 0) {
-      damage = this.player.getPiercingDamage(hitCount)
+      damage = this.player.getPiercingDamage(hitCount);
     }
 
     // Apply wall bounce damage bonus (+10% per wall bounce)
-    const wallBounceCount = bulletSprite.getWallBounceCount()
+    const wallBounceCount = bulletSprite.getWallBounceCount();
     if (wallBounceCount > 0) {
-      const wallBounceMultiplier = this.player.getWallBounceDamageMultiplier(wallBounceCount)
-      damage = Math.floor(damage * wallBounceMultiplier)
+      const wallBounceMultiplier = this.player.getWallBounceDamageMultiplier(wallBounceCount);
+      damage = Math.floor(damage * wallBounceMultiplier);
     }
 
     // Shatter: bonus damage to frozen enemies
     if (enemySprite.isEnemyFrozen() && this.player.getShatterLevel() > 0) {
-      damage = Math.floor(damage * this.player.getShatterDamageMultiplier())
+      damage = Math.floor(damage * this.player.getShatterDamageMultiplier());
     }
 
     // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
+    const killed = enemySprite.takeDamage(damage);
+    audioManager.playHit();
 
     // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, bulletSprite.isCriticalHit())
+    this.damageNumberPool.showEnemyDamage(
+      enemySprite.x,
+      enemySprite.y,
+      damage,
+      bulletSprite.isCriticalHit(),
+    );
 
     // Visual effects for hit
     if (bulletSprite.isCriticalHit()) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
+      this.particles.emitCrit(enemySprite.x, enemySprite.y);
+      this.screenShake.onCriticalHit();
     } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
-      this.screenShake.onEnemyHit()
+      this.particles.emitHit(enemySprite.x, enemySprite.y);
+      this.screenShake.onEnemyHit();
     }
 
     // Apply status effects from bullet
-    this.applyBulletStatusEffects(bulletSprite, enemySprite, killed, damage)
+    this.applyBulletStatusEffects(bulletSprite, enemySprite, killed, damage);
 
     // Check if bullet should be deactivated or continue (piercing/ricochet)
-    const shouldDeactivate = bulletSprite.onHit(enemy)
+    const shouldDeactivate = bulletSprite.onHit(enemy);
 
     // Handle ricochet
-    this.handleBulletRicochet(bulletSprite, enemySprite, shouldDeactivate)
+    this.handleBulletRicochet(bulletSprite, enemySprite, shouldDeactivate);
 
     // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
     if (isBoss && !killed) {
-      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit()
+      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth());
+      hapticManager.bossHit();
     }
 
     if (killed) {
-      this.handleEnemyKilled(enemySprite, !!isBoss)
+      this.handleEnemyKilled(enemySprite, !!isBoss);
     }
   }
 
@@ -212,28 +222,28 @@ export class CombatSystem {
     bullet: Bullet,
     enemy: Enemy,
     killed: boolean,
-    damage: number
+    damage: number,
   ): void {
     // Lightning chain should trigger even if the primary target was killed
     // It arcs to NEARBY enemies, not the dead one
-    const lightningChainCount = bullet.getLightningChainCount()
+    const lightningChainCount = bullet.getLightningChainCount();
     if (lightningChainCount > 0) {
-      this.applyLightningChain(enemy, damage, lightningChainCount)
+      this.applyLightningChain(enemy, damage, lightningChainCount);
     }
 
     // Other status effects only apply if enemy survived (can't burn/freeze/poison a corpse)
-    if (killed) return
+    if (killed) return;
 
     // Get chapter elemental resistances
-    const chapterId = chapterManager.getSelectedChapter() as ChapterId
-    const resistances = getChapterElementalResistances(chapterId)
+    const chapterId = chapterManager.getSelectedChapter() as ChapterId;
+    const resistances = getChapterElementalResistances(chapterId);
 
     // Apply fire DOT (affected by fire resistance)
-    const fireDamage = bullet.getFireDamage()
+    const fireDamage = bullet.getFireDamage();
     if (fireDamage > 0) {
-      const adjustedFireDamage = Math.round(fireDamage * resistances.fire)
-      enemy.applyFireDamage(adjustedFireDamage, 2000) // 2 second burn
-      this.particles.emitFire(enemy.x, enemy.y)
+      const adjustedFireDamage = Math.round(fireDamage * resistances.fire);
+      enemy.applyFireDamage(adjustedFireDamage, 2000); // 2 second burn
+      this.particles.emitFire(enemy.x, enemy.y);
     }
 
     // Apply freeze (cold resistance affects freeze chance)
@@ -241,44 +251,40 @@ export class CombatSystem {
       // Cold resistance reduces freeze chance - if resistance is 0.5, freeze has 50% chance to apply
       // If resistance is 1.5, freeze always applies (vulnerability doesn't increase freeze chance)
       if (resistances.cold >= 1.0 || Math.random() < resistances.cold) {
-        enemy.applyFreeze()
+        enemy.applyFreeze();
       }
     }
 
     // Apply poison DOT
-    const poisonDamage = bullet.getPoisonDamage()
+    const poisonDamage = bullet.getPoisonDamage();
     if (poisonDamage > 0) {
-      enemy.applyPoisonDamage(poisonDamage)
+      enemy.applyPoisonDamage(poisonDamage);
     }
 
     // Apply bleed DOT (affected by bleed resistance)
-    const bleedDamage = bullet.getBleedDamage()
+    const bleedDamage = bullet.getBleedDamage();
     if (bleedDamage > 0) {
-      const adjustedBleedDamage = Math.round(bleedDamage * resistances.bleed)
-      enemy.applyBleedDamage(adjustedBleedDamage, 3000) // 3 second bleed
+      const adjustedBleedDamage = Math.round(bleedDamage * resistances.bleed);
+      enemy.applyBleedDamage(adjustedBleedDamage, 3000); // 3 second bleed
     }
   }
 
   /**
    * Handle bullet ricochet to nearest enemy
    */
-  private handleBulletRicochet(
-    bullet: Bullet,
-    hitEnemy: Enemy,
-    shouldDeactivate: boolean
-  ): void {
+  private handleBulletRicochet(bullet: Bullet, hitEnemy: Enemy, shouldDeactivate: boolean): void {
     if (!shouldDeactivate && bullet.getBounceCount() < bullet.getMaxBounces()) {
-      const nearestEnemy = this.findNearestEnemyExcluding(bullet.x, bullet.y, hitEnemy)
+      const nearestEnemy = this.findNearestEnemyExcluding(bullet.x, bullet.y, hitEnemy);
       if (nearestEnemy) {
-        bullet.redirectTo(nearestEnemy.x, nearestEnemy.y)
+        bullet.redirectTo(nearestEnemy.x, nearestEnemy.y);
       } else {
         // No target for ricochet, deactivate
-        bullet.setActive(false)
-        bullet.setVisible(false)
+        bullet.setActive(false);
+        bullet.setVisible(false);
       }
     } else if (shouldDeactivate) {
-      bullet.setActive(false)
-      bullet.setVisible(false)
+      bullet.setActive(false);
+      bullet.setVisible(false);
     }
     // else: bullet continues (piercing)
   }
@@ -286,40 +292,40 @@ export class CombatSystem {
   /**
    * Handle player bullets hitting walls
    */
-  bulletHitWall(
-    bullet: Phaser.GameObjects.GameObject,
-    _wall: Phaser.GameObjects.GameObject
-  ): void {
-    const bulletSprite = bullet as Bullet
-    if (!bulletSprite.active) return
+  bulletHitWall(bullet: Phaser.GameObjects.GameObject, _wall: Phaser.GameObjects.GameObject): void {
+    const bulletSprite = bullet as Bullet;
+    if (!bulletSprite.active) return;
 
     // Through wall ability - bullets pass through walls
     if (bulletSprite.isThroughWallEnabled()) {
-      return
+      return;
     }
 
     // Bouncy wall ability - bullets bounce off walls
-    if (bulletSprite.getMaxWallBounces() > 0 && bulletSprite.getWallBounceCount() < bulletSprite.getMaxWallBounces()) {
-      const body = bulletSprite.body as Phaser.Physics.Arcade.Body
+    if (
+      bulletSprite.getMaxWallBounces() > 0 &&
+      bulletSprite.getWallBounceCount() < bulletSprite.getMaxWallBounces()
+    ) {
+      const body = bulletSprite.body as Phaser.Physics.Arcade.Body;
 
       // Reflect velocity based on current direction
-      const vx = body.velocity.x
-      const vy = body.velocity.y
+      const vx = body.velocity.x;
+      const vy = body.velocity.y;
 
       if (Math.abs(vx) > Math.abs(vy)) {
-        body.velocity.x = -vx
+        body.velocity.x = -vx;
       } else {
-        body.velocity.y = -vy
+        body.velocity.y = -vy;
       }
 
       // Update bullet rotation to match new direction
-      bulletSprite.setRotation(Math.atan2(body.velocity.y, body.velocity.x))
-      return
+      bulletSprite.setRotation(Math.atan2(body.velocity.y, body.velocity.x));
+      return;
     }
 
     // Normal bullets are destroyed on wall contact
-    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y)
-    bulletSprite.deactivate()
+    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y);
+    bulletSprite.deactivate();
   }
 
   /**
@@ -327,14 +333,14 @@ export class CombatSystem {
    */
   enemyBulletHitWall(
     bullet: Phaser.GameObjects.GameObject,
-    _wall: Phaser.GameObjects.GameObject
+    _wall: Phaser.GameObjects.GameObject,
   ): void {
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
-    if (!bulletSprite.active) return
+    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
+    if (!bulletSprite.active) return;
 
-    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y)
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
+    this.particles.emitWallHit(bulletSprite.x, bulletSprite.y);
+    bulletSprite.setActive(false);
+    bulletSprite.setVisible(false);
   }
 
   /**
@@ -342,43 +348,43 @@ export class CombatSystem {
    */
   enemyBulletHitPlayer(
     player: Phaser.GameObjects.GameObject,
-    bullet: Phaser.GameObjects.GameObject
+    bullet: Phaser.GameObjects.GameObject,
   ): void {
-    if (this.isGameOver || this.isLevelingUp) return
+    if (this.isGameOver || this.isLevelingUp) return;
 
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite
-    const playerSprite = player as Player
+    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
+    const playerSprite = player as Player;
 
     // Skip if bullet is already inactive
-    if (!bulletSprite.active) return
+    if (!bulletSprite.active) return;
 
     // Deactivate bullet regardless of invincibility
-    bulletSprite.setActive(false)
-    bulletSprite.setVisible(false)
+    bulletSprite.setActive(false);
+    bulletSprite.setVisible(false);
 
     // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
-    const baseBulletDamage = 30
-    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId
-    const chapterDef = getChapterDefinition(selectedChapter)
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
+    const baseBulletDamage = 30;
+    const selectedChapter = chapterManager.getSelectedChapter() as ChapterId;
+    const chapterDef = getChapterDefinition(selectedChapter);
+    const damageReduction = 1 - this.talentBonuses.percentDamageReduction / 100;
     const bulletDamage = Math.round(
       baseBulletDamage *
-      this.difficultyConfig.enemyDamageMultiplier *
-      chapterDef.scaling.enemyDamageMultiplier *
-      damageReduction
-    )
+        this.difficultyConfig.enemyDamageMultiplier *
+        chapterDef.scaling.enemyDamageMultiplier *
+        damageReduction,
+    );
 
     // Try to damage player
-    const damageResult = playerSprite.takeDamage(bulletDamage)
+    const damageResult = playerSprite.takeDamage(bulletDamage);
 
     if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
+      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y);
+      return;
     }
 
-    if (!damageResult.damaged) return
+    if (!damageResult.damaged) return;
 
-    this.handlePlayerDamaged(playerSprite, bulletDamage, true)
+    this.handlePlayerDamaged(playerSprite, bulletDamage, true);
   }
 
   /**
@@ -386,85 +392,82 @@ export class CombatSystem {
    */
   enemyHitPlayer(
     player: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
+    enemy: Phaser.GameObjects.GameObject,
   ): void {
-    if (this.isGameOver || this.isLevelingUp) return
+    if (this.isGameOver || this.isLevelingUp) return;
 
-    const playerSprite = player as Player
-    const enemySprite = enemy as Enemy
+    const playerSprite = player as Player;
+    const enemySprite = enemy as Enemy;
 
     // Check melee attack cooldown
-    const currentTime = this.scene.time.now
+    const currentTime = this.scene.time.now;
     if (!enemySprite.canMeleeAttack(currentTime)) {
-      return
+      return;
     }
 
     // Record this attack to start cooldown
-    enemySprite.recordMeleeAttack(currentTime)
+    enemySprite.recordMeleeAttack(currentTime);
 
     // Get enemy damage with talent damage reduction
-    const baseDamage = enemySprite.getDamage()
-    const damageReduction = 1 - (this.talentBonuses.percentDamageReduction / 100)
-    const damage = Math.round(baseDamage * damageReduction)
+    const baseDamage = enemySprite.getDamage();
+    const damageReduction = 1 - this.talentBonuses.percentDamageReduction / 100;
+    const damage = Math.round(baseDamage * damageReduction);
 
     // Try to damage player
-    const damageResult = playerSprite.takeDamage(damage)
+    const damageResult = playerSprite.takeDamage(damage);
 
     if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y)
-      return
+      this.damageNumberPool.showDodge(playerSprite.x, playerSprite.y);
+      return;
     }
 
-    if (!damageResult.damaged) return
+    if (!damageResult.damaged) return;
 
-    this.handlePlayerDamaged(playerSprite, damage, false)
+    this.handlePlayerDamaged(playerSprite, damage, false);
 
     // Apply knockback
-    this.applyKnockback(enemySprite, playerSprite, 150)
+    this.applyKnockback(enemySprite, playerSprite, 150);
   }
 
   /**
    * Handle bomb explosion damage to player
    */
   handleBombExplosion(x: number, y: number, radius: number, damage: number): void {
-    if (this.isGameOver || this.isLevelingUp) return
+    if (this.isGameOver || this.isLevelingUp) return;
 
     // Check if player is within explosion radius
-    const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y)
-    if (distanceToPlayer > radius) return
+    const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
+    if (distanceToPlayer > radius) return;
 
     // Try to damage player
-    const damageResult = this.player.takeDamage(damage)
+    const damageResult = this.player.takeDamage(damage);
 
     if (damageResult.dodged) {
-      this.damageNumberPool.showDodge(this.player.x, this.player.y)
-      return
+      this.damageNumberPool.showDodge(this.player.x, this.player.y);
+      return;
     }
 
-    if (!damageResult.damaged) return
+    if (!damageResult.damaged) return;
 
-    audioManager.playPlayerHit()
-    this.eventHandlers.onPlayerDamaged(damage)
+    audioManager.playPlayerHit();
+    this.eventHandlers.onPlayerDamaged(damage);
 
     // Flash screen red to indicate damage
-    this.showScreenDamageFlash()
+    this.showScreenDamageFlash();
 
     // Check for death
     if (this.player.getHealth() <= 0) {
-      this.eventHandlers.onPlayerDeath()
-      return
+      this.eventHandlers.onPlayerDeath();
+      return;
     }
 
     // Flash player when hit
-    this.showHitFlash(this.player)
+    this.showHitFlash(this.player);
 
     // Knockback from explosion center
-    const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y)
-    const knockbackForce = 200
-    this.player.setVelocity(
-      Math.cos(angle) * knockbackForce,
-      Math.sin(angle) * knockbackForce
-    )
+    const angle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y);
+    const knockbackForce = 200;
+    this.player.setVelocity(Math.cos(angle) * knockbackForce, Math.sin(angle) * knockbackForce);
   }
 
   /**
@@ -472,46 +475,46 @@ export class CombatSystem {
    */
   spiritCatHitEnemy(
     cat: Phaser.GameObjects.GameObject,
-    enemy: Phaser.GameObjects.GameObject
+    enemy: Phaser.GameObjects.GameObject,
   ): void {
-    if (this.isGameOver || this.isTransitioning) return
+    if (this.isGameOver || this.isTransitioning) return;
 
-    const spiritCat = cat as SpiritCat
-    const enemySprite = enemy as Enemy
+    const spiritCat = cat as SpiritCat;
+    const enemySprite = enemy as Enemy;
 
-    if (!spiritCat.active || !enemySprite.active) return
+    if (!spiritCat.active || !enemySprite.active) return;
 
     // Get damage and check crit
-    const damage = spiritCat.getDamage()
-    const isCrit = spiritCat.isCriticalHit()
+    const damage = spiritCat.getDamage();
+    const isCrit = spiritCat.isCriticalHit();
 
     // Damage enemy
-    const killed = enemySprite.takeDamage(damage)
-    audioManager.playHit()
+    const killed = enemySprite.takeDamage(damage);
+    audioManager.playHit();
 
     // Show damage number
-    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, isCrit)
+    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, isCrit);
 
     // Visual effects
     if (isCrit) {
-      this.particles.emitCrit(enemySprite.x, enemySprite.y)
-      this.screenShake.onCriticalHit()
+      this.particles.emitCrit(enemySprite.x, enemySprite.y);
+      this.screenShake.onCriticalHit();
     } else {
-      this.particles.emitHit(enemySprite.x, enemySprite.y)
+      this.particles.emitHit(enemySprite.x, enemySprite.y);
     }
 
     // Deactivate cat on hit
-    spiritCat.deactivate()
+    spiritCat.deactivate();
 
     // Update boss health bar if this is the boss
-    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy)
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
     if (isBoss && !killed) {
-      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth())
-      hapticManager.bossHit()
+      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth());
+      hapticManager.bossHit();
     }
 
     if (killed) {
-      this.handleEnemyKilled(enemySprite, !!isBoss)
+      this.handleEnemyKilled(enemySprite, !!isBoss);
     }
   }
 
@@ -519,43 +522,43 @@ export class CombatSystem {
    * Apply damage aura to nearby enemies
    */
   applyDamageAura(time: number, playerX: number, playerY: number): void {
-    const auraDPS = this.player.getDamageAuraDPS()
-    if (auraDPS <= 0) return
+    const auraDPS = this.player.getDamageAuraDPS();
+    if (auraDPS <= 0) return;
 
     // Only apply damage at intervals
-    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return
-    this.lastAuraDamageTime = time
+    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return;
+    this.lastAuraDamageTime = time;
 
-    const auraRadius = this.player.getDamageAuraRadius()
-    const damagePerTick = Math.floor(auraDPS / 2)
+    const auraRadius = this.player.getDamageAuraRadius();
+    const damagePerTick = Math.floor(auraDPS / 2);
 
-    const enemiesToDestroy: Enemy[] = []
+    const enemiesToDestroy: Enemy[] = [];
 
     // Find and damage all enemies within aura radius
     this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (!e.active) return
+      const e = enemy as Enemy;
+      if (!e.active) return;
 
-      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y)
+      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y);
       if (distance <= auraRadius) {
-        const killed = e.takeDamage(damagePerTick)
+        const killed = e.takeDamage(damagePerTick);
 
         // Show damage number
-        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false)
+        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false);
 
         // Visual feedback
-        this.particles.emitHit(e.x, e.y)
+        this.particles.emitHit(e.x, e.y);
 
         if (killed) {
-          enemiesToDestroy.push(e)
+          enemiesToDestroy.push(e);
         }
       }
-    })
+    });
 
     // Handle deaths from aura damage
     for (const e of enemiesToDestroy) {
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy)
-      this.handleEnemyKilled(e, !!isBoss)
+      const isBoss = this.boss && e === (this.boss as unknown as Enemy);
+      this.handleEnemyKilled(e, !!isBoss);
     }
   }
 
@@ -564,51 +567,51 @@ export class CombatSystem {
    * Damage is reduced by 20% per chain (resistance through bodies)
    */
   applyLightningChain(source: Enemy, baseDamage: number, chainCount: number): void {
-    const maxChainDistance = 250 // Increased from 150 to better catch minions
+    const maxChainDistance = 250; // Increased from 150 to better catch minions
 
     // Find nearby enemies excluding the source
-    const nearbyEnemies: Enemy[] = []
+    const nearbyEnemies: Enemy[] = [];
     this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (e === source || !e.active) return
+      const e = enemy as Enemy;
+      if (e === source || !e.active) return;
 
-      const distance = Phaser.Math.Distance.Between(source.x, source.y, e.x, e.y)
+      const distance = Phaser.Math.Distance.Between(source.x, source.y, e.x, e.y);
       if (distance <= maxChainDistance) {
-        nearbyEnemies.push(e)
+        nearbyEnemies.push(e);
       }
-    })
+    });
 
     // Sort by distance and take only chainCount enemies
     nearbyEnemies.sort((a, b) => {
-      const distA = Phaser.Math.Distance.Between(source.x, source.y, a.x, a.y)
-      const distB = Phaser.Math.Distance.Between(source.x, source.y, b.x, b.y)
-      return distA - distB
-    })
+      const distA = Phaser.Math.Distance.Between(source.x, source.y, a.x, a.y);
+      const distB = Phaser.Math.Distance.Between(source.x, source.y, b.x, b.y);
+      return distA - distB;
+    });
 
-    const targets = nearbyEnemies.slice(0, chainCount)
+    const targets = nearbyEnemies.slice(0, chainCount);
 
     // Apply damage to each target with progressive reduction (-20% per chain)
     targets.forEach((target, chainIndex) => {
-      if (!target.active || !target.scene) return
+      if (!target.active || !target.scene) return;
 
       // Draw lightning line from source to target
-      this.drawLightningLine(source.x, source.y, target.x, target.y)
+      this.drawLightningLine(source.x, source.y, target.x, target.y);
 
       // Show particle effect at target
-      this.particles.emitHit(target.x, target.y)
+      this.particles.emitHit(target.x, target.y);
 
       // Apply damage with progressive reduction: -20% per chain
       // chainIndex 0 = first chain = 80% damage, chainIndex 1 = second chain = 64% damage, etc.
-      const damageMultiplier = this.player.getLightningChainDamageMultiplier(chainIndex + 1)
-      const chainDamage = Math.floor(baseDamage * damageMultiplier)
+      const damageMultiplier = this.player.getLightningChainDamageMultiplier(chainIndex + 1);
+      const chainDamage = Math.floor(baseDamage * damageMultiplier);
 
-      const killed = target.takeDamage(chainDamage)
+      const killed = target.takeDamage(chainDamage);
 
       if (killed) {
-        const isBoss = this.boss && target === (this.boss as unknown as Enemy)
-        this.handleEnemyKilled(target, !!isBoss)
+        const isBoss = this.boss && target === (this.boss as unknown as Enemy);
+        this.handleEnemyKilled(target, !!isBoss);
       }
-    })
+    });
   }
 
   /**
@@ -617,77 +620,73 @@ export class CombatSystem {
   private handleEnemyKilled(enemy: Enemy, isBoss: boolean): void {
     // Fire Spread: Spread fire to nearby enemies if dying enemy was on fire
     if (this.player.hasFireSpread() && enemy.isOnFire()) {
-      this.spreadFireOnDeath(enemy)
+      this.spreadFireOnDeath(enemy);
     }
 
     // Death particles and screen shake
     if (isBoss) {
-      this.particles.emitBossDeath(enemy.x, enemy.y)
-      this.screenShake.onBossDeath()
+      this.particles.emitBossDeath(enemy.x, enemy.y);
+      this.screenShake.onBossDeath();
     } else {
-      this.particles.emitDeath(enemy.x, enemy.y)
-      this.screenShake.onExplosion()
-      hapticManager.light()
+      this.particles.emitDeath(enemy.x, enemy.y);
+      this.screenShake.onExplosion();
+      hapticManager.light();
     }
 
     // Bloodthirst: Heal on kill
-    const bloodthirstHeal = this.player.getBloodthirstHeal()
+    const bloodthirstHeal = this.player.getBloodthirstHeal();
     if (bloodthirstHeal > 0) {
-      this.player.heal(bloodthirstHeal)
-      this.eventHandlers.onPlayerHealed(bloodthirstHeal)
+      this.player.heal(bloodthirstHeal);
+      this.eventHandlers.onPlayerHealed(bloodthirstHeal);
     }
 
     // Add XP with equipment XP bonus and chapter scaling
-    const baseXpGain = isBoss ? 10 : 1
-    const chapterId = chapterManager.getSelectedChapter()
-    const chapterXpMultiplier = getXpMultiplierForChapter(chapterId)
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier)
+    const baseXpGain = isBoss ? 10 : 1;
+    const chapterId = chapterManager.getSelectedChapter();
+    const chapterXpMultiplier = getXpMultiplierForChapter(chapterId);
+    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier);
 
     // Notify event handlers
-    this.eventHandlers.onEnemyKilled(enemy, isBoss)
-    this.eventHandlers.onXPGained(xpGain)
+    this.eventHandlers.onEnemyKilled(enemy, isBoss);
+    this.eventHandlers.onXPGained(xpGain);
 
     if (isBoss) {
-      this.eventHandlers.onBossKilled()
+      this.eventHandlers.onBossKilled();
     }
   }
 
   /**
    * Handle player taking damage
    */
-  private handlePlayerDamaged(
-    player: Player,
-    damage: number,
-    isRangedAttack: boolean
-  ): void {
+  private handlePlayerDamaged(player: Player, damage: number, isRangedAttack: boolean): void {
     // Show damage number
-    this.damageNumberPool.showPlayerDamage(player.x, player.y, damage)
+    this.damageNumberPool.showPlayerDamage(player.x, player.y, damage);
 
-    audioManager.playPlayerHit()
-    hapticManager.heavy()
+    audioManager.playPlayerHit();
+    hapticManager.heavy();
 
     // Screen shake based on damage amount
     if (isRangedAttack && damage >= 15) {
-      this.screenShake.onPlayerHeavyDamage()
+      this.screenShake.onPlayerHeavyDamage();
     } else {
-      this.screenShake.onPlayerDamage()
+      this.screenShake.onPlayerDamage();
     }
 
     // Flash screen red to indicate damage
-    this.showScreenDamageFlash()
+    this.showScreenDamageFlash();
 
     // Notify handler
-    this.eventHandlers.onPlayerDamaged(damage)
+    this.eventHandlers.onPlayerDamaged(damage);
 
     // Check for death
     if (player.getHealth() <= 0) {
-      this.screenShake.onPlayerDeath()
-      this.eventHandlers.onPlayerDeath()
-      return
+      this.screenShake.onPlayerDeath();
+      this.eventHandlers.onPlayerDeath();
+      return;
     }
 
     // Flash player when hit
-    this.showHitFlash(player)
+    this.showHitFlash(player);
   }
 
   /**
@@ -696,142 +695,142 @@ export class CombatSystem {
   applyKnockback(
     source: Phaser.GameObjects.Sprite,
     target: Phaser.Physics.Arcade.Sprite,
-    force: number
+    force: number,
   ): void {
-    const angle = Phaser.Math.Angle.Between(source.x, source.y, target.x, target.y)
-    target.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force)
+    const angle = Phaser.Math.Angle.Between(source.x, source.y, target.x, target.y);
+    target.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force);
   }
 
   /**
    * Show hit flash effect on sprite
    */
   showHitFlash(sprite: Phaser.Physics.Arcade.Sprite): void {
-    sprite.setTint(0xff0000)
-    sprite.setAlpha(0.7)
+    sprite.setTint(0xff0000);
+    sprite.setAlpha(0.7);
 
     this.scene.time.delayedCall(100, () => {
       if (sprite.active) {
-        sprite.clearTint()
-        sprite.setAlpha(1)
+        sprite.clearTint();
+        sprite.setAlpha(1);
       }
-    })
+    });
   }
 
   /**
    * Flash the screen red when player takes damage
    */
   showScreenDamageFlash(): void {
-    const camera = this.scene.cameras.main
+    const camera = this.scene.cameras.main;
     const flashOverlay = this.scene.add.rectangle(
       camera.width / 2,
       camera.height / 2,
       camera.width,
       camera.height,
       0xff0000,
-      0.3
-    )
-    flashOverlay.setScrollFactor(0)
-    flashOverlay.setDepth(1000)
+      0.3,
+    );
+    flashOverlay.setScrollFactor(0);
+    flashOverlay.setDepth(1000);
 
     this.scene.tweens.add({
       targets: flashOverlay,
       alpha: 0,
       duration: 200,
-      ease: 'Quad.easeOut',
+      ease: "Quad.easeOut",
       onComplete: () => flashOverlay.destroy(),
-    })
+    });
   }
 
   /**
    * Find nearest enemy excluding a specific enemy
    */
   findNearestEnemyExcluding(x: number, y: number, exclude: Enemy): Enemy | null {
-    let nearest: Enemy | null = null
-    let nearestDistance = Infinity
+    let nearest: Enemy | null = null;
+    let nearestDistance = Infinity;
 
     this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (e === exclude || !e.active) return
+      const e = enemy as Enemy;
+      if (e === exclude || !e.active) return;
 
-      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
+      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y);
       if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearest = e
+        nearestDistance = distance;
+        nearest = e;
       }
-    })
+    });
 
-    return nearest
+    return nearest;
   }
 
   /**
    * Find nearest enemy to a position
    */
   findNearestEnemy(x: number, y: number): Enemy | null {
-    let nearest: Enemy | null = null
-    let nearestDistance = Infinity
+    let nearest: Enemy | null = null;
+    let nearestDistance = Infinity;
 
     this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (!e.active) return
+      const e = enemy as Enemy;
+      if (!e.active) return;
 
-      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y)
+      const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y);
       if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearest = e
+        nearestDistance = distance;
+        nearest = e;
       }
-    })
+    });
 
-    return nearest
+    return nearest;
   }
 
   /**
    * Spread fire to nearby enemies when a burning enemy dies
    */
   private spreadFireOnDeath(dyingEnemy: Enemy): void {
-    const spreadRadius = 100 // Radius to spread fire
-    const spreadDuration = 3000 // Duration of spread fire (3 seconds)
-    const fireDamage = dyingEnemy.getFireDamagePerTick()
+    const spreadRadius = 100; // Radius to spread fire
+    const spreadDuration = 3000; // Duration of spread fire (3 seconds)
+    const fireDamage = dyingEnemy.getFireDamagePerTick();
 
     // Find and ignite all nearby enemies
     this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy
-      if (e === dyingEnemy || !e.active) return
+      const e = enemy as Enemy;
+      if (e === dyingEnemy || !e.active) return;
 
-      const distance = Phaser.Math.Distance.Between(dyingEnemy.x, dyingEnemy.y, e.x, e.y)
+      const distance = Phaser.Math.Distance.Between(dyingEnemy.x, dyingEnemy.y, e.x, e.y);
       if (distance <= spreadRadius) {
         // Apply fire to nearby enemy
-        e.applyFireDamage(fireDamage, spreadDuration)
+        e.applyFireDamage(fireDamage, spreadDuration);
 
         // Visual feedback - fire particle effect
-        this.particles.emitFire(e.x, e.y)
+        this.particles.emitFire(e.x, e.y);
       }
-    })
+    });
   }
 
   /**
    * Draw a lightning effect line between two points
    */
   private drawLightningLine(x1: number, y1: number, x2: number, y2: number): void {
-    const graphics = this.scene.add.graphics()
-    graphics.lineStyle(3, 0x8888ff, 1) // Light blue/purple
+    const graphics = this.scene.add.graphics();
+    graphics.lineStyle(3, 0x8888ff, 1); // Light blue/purple
 
     // Draw slightly jagged line for lightning effect
-    const segments = 4
-    const dx = (x2 - x1) / segments
-    const dy = (y2 - y1) / segments
+    const segments = 4;
+    const dx = (x2 - x1) / segments;
+    const dy = (y2 - y1) / segments;
 
-    graphics.beginPath()
-    graphics.moveTo(x1, y1)
+    graphics.beginPath();
+    graphics.moveTo(x1, y1);
 
     for (let i = 1; i < segments; i++) {
       // Add some randomness to middle points
-      const offsetX = (Math.random() - 0.5) * 10
-      const offsetY = (Math.random() - 0.5) * 10
-      graphics.lineTo(x1 + dx * i + offsetX, y1 + dy * i + offsetY)
+      const offsetX = (Math.random() - 0.5) * 10;
+      const offsetY = (Math.random() - 0.5) * 10;
+      graphics.lineTo(x1 + dx * i + offsetX, y1 + dy * i + offsetY);
     }
 
-    graphics.lineTo(x2, y2)
-    graphics.strokePath()
+    graphics.lineTo(x2, y2);
+    graphics.strokePath();
 
     // Fade out and destroy
     this.scene.tweens.add({
@@ -839,8 +838,8 @@ export class CombatSystem {
       alpha: 0,
       duration: 150,
       onComplete: () => graphics.destroy(),
-    })
+    });
   }
 }
 
-export default CombatSystem
+export default CombatSystem;

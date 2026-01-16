@@ -9,7 +9,7 @@
 // ============================================
 
 /** Currency types available in the game */
-export type CurrencyType = 'gold' | 'gems' | 'scrolls' | 'energy';
+export type CurrencyType = "gold" | "gems" | "scrolls" | "energy";
 
 /** Current state of all currencies */
 export interface CurrencyState {
@@ -26,7 +26,7 @@ export interface CurrencySaveData {
 }
 
 /** Enemy types for gold drop calculations */
-export type EnemyType = 'melee' | 'ranged' | 'spreader' | 'boss';
+export type EnemyType = "melee" | "ranged" | "spreader" | "boss";
 
 /** Gold drop ranges per enemy type */
 interface GoldDropRange {
@@ -35,10 +35,7 @@ interface GoldDropRange {
 }
 
 /** Event types emitted by CurrencyManager */
-export type CurrencyEventType =
-  | 'currencyChanged'
-  | 'energyRegenerated'
-  | 'insufficientFunds';
+export type CurrencyEventType = "currencyChanged" | "energyRegenerated" | "insufficientFunds";
 
 /** Event listener callback type */
 export type CurrencyEventCallback = (data: CurrencyEventData) => void;
@@ -78,7 +75,7 @@ const DEFAULT_CURRENCIES: CurrencyState = {
 };
 
 /** LocalStorage key for currency data persistence */
-const CURRENCY_STORAGE_KEY = 'aura_archer_currency_data';
+const CURRENCY_STORAGE_KEY = "aura_archer_currency_data";
 
 // ============================================
 // CurrencyManager Class
@@ -130,7 +127,7 @@ export class CurrencyManager {
       // Calculate energy regeneration based on time passed since last save
       this.updateEnergyRegeneration();
     } catch (error) {
-      console.warn('CurrencyManager: Failed to load from storage:', error);
+      console.warn("CurrencyManager: Failed to load from storage:", error);
     }
   }
 
@@ -145,7 +142,7 @@ export class CurrencyManager {
       };
       localStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('CurrencyManager: Failed to save to storage:', error);
+      console.warn("CurrencyManager: Failed to save to storage:", error);
     }
   }
 
@@ -185,7 +182,7 @@ export class CurrencyManager {
   private emit(eventType: CurrencyEventType, data: CurrencyEventData): void {
     const listeners = this.eventListeners.get(eventType);
     if (listeners) {
-      listeners.forEach(callback => callback(data));
+      listeners.forEach((callback) => callback(data));
     }
   }
 
@@ -201,7 +198,7 @@ export class CurrencyManager {
    */
   add(type: CurrencyType, amount: number): number {
     if (amount < 0) {
-      console.warn('CurrencyManager.add: amount must be positive, use spend() for deductions');
+      console.warn("CurrencyManager.add: amount must be positive, use spend() for deductions");
       return this.currencies[type];
     }
 
@@ -209,13 +206,13 @@ export class CurrencyManager {
     let newValue = oldValue + amount;
 
     // Energy has a maximum cap
-    if (type === 'energy') {
+    if (type === "energy") {
       newValue = Math.min(newValue, MAX_ENERGY);
     }
 
     this.currencies[type] = newValue;
 
-    this.emit('currencyChanged', {
+    this.emit("currencyChanged", {
       type,
       oldValue,
       newValue,
@@ -236,12 +233,12 @@ export class CurrencyManager {
    */
   spend(type: CurrencyType, amount: number): boolean {
     if (amount < 0) {
-      console.warn('CurrencyManager.spend: amount must be positive');
+      console.warn("CurrencyManager.spend: amount must be positive");
       return false;
     }
 
     if (!this.canAfford(type, amount)) {
-      this.emit('insufficientFunds', {
+      this.emit("insufficientFunds", {
         type,
         oldValue: this.currencies[type],
         newValue: this.currencies[type],
@@ -254,7 +251,7 @@ export class CurrencyManager {
     const newValue = oldValue - amount;
     this.currencies[type] = newValue;
 
-    this.emit('currencyChanged', {
+    this.emit("currencyChanged", {
       type,
       oldValue,
       newValue,
@@ -304,7 +301,7 @@ export class CurrencyManager {
    * @returns true if successful, false if insufficient energy
    */
   spendEnergy(amount: number = 1): boolean {
-    const success = this.spend('energy', amount);
+    const success = this.spend("energy", amount);
     if (success) {
       this.lastEnergyUpdate = Date.now();
       // Note: saveToStorage() is already called by spend(), but we call again
@@ -348,8 +345,8 @@ export class CurrencyManager {
       const timeUsed = energyToRegen * ENERGY_REGEN_INTERVAL_MS;
       this.lastEnergyUpdate = this.lastEnergyUpdate + timeUsed;
 
-      this.emit('energyRegenerated', {
-        type: 'energy',
+      this.emit("energyRegenerated", {
+        type: "energy",
         oldValue,
         newValue,
         delta: actualRegen,
@@ -387,14 +384,14 @@ export class CurrencyManager {
     const timeMs = this.getTimeUntilNextEnergy(currentTime);
 
     if (timeMs === 0) {
-      return '--:--';
+      return "--:--";
     }
 
     const totalSeconds = Math.ceil(timeMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
   /**
@@ -438,7 +435,7 @@ export class CurrencyManager {
    */
   awardEnemyGold(enemyType: EnemyType): number {
     const amount = this.calculateEnemyGoldDrop(enemyType);
-    this.add('gold', amount);
+    this.add("gold", amount);
     return amount;
   }
 

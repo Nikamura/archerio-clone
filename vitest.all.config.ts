@@ -1,5 +1,5 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
-import viteConfig from './vite.config'
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config";
 
 /**
  * Full test suite configuration (unit + visual tests)
@@ -10,22 +10,18 @@ export default mergeConfig(
   defineConfig({
     test: {
       globals: true,
-      environment: 'node',
-      include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
-      exclude: ['node_modules', 'dist'],
+      environment: "node",
+      include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+      exclude: ["node_modules", "dist"],
       testTimeout: 60000,
       hookTimeout: 30000,
       coverage: {
-        provider: 'v8',
-        reporter: ['text', 'text-summary', 'html', 'lcov'],
-        reportsDirectory: './coverage',
-        include: ['src/**/*.ts'],
-        exclude: [
-          'src/main.ts',
-          'src/**/*.test.ts',
-          'node_modules/**',
-        ],
+        provider: "v8",
+        reporter: ["text", "text-summary", "html", "lcov"],
+        reportsDirectory: "./coverage",
+        include: ["src/**/*.ts"],
+        exclude: ["src/main.ts", "src/**/*.test.ts", "node_modules/**"],
       },
     },
-  })
-)
+  }),
+);

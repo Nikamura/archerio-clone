@@ -1,33 +1,33 @@
-import Phaser from 'phaser'
-import Enemy, { EnemyUpdateResult } from './Enemy'
-import EnemyBulletPool from '../systems/EnemyBulletPool'
+import Phaser from "phaser";
+import Enemy, { EnemyUpdateResult } from "./Enemy";
+import EnemyBulletPool from "../systems/EnemyBulletPool";
 
-type BossPhase = 'idle' | 'spread' | 'barrage_aim' | 'barrage_fire' | 'charge_windup' | 'charging'
+type BossPhase = "idle" | "spread" | "barrage_aim" | "barrage_fire" | "charge_windup" | "charging";
 
 export default class Boss extends Enemy {
-  private bulletPool: EnemyBulletPool
-  private phase: BossPhase = 'idle'
-  private phaseStartTime: number = 0
-  private lastAttackTime: number = 0
-  private attackCooldown: number = 2000 // 2 seconds between attacks
-  private attackPattern: number = 0 // Cycles through 0, 1, 2 for different attacks
+  private bulletPool: EnemyBulletPool;
+  private phase: BossPhase = "idle";
+  private phaseStartTime: number = 0;
+  private lastAttackTime: number = 0;
+  private attackCooldown: number = 2000; // 2 seconds between attacks
+  private attackPattern: number = 0; // Cycles through 0, 1, 2 for different attacks
 
   // Telegraph line for barrage attack
-  private telegraphLines: Phaser.GameObjects.Line[] = []
+  private telegraphLines: Phaser.GameObjects.Line[] = [];
 
   // AOE danger zone graphics for spread attack
-  private spreadDangerZone: Phaser.GameObjects.Graphics | null = null
-  private spreadDangerRadius: number = 120
+  private spreadDangerZone: Phaser.GameObjects.Graphics | null = null;
+  private spreadDangerRadius: number = 120;
 
   // Charge attack properties
-  private chargeTargetX: number = 0
-  private chargeTargetY: number = 0
-  private chargeSpeed: number = 400
-  private chargeTrailLine: Phaser.GameObjects.Line | null = null
+  private chargeTargetX: number = 0;
+  private chargeTargetY: number = 0;
+  private chargeSpeed: number = 400;
+  private chargeTrailLine: Phaser.GameObjects.Line | null = null;
 
   // Boss-specific properties
-  private bossHealth: number
-  private bossMaxHealth: number
+  private bossHealth: number;
+  private bossMaxHealth: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -35,205 +35,205 @@ export default class Boss extends Enemy {
     y: number,
     bulletPool: EnemyBulletPool,
     options?: {
-      healthMultiplier?: number
-      damageMultiplier?: number
-    }
+      healthMultiplier?: number;
+      damageMultiplier?: number;
+    },
   ) {
-    super(scene, x, y, options)
+    super(scene, x, y, options);
 
-    this.bulletPool = bulletPool
+    this.bulletPool = bulletPool;
 
     // Apply difficulty modifiers to boss health
-    const baseHealth = 200
-    this.bossMaxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0))
-    this.bossHealth = this.bossMaxHealth
+    const baseHealth = 200;
+    this.bossMaxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0));
+    this.bossHealth = this.bossMaxHealth;
 
     // Use boss sprite
-    this.setTexture('bossSprite')
-    this.setDisplaySize(64, 64)
+    this.setTexture("bossSprite");
+    this.setDisplaySize(64, 64);
 
     // Set up centered circular hitbox for boss
     // Hitbox is ~40% of display size for fair collision detection
-    const body = this.body as Phaser.Physics.Arcade.Body
+    const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
-      const displaySize = 64
-      const hitboxRadius = Math.floor(displaySize * 0.4) // ~26 pixels
-      body.setSize(displaySize, displaySize)
-      const offset = (displaySize - hitboxRadius * 2) / 2
-      body.setCircle(hitboxRadius, offset, offset)
+      const displaySize = 64;
+      const hitboxRadius = Math.floor(displaySize * 0.4); // ~26 pixels
+      body.setSize(displaySize, displaySize);
+      const offset = (displaySize - hitboxRadius * 2) / 2;
+      body.setCircle(hitboxRadius, offset, offset);
     }
 
     // Create telegraph lines for barrage (3 lines)
     for (let i = 0; i < 3; i++) {
-      const line = scene.add.line(0, 0, 0, 0, 0, 0, 0xff0000, 0.7)
-      line.setOrigin(0, 0)
-      line.setVisible(false)
-      line.setDepth(0)
-      line.setLineWidth(2)
-      this.telegraphLines.push(line)
+      const line = scene.add.line(0, 0, 0, 0, 0, 0, 0xff0000, 0.7);
+      line.setOrigin(0, 0);
+      line.setVisible(false);
+      line.setDepth(0);
+      line.setLineWidth(2);
+      this.telegraphLines.push(line);
     }
 
     // Create AOE danger zone graphics for spread attack
-    this.spreadDangerZone = scene.add.graphics()
-    this.spreadDangerZone.setDepth(0)
-    this.spreadDangerZone.setVisible(false)
+    this.spreadDangerZone = scene.add.graphics();
+    this.spreadDangerZone.setDepth(0);
+    this.spreadDangerZone.setVisible(false);
 
     // Create charge trail line
-    this.chargeTrailLine = scene.add.line(0, 0, 0, 0, 0, 0, 0xff4400, 0.5)
-    this.chargeTrailLine.setOrigin(0, 0)
-    this.chargeTrailLine.setVisible(false)
-    this.chargeTrailLine.setDepth(0)
-    this.chargeTrailLine.setLineWidth(4)
+    this.chargeTrailLine = scene.add.line(0, 0, 0, 0, 0, 0, 0xff4400, 0.5);
+    this.chargeTrailLine.setOrigin(0, 0);
+    this.chargeTrailLine.setVisible(false);
+    this.chargeTrailLine.setDepth(0);
+    this.chargeTrailLine.setLineWidth(4);
 
-    console.log('Boss created at', x, y, 'with', this.bossHealth, 'HP')
+    console.log("Boss created at", x, y, "with", this.bossHealth, "HP");
   }
 
   getHealth(): number {
-    return this.bossHealth
+    return this.bossHealth;
   }
 
   getMaxHealth(): number {
-    return this.bossMaxHealth
+    return this.bossMaxHealth;
   }
 
   takeDamage(amount: number): boolean {
-    this.bossHealth -= amount
+    this.bossHealth -= amount;
 
     // Flash effect (red tint for boss)
-    this.setTint(0xff0000)
+    this.setTint(0xff0000);
     this.scene.time.delayedCall(100, () => {
-      this.clearTint()
-    })
+      this.clearTint();
+    });
 
     if (this.bossHealth <= 0) {
-      return true // Boss died
+      return true; // Boss died
     }
-    return false
+    return false;
   }
 
   update(time: number, delta: number, playerX: number, playerY: number): EnemyUpdateResult {
     if (!this.active || !this.body) {
-      return { died: false, dotDamage: 0 }
+      return { died: false, dotDamage: 0 };
     }
 
     // Update status effects (fire, poison, bleed) from parent class
-    const effectResult = super.update(time, delta, playerX, playerY)
+    const effectResult = super.update(time, delta, playerX, playerY);
     if (effectResult.died) {
-      return effectResult
+      return effectResult;
     }
 
     switch (this.phase) {
-      case 'idle':
-        this.handleIdlePhase(time, playerX, playerY)
-        break
-      case 'spread':
-        this.handleSpreadPhase(time)
-        break
-      case 'barrage_aim':
-        this.handleBarrageAimPhase(time, playerX, playerY)
-        break
-      case 'barrage_fire':
-        this.handleBarrageFirePhase(time, playerX, playerY)
-        break
-      case 'charge_windup':
-        this.handleChargeWindupPhase(time, playerX, playerY)
-        break
-      case 'charging':
-        this.handleChargingPhase(time)
-        break
+      case "idle":
+        this.handleIdlePhase(time, playerX, playerY);
+        break;
+      case "spread":
+        this.handleSpreadPhase(time);
+        break;
+      case "barrage_aim":
+        this.handleBarrageAimPhase(time, playerX, playerY);
+        break;
+      case "barrage_fire":
+        this.handleBarrageFirePhase(time, playerX, playerY);
+        break;
+      case "charge_windup":
+        this.handleChargeWindupPhase(time, playerX, playerY);
+        break;
+      case "charging":
+        this.handleChargingPhase(time);
+        break;
     }
 
     // Ensure boss stays within world bounds (extra safety check)
-    const body = this.body as Phaser.Physics.Arcade.Body
+    const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       // Clamp position to world bounds with a small margin
-      const margin = 32 // Half of boss size (64x64 display size)
-      const worldBounds = this.scene.physics.world.bounds
-      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin)
-      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin)
+      const margin = 32; // Half of boss size (64x64 display size)
+      const worldBounds = this.scene.physics.world.bounds;
+      this.x = Phaser.Math.Clamp(this.x, worldBounds.left + margin, worldBounds.right - margin);
+      this.y = Phaser.Math.Clamp(this.y, worldBounds.top + margin, worldBounds.bottom - margin);
     }
 
-    return effectResult
+    return effectResult;
   }
 
   private handleIdlePhase(time: number, playerX: number, playerY: number) {
     // Slow movement toward center of screen when idle
-    const centerX = 375 / 2
-    const centerY = 667 / 2 - 50 // Slightly above center
+    const centerX = 375 / 2;
+    const centerY = 667 / 2 - 50; // Slightly above center
 
-    const distToCenter = Phaser.Math.Distance.Between(this.x, this.y, centerX, centerY)
+    const distToCenter = Phaser.Math.Distance.Between(this.x, this.y, centerX, centerY);
 
     if (distToCenter > 50) {
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, centerX, centerY)
-      this.setVelocity(Math.cos(angle) * 40, Math.sin(angle) * 40)
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, centerX, centerY);
+      this.setVelocity(Math.cos(angle) * 40, Math.sin(angle) * 40);
     } else {
-      this.setVelocity(0, 0)
+      this.setVelocity(0, 0);
     }
 
     // Start next attack after cooldown
     if (time - this.lastAttackTime > this.attackCooldown) {
-      this.startNextAttack(time, playerX, playerY)
+      this.startNextAttack(time, playerX, playerY);
     }
   }
 
   private startNextAttack(time: number, playerX: number, playerY: number) {
-    this.phaseStartTime = time
+    this.phaseStartTime = time;
 
     // Cycle through attack patterns
     switch (this.attackPattern) {
       case 0:
-        this.phase = 'spread'
-        break
+        this.phase = "spread";
+        break;
       case 1:
-        this.phase = 'barrage_aim'
-        break
+        this.phase = "barrage_aim";
+        break;
       case 2:
-        this.phase = 'charge_windup'
-        this.chargeTargetX = playerX
-        this.chargeTargetY = playerY
-        break
+        this.phase = "charge_windup";
+        this.chargeTargetX = playerX;
+        this.chargeTargetY = playerY;
+        break;
     }
 
-    this.attackPattern = (this.attackPattern + 1) % 3
+    this.attackPattern = (this.attackPattern + 1) % 3;
   }
 
   // Attack Pattern 1: Spread Shot - 8 projectiles in circular pattern
   private handleSpreadPhase(time: number) {
-    this.setVelocity(0, 0)
+    this.setVelocity(0, 0);
 
-    const windupDuration = 500 // 0.5 seconds to show danger zone
-    const elapsed = time - this.phaseStartTime
+    const windupDuration = 500; // 0.5 seconds to show danger zone
+    const elapsed = time - this.phaseStartTime;
 
     // Show pulsing danger zone
     if (this.spreadDangerZone) {
-      this.spreadDangerZone.setVisible(true)
-      this.spreadDangerZone.clear()
+      this.spreadDangerZone.setVisible(true);
+      this.spreadDangerZone.clear();
 
       // Pulsing effect
-      const pulsePhase = (elapsed % 200) / 200
-      const pulseAlpha = 0.15 + pulsePhase * 0.2
+      const pulsePhase = (elapsed % 200) / 200;
+      const pulseAlpha = 0.15 + pulsePhase * 0.2;
 
       // Draw circular danger zone
-      this.spreadDangerZone.fillStyle(0xff0000, pulseAlpha)
-      this.spreadDangerZone.fillCircle(this.x, this.y, this.spreadDangerRadius)
+      this.spreadDangerZone.fillStyle(0xff0000, pulseAlpha);
+      this.spreadDangerZone.fillCircle(this.x, this.y, this.spreadDangerRadius);
 
       // Draw pulsing ring at edge
-      this.spreadDangerZone.lineStyle(3, 0xff0000, 0.6 + pulsePhase * 0.4)
-      this.spreadDangerZone.strokeCircle(this.x, this.y, this.spreadDangerRadius)
+      this.spreadDangerZone.lineStyle(3, 0xff0000, 0.6 + pulsePhase * 0.4);
+      this.spreadDangerZone.strokeCircle(this.x, this.y, this.spreadDangerRadius);
 
       // Draw direction lines for projectiles
-      const numLines = 8
+      const numLines = 8;
       for (let i = 0; i < numLines; i++) {
-        const angle = (Math.PI * 2 * i) / numLines
-        const innerRadius = 30
-        const outerRadius = this.spreadDangerRadius
-        const x1 = this.x + Math.cos(angle) * innerRadius
-        const y1 = this.y + Math.sin(angle) * innerRadius
-        const x2 = this.x + Math.cos(angle) * outerRadius
-        const y2 = this.y + Math.sin(angle) * outerRadius
+        const angle = (Math.PI * 2 * i) / numLines;
+        const innerRadius = 30;
+        const outerRadius = this.spreadDangerRadius;
+        const x1 = this.x + Math.cos(angle) * innerRadius;
+        const y1 = this.y + Math.sin(angle) * innerRadius;
+        const x2 = this.x + Math.cos(angle) * outerRadius;
+        const y2 = this.y + Math.sin(angle) * outerRadius;
 
-        this.spreadDangerZone.lineStyle(2, 0xff4400, 0.4 + pulsePhase * 0.3)
-        this.spreadDangerZone.lineBetween(x1, y1, x2, y2)
+        this.spreadDangerZone.lineStyle(2, 0xff4400, 0.4 + pulsePhase * 0.3);
+        this.spreadDangerZone.lineBetween(x1, y1, x2, y2);
       }
     }
 
@@ -241,176 +241,180 @@ export default class Boss extends Enemy {
     if (elapsed > windupDuration) {
       // Hide danger zone
       if (this.spreadDangerZone) {
-        this.spreadDangerZone.setVisible(false)
-        this.spreadDangerZone.clear()
+        this.spreadDangerZone.setVisible(false);
+        this.spreadDangerZone.clear();
       }
 
-      this.fireSpreadAttack()
-      this.phase = 'idle'
-      this.lastAttackTime = time
+      this.fireSpreadAttack();
+      this.phase = "idle";
+      this.lastAttackTime = time;
     }
   }
 
   private fireSpreadAttack() {
-    const numProjectiles = 8
-    const speed = 180
+    const numProjectiles = 8;
+    const speed = 180;
 
     for (let i = 0; i < numProjectiles; i++) {
-      const angle = (Math.PI * 2 * i) / numProjectiles
-      this.bulletPool.spawn(this.x, this.y, angle, speed)
+      const angle = (Math.PI * 2 * i) / numProjectiles;
+      this.bulletPool.spawn(this.x, this.y, angle, speed);
     }
 
     // Second wave slightly offset
     this.scene.time.delayedCall(200, () => {
-      if (!this.active) return
+      if (!this.active) return;
       for (let i = 0; i < numProjectiles; i++) {
-        const angle = (Math.PI * 2 * i) / numProjectiles + Math.PI / 8 // Offset by 22.5 degrees
-        this.bulletPool.spawn(this.x, this.y, angle, speed)
+        const angle = (Math.PI * 2 * i) / numProjectiles + Math.PI / 8; // Offset by 22.5 degrees
+        this.bulletPool.spawn(this.x, this.y, angle, speed);
       }
-    })
+    });
   }
 
   // Attack Pattern 2: Barrage - Telegraph then fire 3 fast projectiles at player
   private handleBarrageAimPhase(time: number, playerX: number, playerY: number) {
-    this.setVelocity(0, 0)
+    this.setVelocity(0, 0);
 
-    const aimDuration = 800 // 0.8 seconds to aim
-    const elapsed = time - this.phaseStartTime
+    const aimDuration = 800; // 0.8 seconds to aim
+    const elapsed = time - this.phaseStartTime;
 
     // Show telegraph lines (3 lines spread around player)
-    const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-    const spreadAngle = 0.15 // Small spread
+    const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY);
+    const spreadAngle = 0.15; // Small spread
 
     for (let i = 0; i < 3; i++) {
-      const angleOffset = (i - 1) * spreadAngle
-      const angle = baseAngle + angleOffset
-      const lineLength = 400
-      const endX = this.x + Math.cos(angle) * lineLength
-      const endY = this.y + Math.sin(angle) * lineLength
+      const angleOffset = (i - 1) * spreadAngle;
+      const angle = baseAngle + angleOffset;
+      const lineLength = 400;
+      const endX = this.x + Math.cos(angle) * lineLength;
+      const endY = this.y + Math.sin(angle) * lineLength;
 
-      this.telegraphLines[i].setTo(this.x, this.y, endX, endY)
-      this.telegraphLines[i].setVisible(true)
+      this.telegraphLines[i].setTo(this.x, this.y, endX, endY);
+      this.telegraphLines[i].setVisible(true);
 
       // Flash effect as attack approaches
-      const alpha = 0.3 + (elapsed / aimDuration) * 0.5
-      this.telegraphLines[i].setAlpha(alpha)
+      const alpha = 0.3 + (elapsed / aimDuration) * 0.5;
+      this.telegraphLines[i].setAlpha(alpha);
     }
 
     if (elapsed > aimDuration) {
-      this.phase = 'barrage_fire'
-      this.phaseStartTime = time
+      this.phase = "barrage_fire";
+      this.phaseStartTime = time;
     }
   }
 
   private handleBarrageFirePhase(time: number, playerX: number, playerY: number) {
     // Hide telegraph lines
-    this.telegraphLines.forEach(line => line.setVisible(false))
+    this.telegraphLines.forEach((line) => line.setVisible(false));
 
     // Fire 3 fast projectiles
-    const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY)
-    const spreadAngle = 0.15
-    const speed = 350 // Fast projectiles
+    const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY);
+    const spreadAngle = 0.15;
+    const speed = 350; // Fast projectiles
 
     for (let i = 0; i < 3; i++) {
-      const angleOffset = (i - 1) * spreadAngle
-      this.bulletPool.spawn(this.x, this.y, baseAngle + angleOffset, speed)
+      const angleOffset = (i - 1) * spreadAngle;
+      this.bulletPool.spawn(this.x, this.y, baseAngle + angleOffset, speed);
     }
 
-    this.phase = 'idle'
-    this.lastAttackTime = time
+    this.phase = "idle";
+    this.lastAttackTime = time;
   }
 
   // Attack Pattern 3: Charge - Wind up then dash toward player
   private handleChargeWindupPhase(time: number, playerX: number, playerY: number) {
-    this.setVelocity(0, 0)
+    this.setVelocity(0, 0);
 
-    const windupDuration = 600 // 0.6 seconds warning
-    const elapsed = time - this.phaseStartTime
+    const windupDuration = 600; // 0.6 seconds warning
+    const elapsed = time - this.phaseStartTime;
 
     // Visual warning - pulse red
     if (Math.floor(elapsed / 100) % 2 === 0) {
-      this.setTint(0xff0000)
+      this.setTint(0xff0000);
     } else {
-      this.clearTint()
+      this.clearTint();
     }
 
     // Update charge target to current player position
-    this.chargeTargetX = playerX
-    this.chargeTargetY = playerY
+    this.chargeTargetX = playerX;
+    this.chargeTargetY = playerY;
 
     // Show charge trail line (pulsing)
     if (this.chargeTrailLine) {
-      this.chargeTrailLine.setVisible(true)
+      this.chargeTrailLine.setVisible(true);
 
       // Pulsing alpha based on elapsed time
-      const pulsePhase = (elapsed % 150) / 150
-      const alpha = 0.3 + pulsePhase * 0.5
-      this.chargeTrailLine.setAlpha(alpha)
+      const pulsePhase = (elapsed % 150) / 150;
+      const alpha = 0.3 + pulsePhase * 0.5;
+      this.chargeTrailLine.setAlpha(alpha);
 
       // Line width grows as charge approaches
-      const lineWidth = 4 + (elapsed / windupDuration) * 6
-      this.chargeTrailLine.setLineWidth(lineWidth)
+      const lineWidth = 4 + (elapsed / windupDuration) * 6;
+      this.chargeTrailLine.setLineWidth(lineWidth);
 
       // Draw line from boss to player
-      this.chargeTrailLine.setTo(this.x, this.y, playerX, playerY)
+      this.chargeTrailLine.setTo(this.x, this.y, playerX, playerY);
     }
 
     if (elapsed > windupDuration) {
-      this.clearTint()
+      this.clearTint();
 
       // Hide charge trail
       if (this.chargeTrailLine) {
-        this.chargeTrailLine.setVisible(false)
+        this.chargeTrailLine.setVisible(false);
       }
 
-      this.phase = 'charging'
-      this.phaseStartTime = time
+      this.phase = "charging";
+      this.phaseStartTime = time;
 
       // Calculate charge direction
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, this.chargeTargetX, this.chargeTargetY)
-      this.setVelocity(
-        Math.cos(angle) * this.chargeSpeed,
-        Math.sin(angle) * this.chargeSpeed
-      )
+      const angle = Phaser.Math.Angle.Between(
+        this.x,
+        this.y,
+        this.chargeTargetX,
+        this.chargeTargetY,
+      );
+      this.setVelocity(Math.cos(angle) * this.chargeSpeed, Math.sin(angle) * this.chargeSpeed);
     }
   }
 
   private handleChargingPhase(time: number) {
-    const chargeDuration = 500 // Charge for 0.5 seconds max
-    const elapsed = time - this.phaseStartTime
+    const chargeDuration = 500; // Charge for 0.5 seconds max
+    const elapsed = time - this.phaseStartTime;
 
     // Check if reached target or time expired
     const distToTarget = Phaser.Math.Distance.Between(
-      this.x, this.y,
-      this.chargeTargetX, this.chargeTargetY
-    )
+      this.x,
+      this.y,
+      this.chargeTargetX,
+      this.chargeTargetY,
+    );
 
     if (elapsed > chargeDuration || distToTarget < 30) {
-      this.setVelocity(0, 0)
-      this.phase = 'idle'
-      this.lastAttackTime = time
+      this.setVelocity(0, 0);
+      this.phase = "idle";
+      this.lastAttackTime = time;
     }
   }
 
   destroy(fromScene?: boolean) {
     // Clean up telegraph lines
-    this.telegraphLines.forEach(line => {
-      if (line) line.destroy()
-    })
-    this.telegraphLines = []
+    this.telegraphLines.forEach((line) => {
+      if (line) line.destroy();
+    });
+    this.telegraphLines = [];
 
     // Clean up spread danger zone
     if (this.spreadDangerZone) {
-      this.spreadDangerZone.destroy()
-      this.spreadDangerZone = null
+      this.spreadDangerZone.destroy();
+      this.spreadDangerZone = null;
     }
 
     // Clean up charge trail line
     if (this.chargeTrailLine) {
-      this.chargeTrailLine.destroy()
-      this.chargeTrailLine = null
+      this.chargeTrailLine.destroy();
+      this.chargeTrailLine = null;
     }
 
-    super.destroy(fromScene)
+    super.destroy(fromScene);
   }
 }

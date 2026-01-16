@@ -21,30 +21,32 @@ export class AudioManager {
    */
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
-      if (!document.hidden && this.context && this.context.state === 'suspended') {
+      if (!document.hidden && this.context && this.context.state === "suspended") {
         // Page became visible and audio context is suspended - resume it
         this.context.resume().catch((err) => {
-          console.warn('Failed to resume AudioContext on visibility change:', err);
+          console.warn("Failed to resume AudioContext on visibility change:", err);
         });
       }
     };
 
-    document.addEventListener('visibilitychange', this.visibilityHandler);
+    document.addEventListener("visibilitychange", this.visibilityHandler);
   }
 
   private getContext(): InstanceType<BrowserAudioContext> | null {
     if (!this.context) {
       try {
-        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: BrowserAudioContext }).webkitAudioContext;
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: BrowserAudioContext }).webkitAudioContext;
         this.context = new AudioContextClass();
       } catch (e) {
-        console.warn('Web Audio API not supported:', e);
+        console.warn("Web Audio API not supported:", e);
         return null;
       }
     }
 
     // If context is suspended (e.g., after returning from background), try to resume it
-    if (this.context.state === 'suspended') {
+    if (this.context.state === "suspended") {
       this.context.resume().catch(() => {
         // Silently ignore - will retry on next interaction
       });
@@ -66,13 +68,13 @@ export class AudioManager {
    */
   async resume(): Promise<void> {
     const ctx = this.getContext();
-    if (ctx && ctx.state === 'suspended') {
+    if (ctx && ctx.state === "suspended") {
       try {
         await ctx.resume();
       } catch (err) {
         // iOS Safari may throw "Failed to start the audio device" in some states
         // This is not critical - audio will resume on next user interaction
-        console.warn('AudioManager: Failed to resume audio context:', err);
+        console.warn("AudioManager: Failed to resume audio context:", err);
       }
     }
   }
@@ -91,7 +93,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'square';
+    oscillator.type = "square";
     oscillator.frequency.setValueAtTime(880, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.05);
 
@@ -116,7 +118,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'sine';
+    oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(200, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.1);
 
@@ -141,7 +143,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'sawtooth';
+    oscillator.type = "sawtooth";
     oscillator.frequency.setValueAtTime(150, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.15);
 
@@ -160,7 +162,7 @@ export class AudioManager {
     const ctx = this.getContext();
     if (!ctx) return;
 
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
     const duration = 0.12;
 
     notes.forEach((freq, i) => {
@@ -170,7 +172,7 @@ export class AudioManager {
       oscillator.connect(gainNode);
       gainNode.connect(ctx.destination);
 
-      oscillator.type = 'sine';
+      oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(freq, ctx.currentTime + i * duration);
 
       const startTime = ctx.currentTime + i * duration;
@@ -198,7 +200,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'sine';
+    oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(660, ctx.currentTime);
     oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
 
@@ -229,7 +231,7 @@ export class AudioManager {
       oscillator.connect(gainNode);
       gainNode.connect(ctx.destination);
 
-      oscillator.type = 'triangle';
+      oscillator.type = "triangle";
       oscillator.frequency.setValueAtTime(freq, time);
 
       gainNode.gain.setValueAtTime(this.masterVolume * 0.3, time);
@@ -257,7 +259,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'sawtooth';
+    oscillator.type = "sawtooth";
     oscillator.frequency.setValueAtTime(440, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(55, ctx.currentTime + 0.8);
 
@@ -280,7 +282,7 @@ export class AudioManager {
     // Major chord: C-E-G followed by higher C-E-G
     const chords = [
       [261.63, 329.63, 392], // C4, E4, G4
-      [523.25, 659.25, 783.99] // C5, E5, G5
+      [523.25, 659.25, 783.99], // C5, E5, G5
     ];
 
     let time = ctx.currentTime;
@@ -292,7 +294,7 @@ export class AudioManager {
         oscillator.connect(gainNode);
         gainNode.connect(ctx.destination);
 
-        oscillator.type = 'sine';
+        oscillator.type = "sine";
         oscillator.frequency.setValueAtTime(freq, time);
 
         const duration = chordIndex === 0 ? 0.25 : 0.5;
@@ -321,7 +323,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'sine';
+    oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(600, ctx.currentTime);
 
     gainNode.gain.setValueAtTime(this.masterVolume * 0.2, ctx.currentTime);
@@ -345,7 +347,7 @@ export class AudioManager {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.type = 'square';
+    oscillator.type = "square";
     oscillator.frequency.setValueAtTime(220, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
 

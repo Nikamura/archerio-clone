@@ -30,18 +30,24 @@ pnpm install          # Install dependencies
 pnpm run dev          # Development server with hot reload
 pnpm run build        # Build for production (includes TypeScript check)
 pnpm run lint         # Run linter (must pass with 0 warnings)
+pnpm run format       # Format code with Prettier
+pnpm run format:check # Check formatting (CI)
 pnpm run test         # Unit tests
 pnpm run test:visual  # Puppeteer E2E tests (requires dev server)
 ```
 
 ## Code Quality Requirements
 
-**IMPORTANT:** All code changes must pass linting and TypeScript compilation before being considered complete.
+**IMPORTANT:** All code changes must pass linting, formatting, and TypeScript compilation before being considered complete.
 
 ```bash
-# Run both checks before committing
-pnpm run build && pnpm run lint
+# Run all checks before committing
+pnpm run build && pnpm run lint && pnpm run format:check
 ```
+
+### Formatting (Prettier)
+
+Code is formatted with Prettier using default settings (`printWidth: 100`). Run `pnpm run format` to auto-fix formatting issues.
 
 ### Common TypeScript Fixes
 - **Unused variables**: Prefix with underscore (e.g., `_delta`)
@@ -119,7 +125,7 @@ See [Asset Generation](./docs/asset-generation.md) for full documentation.
 
 ## Development Workflow
 
-1. Run `pnpm run build && pnpm run lint` before considering work complete
+1. Run `pnpm run build && pnpm run lint && pnpm run format:check` before considering work complete
 2. **Keep documentation in sync** - update `CLAUDE.md` and relevant `docs/*.md` files when:
    - Adding/changing abilities, enemies, bosses, equipment, heroes
    - Modifying game mechanics or balance values

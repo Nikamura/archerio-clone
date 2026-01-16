@@ -10,7 +10,7 @@
 /**
  * Valid chapter identifiers (1-5)
  */
-export type ChapterId = 1 | 2 | 3 | 4 | 5
+export type ChapterId = 1 | 2 | 3 | 4 | 5;
 
 /**
  * Enemy types available in the game
@@ -18,19 +18,19 @@ export type ChapterId = 1 | 2 | 3 | 4 | 5
  * V1 enemies: bomber, tank, charger, healer, spawner
  */
 export type EnemyType =
-  | 'melee'
-  | 'ranged'
-  | 'spreader'
-  | 'bomber'
-  | 'tank'
-  | 'charger'
-  | 'healer'
-  | 'spawner'
+  | "melee"
+  | "ranged"
+  | "spreader"
+  | "bomber"
+  | "tank"
+  | "charger"
+  | "healer"
+  | "spawner";
 
 /**
  * Room types within a chapter
  */
-export type RoomType = 'combat' | 'angel' | 'miniboss' | 'boss'
+export type RoomType = "combat" | "angel" | "miniboss" | "boss";
 
 /**
  * Boss types for each chapter
@@ -38,40 +38,40 @@ export type RoomType = 'combat' | 'angel' | 'miniboss' | 'boss'
  */
 export type BossType =
   // Chapter 1 - Dark Dungeon
-  | 'demon'
+  | "demon"
   // Chapter 2 - Forest Ruins
-  | 'treant'
-  | 'tree_guardian'
-  | 'wild_boar'
-  | 'forest_spirit'
+  | "treant"
+  | "tree_guardian"
+  | "wild_boar"
+  | "forest_spirit"
   // Chapter 3 - Frozen Caves
-  | 'frost_giant'
-  | 'ice_golem'
-  | 'frost_wyrm'
-  | 'crystal_guardian'
+  | "frost_giant"
+  | "ice_golem"
+  | "frost_wyrm"
+  | "crystal_guardian"
   // Chapter 4 - Volcanic Depths
-  | 'lava_golem'
-  | 'magma_wyrm'
-  | 'inferno_demon'
+  | "lava_golem"
+  | "magma_wyrm"
+  | "inferno_demon"
   // Chapter 5 - Shadow Realm
-  | 'void_lord'
-  | 'nightmare'
-  | 'final_boss'
+  | "void_lord"
+  | "nightmare"
+  | "final_boss";
 
 /**
  * Chapter theme configuration
  */
 export interface ChapterTheme {
   /** Background asset key */
-  backgroundKey: string
+  backgroundKey: string;
   /** Tile/floor asset key */
-  floorKey: string
+  floorKey: string;
   /** Primary color for UI elements */
-  primaryColor: number
+  primaryColor: number;
   /** Secondary/accent color */
-  accentColor: number
+  accentColor: number;
   /** Ambient music track key */
-  musicKey: string
+  musicKey: string;
 }
 
 /**
@@ -81,11 +81,11 @@ export interface ChapterTheme {
  */
 export interface ElementalResistances {
   /** Fire damage multiplier (for DOT effects) */
-  fire: number
+  fire: number;
   /** Cold/freeze resistance (affects freeze duration and ice damage) */
-  cold: number
+  cold: number;
   /** Bleed resistance (affects bleed DOT damage) */
-  bleed: number
+  bleed: number;
 }
 
 /**
@@ -93,19 +93,19 @@ export interface ElementalResistances {
  */
 export interface ChapterScaling {
   /** Enemy HP multiplier (base = 1.0) */
-  enemyHpMultiplier: number
+  enemyHpMultiplier: number;
   /** Enemy damage multiplier (base = 1.0) */
-  enemyDamageMultiplier: number
+  enemyDamageMultiplier: number;
   /** Additional enemies per room compared to chapter 1 */
-  extraEnemiesPerRoom: number
+  extraEnemiesPerRoom: number;
   /** Boss HP multiplier (base = 1.0) */
-  bossHpMultiplier: number
+  bossHpMultiplier: number;
   /** Boss damage multiplier (base = 1.0) */
-  bossDamageMultiplier: number
+  bossDamageMultiplier: number;
   /** XP gain multiplier for kills (base = 1.0) - harder chapters reward more XP */
-  xpMultiplier: number
+  xpMultiplier: number;
   /** Elemental resistances for enemies in this chapter */
-  elementalResistances: ElementalResistances
+  elementalResistances: ElementalResistances;
 }
 
 /**
@@ -114,32 +114,32 @@ export interface ChapterScaling {
  */
 export interface EnemyChapterModifiers {
   /** Movement speed multiplier (1.0 = normal) */
-  speedMultiplier?: number
+  speedMultiplier?: number;
   /** Attack speed/cooldown multiplier (lower = faster attacks) */
-  attackCooldownMultiplier?: number
+  attackCooldownMultiplier?: number;
   /** Projectile speed multiplier for ranged enemies (1.0 = normal) */
-  projectileSpeedMultiplier?: number
+  projectileSpeedMultiplier?: number;
   /** Spawn selection weight for this enemy in this chapter (1.0 = normal) */
-  spawnWeight?: number
+  spawnWeight?: number;
   /** Special ability intensity (e.g., healer heal amount, spawner spawn rate) */
-  abilityIntensityMultiplier?: number
+  abilityIntensityMultiplier?: number;
 }
 
 /**
  * Enemy modifiers for all enemy types in a chapter
  */
-export type ChapterEnemyModifiers = Partial<Record<EnemyType, EnemyChapterModifiers>>
+export type ChapterEnemyModifiers = Partial<Record<EnemyType, EnemyChapterModifiers>>;
 
 /**
  * Reward configuration for chapter completion
  */
 export interface ChapterRewards {
   /** Base gold reward */
-  gold: number
+  gold: number;
   /** Base gem reward */
-  gems: number
+  gems: number;
   /** Base scroll reward */
-  scrolls: number
+  scrolls: number;
 }
 
 /**
@@ -147,35 +147,35 @@ export interface ChapterRewards {
  */
 export interface ChapterDefinition {
   /** Chapter ID (1-5) */
-  id: ChapterId
+  id: ChapterId;
   /** Display name */
-  name: string
+  name: string;
   /** Short description */
-  description: string
+  description: string;
   /** Total rooms in this chapter */
-  totalRooms: number
+  totalRooms: number;
   /** Theme configuration */
-  theme: ChapterTheme
+  theme: ChapterTheme;
   /** Available enemy types for this chapter */
-  enemyTypes: EnemyType[]
+  enemyTypes: EnemyType[];
   /** Available tactical combination names for this chapter */
-  tacticComboNames: string[]
+  tacticComboNames: string[];
   /** Boss type for chapter boss fight */
-  bossType: BossType
+  bossType: BossType;
   /** All boss types available in this chapter (for variety) */
-  bossPool: BossType[]
+  bossPool: BossType[];
   /** Mini-boss type (typically a stronger version of an enemy) - fallback if no miniBossPool */
-  miniBossType: EnemyType
+  miniBossType: EnemyType;
   /** Pool of boss types that can spawn as mini-bosses at room 10 */
-  miniBossPool: BossType[]
+  miniBossPool: BossType[];
   /** Difficulty scaling compared to base */
-  scaling: ChapterScaling
+  scaling: ChapterScaling;
   /** Per-enemy-type behavior modifiers for this chapter */
-  enemyModifiers: ChapterEnemyModifiers
+  enemyModifiers: ChapterEnemyModifiers;
   /** Completion rewards */
-  rewards: ChapterRewards
+  rewards: ChapterRewards;
   /** First-time completion bonus multiplier */
-  firstTimeBonus: number
+  firstTimeBonus: number;
 }
 
 /**
@@ -184,13 +184,13 @@ export interface ChapterDefinition {
  */
 export interface ChapterRoomLayout {
   /** Combat rooms (most rooms) */
-  combatRooms: number[]
+  combatRooms: number[];
   /** Angel rooms (heal or ability choice) */
-  angelRooms: number[]
+  angelRooms: number[];
   /** Mini-boss rooms */
-  miniBossRooms: number[]
+  miniBossRooms: number[];
   /** Boss room (final room) */
-  bossRoom: number
+  bossRoom: number;
 }
 
 // ============================================
@@ -198,7 +198,7 @@ export interface ChapterRoomLayout {
 // ============================================
 
 /** Total rooms per chapter */
-export const ROOMS_PER_CHAPTER = 20
+export const ROOMS_PER_CHAPTER = 20;
 
 /** Star rating thresholds */
 export const STAR_THRESHOLDS = {
@@ -208,14 +208,14 @@ export const STAR_THRESHOLDS = {
   TWO_STAR_HP_THRESHOLD: 0.5,
   /** 3 stars: Complete with no deaths during run */
   THREE_STAR_NO_DEATHS: true,
-}
+};
 
 /** Star reward multipliers */
 export const STAR_REWARD_MULTIPLIERS = {
   1: 1.0,
   2: 1.5,
   3: 2.0,
-}
+};
 
 // ============================================
 // Room Layout (Same for all chapters)
@@ -237,22 +237,22 @@ export const STANDARD_ROOM_LAYOUT: ChapterRoomLayout = {
   angelRooms: [5, 15],
   miniBossRooms: [10],
   bossRoom: 20,
-}
+};
 
 /**
  * Get the room type for a given room number
  */
 export function getRoomTypeForNumber(roomNumber: number): RoomType {
   if (roomNumber === STANDARD_ROOM_LAYOUT.bossRoom) {
-    return 'boss'
+    return "boss";
   }
   if (STANDARD_ROOM_LAYOUT.miniBossRooms.includes(roomNumber)) {
-    return 'miniboss'
+    return "miniboss";
   }
   if (STANDARD_ROOM_LAYOUT.angelRooms.includes(roomNumber)) {
-    return 'angel'
+    return "angel";
   }
-  return 'combat'
+  return "combat";
 }
 
 // ============================================
@@ -262,22 +262,22 @@ export function getRoomTypeForNumber(roomNumber: number): RoomType {
 export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
   1: {
     id: 1,
-    name: 'Dark Dungeon',
-    description: 'Ancient stone corridors lit by flickering torches.',
+    name: "Dark Dungeon",
+    description: "Ancient stone corridors lit by flickering torches.",
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'chapter1Bg',
-      floorKey: 'floor_stone',
+      backgroundKey: "chapter1Bg",
+      floorKey: "floor_stone",
       primaryColor: 0x4a4a4a,
       accentColor: 0xff6600,
-      musicKey: 'music_dungeon',
+      musicKey: "music_dungeon",
     },
-    enemyTypes: ['melee', 'ranged', 'spreader'],
-    tacticComboNames: ['Melee Rush', 'Ranged Support', 'Spread Formation'],
-    bossType: 'demon',
-    bossPool: ['demon'],
-    miniBossType: 'spreader', // Fallback if no boss spawns
-    miniBossPool: ['demon'], // Demon appears as mini-boss at room 10
+    enemyTypes: ["melee", "ranged", "spreader"],
+    tacticComboNames: ["Melee Rush", "Ranged Support", "Spread Formation"],
+    bossType: "demon",
+    bossPool: ["demon"],
+    miniBossType: "spreader", // Fallback if no boss spawns
+    miniBossPool: ["demon"], // Demon appears as mini-boss at room 10
     scaling: {
       enemyHpMultiplier: 1.0,
       enemyDamageMultiplier: 1.0,
@@ -307,29 +307,29 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
   },
   2: {
     id: 2,
-    name: 'Forest Ruins',
-    description: 'Overgrown temples reclaimed by nature.',
+    name: "Forest Ruins",
+    description: "Overgrown temples reclaimed by nature.",
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'chapter2Bg',
-      floorKey: 'floor_moss',
+      backgroundKey: "chapter2Bg",
+      floorKey: "floor_moss",
       primaryColor: 0x2d5a27,
       accentColor: 0x8bc34a,
-      musicKey: 'music_forest',
+      musicKey: "music_forest",
     },
-    enemyTypes: ['melee', 'ranged', 'spreader', 'bomber'],
+    enemyTypes: ["melee", "ranged", "spreader", "bomber"],
     tacticComboNames: [
-      'Ranged Support',
-      'Sniper Nest',
-      'Spread Formation',
-      'Bomber Support',
-      'Melee Rush',
-      'Fire Support',
+      "Ranged Support",
+      "Sniper Nest",
+      "Spread Formation",
+      "Bomber Support",
+      "Melee Rush",
+      "Fire Support",
     ],
-    bossType: 'treant',
-    bossPool: ['treant', 'tree_guardian', 'wild_boar', 'forest_spirit'],
-    miniBossType: 'bomber', // Fallback
-    miniBossPool: ['wild_boar', 'forest_spirit'], // Non-main bosses as mini-bosses
+    bossType: "treant",
+    bossPool: ["treant", "tree_guardian", "wild_boar", "forest_spirit"],
+    miniBossType: "bomber", // Fallback
+    miniBossPool: ["wild_boar", "forest_spirit"], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 2.5, // Exponential scaling: ~2.5x per chapter
       enemyDamageMultiplier: 1.3,
@@ -373,28 +373,28 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
   },
   3: {
     id: 3,
-    name: 'Frozen Caves',
-    description: 'Glacial caverns with crystalline formations.',
+    name: "Frozen Caves",
+    description: "Glacial caverns with crystalline formations.",
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'chapter3Bg',
-      floorKey: 'floor_ice',
+      backgroundKey: "chapter3Bg",
+      floorKey: "floor_ice",
       primaryColor: 0x87ceeb,
       accentColor: 0x00bfff,
-      musicKey: 'music_ice',
+      musicKey: "music_ice",
     },
-    enemyTypes: ['melee', 'spreader', 'tank', 'charger'],
+    enemyTypes: ["melee", "spreader", "tank", "charger"],
     tacticComboNames: [
-      'Spread Formation',
-      'Charge Assault',
-      'Blitz Squad',
-      'Double Trouble',
-      'Heavy Hitters',
+      "Spread Formation",
+      "Charge Assault",
+      "Blitz Squad",
+      "Double Trouble",
+      "Heavy Hitters",
     ],
-    bossType: 'frost_giant',
-    bossPool: ['frost_giant', 'ice_golem', 'frost_wyrm', 'crystal_guardian'],
-    miniBossType: 'tank', // Fallback
-    miniBossPool: ['frost_wyrm', 'crystal_guardian'], // Non-main bosses as mini-bosses
+    bossType: "frost_giant",
+    bossPool: ["frost_giant", "ice_golem", "frost_wyrm", "crystal_guardian"],
+    miniBossType: "tank", // Fallback
+    miniBossPool: ["frost_wyrm", "crystal_guardian"], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 7.0, // Exponential scaling continues
       enemyDamageMultiplier: 1.6,
@@ -441,30 +441,30 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
   },
   4: {
     id: 4,
-    name: 'Volcanic Depths',
-    description: 'Lava flows and scorching heat.',
+    name: "Volcanic Depths",
+    description: "Lava flows and scorching heat.",
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'chapter4Bg',
-      floorKey: 'floor_obsidian',
+      backgroundKey: "chapter4Bg",
+      floorKey: "floor_obsidian",
       primaryColor: 0x8b0000,
       accentColor: 0xff4500,
-      musicKey: 'music_volcano',
+      musicKey: "music_volcano",
     },
-    enemyTypes: ['melee', 'ranged', 'bomber', 'healer', 'spawner'],
+    enemyTypes: ["melee", "ranged", "bomber", "healer", "spawner"],
     tacticComboNames: [
-      'Bomber Support',
-      'Healer Tank',
-      'Siege Warfare',
-      'Spawner Den',
-      'Full Support',
-      'Fire Support',
-      'Guardian Formation',
+      "Bomber Support",
+      "Healer Tank",
+      "Siege Warfare",
+      "Spawner Den",
+      "Full Support",
+      "Fire Support",
+      "Guardian Formation",
     ],
-    bossType: 'inferno_demon', // Main boss for chapter 4
-    bossPool: ['lava_golem', 'magma_wyrm', 'inferno_demon'], // All chapter 4 bosses
-    miniBossType: 'healer', // Fallback
-    miniBossPool: ['lava_golem', 'magma_wyrm'], // Non-main bosses as mini-bosses
+    bossType: "inferno_demon", // Main boss for chapter 4
+    bossPool: ["lava_golem", "magma_wyrm", "inferno_demon"], // All chapter 4 bosses
+    miniBossType: "healer", // Fallback
+    miniBossPool: ["lava_golem", "magma_wyrm"], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 18.0, // Exponential scaling ramps up
       enemyDamageMultiplier: 2.0,
@@ -517,41 +517,32 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
   },
   5: {
     id: 5,
-    name: 'Shadow Realm',
-    description: 'The void between worlds. Ultimate darkness.',
+    name: "Shadow Realm",
+    description: "The void between worlds. Ultimate darkness.",
     totalRooms: ROOMS_PER_CHAPTER,
     theme: {
-      backgroundKey: 'chapter5Bg',
-      floorKey: 'floor_void',
+      backgroundKey: "chapter5Bg",
+      floorKey: "floor_void",
       primaryColor: 0x1a0033,
       accentColor: 0x9932cc,
-      musicKey: 'music_void',
+      musicKey: "music_void",
     },
-    enemyTypes: [
-      'melee',
-      'ranged',
-      'spreader',
-      'bomber',
-      'tank',
-      'charger',
-      'healer',
-      'spawner',
-    ],
+    enemyTypes: ["melee", "ranged", "spreader", "bomber", "tank", "charger", "healer", "spawner"],
     tacticComboNames: [
-      'Chaos Formation',
-      'Full Support',
-      'Infinite Army',
-      'Heavy Hitters',
-      'Elite Guard',
-      'Fire Support',
-      'Coordinated Strike',
-      'Guardian Formation',
-      'Artillery Line',
+      "Chaos Formation",
+      "Full Support",
+      "Infinite Army",
+      "Heavy Hitters",
+      "Elite Guard",
+      "Fire Support",
+      "Coordinated Strike",
+      "Guardian Formation",
+      "Artillery Line",
     ],
-    bossType: 'final_boss', // Main boss for chapter 5 (final challenge)
-    bossPool: ['void_lord', 'nightmare', 'final_boss'], // All chapter 5 bosses
-    miniBossType: 'spawner', // Fallback
-    miniBossPool: ['nightmare', 'void_lord'], // Non-main bosses as mini-bosses
+    bossType: "final_boss", // Main boss for chapter 5 (final challenge)
+    bossPool: ["void_lord", "nightmare", "final_boss"], // All chapter 5 bosses
+    miniBossType: "spawner", // Fallback
+    miniBossPool: ["nightmare", "void_lord"], // Non-main bosses as mini-bosses
     scaling: {
       enemyHpMultiplier: 35.0, // Increased for balance (was 30x)
       enemyDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
@@ -618,7 +609,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
     },
     firstTimeBonus: 2.0,
   },
-}
+};
 
 // ============================================
 // Utility Functions
@@ -628,21 +619,21 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
  * Get chapter definition by ID
  */
 export function getChapterDefinition(chapterId: ChapterId): ChapterDefinition {
-  return CHAPTER_DEFINITIONS[chapterId]
+  return CHAPTER_DEFINITIONS[chapterId];
 }
 
 /**
  * Get all chapter IDs
  */
 export function getAllChapterIds(): ChapterId[] {
-  return [1, 2, 3, 4, 5]
+  return [1, 2, 3, 4, 5];
 }
 
 /**
  * Check if a chapter ID is valid
  */
 export function isValidChapterId(id: number): id is ChapterId {
-  return id >= 1 && id <= 5
+  return id >= 1 && id <= 5;
 }
 
 /**
@@ -650,7 +641,7 @@ export function isValidChapterId(id: number): id is ChapterId {
  * Returns all enemy types available in that chapter
  */
 export function getEnemyPoolForChapter(chapterId: ChapterId): EnemyType[] {
-  return [...CHAPTER_DEFINITIONS[chapterId].enemyTypes]
+  return [...CHAPTER_DEFINITIONS[chapterId].enemyTypes];
 }
 
 /**
@@ -658,28 +649,28 @@ export function getEnemyPoolForChapter(chapterId: ChapterId): EnemyType[] {
  * Starts with 3 enemies in chapter 1, increases with chapter scaling
  */
 export function getBaseEnemiesPerRoom(chapterId: ChapterId, roomNumber: number): number {
-  const baseCount = 3
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
+  const baseCount = 3;
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
 
   // Room scaling: later rooms have more enemies
-  const roomScaling = Math.floor(roomNumber / 5) // +1 enemy every 5 rooms
+  const roomScaling = Math.floor(roomNumber / 5); // +1 enemy every 5 rooms
 
   // Mini-boss rooms have fewer but tougher enemies
   if (STANDARD_ROOM_LAYOUT.miniBossRooms.includes(roomNumber)) {
-    return 1 // Just the mini-boss
+    return 1; // Just the mini-boss
   }
 
   // Boss rooms
   if (roomNumber === STANDARD_ROOM_LAYOUT.bossRoom) {
-    return 1 // Just the boss
+    return 1; // Just the boss
   }
 
   // Angel rooms have no enemies
   if (STANDARD_ROOM_LAYOUT.angelRooms.includes(roomNumber)) {
-    return 0
+    return 0;
   }
 
-  return baseCount + chapter.scaling.extraEnemiesPerRoom + roomScaling
+  return baseCount + chapter.scaling.extraEnemiesPerRoom + roomScaling;
 }
 
 /**
@@ -689,10 +680,10 @@ export function getBaseEnemiesPerRoom(chapterId: ChapterId, roomNumber: number):
 export function getEnemyHpForChapter(
   chapterId: ChapterId,
   baseHp: number,
-  difficultyMultiplier: number = 1.0
+  difficultyMultiplier: number = 1.0,
 ): number {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  return Math.round(baseHp * chapter.scaling.enemyHpMultiplier * difficultyMultiplier)
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  return Math.round(baseHp * chapter.scaling.enemyHpMultiplier * difficultyMultiplier);
 }
 
 /**
@@ -701,10 +692,10 @@ export function getEnemyHpForChapter(
 export function getEnemyDamageForChapter(
   chapterId: ChapterId,
   baseDamage: number,
-  difficultyMultiplier: number = 1.0
+  difficultyMultiplier: number = 1.0,
 ): number {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  return Math.round(baseDamage * chapter.scaling.enemyDamageMultiplier * difficultyMultiplier)
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  return Math.round(baseDamage * chapter.scaling.enemyDamageMultiplier * difficultyMultiplier);
 }
 
 /**
@@ -713,10 +704,10 @@ export function getEnemyDamageForChapter(
 export function getBossHpForChapter(
   chapterId: ChapterId,
   baseHp: number,
-  difficultyMultiplier: number = 1.0
+  difficultyMultiplier: number = 1.0,
 ): number {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  return Math.round(baseHp * chapter.scaling.bossHpMultiplier * difficultyMultiplier)
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  return Math.round(baseHp * chapter.scaling.bossHpMultiplier * difficultyMultiplier);
 }
 
 /**
@@ -725,10 +716,10 @@ export function getBossHpForChapter(
 export function getBossDamageForChapter(
   chapterId: ChapterId,
   baseDamage: number,
-  difficultyMultiplier: number = 1.0
+  difficultyMultiplier: number = 1.0,
 ): number {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  return Math.round(baseDamage * chapter.scaling.bossDamageMultiplier * difficultyMultiplier)
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  return Math.round(baseDamage * chapter.scaling.bossDamageMultiplier * difficultyMultiplier);
 }
 
 /**
@@ -736,7 +727,7 @@ export function getBossDamageForChapter(
  * Harder chapters reward more XP per kill
  */
 export function getXpMultiplierForChapter(chapterId: ChapterId): number {
-  return CHAPTER_DEFINITIONS[chapterId].scaling.xpMultiplier
+  return CHAPTER_DEFINITIONS[chapterId].scaling.xpMultiplier;
 }
 
 /**
@@ -752,18 +743,21 @@ export function getXpMultiplierForChapter(chapterId: ChapterId): number {
  * This ensures early rooms remain approachable while later rooms
  * present a real challenge even with good ability builds.
  */
-export function getRoomProgressionScaling(roomNumber: number): { hpMultiplier: number; damageMultiplier: number } {
+export function getRoomProgressionScaling(roomNumber: number): {
+  hpMultiplier: number;
+  damageMultiplier: number;
+} {
   // No scaling for early rooms (tutorial period)
   if (roomNumber <= 5) {
-    return { hpMultiplier: 1.0, damageMultiplier: 1.0 }
+    return { hpMultiplier: 1.0, damageMultiplier: 1.0 };
   }
 
   // Progressive scaling after room 5
-  const roomsAfterThreshold = roomNumber - 5
-  const hpMultiplier = 1.0 + (roomsAfterThreshold * 0.03)  // +3% per room
-  const damageMultiplier = 1.0 + (roomsAfterThreshold * 0.02)  // +2% per room
+  const roomsAfterThreshold = roomNumber - 5;
+  const hpMultiplier = 1.0 + roomsAfterThreshold * 0.03; // +3% per room
+  const damageMultiplier = 1.0 + roomsAfterThreshold * 0.02; // +2% per room
 
-  return { hpMultiplier, damageMultiplier }
+  return { hpMultiplier, damageMultiplier };
 }
 
 /**
@@ -778,26 +772,26 @@ export function calculateStarRating(
   completed: boolean,
   hpRemaining: number,
   maxHp: number,
-  deathsDuringRun: number
+  deathsDuringRun: number,
 ): 0 | 1 | 2 | 3 {
   if (!completed) {
-    return 0
+    return 0;
   }
 
-  let stars: 0 | 1 | 2 | 3 = 1 // Base star for completion
+  let stars: 0 | 1 | 2 | 3 = 1; // Base star for completion
 
   // 2 stars: Complete with >50% HP
-  const hpPercentage = maxHp > 0 ? hpRemaining / maxHp : 0
+  const hpPercentage = maxHp > 0 ? hpRemaining / maxHp : 0;
   if (hpPercentage > STAR_THRESHOLDS.TWO_STAR_HP_THRESHOLD) {
-    stars = 2
+    stars = 2;
   }
 
   // 3 stars: Complete with no deaths
   if (deathsDuringRun === 0 && hpPercentage > STAR_THRESHOLDS.TWO_STAR_HP_THRESHOLD) {
-    stars = 3
+    stars = 3;
   }
 
-  return stars
+  return stars;
 }
 
 /**
@@ -811,20 +805,20 @@ export function calculateChapterRewards(
   chapterId: ChapterId,
   stars: 1 | 2 | 3,
   firstTime: boolean,
-  difficultyMultiplier: number = 1.0
+  difficultyMultiplier: number = 1.0,
 ): ChapterRewards {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  const starMultiplier = STAR_REWARD_MULTIPLIERS[stars]
-  const firstTimeMultiplier = firstTime ? chapter.firstTimeBonus : 1.0
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  const starMultiplier = STAR_REWARD_MULTIPLIERS[stars];
+  const firstTimeMultiplier = firstTime ? chapter.firstTimeBonus : 1.0;
 
   // Combined multiplier: chapter base × stars × first time × difficulty
-  const totalMultiplier = starMultiplier * firstTimeMultiplier * difficultyMultiplier
+  const totalMultiplier = starMultiplier * firstTimeMultiplier * difficultyMultiplier;
 
   return {
     gold: Math.floor(chapter.rewards.gold * totalMultiplier),
     gems: Math.floor(chapter.rewards.gems * totalMultiplier),
     scrolls: Math.floor(chapter.rewards.scrolls * totalMultiplier),
-  }
+  };
 }
 
 /**
@@ -832,9 +826,9 @@ export function calculateChapterRewards(
  */
 export function getNextChapterId(currentChapterId: ChapterId): ChapterId | null {
   if (currentChapterId >= 5) {
-    return null
+    return null;
   }
-  return (currentChapterId + 1) as ChapterId
+  return (currentChapterId + 1) as ChapterId;
 }
 
 /**
@@ -842,9 +836,9 @@ export function getNextChapterId(currentChapterId: ChapterId): ChapterId | null 
  */
 export function getPreviousChapterId(currentChapterId: ChapterId): ChapterId | null {
   if (currentChapterId <= 1) {
-    return null
+    return null;
   }
-  return (currentChapterId - 1) as ChapterId
+  return (currentChapterId - 1) as ChapterId;
 }
 
 /**
@@ -853,17 +847,20 @@ export function getPreviousChapterId(currentChapterId: ChapterId): ChapterId | n
  * @param rng Optional seeded random generator (uses Math.random if not provided)
  * @returns A random BossType from the chapter's pool
  */
-export function getRandomBossForChapter(chapterId: ChapterId, rng?: { random: () => number }): BossType {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  const pool = chapter.bossPool
+export function getRandomBossForChapter(
+  chapterId: ChapterId,
+  rng?: { random: () => number },
+): BossType {
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  const pool = chapter.bossPool;
 
   if (pool.length === 0) {
-    return chapter.bossType // Fallback to main boss
+    return chapter.bossType; // Fallback to main boss
   }
 
-  const randomValue = rng ? rng.random() : Math.random()
-  const randomIndex = Math.floor(randomValue * pool.length)
-  return pool[randomIndex]
+  const randomValue = rng ? rng.random() : Math.random();
+  const randomIndex = Math.floor(randomValue * pool.length);
+  return pool[randomIndex];
 }
 
 /**
@@ -872,7 +869,7 @@ export function getRandomBossForChapter(chapterId: ChapterId, rng?: { random: ()
  * @returns The main BossType for the chapter
  */
 export function getMainBossForChapter(chapterId: ChapterId): BossType {
-  return CHAPTER_DEFINITIONS[chapterId].bossType
+  return CHAPTER_DEFINITIONS[chapterId].bossType;
 }
 
 /**
@@ -881,7 +878,7 @@ export function getMainBossForChapter(chapterId: ChapterId): BossType {
  * @returns Array of all BossTypes available in the chapter
  */
 export function getBossPoolForChapter(chapterId: ChapterId): BossType[] {
-  return [...CHAPTER_DEFINITIONS[chapterId].bossPool]
+  return [...CHAPTER_DEFINITIONS[chapterId].bossPool];
 }
 
 /**
@@ -892,10 +889,10 @@ export function getBossPoolForChapter(chapterId: ChapterId): BossType[] {
  */
 export function getEnemyModifiers(
   chapterId: ChapterId,
-  enemyType: EnemyType
+  enemyType: EnemyType,
 ): EnemyChapterModifiers {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  const modifiers = chapter.enemyModifiers[enemyType]
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  const modifiers = chapter.enemyModifiers[enemyType];
 
   // Return modifiers with defaults for any missing values
   return {
@@ -904,7 +901,7 @@ export function getEnemyModifiers(
     projectileSpeedMultiplier: modifiers?.projectileSpeedMultiplier ?? 1.0,
     spawnWeight: modifiers?.spawnWeight ?? 1.0,
     abilityIntensityMultiplier: modifiers?.abilityIntensityMultiplier ?? 1.0,
-  }
+  };
 }
 
 /**
@@ -913,7 +910,7 @@ export function getEnemyModifiers(
  * @returns All enemy modifiers defined for this chapter
  */
 export function getChapterEnemyModifiers(chapterId: ChapterId): ChapterEnemyModifiers {
-  return { ...CHAPTER_DEFINITIONS[chapterId].enemyModifiers }
+  return { ...CHAPTER_DEFINITIONS[chapterId].enemyModifiers };
 }
 
 /**
@@ -924,7 +921,7 @@ export function getChapterEnemyModifiers(chapterId: ChapterId): ChapterEnemyModi
  * @returns The spawn weight (1.0 = normal)
  */
 export function getEnemySpawnWeight(chapterId: ChapterId, enemyType: EnemyType): number {
-  return getEnemyModifiers(chapterId, enemyType).spawnWeight ?? 1.0
+  return getEnemyModifiers(chapterId, enemyType).spawnWeight ?? 1.0;
 }
 
 /**
@@ -933,18 +930,21 @@ export function getEnemySpawnWeight(chapterId: ChapterId, enemyType: EnemyType):
  * @param rng Optional seeded random generator (uses Math.random if not provided)
  * @returns A random BossType from the chapter's mini-boss pool
  */
-export function getRandomMiniBossForChapter(chapterId: ChapterId, rng?: { random: () => number }): BossType {
-  const chapter = CHAPTER_DEFINITIONS[chapterId]
-  const pool = chapter.miniBossPool
+export function getRandomMiniBossForChapter(
+  chapterId: ChapterId,
+  rng?: { random: () => number },
+): BossType {
+  const chapter = CHAPTER_DEFINITIONS[chapterId];
+  const pool = chapter.miniBossPool;
 
   if (pool.length === 0) {
     // Fallback to main boss if no mini-boss pool defined
-    return chapter.bossType
+    return chapter.bossType;
   }
 
-  const randomValue = rng ? rng.random() : Math.random()
-  const randomIndex = Math.floor(randomValue * pool.length)
-  return pool[randomIndex]
+  const randomValue = rng ? rng.random() : Math.random();
+  const randomIndex = Math.floor(randomValue * pool.length);
+  return pool[randomIndex];
 }
 
 /**
@@ -953,7 +953,7 @@ export function getRandomMiniBossForChapter(chapterId: ChapterId, rng?: { random
  * @returns Array of all BossTypes available as mini-bosses in the chapter
  */
 export function getMiniBossPoolForChapter(chapterId: ChapterId): BossType[] {
-  return [...CHAPTER_DEFINITIONS[chapterId].miniBossPool]
+  return [...CHAPTER_DEFINITIONS[chapterId].miniBossPool];
 }
 
 /**
@@ -962,5 +962,5 @@ export function getMiniBossPoolForChapter(chapterId: ChapterId): BossType[] {
  * @returns ElementalResistances object with fire, cold, and bleed multipliers
  */
 export function getChapterElementalResistances(chapterId: ChapterId): ElementalResistances {
-  return { ...CHAPTER_DEFINITIONS[chapterId].scaling.elementalResistances }
+  return { ...CHAPTER_DEFINITIONS[chapterId].scaling.elementalResistances };
 }

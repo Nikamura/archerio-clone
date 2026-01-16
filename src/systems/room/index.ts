@@ -9,9 +9,6 @@ export {
   CHOKEPOINT_LAYOUTS,
   BOSS_LAYOUTS,
   MINI_BOSS_LAYOUTS,
-} from './RoomLayouts'
+} from "./RoomLayouts";
 
-export {
-  type EnemyCombination,
-  ENEMY_COMBINATIONS,
-} from './EnemyCombinations'
+export { type EnemyCombination, ENEMY_COMBINATIONS } from "./EnemyCombinations";

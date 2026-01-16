@@ -10,18 +10,18 @@
  *   pnpm run generate-sprite "fire projectile" --type projectile --clean
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import sharp from 'sharp';
-import dotenv from 'dotenv';
+import * as fs from "fs";
+import * as path from "path";
+import sharp from "sharp";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp";
 
-type SpriteType = 'player' | 'enemy' | 'projectile' | 'item' | 'effect' | 'ui' | 'boss' | 'generic';
-type AnimationType = 'idle' | 'walk' | 'run' | 'attack' | 'hit' | 'death' | 'cast' | 'jump';
+type SpriteType = "player" | "enemy" | "projectile" | "item" | "effect" | "ui" | "boss" | "generic";
+type AnimationType = "idle" | "walk" | "run" | "attack" | "hit" | "death" | "cast" | "jump";
 
 interface SpriteConfig {
   defaultSize: number;
@@ -36,35 +36,35 @@ interface AnimationConfig {
 const SPRITE_CONFIGS: Record<SpriteType, SpriteConfig> = {
   player: {
     defaultSize: 64,
-    stylePrompt: 'heroic character design, centered composition',
+    stylePrompt: "heroic character design, centered composition",
   },
   enemy: {
     defaultSize: 64,
-    stylePrompt: 'menacing creature design, centered composition',
+    stylePrompt: "menacing creature design, centered composition",
   },
   boss: {
     defaultSize: 128,
-    stylePrompt: 'large intimidating boss creature, centered composition',
+    stylePrompt: "large intimidating boss creature, centered composition",
   },
   projectile: {
     defaultSize: 32,
-    stylePrompt: 'glowing energy effect, motion blur, dynamic',
+    stylePrompt: "glowing energy effect, motion blur, dynamic",
   },
   item: {
     defaultSize: 32,
-    stylePrompt: 'collectible item, slight glow effect, clean design',
+    stylePrompt: "collectible item, slight glow effect, clean design",
   },
   effect: {
     defaultSize: 64,
-    stylePrompt: 'visual effect, particle-like, ethereal',
+    stylePrompt: "visual effect, particle-like, ethereal",
   },
   ui: {
     defaultSize: 48,
-    stylePrompt: 'clean icon design, simple shapes, high contrast',
+    stylePrompt: "clean icon design, simple shapes, high contrast",
   },
   generic: {
     defaultSize: 64,
-    stylePrompt: 'game asset design, centered composition',
+    stylePrompt: "game asset design, centered composition",
   },
 };
 
@@ -72,76 +72,76 @@ const ANIMATION_CONFIGS: Record<AnimationType, AnimationConfig> = {
   idle: {
     defaultFrames: 4,
     frameDescriptions: [
-      'idle frame 1: neutral stance, body relaxed, eyes open normally',
-      'idle frame 2: body squished DOWN slightly (compressed), eyes half-closed',
-      'idle frame 3: body stretched UP slightly (extended), eyes wide open',
-      'idle frame 4: body tilted slightly to the right, normal eyes',
+      "idle frame 1: neutral stance, body relaxed, eyes open normally",
+      "idle frame 2: body squished DOWN slightly (compressed), eyes half-closed",
+      "idle frame 3: body stretched UP slightly (extended), eyes wide open",
+      "idle frame 4: body tilted slightly to the right, normal eyes",
     ],
   },
   walk: {
     defaultFrames: 6,
     frameDescriptions: [
-      'walking pose, left foot forward, right arm forward',
-      'walking pose, feet passing, body centered',
-      'walking pose, right foot forward, left arm forward',
-      'walking pose, right foot planted, pushing off',
-      'walking pose, feet passing, body centered',
-      'walking pose, left foot forward, completing stride',
+      "walking pose, left foot forward, right arm forward",
+      "walking pose, feet passing, body centered",
+      "walking pose, right foot forward, left arm forward",
+      "walking pose, right foot planted, pushing off",
+      "walking pose, feet passing, body centered",
+      "walking pose, left foot forward, completing stride",
     ],
   },
   run: {
     defaultFrames: 6,
     frameDescriptions: [
-      'running pose, left foot forward extended, right arm forward, dynamic lean',
-      'running pose, airborne, both feet off ground, arms pumping',
-      'running pose, right foot landing, left arm forward',
-      'running pose, right foot planted, pushing off powerfully',
-      'running pose, airborne, both feet off ground, arms pumping',
-      'running pose, left foot landing, completing cycle',
+      "running pose, left foot forward extended, right arm forward, dynamic lean",
+      "running pose, airborne, both feet off ground, arms pumping",
+      "running pose, right foot landing, left arm forward",
+      "running pose, right foot planted, pushing off powerfully",
+      "running pose, airborne, both feet off ground, arms pumping",
+      "running pose, left foot landing, completing cycle",
     ],
   },
   attack: {
     defaultFrames: 4,
     frameDescriptions: [
-      'attack windup pose, weapon/arm pulled back, body coiled',
-      'attack mid-swing, weapon/arm moving forward, body rotating',
-      'attack impact pose, weapon/arm fully extended, maximum reach',
-      'attack recovery pose, returning to neutral, follow-through',
+      "attack windup pose, weapon/arm pulled back, body coiled",
+      "attack mid-swing, weapon/arm moving forward, body rotating",
+      "attack impact pose, weapon/arm fully extended, maximum reach",
+      "attack recovery pose, returning to neutral, follow-through",
     ],
   },
   hit: {
     defaultFrames: 3,
     frameDescriptions: [
-      'hit reaction, flinching backward, pain expression',
-      'hit stagger, off-balance, arms out',
-      'recovering from hit, regaining balance',
+      "hit reaction, flinching backward, pain expression",
+      "hit stagger, off-balance, arms out",
+      "recovering from hit, regaining balance",
     ],
   },
   death: {
     defaultFrames: 4,
     frameDescriptions: [
-      'death start, clutching wound, stumbling',
-      'death falling, knees buckling, falling backward',
-      'death collapse, hitting ground, limbs sprawled',
-      'death final, lying still on ground, motionless',
+      "death start, clutching wound, stumbling",
+      "death falling, knees buckling, falling backward",
+      "death collapse, hitting ground, limbs sprawled",
+      "death final, lying still on ground, motionless",
     ],
   },
   cast: {
     defaultFrames: 4,
     frameDescriptions: [
-      'spell charge, hands gathering energy, glowing particles',
-      'spell buildup, energy intensifying, arms raised',
-      'spell release, energy burst outward, arms thrust forward',
-      'spell recovery, energy dissipating, returning to stance',
+      "spell charge, hands gathering energy, glowing particles",
+      "spell buildup, energy intensifying, arms raised",
+      "spell release, energy burst outward, arms thrust forward",
+      "spell recovery, energy dissipating, returning to stance",
     ],
   },
   jump: {
     defaultFrames: 4,
     frameDescriptions: [
-      'jump crouch, bending knees, preparing to launch',
-      'jump launch, legs extended, arms up, leaving ground',
-      'jump apex, body at peak height, arms spread',
-      'jump landing, legs bent absorbing impact, arms out for balance',
+      "jump crouch, bending knees, preparing to launch",
+      "jump launch, legs extended, arms up, leaving ground",
+      "jump apex, body at peak height, arms spread",
+      "jump landing, legs bent absorbing impact, arms out for balance",
     ],
   },
 };
@@ -162,8 +162,8 @@ interface GenerateSpriteOptions {
 const CHROMA_KEY = { r: 255, g: 0, b: 255 };
 
 const COMMON_BG_COLORS = [
-  { r: 255, g: 0, b: 255 },   // Magenta (primary chroma key)
-  { r: 255, g: 0, b: 254 },   // Near-magenta variations
+  { r: 255, g: 0, b: 255 }, // Magenta (primary chroma key)
+  { r: 255, g: 0, b: 254 }, // Near-magenta variations
   { r: 254, g: 0, b: 255 },
   { r: 204, g: 204, b: 204 }, // Light gray checkerboard
   { r: 153, g: 153, b: 153 }, // Dark gray checkerboard
@@ -173,10 +173,15 @@ const COMMON_BG_COLORS = [
   { r: 240, g: 240, b: 240 }, // Off-white
 ];
 
-function colorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
-  return Math.sqrt(
-    Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2)
-  );
+function colorDistance(
+  r1: number,
+  g1: number,
+  b1: number,
+  r2: number,
+  g2: number,
+  b2: number,
+): number {
+  return Math.sqrt(Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2));
 }
 
 function isBackgroundColor(r: number, g: number, b: number, tolerance: number): boolean {
@@ -197,12 +202,12 @@ async function resizeToTargetSize(inputPath: string, targetSize: number): Promis
   if (metadata.width !== targetSize || metadata.height !== targetSize) {
     await sharp(inputPath)
       .resize(targetSize, targetSize, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
       .png()
-      .toFile(inputPath + '.tmp');
-    fs.renameSync(inputPath + '.tmp', inputPath);
+      .toFile(inputPath + ".tmp");
+    fs.renameSync(inputPath + ".tmp", inputPath);
   }
 }
 
@@ -217,12 +222,15 @@ async function removeBackground(inputPath: string, tolerance = 30): Promise<void
 
   // First pass: Remove all magenta pixels (chroma key) directly - no flood fill needed
   for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const r = data[i],
+      g = data[i + 1],
+      b = data[i + 2];
 
     // Check for magenta and near-magenta (high R, low G, high B)
-    const isMagenta = colorDistance(r, g, b, CHROMA_KEY.r, CHROMA_KEY.g, CHROMA_KEY.b) <= 80 ||
-                      (r > 180 && g < 120 && b > 180) || // Magenta-ish
-                      (r > 200 && g < 80 && b > 200);    // Strong magenta
+    const isMagenta =
+      colorDistance(r, g, b, CHROMA_KEY.r, CHROMA_KEY.g, CHROMA_KEY.b) <= 80 ||
+      (r > 180 && g < 120 && b > 180) || // Magenta-ish
+      (r > 200 && g < 80 && b > 200); // Strong magenta
     if (isMagenta) {
       newData[i + 3] = 0;
       magentaRemoved++;
@@ -234,13 +242,24 @@ async function removeBackground(inputPath: string, tolerance = 30): Promise<void
     console.log(`    Removed ${magentaRemoved} magenta pixels (chroma key)`);
   } else {
     // Fallback: flood fill from edges for gray/checkerboard backgrounds
-    const corners: [number, number][] = [[0, 0], [width - 1, 0], [0, height - 1], [width - 1, height - 1]];
-    let bgR = 0, bgG = 0, bgB = 0;
+    const corners: [number, number][] = [
+      [0, 0],
+      [width - 1, 0],
+      [0, height - 1],
+      [width - 1, height - 1],
+    ];
+    let bgR = 0,
+      bgG = 0,
+      bgB = 0;
     for (const [x, y] of corners) {
       const idx = (y * width + x) * 4;
-      bgR += data[idx]; bgG += data[idx + 1]; bgB += data[idx + 2];
+      bgR += data[idx];
+      bgG += data[idx + 1];
+      bgB += data[idx + 2];
     }
-    bgR = Math.round(bgR / 4); bgG = Math.round(bgG / 4); bgB = Math.round(bgB / 4);
+    bgR = Math.round(bgR / 4);
+    bgG = Math.round(bgG / 4);
+    bgB = Math.round(bgB / 4);
 
     const visited = new Set<number>();
     const queue: [number, number][] = [];
@@ -261,9 +280,14 @@ async function removeBackground(inputPath: string, tolerance = 30): Promise<void
       visited.add(pixelKey);
 
       const idx = pixelKey * 4;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      const r = data[idx],
+        g = data[idx + 1],
+        b = data[idx + 2];
 
-      if (colorDistance(r, g, b, bgR, bgG, bgB) <= tolerance || isBackgroundColor(r, g, b, tolerance)) {
+      if (
+        colorDistance(r, g, b, bgR, bgG, bgB) <= tolerance ||
+        isBackgroundColor(r, g, b, tolerance)
+      ) {
         newData[idx + 3] = 0;
         otherRemoved++;
         queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
@@ -272,8 +296,10 @@ async function removeBackground(inputPath: string, tolerance = 30): Promise<void
     console.log(`    Removed ${otherRemoved} background pixels (flood fill)`);
   }
 
-  await sharp(newData, { raw: { width, height, channels: 4 } }).png().toFile(inputPath + '.tmp');
-  fs.renameSync(inputPath + '.tmp', inputPath);
+  await sharp(newData, { raw: { width, height, channels: 4 } })
+    .png()
+    .toFile(inputPath + ".tmp");
+  fs.renameSync(inputPath + ".tmp", inputPath);
 }
 
 interface GeminiResponse {
@@ -296,30 +322,30 @@ interface GeminiResponse {
 
 function buildSpritePrompt(options: GenerateSpriteOptions, frameDescription?: string): string {
   const config = SPRITE_CONFIGS[options.type];
-  const style = options.style || 'pixel art';
+  const style = options.style || "pixel art";
   const size = options.size || config.defaultSize;
 
   const poseDescription = frameDescription
     ? `Pose: ${frameDescription}.`
-    : 'Pose: idle stance facing right.';
+    : "Pose: idle stance facing right.";
 
   const basePrompt = [
     `Create a ${style} game sprite of: ${options.prompt}.`,
     `Style: ${config.stylePrompt}.`,
     poseDescription,
-    'CRITICAL Requirements:',
-    '- Solid magenta background (#FF00FF) - NOT transparent, NOT checkerboard, NOT gradient',
-    '- BLACK OUTLINE/BORDER around the entire sprite (1-2 pixels thick)',
-    '- NO anti-aliasing, NO blending, NO smooth edges - sharp pixel edges only',
-    '- Hard pixel edges between sprite and magenta background',
-    '- Single sprite, centered in frame',
-    '- IMPORTANT: Sprite must FILL the entire canvas - use 90-95% of available space',
-    '- NO excessive margins or padding - the sprite should be LARGE and prominent',
-    '- Maximize sprite size within the frame bounds',
-    '- Do not use any magenta/pink colors in the sprite',
-    '- Classic retro pixel art style with crisp edges',
+    "CRITICAL Requirements:",
+    "- Solid magenta background (#FF00FF) - NOT transparent, NOT checkerboard, NOT gradient",
+    "- BLACK OUTLINE/BORDER around the entire sprite (1-2 pixels thick)",
+    "- NO anti-aliasing, NO blending, NO smooth edges - sharp pixel edges only",
+    "- Hard pixel edges between sprite and magenta background",
+    "- Single sprite, centered in frame",
+    "- IMPORTANT: Sprite must FILL the entire canvas - use 90-95% of available space",
+    "- NO excessive margins or padding - the sprite should be LARGE and prominent",
+    "- Maximize sprite size within the frame bounds",
+    "- Do not use any magenta/pink colors in the sprite",
+    "- Classic retro pixel art style with crisp edges",
     `- Target size: ${size}x${size} pixels`,
-  ].join(' ');
+  ].join(" ");
 
   return basePrompt;
 }
@@ -333,8 +359,8 @@ async function callGeminiAPI(prompt: string, referenceImage?: Buffer): Promise<B
   if (referenceImage) {
     parts.push({
       inlineData: {
-        mimeType: 'image/png',
-        data: referenceImage.toString('base64'),
+        mimeType: "image/png",
+        data: referenceImage.toString("base64"),
       },
     });
     parts.push({
@@ -354,7 +380,7 @@ NEW POSE REQUIRED: ${prompt}`,
   const requestBody = {
     contents: [{ parts }],
     generationConfig: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ["TEXT", "IMAGE"],
     },
   };
 
@@ -363,15 +389,15 @@ NEW POSE REQUIRED: ${prompt}`,
   let response: Response;
   try {
     response = await fetch(apiUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY!,
+        "Content-Type": "application/json",
+        "X-goog-api-key": GEMINI_API_KEY!,
       },
       body: JSON.stringify(requestBody),
     });
   } catch (fetchError) {
-    console.error('Gemini API Network Error:');
+    console.error("Gemini API Network Error:");
     console.error(`  URL: ${apiUrl}`);
     console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
     if (fetchError instanceof Error && fetchError.cause) {
@@ -382,9 +408,11 @@ NEW POSE REQUIRED: ${prompt}`,
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini API Error Details:');
+    console.error("Gemini API Error Details:");
     console.error(`  Status: ${response.status} ${response.statusText}`);
-    console.error(`  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+    console.error(
+      `  Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`,
+    );
     console.error(`  Body: ${errorText}`);
     throw new Error(`API request failed (${response.status}): ${errorText}`);
   }
@@ -397,19 +425,19 @@ NEW POSE REQUIRED: ${prompt}`,
 
   const responseParts = data.candidates?.[0]?.content?.parts;
   if (!responseParts) {
-    throw new Error('No content in response');
+    throw new Error("No content in response");
   }
 
-  const imagePart = responseParts.find((part) => part.inlineData?.mimeType?.startsWith('image/'));
+  const imagePart = responseParts.find((part) => part.inlineData?.mimeType?.startsWith("image/"));
   if (!imagePart?.inlineData) {
     const textPart = responseParts.find((part) => part.text);
     if (textPart?.text) {
-      console.log('Model response:', textPart.text);
+      console.log("Model response:", textPart.text);
     }
-    throw new Error('No image data in response');
+    throw new Error("No image data in response");
   }
 
-  return Buffer.from(imagePart.inlineData.data, 'base64');
+  return Buffer.from(imagePart.inlineData.data, "base64");
 }
 
 async function generateSprite(options: GenerateSpriteOptions): Promise<string[]> {
@@ -418,11 +446,14 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
   const size = options.size || config.defaultSize;
 
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY environment variable is not set. Add it to your .env file.');
+    throw new Error("GEMINI_API_KEY environment variable is not set. Add it to your .env file.");
   }
 
   const timestamp = Date.now();
-  const safeName = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 30);
+  const safeName = prompt
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .slice(0, 30);
   const savedPaths: string[] = [];
 
   // If animation is specified, generate multiple frames
@@ -440,7 +471,7 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
     // Create output directory for animation frames
     const baseDir = outputPath
       ? path.dirname(outputPath)
-      : path.join('assets', 'sprites', type, `${safeName}_${animation}_${timestamp}`);
+      : path.join("assets", "sprites", type, `${safeName}_${animation}_${timestamp}`);
 
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
@@ -464,7 +495,7 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
         console.log(`    (Using as reference for subsequent frames)`);
       }
 
-      const framePath = path.join(baseDir, `frame_${String(i).padStart(2, '0')}.png`);
+      const framePath = path.join(baseDir, `frame_${String(i).padStart(2, "0")}.png`);
       fs.writeFileSync(framePath, imageBuffer);
       savedPaths.push(framePath);
       console.log(`    Saved: ${framePath}`);
@@ -497,7 +528,7 @@ async function generateSprite(options: GenerateSpriteOptions): Promise<string[]>
 
     const imageBuffer = await callGeminiAPI(fullPrompt);
 
-    const defaultPath = path.join('assets', 'sprites', type, `${safeName}_${timestamp}.png`);
+    const defaultPath = path.join("assets", "sprites", type, `${safeName}_${timestamp}.png`);
     const finalOutputPath = outputPath || defaultPath;
 
     const outputDir = path.dirname(finalOutputPath);
@@ -579,14 +610,14 @@ Examples:
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     printUsage();
     process.exit(0);
   }
 
   // Parse arguments
-  let prompt = '';
-  let type: SpriteType = 'generic';
+  let prompt = "";
+  let type: SpriteType = "generic";
   let size: number | undefined;
   let style: string | undefined;
   let outputPath: string | undefined;
@@ -598,48 +629,52 @@ async function main(): Promise<void> {
   while (i < args.length) {
     const arg = args[i];
 
-    if (arg === '--type' || arg === '-t') {
+    if (arg === "--type" || arg === "-t") {
       const typeArg = args[++i] as SpriteType;
       if (SPRITE_CONFIGS[typeArg]) {
         type = typeArg;
       } else {
-        console.error(`Invalid type: ${typeArg}. Valid types: ${Object.keys(SPRITE_CONFIGS).join(', ')}`);
+        console.error(
+          `Invalid type: ${typeArg}. Valid types: ${Object.keys(SPRITE_CONFIGS).join(", ")}`,
+        );
         process.exit(1);
       }
-    } else if (arg === '--size' || arg === '-s') {
+    } else if (arg === "--size" || arg === "-s") {
       size = parseInt(args[++i]);
       if (isNaN(size) || size < 16 || size > 1024) {
-        console.error('Size must be a number between 16 and 1024');
+        console.error("Size must be a number between 16 and 1024");
         process.exit(1);
       }
-    } else if (arg === '--style') {
+    } else if (arg === "--style") {
       style = args[++i];
-    } else if (arg === '--output' || arg === '-o') {
+    } else if (arg === "--output" || arg === "-o") {
       outputPath = args[++i];
-    } else if (arg === '--anim' || arg === '-a') {
+    } else if (arg === "--anim" || arg === "-a") {
       const animArg = args[++i] as AnimationType;
       if (ANIMATION_CONFIGS[animArg]) {
         animation = animArg;
       } else {
-        console.error(`Invalid animation: ${animArg}. Valid animations: ${Object.keys(ANIMATION_CONFIGS).join(', ')}`);
+        console.error(
+          `Invalid animation: ${animArg}. Valid animations: ${Object.keys(ANIMATION_CONFIGS).join(", ")}`,
+        );
         process.exit(1);
       }
-    } else if (arg === '--frames' || arg === '-f') {
+    } else if (arg === "--frames" || arg === "-f") {
       frames = parseInt(args[++i]);
       if (isNaN(frames) || frames < 1 || frames > 16) {
-        console.error('Frames must be a number between 1 and 16');
+        console.error("Frames must be a number between 1 and 16");
         process.exit(1);
       }
-    } else if (arg === '--clean' || arg === '-c') {
+    } else if (arg === "--clean" || arg === "-c") {
       clean = true;
-    } else if (!arg.startsWith('-')) {
+    } else if (!arg.startsWith("-")) {
       prompt = arg;
     }
     i++;
   }
 
   if (!prompt) {
-    console.error('Error: Sprite description is required');
+    console.error("Error: Sprite description is required");
     printUsage();
     process.exit(1);
   }
@@ -647,7 +682,7 @@ async function main(): Promise<void> {
   try {
     await generateSprite({ prompt, type, size, style, outputPath, animation, frames, clean });
   } catch (error) {
-    console.error('Error generating sprite:', error instanceof Error ? error.message : error);
+    console.error("Error generating sprite:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }
