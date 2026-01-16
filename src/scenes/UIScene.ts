@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { themeManager } from '../systems/ThemeManager'
+import { THEME_COLORS } from '../config/themeData'
 import { ABILITIES, type AbilityData } from './LevelUpScene'
 
 interface AcquiredAbility {
@@ -248,17 +248,16 @@ export default class UIScene extends Phaser.Scene {
     this.bossHealthBar = this.add.graphics()
     this.bossHealthContainer.add(this.bossHealthBar)
 
-    // Boss name with themed styling
-    const colors = themeManager.getColors()
+    // Boss name styling
     this.bossNameText = this.add.text(width / 2, yPos - 14, 'BOSS', {
       fontSize: '14px',
       fontFamily: '"Times New Roman", Georgia, serif',
-      color: colors.bossNamePrimary,
+      color: THEME_COLORS.bossNamePrimary,
       fontStyle: 'bold',
       letterSpacing: 2,
     })
     this.bossNameText.setOrigin(0.5, 0.5)
-    this.bossNameText.setStroke(colors.bossNameStroke, 3)
+    this.bossNameText.setStroke(THEME_COLORS.bossNameStroke, 3)
     this.bossHealthContainer.add(this.bossNameText)
 
     this.bossHealthContainer.setVisible(false)
@@ -331,10 +330,9 @@ export default class UIScene extends Phaser.Scene {
 
     this.healthBar.clear()
 
-    const colors = themeManager.getColors()
-    let color = colors.healthFull
-    if (percentage < 50) color = colors.healthMid
-    if (percentage < 25) color = colors.healthLow
+    let color = THEME_COLORS.healthFull
+    if (percentage < 50) color = THEME_COLORS.healthMid
+    if (percentage < 25) color = THEME_COLORS.healthLow
 
     this.healthBar.fillStyle(color, 1)
     const fillWidth = Math.max(0, (percentage / 100) * (healthWidth - 4))
@@ -356,8 +354,7 @@ export default class UIScene extends Phaser.Scene {
     const xpBarHeight = 4
 
     this.xpBar.clear()
-    const colors = themeManager.getColors()
-    this.xpBar.fillStyle(colors.xpBar, 1)
+    this.xpBar.fillStyle(THEME_COLORS.xpBar, 1)
     const fillWidth = Math.max(0, (percentage / 100) * xpBarWidth)
     this.xpBar.fillRoundedRect(-xpBarWidth / 2, 8, fillWidth, xpBarHeight, 2)
   }
@@ -405,10 +402,9 @@ export default class UIScene extends Phaser.Scene {
     const yPos = height - 53
 
     const percentage = Math.max(0, health / maxHealth)
-    const colors = themeManager.getColors()
 
     this.bossHealthBar.clear()
-    this.bossHealthBar.fillStyle(colors.bossHealth, 1)
+    this.bossHealthBar.fillStyle(THEME_COLORS.bossHealth, 1)
     this.bossHealthBar.fillRoundedRect(22, yPos, barWidth * percentage, barHeight, 3)
   }
 

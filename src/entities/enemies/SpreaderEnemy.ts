@@ -11,7 +11,6 @@ import RangedEnemy from './RangedEnemy'
 import { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 export default class SpreaderEnemy extends RangedEnemy {
   private hasValidatedPosition: boolean = false
@@ -38,7 +37,7 @@ export default class SpreaderEnemy extends RangedEnemy {
     super(scene, x, y, bulletPool, 3000, options)
 
     // Use themed spreader enemy sprite
-    const spriteKey = getEnemySpriteKey('spreader', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('spreader')
     this.setTexture(spriteKey)
     this.setDisplaySize(36, 36) // Slightly larger than others
 

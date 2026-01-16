@@ -2,7 +2,6 @@ import Phaser from 'phaser'
 import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import EnemyBulletPool from '../../systems/EnemyBulletPool'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 export default class TankEnemy extends Enemy {
   private lastShotTime: number = 0
@@ -40,7 +39,7 @@ export default class TankEnemy extends Enemy {
     this.projectileSpeedMultiplier = options?.projectileSpeedMultiplier ?? 1.0
 
     // Use themed tank enemy sprite
-    const spriteKey = getEnemySpriteKey('tank', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('tank')
     if (scene.textures.exists(spriteKey)) {
       this.setTexture(spriteKey)
     } else {

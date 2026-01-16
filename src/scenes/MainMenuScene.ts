@@ -6,7 +6,6 @@ import { chapterManager } from '../systems/ChapterManager'
 import { dailyRewardManager } from '../systems/DailyRewardManager'
 import { achievementManager } from '../systems/AchievementManager'
 import { chestManager } from '../systems/ChestManager'
-import { themeManager } from '../systems/ThemeManager'
 import { equipmentManager } from '../systems/EquipmentManager'
 import { heroManager } from '../systems/HeroManager'
 import { Rarity, WeaponType, ArmorType, RingType, SpiritType } from '../systems/Equipment'
@@ -57,8 +56,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   private createBackground(width: number, height: number) {
-    const themeAssets = themeManager.getAssets()
-    const bg = this.add.image(width / 2, height / 2, themeAssets.menuBg)
+    const bg = this.add.image(width / 2, height / 2, 'menuBg')
     bg.setDisplaySize(width, height)
     bg.setDepth(0)
 
@@ -140,7 +138,6 @@ export default class MainMenuScene extends Phaser.Scene {
         { id: 'gear', icon: '⚔️', label: 'Gear', scene: 'EquipmentScene' },
         { id: 'talents', icon: '⭐', label: 'Talents', scene: 'TalentsScene' },
         { id: 'rewards', icon: '🎁', label: 'Chests', scene: 'ChestScene', badge: chestCount },
-        { id: 'shop', icon: '🛒', label: 'Shop', scene: 'ShopScene' },
         // Row 2
         { id: 'daily', icon: '📅', label: 'Daily', scene: 'DailyRewardScene', badge: dailyBadge },
         { id: 'achievements', icon: '🏆', label: 'Achieve', scene: 'AchievementsScene', badge: achieveBadge },
@@ -220,7 +217,6 @@ export default class MainMenuScene extends Phaser.Scene {
       for (let i = 1; i <= 5; i++) {
         chapterManager.forceUnlockChapter(i as ChapterId)
       }
-      themeManager.unlock('vaporwave')
       heroManager.forceUnlock('helix')
       heroManager.forceUnlock('meowgik')
       equipmentManager.createEquipment(WeaponType.DEATH_SCYTHE, Rarity.LEGENDARY, 70)

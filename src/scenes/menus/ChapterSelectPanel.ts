@@ -8,7 +8,7 @@ import Phaser from 'phaser'
 import { ChapterId } from '../../config/chapterData'
 import { chapterManager } from '../../systems/ChapterManager'
 import { audioManager } from '../../systems/AudioManager'
-import { themeManager } from '../../systems/ThemeManager'
+import { THEME_ASSETS } from '../../config/themeData'
 
 export interface ChapterSelectConfig {
   scene: Phaser.Scene
@@ -101,8 +101,7 @@ export class ChapterSelectPanel {
     btnContainer.add(bg)
 
     // Chapter icon (if loaded) or fallback to number
-    const themeAssets = themeManager.getAssets()
-    const iconKey = themeAssets[`chapter${chapterId}Icon` as keyof typeof themeAssets] as string
+    const iconKey = THEME_ASSETS[`chapter${chapterId}Icon` as keyof typeof THEME_ASSETS] as string
     if (iconKey && this.scene.textures.exists(iconKey)) {
       const icon = this.scene.add.image(0, 0, iconKey)
       icon.setDisplaySize(this.BUTTON_SIZE - 8, this.BUTTON_SIZE - 8)

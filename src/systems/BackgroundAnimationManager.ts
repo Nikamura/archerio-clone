@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
 import { GraphicsQuality } from './SaveManager'
-import type { ThemeId } from '../config/themeData'
 import {
   getChapterAnimationConfig,
   getParticleTints,
@@ -23,7 +22,7 @@ import {
 export class BackgroundAnimationManager {
   private scene: Phaser.Scene
   private config: ChapterAnimationConfig | undefined
-  private themeId: ThemeId = 'medieval'
+  private themeId: string = 'medieval'
   private quality: GraphicsQuality = GraphicsQuality.HIGH
 
   // Particle emitter for floating effects
@@ -48,7 +47,7 @@ export class BackgroundAnimationManager {
    */
   initialize(
     chapterId: number,
-    themeId: ThemeId,
+    themeId: string,
     quality: GraphicsQuality,
     backgroundImage?: Phaser.GameObjects.Image
   ): void {

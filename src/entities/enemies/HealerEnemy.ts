@@ -1,7 +1,6 @@
 import Phaser from 'phaser'
 import Enemy, { EnemyOptions, EnemyUpdateResult } from '../Enemy'
 import { getEnemySpriteKey } from '../../config/themeData'
-import { themeManager } from '../../systems/ThemeManager'
 
 export default class HealerEnemy extends Enemy {
   private lastHealTime: number = 0
@@ -36,7 +35,7 @@ export default class HealerEnemy extends Enemy {
     this.healAmount = Math.round(10 * (options?.abilityIntensityMultiplier ?? 1.0))
 
     // Use themed healer enemy sprite
-    const spriteKey = getEnemySpriteKey('healer', themeManager.getAssets())
+    const spriteKey = getEnemySpriteKey('healer')
     if (scene.textures.exists(spriteKey)) {
       this.setTexture(spriteKey)
     }

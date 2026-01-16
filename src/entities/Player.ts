@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
 import { PlayerStats, DamageResult } from '../systems/PlayerStats'
-import { themeManager } from '../systems/ThemeManager'
 import { getHeroSpriteKey, HeroId } from '../config/themeData'
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
@@ -23,10 +22,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     },
     heroId: string = 'atreus'
   ) {
-    // Determine texture key based on heroId and current theme
-    // Each hero has theme-specific sprites
-    const themeAssets = themeManager.getAssets()
-    const textureKey = getHeroSpriteKey(heroId as HeroId, themeAssets)
+    // Determine texture key based on heroId
+    const textureKey = getHeroSpriteKey(heroId as HeroId)
 
     super(scene, x, y, textureKey)
 

@@ -5,7 +5,6 @@
  * without causing motion sickness. All effects are intentionally slow and subtle.
  */
 
-import type { ThemeId } from './themeData'
 
 /**
  * Particle direction types
@@ -215,17 +214,17 @@ export function getChapterAnimationConfig(chapterId: number): ChapterAnimationCo
 }
 
 /**
- * Get particle tint colors based on theme
+ * Get particle tint colors (medieval theme)
  */
-export function getParticleTints(config: ParticleConfig, themeId: ThemeId): number[] {
-  return themeId === 'vaporwave' ? config.tint.vaporwave : config.tint.medieval
+export function getParticleTints(config: ParticleConfig, _themeId: string): number[] {
+  return config.tint.medieval
 }
 
 /**
- * Get color shift colors based on theme
+ * Get color shift colors (medieval theme)
  */
-export function getColorShiftColors(config: ColorShiftConfig, themeId: ThemeId): number[] {
-  return themeId === 'vaporwave' ? config.colors.vaporwave : config.colors.medieval
+export function getColorShiftColors(config: ColorShiftConfig, _themeId: string): number[] {
+  return config.colors.medieval
 }
 
 /**

@@ -35,8 +35,7 @@ import { BackgroundAnimationManager, createBackgroundAnimationManager } from '..
 import { hapticManager } from '../systems/HapticManager'
 import { heroManager } from '../systems/HeroManager'
 import { equipmentManager } from '../systems/EquipmentManager'
-import { themeManager } from '../systems/ThemeManager'
-import type { ThemeAssets } from '../config/themeData'
+import { THEME_ASSETS, THEME_COLORS } from '../config/themeData'
 import { talentManager } from '../systems/TalentManager'
 import type { TalentBonuses } from '../config/talentData'
 import { WEAPON_TYPE_CONFIGS } from '../systems/Equipment'
@@ -297,10 +296,9 @@ export default class GameScene extends Phaser.Scene {
     // Get selected chapter and its themed background
     const selectedChapter = chapterManager.getSelectedChapter()
     const chapterDef = getChapterDefinition(selectedChapter)
-    // Use theme-aware background key
-    const themeAssets = themeManager.getAssets()
-    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof ThemeAssets
-    const backgroundKey = themeAssets[backgroundKeyName] as string
+    // Use background key
+    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof typeof THEME_ASSETS
+    const backgroundKey = THEME_ASSETS[backgroundKeyName] as string
 
     // Start the chapter run for tracking
     const started = chapterManager.startChapter(selectedChapter)
@@ -321,7 +319,7 @@ export default class GameScene extends Phaser.Scene {
     this.backgroundAnimations = createBackgroundAnimationManager(this)
     this.backgroundAnimations.initialize(
       selectedChapter,
-      themeManager.getSelectedThemeId(),
+      'medieval',
       saveManager.getSettings().graphicsQuality,
       bg
     )
@@ -439,12 +437,8 @@ export default class GameScene extends Phaser.Scene {
 
     // Create wall group for room obstacles
     this.wallGroup = new WallGroup(this, width, height)
-    // Set wall texture and color based on chapter and active theme
+    // Set wall texture and color based on chapter
     this.wallGroup.setTexture(selectedChapter) // Set chapter (1-5)
-    const activeTheme = themeManager.getSelectedThemeId()
-    if (activeTheme !== 'medieval') {
-      this.wallGroup.setTheme(activeTheme) // Apply purchasable theme (e.g., 'vaporwave')
-    }
     this.wallGroup.setColor(chapterDef.theme.primaryColor) // Fallback if texture missing
 
     // Create visual effects systems
@@ -1307,8 +1301,8 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width
     const height = this.cameras.main.height
 
-    // Get theme colors for boss name
-    const colors = themeManager.getColors()
+    // Get colors for boss name
+    const colors = THEME_COLORS
 
     // Create container for the announcement
     const container = this.add.container(width / 2, height / 2 - 40)

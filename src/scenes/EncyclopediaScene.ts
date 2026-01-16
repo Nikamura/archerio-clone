@@ -41,8 +41,7 @@ import {
   GuideEncyclopediaEntry,
 } from '../config/encyclopediaData'
 import { Rarity, RARITY_CONFIGS } from '../systems/Equipment'
-import { getEnemySpriteKey, getThemedEnemyName } from '../config/themeData'
-import { themeManager } from '../systems/ThemeManager'
+import { getEnemySpriteKey, getEnemyName } from '../config/themeData'
 
 // ============================================
 // Types
@@ -663,9 +662,8 @@ export default class EncyclopediaScene extends Phaser.Scene {
         return eq.spriteKey
       }
       case 'enemies': {
-        // Use themed enemy sprite based on current theme
         const en = entry as EnemyEncyclopediaEntry
-        return getEnemySpriteKey(en.id, themeManager.getAssets())
+        return getEnemySpriteKey(en.id)
       }
       case 'bosses': {
         const bo = entry as BossEncyclopediaEntry
@@ -686,10 +684,10 @@ export default class EncyclopediaScene extends Phaser.Scene {
   }
 
   private getEntryName(category: EncyclopediaCategory, entry: AnyEntry): string {
-    // Use themed names for enemies
+    // Get enemy name from config
     if (category === 'enemies') {
       const enemyEntry = entry as EnemyEncyclopediaEntry
-      return getThemedEnemyName(enemyEntry.id, themeManager.getAssets())
+      return getEnemyName(enemyEntry.id)
     }
     return entry.name
   }

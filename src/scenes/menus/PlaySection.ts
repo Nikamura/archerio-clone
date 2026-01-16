@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { audioManager } from '../../systems/AudioManager'
-import { themeManager } from '../../systems/ThemeManager'
+import { THEME_ASSETS, THEME_COLORS } from '../../config/themeData'
 import { applyButtonEffects } from '../../systems/UIAnimations'
 import { ChapterSelectPanel } from './ChapterSelectPanel'
 import { DifficultyPanel } from './DifficultyPanel'
@@ -63,9 +63,8 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
   })
   container.add(difficultyPanel.getContainer())
 
-  // Theme-aware PLAY button
-  const themeAssets = themeManager.getAssets()
-  const playButtonKey = themeAssets.playButton
+  // PLAY button
+  const playButtonKey = THEME_ASSETS.playButton
   const playButtonY = 200
 
   // Check if texture exists, fallback to text button if not
@@ -76,11 +75,10 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
     playButton.setDisplaySize(220, 66)
   } else {
     // Fallback to text-based button
-    const themeColors = themeManager.getColors()
     playButton = scene.add.text(0, playButtonY, 'PLAY', {
       fontSize: '32px',
       color: '#ffffff',
-      backgroundColor: `#${themeColors.primaryButton.toString(16).padStart(6, '0')}`,
+      backgroundColor: `#${THEME_COLORS.primaryButton.toString(16).padStart(6, '0')}`,
       padding: { x: 70, y: 22 },
       fontStyle: 'bold',
     })
