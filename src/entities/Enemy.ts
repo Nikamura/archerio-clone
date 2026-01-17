@@ -303,6 +303,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Reset melee attack cooldown
     this.lastMeleeAttackTime = 0;
     this.clearTint();
+    // Kill any active tweens and reset scale (prevents stuck enlarged state)
+    this.scene.tweens.killTweensOf(this);
+    this.setScale(1, 1);
     // Hide health bar when reset
     if (this.healthBar) {
       this.healthBar.setVisible(false);
@@ -615,6 +618,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   destroy(fromScene?: boolean) {
+    // Kill any active tweens to prevent them from continuing after destruction
+    this.scene?.tweens.killTweensOf(this);
     if (this.healthBar) {
       this.healthBar.destroy();
       this.healthBar = undefined;
