@@ -30,3 +30,8 @@ export {
   type LevelUpSystemConfig,
   type LevelUpEventHandlers,
 } from "./LevelUpSystem";
+export {
+  RespawnSystem,
+  type RespawnSystemConfig,
+  type RespawnEventHandlers,
+} from "./RespawnSystem";

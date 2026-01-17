@@ -9,6 +9,7 @@ import { RoomManager } from "./game/RoomManager";
 import { EnemyDeathHandler } from "./game/EnemyDeathHandler";
 import { ShootingSystem } from "./game/ShootingSystem";
 import { LevelUpSystem } from "./game/LevelUpSystem";
+import { RespawnSystem } from "./game/RespawnSystem";
 import BulletPool from "../systems/BulletPool";
 import EnemyBulletPool from "../systems/EnemyBulletPool";
 import SpiritCatPool from "../systems/SpiritCatPool";
@@ -21,7 +22,6 @@ import { getDifficultyConfig, DifficultyConfig } from "../config/difficulty";
 import { audioManager } from "../systems/AudioManager";
 import { chapterManager } from "../systems/ChapterManager";
 import { getChapterDefinition } from "../config/chapterData";
-import { BossId, getBossDefinition } from "../config/bossData";
 import { currencyManager } from "../systems/CurrencyManager";
 import { saveManager, GraphicsQuality, ColorblindMode } from "../systems/SaveManager";
 import { ScreenShake, createScreenShake } from "../systems/ScreenShake";
@@ -43,7 +43,7 @@ import { getRoomGenerator, type RoomGenerator } from "../systems/RoomGenerator";
 import WallGroup from "../systems/WallGroup";
 import { SeededRandom } from "../systems/SeededRandom";
 import { errorReporting } from "../systems/ErrorReportingManager";
-import type { RespawnRoomState, EnemyRespawnState } from "./GameOverScene";
+import type { RespawnRoomState } from "./GameOverScene";
 
 export default class GameScene extends Phaser.Scene {
   private difficultyConfig!: DifficultyConfig;
@@ -55,6 +55,7 @@ export default class GameScene extends Phaser.Scene {
   private enemyDeathHandler!: EnemyDeathHandler;
   private shootingSystem!: ShootingSystem;
   private levelUpSystem!: LevelUpSystem;
+  private respawnSystem!: RespawnSystem;
 
   private bulletPool!: BulletPool;
   private enemyBulletPool!: EnemyBulletPool;
@@ -80,9 +81,6 @@ export default class GameScene extends Phaser.Scene {
 
   // Endless mode
   private isEndlessMode: boolean = false;
-
-  // Respawn tracking (one-time use per run)
-  private respawnUsed: boolean = false;
 
   // Room generation system
   private roomGenerator!: RoomGenerator;
@@ -174,9 +172,11 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Listen for respawn event (from GameOverScene after watching ad)
-    this.game.events.on("playerRespawn", this.handleRespawn, this);
+    this.game.events.on("playerRespawn", (roomState: RespawnRoomState) => {
+      this.respawnSystem.handleRespawn(roomState);
+    });
     this.events.once("shutdown", () => {
-      this.game.events.off("playerRespawn", this.handleRespawn, this);
+      this.game.events.off("playerRespawn");
     });
 
     // Check game mode
@@ -188,7 +188,6 @@ export default class GameScene extends Phaser.Scene {
     this.totalRooms = this.isEndlessMode ? 10 : chapterManager.getTotalRooms(); // Endless mode uses 10 rooms per wave
     this.runStartTime = Date.now();
     this.goldEarned = 0;
-    this.respawnUsed = false;
 
     // Update error reporting context
     const selectedHero = heroManager.getSelectedHeroId();
@@ -702,6 +701,58 @@ export default class GameScene extends Phaser.Scene {
       },
     });
 
+    // Initialize respawn system (handles game over, respawn flow, and death effects)
+    // Use a reference object for goldEarned so RespawnSystem always gets current value
+    const goldEarnedRef = { value: this.goldEarned };
+    // Update reference whenever goldEarned changes
+    Object.defineProperty(this, "goldEarned", {
+      get: () => goldEarnedRef.value,
+      set: (v) => {
+        goldEarnedRef.value = v;
+      },
+    });
+
+    this.respawnSystem = new RespawnSystem({
+      scene: this,
+      game: this.game,
+      player: this.player,
+      enemies: this.enemies,
+      getBoss: () => this.boss,
+      getInputSystem: () => this.inputSystem,
+      getLevelUpSystem: () => this.levelUpSystem,
+      getRoomManager: () => this.roomManager,
+      getAbilitySystem: () => this.abilitySystem,
+      getEnemyDeathHandler: () => this.enemyDeathHandler,
+      getIsGameOver: () => this.isGameOver,
+      setIsGameOver: (value: boolean) => {
+        this.isGameOver = value;
+      },
+      createInputSystem: () => {
+        const gameContainer = this.game.canvas.parentElement;
+        return new InputSystem({
+          scene: this,
+          joystickContainer: gameContainer ?? undefined,
+        });
+      },
+      enemyBulletPool: this.enemyBulletPool,
+      bombPool: this.bombPool,
+      particles: this.particles,
+      difficultyConfig: this.difficultyConfig,
+      goldEarnedRef: goldEarnedRef,
+      runSeedString: this.runSeedString,
+      isEndlessMode: this.isEndlessMode,
+      eventHandlers: {
+        onRespawnComplete: (newInputSystem: InputSystem) => {
+          this.inputSystem = newInputSystem;
+          this.resetJoystickState();
+        },
+        onUpdateHealthUI: () => {
+          this.updatePlayerHealthUI(this.player);
+        },
+      },
+    });
+    this.respawnSystem.setRunStartTime(this.runStartTime);
+
     // Debug keyboard controls
     if (this.game.registry.get("debug")) {
       const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N);
@@ -836,7 +887,7 @@ export default class GameScene extends Phaser.Scene {
    * Combat event handler: Called when player dies
    */
   private handleCombatPlayerDeath(): void {
-    this.triggerGameOver();
+    this.respawnSystem.triggerGameOver();
   }
 
   /**
@@ -1068,342 +1119,6 @@ export default class GameScene extends Phaser.Scene {
         "abilities",
       );
     });
-  }
-
-  private triggerGameOver() {
-    if (this.isGameOver) return;
-
-    // Check for Extra Life before dying
-    if (this.player.hasExtraLife()) {
-      if (this.player.useExtraLife()) {
-        console.log("Extra Life used! Reviving at 30% HP");
-        // Remove extra life from skills bar
-        this.abilitySystem.consumeAbility("extra_life");
-        // Show revive effect
-        this.player.clearTint();
-        this.cameras.main.flash(500, 255, 215, 0); // Golden flash
-        audioManager.playLevelUp(); // Triumphant sound
-        hapticManager.levelUp();
-        // Update health UI
-        this.updatePlayerHealthUI(this.player);
-        // Brief invincibility after revive
-        this.player.setTint(0xffffff);
-        this.time.delayedCall(100, () => {
-          if (this.player && this.player.active) {
-            this.player.clearTint();
-          }
-        });
-        return; // Don't trigger game over
-      }
-    }
-
-    this.isGameOver = true;
-    audioManager.playDeath();
-    hapticManager.death(); // Haptic feedback for player death
-    console.log("Game Over! Enemies killed:", this.enemyDeathHandler.getEnemiesKilled());
-
-    // Stop LevelUpScene if it's active (handles race condition edge cases)
-    if (this.scene.isActive("LevelUpScene")) {
-      this.scene.stop("LevelUpScene");
-      this.game.events.off("abilitySelected"); // Clean up listener
-    }
-
-    // Check if respawn is available (one-time use per run)
-    const canRespawn = !this.respawnUsed;
-
-    // Save room state for respawn (enemy and boss HP)
-    const respawnRoomState = canRespawn ? this.saveRoomStateForRespawn() : undefined;
-
-    // Only end run if respawn is not available
-    if (!canRespawn) {
-      chapterManager.endRun(true);
-    }
-
-    // Stop player movement
-    this.player.setVelocity(0, 0);
-
-    // Flash player red and fade out
-    this.player.setTint(0xff0000);
-
-    // Only destroy input system if respawn is not available
-    if (!canRespawn && this.inputSystem) {
-      this.inputSystem.destroy();
-    }
-
-    // Calculate play time
-    const playTimeMs = Date.now() - this.runStartTime;
-
-    // Brief delay before showing game over screen
-    this.time.delayedCall(500, () => {
-      // Stop UIScene first (but keep GameScene if respawn is available)
-      this.scene.stop("UIScene");
-
-      // Calculate total rooms cleared in endless mode (across all waves)
-      const currentRoom = this.roomManager.getRoomNumber();
-      const totalRooms = this.roomManager.getTotalRooms();
-      const endlessWave = this.roomManager.getEndlessWave();
-      const totalRoomsCleared = this.isEndlessMode
-        ? (endlessWave - 1) * totalRooms + currentRoom - 1
-        : currentRoom - 1;
-
-      // Launch game over scene with stats
-      this.scene.launch("GameOverScene", {
-        roomsCleared: totalRoomsCleared,
-        enemiesKilled: this.enemyDeathHandler.getEnemiesKilled(),
-        isVictory: false,
-        playTimeMs,
-        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
-        runSeed: this.runSeedString,
-        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
-        isEndlessMode: this.isEndlessMode,
-        endlessWave: endlessWave,
-        chapterId: chapterManager.getSelectedChapter(),
-        difficulty: this.difficultyConfig.label.toLowerCase(),
-        canRespawn,
-        respawnRoomState,
-      });
-
-      // Only stop GameScene if respawn is NOT available
-      // When respawn is available, keep the scene running so we can resume
-      if (!canRespawn) {
-        this.scene.stop("GameScene");
-      }
-    });
-  }
-
-  /**
-   * Save current room state for respawn (enemy and boss HP)
-   */
-  private saveRoomStateForRespawn(): RespawnRoomState {
-    const enemies: EnemyRespawnState[] = [];
-
-    // Save all active enemies' HP and position
-    this.enemies.getChildren().forEach((child) => {
-      const enemy = child as Enemy;
-      if (enemy.active) {
-        enemies.push({
-          x: enemy.x,
-          y: enemy.y,
-          health: enemy.getHealth(),
-          maxHealth: enemy.getMaxHealth(),
-          type: enemy.constructor.name,
-        });
-      }
-    });
-
-    // Save boss HP if present
-    const bossHealth = this.boss?.getHealth();
-    const bossMaxHealth = this.boss?.getMaxHealth();
-
-    console.log(
-      `GameScene: Saved room state - ${enemies.length} enemies, boss HP: ${bossHealth ?? "N/A"}`,
-    );
-
-    return {
-      enemies,
-      bossHealth,
-      bossMaxHealth,
-    };
-  }
-
-  /**
-   * Handle player respawn from GameOverScene (after watching ad)
-   */
-  private handleRespawn(_roomState: RespawnRoomState): void {
-    console.log("GameScene: Handling respawn");
-
-    // Mark respawn as used (one-time per run)
-    this.respawnUsed = true;
-
-    // Reset game over state
-    this.isGameOver = false;
-
-    // Grant temporary immunity (2 seconds to escape danger)
-    this.levelUpSystem.setLevelingUp(true);
-    this.time.delayedCall(2000, () => {
-      this.levelUpSystem.setLevelingUp(false);
-    });
-
-    // Restore player to 50% HP
-    const maxHealth = this.player.getMaxHealth();
-    const healAmount = Math.floor(maxHealth * 0.5);
-    this.player.heal(healAmount);
-
-    // Clear dead state visual
-    this.player.clearTint();
-
-    // Show respawn visual effect - expanding ring
-    this.showRespawnEffect();
-
-    // Push all enemies away from player
-    this.pushEnemiesAway();
-
-    // Show revive effect
-    this.cameras.main.flash(500, 255, 215, 0); // Golden flash
-    audioManager.playLevelUp();
-    hapticManager.levelUp();
-
-    // Enemies and boss keep their current HP since we didn't destroy GameScene
-    // The room state was passed for potential future use, but enemies are already in place
-
-    // Restart UIScene
-    this.scene.launch("UIScene");
-
-    // Re-show boss health bar if we're in a boss room
-    const boss = this.roomManager.getBoss();
-    const currentBossType = this.roomManager.getCurrentBossType();
-    if (boss && boss.active) {
-      const bossDef = getBossDefinition(currentBossType as BossId);
-      const bossName = bossDef?.name || currentBossType?.replace(/_/g, " ") || "Boss";
-      // Delay slightly to ensure UIScene is ready
-      this.time.delayedCall(50, () => {
-        this.scene
-          .get("UIScene")
-          .events.emit("showBossHealth", boss.getHealth(), boss.getMaxHealth(), bossName);
-      });
-    }
-
-    // Re-initialize input system since it may have been in an inconsistent state
-    const gameContainer = this.game.canvas.parentElement;
-    this.inputSystem = new InputSystem({
-      scene: this,
-      joystickContainer: gameContainer ?? undefined,
-    });
-
-    // Update health UI
-    this.updatePlayerHealthUI(this.player);
-
-    console.log("GameScene: Respawn complete - Player HP:", this.player.getHealth());
-  }
-
-  /**
-   * Show visual effect for respawn (expanding golden ring)
-   */
-  private showRespawnEffect(): void {
-    const graphics = this.add.graphics();
-    graphics.setDepth(50);
-
-    const playerX = this.player.x;
-    const playerY = this.player.y;
-    const maxRadius = 150;
-    const duration = 400;
-
-    // Animate expanding ring
-    let elapsed = 0;
-    const timer = this.time.addEvent({
-      delay: 16, // ~60fps
-      repeat: Math.floor(duration / 16),
-      callback: () => {
-        elapsed += 16;
-        const progress = elapsed / duration;
-        const radius = maxRadius * progress;
-        const alpha = 1 - progress;
-
-        graphics.clear();
-        graphics.lineStyle(4, 0xffd700, alpha); // Gold color
-        graphics.strokeCircle(playerX, playerY, radius);
-
-        // Inner glow
-        graphics.lineStyle(8, 0xffaa00, alpha * 0.5);
-        graphics.strokeCircle(playerX, playerY, radius * 0.8);
-
-        if (progress >= 1) {
-          graphics.destroy();
-          timer.destroy();
-        }
-      },
-    });
-
-    // Add particle burst effect
-    if (this.particles) {
-      this.particles.emitLevelUp(playerX, playerY);
-    }
-  }
-
-  /**
-   * Push all enemies away from player on respawn
-   */
-  private pushEnemiesAway(): void {
-    const pushForce = 500;
-    const minDistance = 150; // Minimum distance to push enemies to
-
-    // Push ALL regular enemies away
-    this.enemies.getChildren().forEach((child) => {
-      const enemy = child as Enemy;
-      if (!enemy.active) return;
-
-      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-
-      // Calculate angle from player to enemy
-      const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-
-      // If enemy is too close, teleport them to minimum distance
-      if (distance < minDistance) {
-        enemy.x = this.player.x + Math.cos(angle) * minDistance;
-        enemy.y = this.player.y + Math.sin(angle) * minDistance;
-      }
-
-      // Apply strong outward velocity
-      const body = enemy.body as Phaser.Physics.Arcade.Body;
-      if (body) {
-        body.setVelocity(Math.cos(angle) * pushForce, Math.sin(angle) * pushForce);
-      }
-    });
-
-    // Push boss if present
-    if (this.boss && this.boss.active) {
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        this.boss.x,
-        this.boss.y,
-      );
-
-      const angle = Phaser.Math.Angle.Between(
-        this.player.x,
-        this.player.y,
-        this.boss.x,
-        this.boss.y,
-      );
-
-      // If boss is too close, teleport them to minimum distance
-      if (distance < minDistance) {
-        this.boss.x = this.player.x + Math.cos(angle) * minDistance;
-        this.boss.y = this.player.y + Math.sin(angle) * minDistance;
-      }
-
-      const body = this.boss.body as Phaser.Physics.Arcade.Body;
-      if (body) {
-        body.setVelocity(Math.cos(angle) * pushForce * 0.7, Math.sin(angle) * pushForce * 0.7);
-      }
-    }
-
-    // Clear ALL flying bullets (both enemy and bomb projectiles)
-    this.enemyBulletPool.getChildren().forEach((child) => {
-      const bullet = child as Phaser.Physics.Arcade.Sprite;
-      if (bullet.active) {
-        bullet.setActive(false);
-        bullet.setVisible(false);
-        const body = bullet.body as Phaser.Physics.Arcade.Body;
-        if (body) {
-          body.stop();
-          body.enable = false;
-        }
-      }
-    });
-
-    // Also clear bombs if present
-    if (this.bombPool) {
-      this.bombPool.getChildren().forEach((child) => {
-        const bomb = child as Phaser.Physics.Arcade.Sprite;
-        if (bomb.active) {
-          bomb.setActive(false);
-          bomb.setVisible(false);
-        }
-      });
-    }
   }
 
   /**
