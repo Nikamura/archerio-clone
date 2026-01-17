@@ -13,12 +13,16 @@ import type { RoomEventHandlers } from "./RoomManager";
  */
 
 // Helper functions to test room detection logic (avoids TypeScript literal narrowing)
+// According to STANDARD_ROOM_LAYOUT in chapterData.ts:
+// - bossRoom: 20 (final boss)
+// - miniBossRooms: [10] (mini-boss only)
+// - angelRooms: [5, 15] (not boss rooms)
 function isBossRoom(room: number): boolean {
-  return room === 10 || room === 20;
+  return room === 20;
 }
 
 function isMiniBossRoom(room: number): boolean {
-  return room === 5 || room === 15;
+  return room === 10;
 }
 
 function isRoomClearedCheck(activeEnemies: number, pendingSpawns: number): boolean {
@@ -54,34 +58,34 @@ describe("RoomManager State Logic", () => {
   });
 
   describe("Boss Room Detection", () => {
-    it("should detect boss on room 10", () => {
-      expect(isBossRoom(10)).toBe(true);
-    });
-
-    it("should detect boss on room 20", () => {
+    it("should detect boss on room 20 (final boss)", () => {
       expect(isBossRoom(20)).toBe(true);
     });
 
-    it("should not detect boss on room 5", () => {
+    it("should not detect boss on room 10 (mini-boss room)", () => {
+      expect(isBossRoom(10)).toBe(false);
+    });
+
+    it("should not detect boss on room 5 (angel room)", () => {
       expect(isBossRoom(5)).toBe(false);
     });
 
-    it("should not detect boss on room 15", () => {
+    it("should not detect boss on room 15 (angel room)", () => {
       expect(isBossRoom(15)).toBe(false);
     });
   });
 
   describe("Mini-Boss Room Detection", () => {
-    it("should detect mini-boss on room 5", () => {
-      expect(isMiniBossRoom(5)).toBe(true);
+    it("should detect mini-boss on room 10", () => {
+      expect(isMiniBossRoom(10)).toBe(true);
     });
 
-    it("should detect mini-boss on room 15", () => {
-      expect(isMiniBossRoom(15)).toBe(true);
+    it("should not detect mini-boss on room 5 (angel room)", () => {
+      expect(isMiniBossRoom(5)).toBe(false);
     });
 
-    it("should not detect mini-boss on room 10 (boss room)", () => {
-      expect(isMiniBossRoom(10)).toBe(false);
+    it("should not detect mini-boss on room 15 (angel room)", () => {
+      expect(isMiniBossRoom(15)).toBe(false);
     });
 
     it("should not detect mini-boss on room 1", () => {
@@ -90,17 +94,17 @@ describe("RoomManager State Logic", () => {
   });
 
   describe("Endless Mode Wave Progression", () => {
-    it("should increase difficulty multiplier each wave", () => {
-      const baseMultiplier = 1.0;
-      const waveIncrement = 0.15;
+    it("should increase difficulty multiplier each wave using exponential scaling", () => {
+      // RoomManager uses: Math.pow(1.5, endlessWave - 1)
+      const base = 1.5;
 
-      const wave1Multiplier = baseMultiplier;
-      const wave2Multiplier = baseMultiplier + waveIncrement;
-      const wave3Multiplier = baseMultiplier + waveIncrement * 2;
+      const wave1Multiplier = Math.pow(base, 1 - 1); // 1.5^0 = 1.0
+      const wave2Multiplier = Math.pow(base, 2 - 1); // 1.5^1 = 1.5
+      const wave3Multiplier = Math.pow(base, 3 - 1); // 1.5^2 = 2.25
 
       expect(wave1Multiplier).toBe(1.0);
-      expect(wave2Multiplier).toBe(1.15);
-      expect(wave3Multiplier).toBeCloseTo(1.3, 2);
+      expect(wave2Multiplier).toBe(1.5);
+      expect(wave3Multiplier).toBeCloseTo(2.25, 2);
     });
 
     it("should reset room counter but not wave counter on wave transition", () => {
@@ -161,12 +165,13 @@ describe("RoomManager Event Handlers", () => {
     expect(mockEventHandlers.onVictory).toHaveBeenCalledTimes(1);
   });
 
-  it("should call onRoomCleared with room number", () => {
+  it("should call onRoomCleared with room number and collected gold", () => {
     const currentRoom = 5;
+    const collectedGold = 150;
 
-    mockEventHandlers.onRoomCleared(currentRoom);
+    mockEventHandlers.onRoomCleared(currentRoom, collectedGold);
 
-    expect(mockEventHandlers.onRoomCleared).toHaveBeenCalledWith(5);
+    expect(mockEventHandlers.onRoomCleared).toHaveBeenCalledWith(5, 150);
   });
 
   it("should call onUpdateRoomUI with correct params", () => {

@@ -49,7 +49,7 @@ import type { SeededRandom } from "../../systems/SeededRandom";
  * Event handlers interface for RoomManager callbacks
  */
 export interface RoomEventHandlers {
-  onRoomCleared: (roomNumber: number) => void;
+  onRoomCleared: (roomNumber: number, collectedGold: number) => void;
   onRoomEntered: (roomNumber: number, endlessWave?: number) => void;
   onUpdateRoomUI: (currentRoom: number, totalRooms: number, endlessWave?: number) => void;
   onBossSpawned: (boss: Boss, bossType: BossType, bossName: string) => void;
@@ -597,9 +597,6 @@ export class RoomManager {
       // Notify chapter manager that room was cleared
       chapterManager.clearRoom();
 
-      // Notify handlers
-      this.eventHandlers.onRoomCleared(this.currentRoom);
-
       // Magnetically collect all remaining gold and health pickups
       const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y);
       if (collectedGold > 0) {
@@ -610,6 +607,9 @@ export class RoomManager {
       this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
         this.player.heal(healAmount);
       });
+
+      // Notify handlers with collected gold amount
+      this.eventHandlers.onRoomCleared(this.currentRoom, this.goldEarnedThisRoom);
 
       // Show door OR auto-advance after brief delay
       this.scene.time.delayedCall(500, () => {

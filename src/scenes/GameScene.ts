@@ -624,14 +624,16 @@ export default class GameScene extends Phaser.Scene {
       isEndlessMode: this.isEndlessMode,
       totalRooms: this.totalRooms,
       eventHandlers: {
-        onRoomCleared: (roomNumber) => {
+        onRoomCleared: (roomNumber, collectedGold) => {
+          // Accumulate gold earned this run for stats display
+          this.goldEarned += collectedGold;
           // Notify UIScene to fade out HUD for cleaner presentation
           this.scene.get("UIScene").events.emit("roomCleared");
           // Update health UI after pickups are collected
           this.scene
             .get("UIScene")
             .events.emit("updateHealth", this.player.getHealth(), this.player.getMaxHealth());
-          console.log("Room", roomNumber, "cleared - UI notified");
+          console.log("Room", roomNumber, "cleared - UI notified, gold collected:", collectedGold);
         },
         onRoomEntered: (roomNumber, endlessWave) => {
           // Update error reporting context for new room
