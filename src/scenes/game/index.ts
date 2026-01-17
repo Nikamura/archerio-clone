@@ -40,3 +40,14 @@ export {
   type TutorialSystemConfig,
   type TutorialEventHandlers,
 } from "./TutorialSystem";
+export {
+  InitializationSystem,
+  type InitializationSystemConfig,
+  type GameSceneEventHandlers,
+  type InitializationResult,
+  type InitializationPools,
+  type InitializationVisualEffects,
+  type InitializationSystems,
+  type InitializationPhysics,
+  type InitializationGameState,
+} from "./InitializationSystem";
