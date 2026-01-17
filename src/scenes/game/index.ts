@@ -35,3 +35,8 @@ export {
   type RespawnSystemConfig,
   type RespawnEventHandlers,
 } from "./RespawnSystem";
+export {
+  TutorialSystem,
+  type TutorialSystemConfig,
+  type TutorialEventHandlers,
+} from "./TutorialSystem";

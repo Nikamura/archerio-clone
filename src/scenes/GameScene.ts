@@ -11,6 +11,7 @@ import { ShootingSystem } from "./game/ShootingSystem";
 import { LevelUpSystem } from "./game/LevelUpSystem";
 import { RespawnSystem } from "./game/RespawnSystem";
 import { PassiveEffectSystem } from "./game/PassiveEffectSystem";
+import { TutorialSystem } from "./game/TutorialSystem";
 import BulletPool from "../systems/BulletPool";
 import EnemyBulletPool from "../systems/EnemyBulletPool";
 import SpiritCatPool from "../systems/SpiritCatPool";
@@ -58,6 +59,7 @@ export default class GameScene extends Phaser.Scene {
   private levelUpSystem!: LevelUpSystem;
   private respawnSystem!: RespawnSystem;
   private passiveEffectSystem!: PassiveEffectSystem;
+  private tutorialSystem!: TutorialSystem;
 
   private bulletPool!: BulletPool;
   private enemyBulletPool!: EnemyBulletPool;
@@ -76,7 +78,6 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false;
   private currentRoom: number = 1;
   private totalRooms: number = 20;
-  private showingTutorial: boolean = false; // Tutorial overlay is visible
   private boss: Boss | null = null;
   private runStartTime: number = 0;
   private goldEarned: number = 0; // Track gold earned this run
@@ -758,6 +759,19 @@ export default class GameScene extends Phaser.Scene {
     });
     this.passiveEffectSystem.initializeDamageAuraGraphics(this.player.depth);
 
+    // Initialize tutorial system
+    this.tutorialSystem = new TutorialSystem({
+      scene: this,
+      eventHandlers: {
+        onTutorialShown: () => {
+          this.physics.pause();
+        },
+        onTutorialDismissed: () => {
+          this.physics.resume();
+        },
+      },
+    });
+
     // Debug keyboard controls
     if (this.game.registry.get("debug")) {
       const nKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.N);
@@ -796,7 +810,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Show tutorial for first-time players
     if (!saveManager.isTutorialCompleted()) {
-      this.showTutorial();
+      this.tutorialSystem.showTutorial();
     }
 
     console.log("GameScene: Created");
@@ -1225,7 +1239,12 @@ export default class GameScene extends Phaser.Scene {
       // - input.isShooting: Immediate response to input release (no frame delay)
       // - isPlayerMoving: Accounts for momentum/sliding before shooting
       if (input.isShooting && !this.player.isPlayerMoving()) {
-        this.shootingSystem.tryShoot(time, isTransitioning, this.showingTutorial, this.isGameOver);
+        this.shootingSystem.tryShoot(
+          time,
+          isTransitioning,
+          this.tutorialSystem.isShowing,
+          this.isGameOver,
+        );
       }
 
       // Update enemies and handle fire DOT deaths
@@ -1351,6 +1370,12 @@ export default class GameScene extends Phaser.Scene {
       this.passiveEffectSystem = null!;
     }
 
+    // Clean up tutorial system
+    if (this.tutorialSystem) {
+      this.tutorialSystem.destroy();
+      this.tutorialSystem = null!;
+    }
+
     // Clean up pools
     if (this.bulletPool) {
       this.bulletPool.destroy(true);
@@ -1404,147 +1429,6 @@ export default class GameScene extends Phaser.Scene {
     if (this.roomManager) {
       this.roomManager.destroy();
     }
-  }
-
-  /**
-   * Show tutorial overlay for first-time players
-   */
-  private showTutorial(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-
-    // Mark tutorial as showing and pause the game physics
-    this.showingTutorial = true;
-    this.physics.pause();
-
-    // Create tutorial container
-    const container = this.add.container(0, 0);
-    container.setDepth(1000);
-
-    // Semi-transparent overlay
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
-    container.add(overlay);
-
-    // Title
-    const title = this.add
-      .text(width / 2, 80, "HOW TO PLAY", {
-        fontSize: "28px",
-        color: "#FFD700",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-    container.add(title);
-
-    // Instructions
-    const instructions = [
-      { icon: "🕹️", text: "Use the joystick to MOVE", color: "#4a9eff" },
-      { icon: "🏃", text: "Moving = DODGING (no shooting)", color: "#ff6b6b" },
-      { icon: "🎯", text: "Stand STILL to AUTO-SHOOT", color: "#44ff88" },
-      { icon: "⬆️", text: "Level up = Choose an ABILITY", color: "#ffaa00" },
-      { icon: "🚪", text: "Clear rooms to PROGRESS", color: "#aa88ff" },
-    ];
-
-    let yPos = 160;
-    instructions.forEach((inst) => {
-      const iconText = this.add
-        .text(50, yPos, inst.icon, {
-          fontSize: "28px",
-        })
-        .setOrigin(0, 0.5);
-
-      const descText = this.add
-        .text(90, yPos, inst.text, {
-          fontSize: "16px",
-          color: inst.color,
-          stroke: "#000000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0, 0.5);
-
-      container.add([iconText, descText]);
-      yPos += 55;
-    });
-
-    // Core mechanic highlight box
-    const highlightY = yPos + 30;
-    const highlightBox = this.add.rectangle(width / 2, highlightY, width - 40, 70, 0x333355);
-    highlightBox.setStrokeStyle(2, 0x4a9eff);
-    container.add(highlightBox);
-
-    const coreText = this.add
-      .text(width / 2, highlightY - 12, "THE CORE MECHANIC:", {
-        fontSize: "14px",
-        color: "#aaaaaa",
-      })
-      .setOrigin(0.5);
-    container.add(coreText);
-
-    const mechanic = this.add
-      .text(width / 2, highlightY + 12, "STOP to SHOOT • MOVE to DODGE", {
-        fontSize: "18px",
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
-    container.add(mechanic);
-
-    // Start button
-    const startY = height - 100;
-    const startButton = this.add
-      .text(width / 2, startY, "TAP TO START", {
-        fontSize: "22px",
-        color: "#ffffff",
-        backgroundColor: "#4a9eff",
-        padding: { x: 30, y: 15 },
-      })
-      .setOrigin(0.5);
-    startButton.setInteractive({ useHandCursor: true });
-    container.add(startButton);
-
-    // Pulse animation on start button
-    this.tweens.add({
-      targets: startButton,
-      scale: { from: 1, to: 1.05 },
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-
-    // Skip text
-    const skipText = this.add
-      .text(width / 2, startY + 50, "Tap anywhere to begin", {
-        fontSize: "12px",
-        color: "#888888",
-      })
-      .setOrigin(0.5);
-    container.add(skipText);
-
-    // Handle tap to dismiss
-    const dismissTutorial = () => {
-      // Mark tutorial as completed
-      saveManager.completeTutorial();
-      this.showingTutorial = false;
-
-      // Animate out
-      this.tweens.add({
-        targets: container,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => {
-          container.destroy();
-          // Resume physics
-          this.physics.resume();
-        },
-      });
-    };
-
-    // Make overlay and button clickable
-    overlay.setInteractive();
-    overlay.on("pointerdown", dismissTutorial);
-    startButton.on("pointerdown", dismissTutorial);
   }
 
   /**
