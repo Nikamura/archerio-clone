@@ -501,26 +501,6 @@ export default class GameScene extends Phaser.Scene {
     // Create enemy physics group
     this.enemies = this.physics.add.group();
 
-    // Apply starting abilities from Glory talent (Epic talent)
-    // Must be done after runRng is initialized for deterministic ability selection
-    // Now shows a selection UI instead of auto-applying random abilities
-    if (this.talentBonuses.startingAbilities > 0) {
-      console.log(
-        `GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`,
-      );
-      // Pause physics immediately to prevent any enemy movement/attacks during selection
-      this.physics.pause();
-      // Note: inputSystem.hide() is called in launchStartingAbilitySelection() after inputSystem is created
-      // Schedule the starting ability selection UI to launch after scene is fully ready
-      // Enemy spawning is deferred until after all starting abilities are selected
-      this.time.delayedCall(100, () => {
-        this.launchStartingAbilitySelection();
-      });
-    } else {
-      // No starting abilities - spawn enemies immediately
-      this.roomManager.spawnEnemiesForRoom();
-    }
-
     // Set up collisions
     this.physics.add.overlap(
       this.bulletPool,
@@ -708,6 +688,26 @@ export default class GameScene extends Phaser.Scene {
 
     // Update UIScene with room info
     this.roomManager.updateRoomUI();
+
+    // Apply starting abilities from Glory talent (Epic talent)
+    // Must be done after runRng is initialized for deterministic ability selection
+    // Now shows a selection UI instead of auto-applying random abilities
+    if (this.talentBonuses.startingAbilities > 0) {
+      console.log(
+        `GameScene: ${this.talentBonuses.startingAbilities} starting abilities from Glory talent - launching selection UI`,
+      );
+      // Pause physics immediately to prevent any enemy movement/attacks during selection
+      this.physics.pause();
+      // Note: inputSystem.hide() is called in launchStartingAbilitySelection() after inputSystem is created
+      // Schedule the starting ability selection UI to launch after scene is fully ready
+      // Enemy spawning is deferred until after all starting abilities are selected
+      this.time.delayedCall(100, () => {
+        this.launchStartingAbilitySelection();
+      });
+    } else {
+      // No starting abilities - spawn enemies immediately
+      this.roomManager.spawnEnemiesForRoom();
+    }
 
     // Send initial health to UIScene (player may have bonus HP from equipment/talents)
     this.scene
