@@ -19,3 +19,9 @@ export {
   type EnemyDeathEventHandlers,
   type EnemyDeathOptions,
 } from "./EnemyDeathHandler";
+export {
+  ShootingSystem,
+  type ShootingSystemConfig,
+  type ShootingEventHandlers,
+  type WeaponProjectileConfig,
+} from "./ShootingSystem";

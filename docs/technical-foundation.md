@@ -60,6 +60,30 @@ BootScene → PreloaderScene → MainMenuScene ↔ GameScene (with UIScene overl
 - `GameOverScene`: Victory/defeat screen with rewards, stats, chest rewards
 - `LevelUpScene`: Ability selection modal (3 choices)
 
+## GameScene Subsystems
+
+GameScene delegates specific responsibilities to extracted subsystems in `src/scenes/game/`. These are instantiated per-game (not singletons) and use constructor injection with event handler callbacks:
+
+| Subsystem | Responsibility |
+|-----------|----------------|
+| `InputSystem` | Keyboard and virtual joystick input handling |
+| `AbilitySystem` | Ability acquisition, leveling, and stat management |
+| `CombatSystem` | Collision detection, damage calculations, bullet hits |
+| `RoomManager` | Room progression, door transitions, enemy spawning delegation |
+| `EnemySpawnManager` | Enemy and boss spawning (used by RoomManager) |
+| `EnemyDeathHandler` | Death consequences: drops, XP, particles, stats |
+| `ShootingSystem` | Player targeting, fire rate, projectile spawning (5 types) |
+
+**Pattern**: Each subsystem uses a config interface + event handlers interface:
+```typescript
+interface ShootingSystemConfig {
+  scene: Phaser.Scene;
+  player: Player;
+  // ... dependencies
+  eventHandlers: ShootingEventHandlers;
+}
+```
+
 ## Manager Pattern (Singletons)
 
 All managers use the singleton pattern with localStorage persistence:
@@ -108,6 +132,7 @@ export const someManager = SomeManager.instance;
 ```
 src/
 ├── scenes/           # Phaser scenes (Boot, Preloader, MainMenu, Game, UI, etc.)
+│   └── game/         # GameScene subsystems (InputSystem, CombatSystem, ShootingSystem, etc.)
 ├── entities/         # Game objects (Player, Enemy types, Boss, Bullet, Pickups)
 │   └── bosses/       # Boss implementations extending BaseBoss
 ├── systems/          # Managers and pools (CurrencyManager, BulletPool, etc.)
