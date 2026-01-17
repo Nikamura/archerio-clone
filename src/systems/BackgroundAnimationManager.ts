@@ -30,7 +30,7 @@ export class BackgroundAnimationManager {
 
   // Color shift tween for ambient lighting
   private colorShiftTween: Phaser.Tweens.Tween | null = null;
-  private backgroundImage: Phaser.GameObjects.Image | null = null;
+  private backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite | null = null;
   private currentColorIndex: number = 0;
 
   // State flags
@@ -49,7 +49,7 @@ export class BackgroundAnimationManager {
     chapterId: number,
     themeId: string,
     quality: GraphicsQuality,
-    backgroundImage?: Phaser.GameObjects.Image,
+    backgroundImage?: Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite,
   ): void {
     this.config = getChapterAnimationConfig(chapterId);
     this.themeId = themeId;

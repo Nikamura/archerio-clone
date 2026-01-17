@@ -116,3 +116,17 @@ const DEFAULT_ENEMY_NAMES: Record<string, string> = {
 export function getEnemyName(enemyType: string): string {
   return DEFAULT_ENEMY_NAMES[enemyType] ?? enemyType;
 }
+
+// Chapter to floor tile type mapping
+const CHAPTER_FLOOR_TYPES: Record<number, string> = {
+  1: "dungeon",
+  2: "forest",
+  3: "ice",
+  4: "lava",
+  5: "shadow",
+};
+
+// Get floor texture key for a chapter
+export function getChapterFloorType(chapter: number): string {
+  return CHAPTER_FLOOR_TYPES[chapter] ?? "dungeon";
+}

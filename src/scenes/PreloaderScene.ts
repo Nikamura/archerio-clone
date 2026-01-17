@@ -292,6 +292,13 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image("wall_lava", "assets/sprites/walls/wall_lava.png");
     this.load.image("wall_shadow", "assets/sprites/walls/wall_shadow.png");
 
+    // Load floor tiles
+    this.load.image("floor_dungeon", "assets/sprites/floors/floor_dungeon.png");
+    this.load.image("floor_forest", "assets/sprites/floors/floor_forest.png");
+    this.load.image("floor_ice", "assets/sprites/floors/floor_ice.png");
+    this.load.image("floor_lava", "assets/sprites/floors/floor_lava.png");
+    this.load.image("floor_shadow", "assets/sprites/floors/floor_shadow.png");
+
     // Load chest sprites
     this.load.image("chest_wooden", "assets/sprites/chest/wooden.png");
     this.load.image("chest_silver", "assets/sprites/chest/silver.png");

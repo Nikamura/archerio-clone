@@ -49,7 +49,7 @@ import {
 import { hapticManager } from "../systems/HapticManager";
 import { heroManager } from "../systems/HeroManager";
 import { equipmentManager } from "../systems/EquipmentManager";
-import { THEME_ASSETS, THEME_COLORS } from "../config/themeData";
+import { THEME_COLORS, getChapterFloorType } from "../config/themeData";
 import { talentManager } from "../systems/TalentManager";
 import type { TalentBonuses } from "../config/talentData";
 import { WEAPON_TYPE_CONFIGS } from "../systems/Equipment";
@@ -311,12 +311,9 @@ export default class GameScene extends Phaser.Scene {
     // Set physics world bounds to match camera/game size
     this.physics.world.setBounds(0, 0, width, height);
 
-    // Get selected chapter and its themed background
+    // Get selected chapter
     const selectedChapter = chapterManager.getSelectedChapter();
     const chapterDef = getChapterDefinition(selectedChapter);
-    // Use background key
-    const backgroundKeyName = `chapter${selectedChapter}Bg` as keyof typeof THEME_ASSETS;
-    const backgroundKey = THEME_ASSETS[backgroundKeyName] as string;
 
     // Start the chapter run for tracking
     const started = chapterManager.startChapter(selectedChapter);
@@ -326,13 +323,16 @@ export default class GameScene extends Phaser.Scene {
       console.log(`GameScene: Started chapter ${selectedChapter} run`);
     }
 
-    // Add chapter-specific background image (fallback to dungeonFloor if not loaded)
-    const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : "dungeonFloor";
-    const bg = this.add.image(0, 0, bgKey).setOrigin(0);
-    bg.setDisplaySize(width, height);
+    // Get floor tile key for current chapter
+    const floorTextureKey = `floor_${getChapterFloorType(selectedChapter)}`;
+    const floorKey = this.textures.exists(floorTextureKey) ? floorTextureKey : "floor_dungeon";
+
+    // Create tiled floor using TileSprite (repeats 64x64 tile across screen)
+    const bg = this.add.tileSprite(0, 0, width, height, floorKey).setOrigin(0);
+    bg.setDepth(-1);
 
     console.log(
-      `GameScene: Using background '${bgKey}' for chapter ${selectedChapter} (${chapterDef.name})`,
+      `GameScene: Using floor tile '${floorKey}' for chapter ${selectedChapter} (${chapterDef.name})`,
     );
 
     // Initialize background animations (will be configured after settings are loaded)
