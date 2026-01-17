@@ -16,10 +16,7 @@ export type ParticleDirection = "up" | "down" | "drift";
 export interface ParticleConfig {
   enabled: boolean;
   texture: string; // Asset key for particle texture
-  tint: {
-    medieval: number[]; // Tint colors for medieval theme
-    vaporwave: number[]; // Tint colors for vaporwave theme
-  };
+  tint: number[]; // Tint colors for particles
   count: {
     low: number; // Particle count at LOW quality (disabled)
     medium: number; // Particle count at MEDIUM quality
@@ -37,10 +34,7 @@ export interface ParticleConfig {
  */
 export interface ColorShiftConfig {
   enabled: boolean;
-  colors: {
-    medieval: number[]; // Color cycle for medieval theme
-    vaporwave: number[]; // Color cycle for vaporwave theme
-  };
+  colors: number[]; // Color cycle for transitions
   duration: number; // Time per color transition (6000-15000ms)
   intensity: number; // Tint strength 0.0-0.3 (subtle)
 }
@@ -66,10 +60,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     particles: {
       enabled: true,
       texture: "bg_dust",
-      tint: {
-        medieval: [0x888888, 0x666666, 0xaaaaaa],
-        vaporwave: [0x00ffff, 0xff00ff, 0x9999ff],
-      },
+      tint: [0x888888, 0x666666, 0xaaaaaa],
       count: { low: 0, medium: 8, high: 20 },
       speed: { min: 3, max: 8 },
       alpha: { start: 0.6, end: 0 },
@@ -79,10 +70,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     },
     colorShift: {
       enabled: true,
-      colors: {
-        medieval: [0xffffff, 0xffeecc, 0xffdda0, 0xffffff], // Torch flicker
-        vaporwave: [0xffffff, 0xccffff, 0xffccff, 0xffffff], // Neon pulse
-      },
+      colors: [0xffffff, 0xffeecc, 0xffdda0, 0xffffff], // Torch flicker
       duration: 10000,
       intensity: 0.15,
     },
@@ -95,10 +83,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     particles: {
       enabled: true,
       texture: "bg_pollen",
-      tint: {
-        medieval: [0x99ff66, 0xffff99, 0xffffff],
-        vaporwave: [0x00ffcc, 0x66ff99, 0xccffff],
-      },
+      tint: [0x99ff66, 0xffff99, 0xffffff],
       count: { low: 0, medium: 10, high: 25 },
       speed: { min: 2, max: 6 },
       alpha: { start: 0.7, end: 0 },
@@ -108,10 +93,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     },
     colorShift: {
       enabled: false, // Forest keeps natural colors
-      colors: {
-        medieval: [0xffffff],
-        vaporwave: [0xffffff, 0xccffee, 0xffffff],
-      },
+      colors: [0xffffff],
       duration: 12000,
       intensity: 0.08,
     },
@@ -124,10 +106,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     particles: {
       enabled: true,
       texture: "bg_snowflake",
-      tint: {
-        medieval: [0xffffff, 0xccddff, 0xeeeeff],
-        vaporwave: [0x66ffff, 0xffffff, 0xccffff],
-      },
+      tint: [0xffffff, 0xccddff, 0xeeeeff],
       count: { low: 0, medium: 12, high: 30 },
       speed: { min: 5, max: 15 },
       alpha: { start: 0.8, end: 0 },
@@ -137,10 +116,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     },
     colorShift: {
       enabled: true,
-      colors: {
-        medieval: [0xffffff, 0xccddff, 0xaaccff, 0xffffff], // Crystalline shimmer
-        vaporwave: [0xffffff, 0xccffff, 0x99eeff, 0xffffff], // Cyan pulse
-      },
+      colors: [0xffffff, 0xccddff, 0xaaccff, 0xffffff], // Crystalline shimmer
       duration: 8000,
       intensity: 0.12,
     },
@@ -153,10 +129,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     particles: {
       enabled: true,
       texture: "bg_ember",
-      tint: {
-        medieval: [0xff4400, 0xff6600, 0xffaa00],
-        vaporwave: [0xff0066, 0xff00ff, 0xff6699],
-      },
+      tint: [0xff4400, 0xff6600, 0xffaa00],
       count: { low: 0, medium: 10, high: 25 },
       speed: { min: 8, max: 20 },
       alpha: { start: 0.9, end: 0 },
@@ -166,10 +139,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     },
     colorShift: {
       enabled: true,
-      colors: {
-        medieval: [0xffffff, 0xffccaa, 0xff9966, 0xffddbb, 0xffffff], // Lava glow
-        vaporwave: [0xffffff, 0xffccff, 0xff99cc, 0xffffff], // Pink heat
-      },
+      colors: [0xffffff, 0xffccaa, 0xff9966, 0xffddbb, 0xffffff], // Lava glow
       duration: 6000,
       intensity: 0.2,
     },
@@ -182,10 +152,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     particles: {
       enabled: true,
       texture: "bg_shadow",
-      tint: {
-        medieval: [0x6600cc, 0x9933ff, 0x330066],
-        vaporwave: [0x9900ff, 0xff00ff, 0x6600ff],
-      },
+      tint: [0x6600cc, 0x9933ff, 0x330066],
       count: { low: 0, medium: 8, high: 20 },
       speed: { min: 4, max: 10 },
       alpha: { start: 0.7, end: 0 },
@@ -195,10 +162,7 @@ export const CHAPTER_ANIMATION_CONFIGS: ChapterAnimationConfig[] = [
     },
     colorShift: {
       enabled: true,
-      colors: {
-        medieval: [0xffffff, 0xddccff, 0xcc99ff, 0xeeddff, 0xffffff], // Purple energy
-        vaporwave: [0xffffff, 0xffccff, 0xcc99ff, 0x99ccff, 0xffffff], // Neon void
-      },
+      colors: [0xffffff, 0xddccff, 0xcc99ff, 0xeeddff, 0xffffff], // Purple energy
       duration: 12000,
       intensity: 0.18,
     },
@@ -213,17 +177,17 @@ export function getChapterAnimationConfig(chapterId: number): ChapterAnimationCo
 }
 
 /**
- * Get particle tint colors (medieval theme)
+ * Get particle tint colors
  */
-export function getParticleTints(config: ParticleConfig, _themeId: string): number[] {
-  return config.tint.medieval;
+export function getParticleTints(config: ParticleConfig): number[] {
+  return config.tint;
 }
 
 /**
- * Get color shift colors (medieval theme)
+ * Get color shift colors
  */
-export function getColorShiftColors(config: ColorShiftConfig, _themeId: string): number[] {
-  return config.colors.medieval;
+export function getColorShiftColors(config: ColorShiftConfig): number[] {
+  return config.colors;
 }
 
 /**

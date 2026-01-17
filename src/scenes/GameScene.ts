@@ -339,7 +339,6 @@ export default class GameScene extends Phaser.Scene {
     this.backgroundAnimations = createBackgroundAnimationManager(this);
     this.backgroundAnimations.initialize(
       selectedChapter,
-      "medieval",
       saveManager.getSettings().graphicsQuality,
       bg,
     );
