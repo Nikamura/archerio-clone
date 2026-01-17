@@ -179,41 +179,6 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off("playerRespawn", this.handleRespawn, this);
     });
 
-    // Handle browser visibility changes and focus loss
-    // Auto-pause game when tab is hidden or window loses focus
-    const handleVisibilityChange = () => {
-      // Only handle if scene is active and created
-      if (document.hidden && this.scene.isActive() && this.player) {
-        console.log("GameScene: Page hidden, auto-pausing game");
-        this.resetJoystickState();
-        // Auto-pause if not already paused and game is not over
-        if (!this.scene.isPaused("GameScene") && !this.isGameOver) {
-          this.handlePause();
-        }
-      }
-    };
-
-    const handleBlur = () => {
-      // Only handle if scene is active and created
-      if (this.scene.isActive() && this.player) {
-        console.log("GameScene: Window blur, auto-pausing game");
-        this.resetJoystickState();
-        // Auto-pause if not already paused and game is not over
-        if (!this.scene.isPaused("GameScene") && !this.isGameOver) {
-          this.handlePause();
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleBlur);
-
-    // Cleanup listeners on shutdown
-    this.events.once("shutdown", () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleBlur);
-    });
-
     // Check game mode
     this.isEndlessMode = this.game.registry.get("isEndlessMode") === true;
 
