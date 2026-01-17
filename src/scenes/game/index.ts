@@ -8,3 +8,8 @@ export {
 } from "./CombatSystem";
 export { AbilitySystem, type AcquiredAbility, type AbilityEventHandlers } from "./AbilitySystem";
 export { RoomManager, type RoomManagerConfig, type RoomEventHandlers } from "./RoomManager";
+export {
+  EnemySpawnManager,
+  type EnemySpawnManagerConfig,
+  type EnemySpawnEventHandlers,
+} from "./EnemySpawnManager";
