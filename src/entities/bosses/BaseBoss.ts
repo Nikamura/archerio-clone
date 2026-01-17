@@ -198,9 +198,11 @@ export default abstract class BaseBoss extends Enemy {
    * Idle phase - move toward center and wait for next attack
    */
   protected handleIdlePhase(time: number, playerX: number, playerY: number): void {
-    // Move toward center of screen
-    const centerX = 375 / 2;
-    const centerY = 667 / 2 - 50;
+    if (!this.worldBounds) return;
+
+    // Move toward center of core gameplay area
+    const centerX = this.worldBounds.centerX;
+    const centerY = this.worldBounds.centerY - 50;
 
     const distToCenter = Phaser.Math.Distance.Between(this.x, this.y, centerX, centerY);
 

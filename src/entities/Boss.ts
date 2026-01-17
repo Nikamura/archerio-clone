@@ -157,9 +157,10 @@ export default class Boss extends Enemy {
   }
 
   private handleIdlePhase(time: number, playerX: number, playerY: number) {
-    // Slow movement toward center of screen when idle
-    const centerX = 375 / 2;
-    const centerY = 667 / 2 - 50; // Slightly above center
+    // Slow movement toward center of core gameplay area when idle
+    const worldBounds = this.scene.physics.world.bounds;
+    const centerX = worldBounds.centerX;
+    const centerY = worldBounds.centerY - 50; // Slightly above center
 
     const distToCenter = Phaser.Math.Distance.Between(this.x, this.y, centerX, centerY);
 

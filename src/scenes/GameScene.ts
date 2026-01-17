@@ -71,6 +71,7 @@ import { SeededRandom } from "../systems/SeededRandom";
 import { ABILITIES, type AbilityData } from "../config/abilityData";
 import { abilityPriorityManager } from "../systems/AbilityPriorityManager";
 import { errorReporting } from "../systems/ErrorReportingManager";
+import { screenManager } from "../systems/ScreenManager";
 import type { RespawnRoomState, EnemyRespawnState } from "./GameOverScene";
 
 export default class GameScene extends Phaser.Scene {
@@ -308,8 +309,13 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Set physics world bounds to match camera/game size
-    this.physics.world.setBounds(0, 0, width, height);
+    // Calculate game area with core bounds for gameplay
+    const gameArea = screenManager.calculateGameArea(width, height);
+    const core = gameArea.core;
+
+    // Set physics world bounds to core gameplay area only (375x667)
+    // This keeps game balance consistent across all screen sizes
+    this.physics.world.setBounds(core.x, core.y, core.width, core.height);
 
     // Get selected chapter and its themed background
     const selectedChapter = chapterManager.getSelectedChapter();
@@ -327,6 +333,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Add chapter-specific background image (fallback to dungeonFloor if not loaded)
+    // Background fills entire screen (including extended margins)
     const bgKey = this.textures.exists(backgroundKey) ? backgroundKey : "dungeonFloor";
     const bg = this.add.image(0, 0, bgKey).setOrigin(0);
     bg.setDisplaySize(width, height);
@@ -426,11 +433,11 @@ export default class GameScene extends Phaser.Scene {
       finalCritChance,
     );
 
-    // Create player at bottom center with difficulty-adjusted stats and equipment bonuses
+    // Create player at bottom center of CORE area with difficulty-adjusted stats and equipment bonuses
     this.player = new Player(
       this,
-      width / 2,
-      height - 100,
+      core.centerX,
+      core.bottom - 100,
       {
         maxHealth: finalMaxHealth,
         baseDamage: finalDamage,

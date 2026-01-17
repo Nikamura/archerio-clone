@@ -19,17 +19,19 @@ import LevelUpScene from "./scenes/LevelUpScene";
 import StartingAbilityScene from "./scenes/StartingAbilityScene";
 import PauseScene from "./scenes/PauseScene";
 import { errorToast } from "./systems/ErrorToast";
+import { screenManager, BASE_WIDTH, BASE_HEIGHT } from "./systems/ScreenManager";
 
 // Initialize error toast for debugging on mobile
 // This sets up global error handlers to catch and display errors visually
 errorToast.setDuration(5000); // 5 seconds display
 
+// Pre-calculate game area for initial dimensions
+screenManager.calculateGameArea(window.innerWidth, window.innerHeight);
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 375,
-  height: 667,
   parent: "game",
-  backgroundColor: "#2d2d2d",
+  backgroundColor: "#1a1a1a", // Dark background for extended margins
   physics: {
     default: "arcade",
     arcade: {
@@ -59,8 +61,10 @@ const config: Phaser.Types.Core.GameConfig = {
     PauseScene,
   ],
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: BASE_WIDTH,
+    height: BASE_HEIGHT,
   },
 };
 

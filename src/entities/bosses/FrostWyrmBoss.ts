@@ -70,9 +70,11 @@ export default class FrostWyrmBoss extends BaseBoss {
   }
 
   protected handleIdlePhase(time: number, _playerX: number, _playerY: number): void {
+    if (!this.worldBounds) return;
+
     // Wyrm moves in serpentine pattern
-    const centerX = 375 / 2;
-    const centerY = 667 / 3;
+    const centerX = this.worldBounds.centerX;
+    const centerY = this.worldBounds.top + this.worldBounds.height / 3;
 
     const sineOffset = Math.sin(time / 400) * 60;
     const targetX = centerX + sineOffset;
