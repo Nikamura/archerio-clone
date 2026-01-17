@@ -25,3 +25,8 @@ export {
   type ShootingEventHandlers,
   type WeaponProjectileConfig,
 } from "./ShootingSystem";
+export {
+  LevelUpSystem,
+  type LevelUpSystemConfig,
+  type LevelUpEventHandlers,
+} from "./LevelUpSystem";

@@ -8,6 +8,7 @@ import { CombatSystem } from "./game/CombatSystem";
 import { RoomManager } from "./game/RoomManager";
 import { EnemyDeathHandler } from "./game/EnemyDeathHandler";
 import { ShootingSystem } from "./game/ShootingSystem";
+import { LevelUpSystem } from "./game/LevelUpSystem";
 import BulletPool from "../systems/BulletPool";
 import EnemyBulletPool from "../systems/EnemyBulletPool";
 import SpiritCatPool from "../systems/SpiritCatPool";
@@ -41,8 +42,6 @@ import { performanceMonitor } from "../systems/PerformanceMonitor";
 import { getRoomGenerator, type RoomGenerator } from "../systems/RoomGenerator";
 import WallGroup from "../systems/WallGroup";
 import { SeededRandom } from "../systems/SeededRandom";
-import { ABILITIES, type AbilityData } from "../config/abilityData";
-import { abilityPriorityManager } from "../systems/AbilityPriorityManager";
 import { errorReporting } from "../systems/ErrorReportingManager";
 import type { RespawnRoomState, EnemyRespawnState } from "./GameOverScene";
 
@@ -55,6 +54,7 @@ export default class GameScene extends Phaser.Scene {
   private roomManager!: RoomManager;
   private enemyDeathHandler!: EnemyDeathHandler;
   private shootingSystem!: ShootingSystem;
+  private levelUpSystem!: LevelUpSystem;
 
   private bulletPool!: BulletPool;
   private enemyBulletPool!: EnemyBulletPool;
@@ -73,7 +73,6 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false;
   private currentRoom: number = 1;
   private totalRooms: number = 20;
-  private isLevelingUp: boolean = false; // Player is selecting ability (immune to damage)
   private showingTutorial: boolean = false; // Tutorial overlay is visible
   private boss: Boss | null = null;
   private runStartTime: number = 0;
@@ -582,13 +581,13 @@ export default class GameScene extends Phaser.Scene {
           this.roomManager.clearBoss();
           this.scene.get("UIScene").events.emit("hideBossHealth");
         },
-        onLevelUp: () => this.handleLevelUp(),
+        onLevelUp: () => this.levelUpSystem.handleLevelUp(this.isGameOver),
         onXPGained: (xp) => {
           const leveledUp = this.player.addXP(xp);
           this.updateXPUI();
           // Don't trigger level up if player is dead or game is over
           if (leveledUp && !this.player.isDead() && !this.isGameOver) {
-            this.handleLevelUp();
+            this.levelUpSystem.handleLevelUp(this.isGameOver);
           }
         },
       },
@@ -695,12 +694,46 @@ export default class GameScene extends Phaser.Scene {
         },
         onPlayerHealthUpdated: () => this.updatePlayerHealthUI(this.player),
         onXPUIUpdated: () => this.updateXPUI(),
-        onLevelUp: () => this.handleLevelUp(),
+        onLevelUp: () => this.levelUpSystem.handleLevelUp(this.isGameOver),
         onBossKilled: () => {
           this.boss = null;
           this.roomManager.clearBoss();
         },
         onEnemyCacheInvalidated: () => this.shootingSystem.invalidateTargetCache(),
+      },
+    });
+
+    // Initialize level up system (handles level-up UI and ability selection)
+    this.levelUpSystem = new LevelUpSystem({
+      scene: this,
+      game: this.game,
+      player: this.player,
+      abilitySystem: this.abilitySystem,
+      inputSystem: this.inputSystem,
+      roomManager: this.roomManager,
+      enemyBulletPool: this.enemyBulletPool,
+      particles: this.particles,
+      talentBonuses: this.talentBonuses,
+      runRng: this.runRng,
+      eventHandlers: {
+        onLevelUpStarted: () => {
+          this.resetJoystickState();
+        },
+        onLevelUpCompleted: () => {
+          this.resetJoystickState();
+        },
+        onAbilityApplied: (_abilityId) => {
+          // Iron Will check happens via ability system events
+        },
+        onStartingAbilitiesComplete: () => {
+          this.resetJoystickState();
+        },
+        onAutoLevelUp: (ability) => {
+          this.scene.get("UIScene").events.emit("showAutoLevelUp", ability);
+        },
+        onCheckIronWill: () => {
+          this.checkIronWillStatus();
+        },
       },
     });
 
@@ -728,7 +761,7 @@ export default class GameScene extends Phaser.Scene {
       // Schedule the starting ability selection UI to launch after scene is fully ready
       // Enemy spawning is deferred until after all starting abilities are selected
       this.time.delayedCall(100, () => {
-        this.launchStartingAbilitySelection();
+        this.levelUpSystem.launchStartingAbilitySelection();
       });
     } else {
       // No starting abilities - spawn enemies immediately
@@ -784,7 +817,7 @@ export default class GameScene extends Phaser.Scene {
         goldEarned: this.goldEarned,
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
-        acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
         chapterId: chapterManager.getSelectedChapter(),
         difficulty: this.difficultyConfig.label.toLowerCase(),
@@ -839,247 +872,6 @@ export default class GameScene extends Phaser.Scene {
    */
   private handleCombatPlayerDeath(): void {
     this.triggerGameOver();
-  }
-
-  private handleLevelUp() {
-    // Don't allow level up if player is dead or game is over
-    if (this.isGameOver || this.player.isDead()) {
-      console.log("GameScene: handleLevelUp blocked - player is dead or game over");
-      return;
-    }
-
-    console.log("GameScene: handleLevelUp called");
-    audioManager.playLevelUp();
-    hapticManager.levelUp(); // Haptic feedback for level up
-
-    // Mark player as leveling up (immune to damage during selection)
-    this.isLevelingUp = true;
-
-    // Clear any enemy bullets that might be mid-flight
-    this.enemyBulletPool.clear(true, true);
-
-    // Level up celebration particles
-    this.particles.emitLevelUp(this.player.x, this.player.y);
-
-    // Apply heal on level up talent bonus
-    if (this.talentBonuses.flatHealOnLevel > 0) {
-      this.player.heal(this.talentBonuses.flatHealOnLevel);
-      // Check Iron Will (may deactivate if healed above threshold)
-      this.checkIronWillStatus();
-      console.log("GameScene: Healed", this.talentBonuses.flatHealOnLevel, "HP from talent");
-    }
-
-    // Check if auto level up is enabled
-    if (saveManager.getAutoLevelUp()) {
-      this.handleAutoLevelUp();
-      return;
-    }
-
-    // Reset joystick state before pausing to prevent stuck input
-    this.resetJoystickState();
-
-    // Pause game physics
-    this.physics.pause();
-
-    // Hide joystick so it doesn't block the UI
-    console.log("GameScene: hiding joystick");
-    this.inputSystem.hide();
-
-    // Clean up any existing listeners to prevent multiple applications
-    this.game.events.off("abilitySelected");
-
-    // Listen for ability selection using global game events (more reliable than scene events)
-    this.game.events.once("abilitySelected", (abilityId: string) => {
-      console.log("GameScene: received abilitySelected", abilityId);
-      try {
-        this.applyAbility(abilityId);
-        console.log("GameScene: resuming physics and showing joystick");
-        // Ensure joystick state is reset before resuming
-        this.resetJoystickState();
-        this.physics.resume();
-        this.inputSystem.show();
-        // Add brief immunity period (1 second) after level up to allow dodging
-        this.time.delayedCall(1000, () => {
-          this.isLevelingUp = false;
-        });
-      } catch (error) {
-        console.error("GameScene: Error applying ability:", error);
-        this.resetJoystickState(); // Reset even on error
-        this.physics.resume(); // Resume anyway to prevent soft-lock
-        this.inputSystem.show();
-        this.isLevelingUp = false; // Reset flag on error too
-      }
-    });
-
-    // Launch level up scene with ability choices
-    // Use launch instead of start to run in parallel
-    if (this.scene.isActive("LevelUpScene")) {
-      console.log("GameScene: LevelUpScene already active, restarting it");
-      this.scene.stop("LevelUpScene");
-    }
-
-    // Build ability levels record from ability system
-    const abilityLevels: Record<string, number> = {};
-    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
-      abilityLevels[ability.id] = ability.level;
-    }
-
-    this.scene.launch("LevelUpScene", {
-      playerLevel: this.player.getLevel(),
-      abilityLevels,
-      hasExtraLife: this.player.hasExtraLife(),
-    });
-  }
-
-  /**
-   * Get available abilities (not at max level)
-   */
-  private getAvailableAbilities(): AbilityData[] {
-    return ABILITIES.filter((ability) => {
-      const currentLevel = this.abilitySystem.getAbilityLevel(ability.id);
-
-      // Special case for extra_life: only available if player doesn't have one
-      if (ability.id === "extra_life") {
-        return !this.player.hasExtraLife();
-      }
-
-      // Check max level for ALL abilities with a defined maxLevel
-      // This prevents one-time abilities (like through_wall) from being offered again
-      if (ability.maxLevel !== undefined && currentLevel >= ability.maxLevel) {
-        return false;
-      }
-
-      return true;
-    });
-  }
-
-  /**
-   * Handle auto level up - select the highest priority ability without showing the selection UI
-   */
-  private handleAutoLevelUp() {
-    // Get abilities that aren't maxed
-    const availableAbilities = this.getAvailableAbilities();
-
-    if (availableAbilities.length === 0) {
-      console.log("GameScene: No available abilities for auto level up");
-      this.isLevelingUp = false;
-      return;
-    }
-
-    // Build ability levels record from ability system
-    const abilityLevels: Record<string, number> = {};
-    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
-      abilityLevels[ability.id] = ability.level;
-    }
-
-    // First, randomly select 3 abilities (just like the UI would show)
-    // This ensures auto-level-up behavior matches manual timeout behavior
-    const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
-    const randomSubset = shuffled.slice(0, 3);
-
-    // Then select highest priority ability from the random subset
-    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-      randomSubset,
-      abilityLevels,
-    );
-
-    if (!selectedAbility) {
-      console.log("GameScene: No ability could be selected");
-      this.isLevelingUp = false;
-      return;
-    }
-
-    // Apply the ability
-    this.applyAbility(selectedAbility.id);
-
-    console.log("GameScene: Auto level up selected (priority):", selectedAbility.id);
-
-    // Notify UIScene to show the auto level up notification
-    this.scene.get("UIScene").events.emit("showAutoLevelUp", selectedAbility);
-
-    // Brief immunity period after auto level up
-    this.time.delayedCall(500, () => {
-      this.isLevelingUp = false;
-    });
-  }
-
-  /**
-   * Launch the starting ability selection UI for Glory talent bonus
-   */
-  private launchStartingAbilitySelection() {
-    const totalSelections = this.talentBonuses.startingAbilities;
-
-    // Physics already paused in create() - hide joystick now that inputSystem exists
-    this.inputSystem.hide();
-    // Clean up any existing listeners to prevent multiple applications
-    this.game.events.off("startingAbilitySelected");
-
-    // Listen for starting ability selection using global game events
-    this.game.events.on(
-      "startingAbilitySelected",
-      (data: { abilityId: string; remainingSelections: number; rngState: number }) => {
-        console.log("GameScene: received startingAbilitySelected", data.abilityId);
-        try {
-          this.applyAbility(data.abilityId);
-          console.log(`GameScene: Starting ability applied: ${data.abilityId}`);
-
-          if (data.remainingSelections > 0) {
-            // More selections to make - launch again with updated state
-            console.log(`GameScene: ${data.remainingSelections} more starting abilities to select`);
-            this.time.delayedCall(200, () => {
-              this.scene.launch("StartingAbilityScene", {
-                remainingSelections: data.remainingSelections,
-                currentSelection: totalSelections - data.remainingSelections + 1,
-                totalSelections: totalSelections,
-                rngState: data.rngState,
-              });
-            });
-          } else {
-            // All starting abilities selected - resume gameplay
-            console.log("GameScene: All starting abilities selected, resuming gameplay");
-            this.game.events.off("startingAbilitySelected");
-            this.resetJoystickState();
-            this.inputSystem.show();
-            // Spawn enemies now that ability selection is complete
-            this.roomManager.spawnEnemiesForRoom();
-            this.physics.resume();
-          }
-        } catch (error) {
-          console.error("GameScene: Error applying starting ability:", error);
-          this.game.events.off("startingAbilitySelected");
-          this.resetJoystickState();
-          this.inputSystem.show();
-          // Spawn enemies even on error to prevent stuck game
-          this.roomManager.spawnEnemiesForRoom();
-          this.physics.resume();
-        }
-      },
-    );
-
-    // Launch the starting ability selection scene
-    if (this.scene.isActive("StartingAbilityScene")) {
-      console.log("GameScene: StartingAbilityScene already active, restarting it");
-      this.scene.stop("StartingAbilityScene");
-    }
-
-    this.scene.launch("StartingAbilityScene", {
-      remainingSelections: totalSelections,
-      currentSelection: 1,
-      totalSelections: totalSelections,
-      rngState: this.runRng.getState(),
-    });
-  }
-
-  private applyAbility(abilityId: string) {
-    // Delegate to AbilitySystem
-    this.abilitySystem.applyAbility(abilityId);
-  }
-
-  /**
-   * Convert acquired abilities map to array for passing to other scenes
-   */
-  private getAcquiredAbilitiesArray(): { id: string; level: number }[] {
-    return this.abilitySystem.getAcquiredAbilitiesArray();
   }
 
   /**
@@ -1398,7 +1190,7 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
-        acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
         isEndlessMode: this.isEndlessMode,
         endlessWave: endlessWave,
@@ -1464,9 +1256,9 @@ export default class GameScene extends Phaser.Scene {
     this.isGameOver = false;
 
     // Grant temporary immunity (2 seconds to escape danger)
-    this.isLevelingUp = true;
+    this.levelUpSystem.setLevelingUp(true);
     this.time.delayedCall(2000, () => {
-      this.isLevelingUp = false;
+      this.levelUpSystem.setLevelingUp(false);
     });
 
     // Restore player to 50% HP
@@ -1694,7 +1486,7 @@ export default class GameScene extends Phaser.Scene {
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
         goldEarned: this.goldEarned,
         runSeed: this.runSeedString,
-        acquiredAbilities: this.getAcquiredAbilitiesArray(),
+        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
         isEndlessMode: this.isEndlessMode,
         endlessWave: endlessWave,
@@ -1981,8 +1773,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Sync game state to CombatSystem and RoomManager
     const isTransitioning = this.roomManager.isInTransition();
-    this.combatSystem.setGameState(this.isGameOver, this.isLevelingUp, isTransitioning);
-    this.roomManager.setGameState(this.isGameOver, this.isLevelingUp);
+    const isLevelingUp = this.levelUpSystem.isLevelingUp;
+    this.combatSystem.setGameState(this.isGameOver, isLevelingUp, isTransitioning);
+    this.roomManager.setGameState(this.isGameOver, isLevelingUp);
 
     // Update performance monitor
     performanceMonitor.update(delta);
@@ -2121,6 +1914,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.shootingSystem) {
       this.shootingSystem.destroy();
       this.shootingSystem = null!;
+    }
+
+    // Clean up level up system
+    if (this.levelUpSystem) {
+      this.levelUpSystem.destroy();
+      this.levelUpSystem = null!;
     }
 
     // Clean up particles
