@@ -13,3 +13,9 @@ export {
   type EnemySpawnManagerConfig,
   type EnemySpawnEventHandlers,
 } from "./EnemySpawnManager";
+export {
+  EnemyDeathHandler,
+  type EnemyDeathHandlerConfig,
+  type EnemyDeathEventHandlers,
+  type EnemyDeathOptions,
+} from "./EnemyDeathHandler";
