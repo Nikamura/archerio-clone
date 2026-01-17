@@ -69,13 +69,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Player sprite should remain upright - no rotation based on movement direction
 
-    // Manually clamp position to physics world bounds (core area) based on hitbox radius
+    // Manually clamp position to world bounds based on hitbox radius
     // This is more reliable than setCollideWorldBounds with setCircle + offset
-    const worldBounds = this.scene.physics.world.bounds;
-    const minX = worldBounds.left + this.hitboxRadius;
-    const maxX = worldBounds.right - this.hitboxRadius;
-    const minY = worldBounds.top + this.hitboxRadius;
-    const maxY = worldBounds.bottom - this.hitboxRadius;
+    const camera = this.scene.cameras.main;
+    const minX = this.hitboxRadius;
+    const maxX = camera.width - this.hitboxRadius;
+    const minY = this.hitboxRadius;
+    const maxY = camera.height - this.hitboxRadius;
 
     if (this.x < minX) {
       this.x = minX;

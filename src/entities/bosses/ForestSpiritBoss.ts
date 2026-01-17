@@ -38,8 +38,6 @@ export default class ForestSpiritBoss extends BaseBoss {
   }
 
   protected handleIdlePhase(time: number, _playerX: number, _playerY: number): void {
-    if (!this.worldBounds) return;
-
     // Forest Spirit floats instead of walking - sinusoidal movement
     const floatOffset = Math.sin(time / 500) * 20;
     this.y = this.getData("baseY") ?? this.y;
@@ -49,7 +47,7 @@ export default class ForestSpiritBoss extends BaseBoss {
     this.y = this.getData("baseY") + floatOffset;
 
     // Slight horizontal drift toward center
-    const centerX = this.worldBounds.centerX;
+    const centerX = 375 / 2;
     if (Math.abs(this.x - centerX) > 30) {
       const direction = this.x < centerX ? 1 : -1;
       this.x += direction * 0.5;
@@ -127,24 +125,16 @@ export default class ForestSpiritBoss extends BaseBoss {
       this.createSparkle(this.x, this.y);
     }
 
-    if (progress >= 1 && this.worldBounds) {
-      // Choose teleport destination within core gameplay area
+    if (progress >= 1) {
+      // Choose teleport destination
       const angle = Math.random() * Math.PI * 2;
       const distance = Phaser.Math.Between(100, 200);
-      const centerX = this.worldBounds.centerX;
-      const centerY = this.worldBounds.centerY;
+      const centerX = 375 / 2;
+      const centerY = 667 / 2;
 
       this.teleportDestination = {
-        x: Phaser.Math.Clamp(
-          centerX + Math.cos(angle) * distance,
-          this.worldBounds.left + 50,
-          this.worldBounds.right - 50,
-        ),
-        y: Phaser.Math.Clamp(
-          centerY + Math.sin(angle) * distance,
-          this.worldBounds.top + 80,
-          this.worldBounds.bottom - 87,
-        ),
+        x: Phaser.Math.Clamp(centerX + Math.cos(angle) * distance, 50, 325),
+        y: Phaser.Math.Clamp(centerY + Math.sin(angle) * distance, 80, 580),
       };
 
       this.phase = "teleport_move";
