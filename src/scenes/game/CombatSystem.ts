@@ -3,6 +3,7 @@ import Player from "../../entities/Player";
 import Enemy from "../../entities/Enemy";
 import Boss from "../../entities/Boss";
 import Bullet from "../../entities/Bullet";
+import EnemyBullet from "../../entities/EnemyBullet";
 import SpiritCat from "../../entities/SpiritCat";
 import { audioManager } from "../../systems/AudioManager";
 import { hapticManager } from "../../systems/HapticManager";
@@ -335,12 +336,11 @@ export class CombatSystem {
     bullet: Phaser.GameObjects.GameObject,
     _wall: Phaser.GameObjects.GameObject,
   ): void {
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
+    const bulletSprite = bullet as EnemyBullet;
     if (!bulletSprite.active) return;
 
     this.particles.emitWallHit(bulletSprite.x, bulletSprite.y);
-    bulletSprite.setActive(false);
-    bulletSprite.setVisible(false);
+    bulletSprite.deactivate();
   }
 
   /**
@@ -352,15 +352,14 @@ export class CombatSystem {
   ): void {
     if (this.isGameOver || this.isLevelingUp) return;
 
-    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
+    const bulletSprite = bullet as EnemyBullet;
     const playerSprite = player as Player;
 
     // Skip if bullet is already inactive
     if (!bulletSprite.active) return;
 
     // Deactivate bullet regardless of invincibility
-    bulletSprite.setActive(false);
-    bulletSprite.setVisible(false);
+    bulletSprite.deactivate();
 
     // Calculate bullet damage with difficulty + chapter modifier and talent damage reduction
     const baseBulletDamage = 30;
