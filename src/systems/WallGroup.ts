@@ -55,47 +55,12 @@ const CHAPTER_BORDER_COLORS: Record<number, number> = {
 };
 
 /**
- * Wall texture mapping for purchasable themes (per-chapter variants)
- */
-const THEME_WALL_TEXTURES: Record<string, Record<number, string>> = {
-  vaporwave: {
-    1: "wall_vaporwave_dungeon",
-    2: "wall_vaporwave_forest",
-    3: "wall_vaporwave_ice",
-    4: "wall_vaporwave_lava",
-    5: "wall_vaporwave_shadow",
-  },
-  lotr: {
-    1: "wall_lotr_dungeon",
-    2: "wall_lotr_forest",
-    3: "wall_lotr_ice",
-    4: "wall_lotr_lava",
-    5: "wall_lotr_shadow",
-  },
-  strangerThings: {
-    1: "wall_st_dungeon",
-    2: "wall_st_forest",
-    3: "wall_st_ice",
-    4: "wall_st_lava",
-    5: "wall_st_shadow",
-  },
-  dungeon: {
-    1: "wall_dungeon",
-    2: "wall_dungeon",
-    3: "wall_dungeon",
-    4: "wall_dungeon",
-    5: "wall_dungeon",
-  },
-};
-
-/**
  * WallGroup - Manages all walls in the current room
  *
  * Features:
  * - Creates walls from normalized configurations
  * - Provides static physics group for collision detection
  * - Cleans up walls between rooms
- * - Supports themed wall textures
  */
 export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private screenWidth: number;
@@ -104,7 +69,6 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   private borderColor: number = 0x222222;
   private textureKey: string | undefined;
   private chapterId: number = 1;
-  private themeName: string | undefined;
   private walls: Wall[] = [];
 
   constructor(scene: Phaser.Scene, screenWidth: number, screenHeight: number) {
@@ -132,26 +96,10 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   }
 
   /**
-   * Set purchasable theme (e.g., 'vaporwave')
-   * Theme walls override chapter-based walls
-   */
-  setTheme(themeName: string | undefined): void {
-    this.themeName = themeName;
-    this.updateTextureKey();
-  }
-
-  /**
-   * Update texture key and border color based on current chapter and theme
+   * Update texture key and border color based on current chapter
    */
   private updateTextureKey(): void {
-    if (this.themeName && THEME_WALL_TEXTURES[this.themeName]) {
-      // Use theme-specific texture for current chapter
-      this.textureKey = THEME_WALL_TEXTURES[this.themeName][this.chapterId];
-    } else {
-      // Use default chapter texture
-      this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId];
-    }
-    // Update border color for chapter
+    this.textureKey = CHAPTER_WALL_TEXTURES[this.chapterId];
     this.borderColor = CHAPTER_BORDER_COLORS[this.chapterId] || 0x222222;
   }
 

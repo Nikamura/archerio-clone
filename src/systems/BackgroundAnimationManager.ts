@@ -22,7 +22,6 @@ import {
 export class BackgroundAnimationManager {
   private scene: Phaser.Scene;
   private config: ChapterAnimationConfig | undefined;
-  private themeId: string = "medieval";
   private quality: GraphicsQuality = GraphicsQuality.HIGH;
 
   // Particle emitter for floating effects
@@ -47,12 +46,10 @@ export class BackgroundAnimationManager {
    */
   initialize(
     chapterId: number,
-    themeId: string,
     quality: GraphicsQuality,
     backgroundImage?: Phaser.GameObjects.Image,
   ): void {
     this.config = getChapterAnimationConfig(chapterId);
-    this.themeId = themeId;
     this.quality = quality;
     this.backgroundImage = backgroundImage ?? null;
 
@@ -125,7 +122,7 @@ export class BackgroundAnimationManager {
     }
 
     const { width, height } = this.scene.cameras.main;
-    const tints = getParticleTints(particles, this.themeId);
+    const tints = getParticleTints(particles);
 
     // Calculate movement angle based on direction
     const angleConfig = this.getAngleConfig(particles.direction);
@@ -205,7 +202,7 @@ export class BackgroundAnimationManager {
     }
 
     const { colorShift } = this.config;
-    const colors = getColorShiftColors(colorShift, this.themeId);
+    const colors = getColorShiftColors(colorShift);
 
     if (colors.length < 2) {
       return;
