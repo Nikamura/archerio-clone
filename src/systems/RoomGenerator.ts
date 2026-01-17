@@ -39,11 +39,39 @@ import {
   type RoomLayout,
   type RoomLayoutType,
   type SpawnZone,
+  type WallConfig,
+  type SafeZone,
   ROOM_LAYOUTS,
   CHOKEPOINT_LAYOUTS,
   BOSS_LAYOUTS,
   MINI_BOSS_LAYOUTS,
 } from "./room/RoomLayouts";
+
+// ============================================
+// Custom Layout Support
+// ============================================
+
+/**
+ * Custom room layout from the editor (stored in localStorage)
+ */
+interface CustomRoomLayout {
+  id: string;
+  name: string;
+  walls: WallConfig[];
+  spawnZones: SpawnZone[];
+  safeZones: SafeZone[];
+  playerSpawnSafeRadius: number;
+}
+
+/**
+ * Data structure stored in localStorage by the editor
+ */
+interface CustomLayoutsData {
+  version: 1;
+  layouts: CustomRoomLayout[];
+}
+
+const CUSTOM_LAYOUTS_STORAGE_KEY = "aura_archer_custom_layouts";
 
 import { type EnemyCombination, ENEMY_COMBINATIONS } from "./room/EnemyCombinations";
 
@@ -74,10 +102,55 @@ export class RoomGenerator {
   private screenHeight: number;
   private margin: number = 50; // Margin from screen edges
   private rng: SeededRandom = new SeededRandom(); // Default random seed
+  private customLayouts: RoomLayout[] | null = null;
 
   constructor(screenWidth: number, screenHeight: number) {
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
+    this.loadCustomLayouts();
+  }
+
+  /**
+   * Load custom layouts from localStorage (created in the editor)
+   * Custom layouts replace all random generation when present
+   */
+  private loadCustomLayouts(): void {
+    try {
+      const data = localStorage.getItem(CUSTOM_LAYOUTS_STORAGE_KEY);
+      if (data) {
+        const parsed: CustomLayoutsData = JSON.parse(data);
+        if (parsed.version === 1 && Array.isArray(parsed.layouts) && parsed.layouts.length > 0) {
+          // Convert custom layouts to RoomLayout format
+          this.customLayouts = parsed.layouts.map((custom, index) => ({
+            type: "maze_lite" as RoomLayoutType, // Default type for custom layouts
+            name: custom.name || `Custom Room ${index + 1}`,
+            description: "Custom layout created in the editor",
+            spawnZones: custom.spawnZones,
+            safeZones: custom.safeZones,
+            walls: custom.walls,
+            playerSpawnSafeRadius: custom.playerSpawnSafeRadius,
+          }));
+          console.log(`[RoomGenerator] Loaded ${this.customLayouts.length} custom layouts`);
+        }
+      }
+    } catch (e) {
+      console.error("[RoomGenerator] Failed to load custom layouts:", e);
+      this.customLayouts = null;
+    }
+  }
+
+  /**
+   * Check if custom layouts are active
+   */
+  hasCustomLayouts(): boolean {
+    return this.customLayouts !== null && this.customLayouts.length > 0;
+  }
+
+  /**
+   * Reload custom layouts from localStorage (call after editing)
+   */
+  reloadCustomLayouts(): void {
+    this.loadCustomLayouts();
   }
 
   /**
@@ -116,8 +189,8 @@ export class RoomGenerator {
   ): GeneratedRoom {
     const roomType = getRoomTypeForNumber(roomNumber);
 
-    // Select layout based on room type
-    const layout = this.selectLayout(roomType);
+    // Select layout based on room type (or use custom layouts if available)
+    const layout = this.selectLayout(roomType, roomNumber);
 
     // Calculate total enemies (doubled for higher difficulty)
     const roomScaling = Math.floor(roomNumber / 5);
@@ -151,9 +224,19 @@ export class RoomGenerator {
 
   /**
    * Select appropriate layout for room type
-   * Combat rooms have 70% chance to use chokepoint layouts with walls
+   * If custom layouts exist (from the editor), they replace all random generation
+   * Otherwise, combat rooms have 70% chance to use chokepoint layouts with walls
    */
-  private selectLayout(roomType: RoomType): RoomLayout {
+  private selectLayout(roomType: RoomType, roomNumber: number): RoomLayout {
+    // If custom layouts exist, use them exclusively (cycle through by room number)
+    // Only applies to combat rooms - boss/miniboss/angel rooms use built-in layouts
+    if (this.customLayouts && this.customLayouts.length > 0 && roomType === "combat") {
+      // Cycle through custom layouts by room number (1-indexed rooms, 0-indexed array)
+      const index = (roomNumber - 1) % this.customLayouts.length;
+      return this.customLayouts[index];
+    }
+
+    // Fall back to built-in layouts
     switch (roomType) {
       case "boss":
         return BOSS_LAYOUTS[0];
