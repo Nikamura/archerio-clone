@@ -30,6 +30,12 @@ export default class IceGolemBoss extends BaseBoss {
   // Player slow callback
   private onSlowPlayer?: (duration: number) => void;
 
+  // Track if ice breath has fired this attack
+  private breathBulletsFired: boolean = false;
+
+  // Track if ice spikes have fired this attack
+  private spikeBulletsFired: boolean = false;
+
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -93,7 +99,7 @@ export default class IceGolemBoss extends BaseBoss {
         this.handleSpikesSpawn(time, playerX, playerY);
         break;
       case "ice_spikes_active":
-        this.handleSpikesActive(time);
+        this.handleSpikesActive(time, playerX, playerY);
         break;
 
       // Shield Reflect Attack
@@ -163,6 +169,7 @@ export default class IceGolemBoss extends BaseBoss {
       this.phase = "ice_breath_active";
       this.phaseStartTime = time;
       this.breathDamageApplied = false;
+      this.breathBulletsFired = false;
     }
   }
 
@@ -203,7 +210,19 @@ export default class IceGolemBoss extends BaseBoss {
       );
     }
 
-    // Check if player is in cone (damage/slow check)
+    // Fire ice projectiles in a cone pattern (deals damage)
+    if (!this.breathBulletsFired && progress > 0.1) {
+      this.breathBulletsFired = true;
+      // Fire 7 projectiles in a cone pattern
+      const spreadCount = 7;
+      const totalSpread = this.breathConeAngle * 0.8; // Slightly narrower than visual
+      for (let i = 0; i < spreadCount; i++) {
+        const angleOffset = (i / (spreadCount - 1) - 0.5) * totalSpread;
+        this.bulletPool.spawn(this.x, this.y, this.breathAngle + angleOffset, 180);
+      }
+    }
+
+    // Check if player is in cone (slow effect)
     if (!this.breathDamageApplied) {
       if (this.isInBreathCone(playerX, playerY)) {
         this.breathDamageApplied = true;
@@ -359,6 +378,7 @@ export default class IceGolemBoss extends BaseBoss {
     if (elapsed >= spawnDuration) {
       this.phase = "ice_spikes_active";
       this.phaseStartTime = time;
+      this.spikeBulletsFired = false;
     }
   }
 
@@ -395,9 +415,26 @@ export default class IceGolemBoss extends BaseBoss {
     this.iceSpikes.push(spike);
   }
 
-  private handleSpikesActive(time: number): void {
+  private handleSpikesActive(time: number, playerX?: number, playerY?: number): void {
     const activeDuration = 2000; // Spikes last 2 seconds
     const elapsed = time - this.phaseStartTime;
+
+    // Fire bullets from each spike toward the player early in active phase
+    if (
+      !this.spikeBulletsFired &&
+      elapsed > 200 &&
+      playerX !== undefined &&
+      playerY !== undefined
+    ) {
+      this.spikeBulletsFired = true;
+      this.iceSpikes.forEach((spike) => {
+        if (!spike.active) return;
+        const angleToPlayer = Phaser.Math.Angle.Between(spike.x, spike.y, playerX, playerY);
+        // Fire 2 projectiles per spike in a small spread
+        this.bulletPool.spawn(spike.x, spike.y, angleToPlayer - 0.15, 150);
+        this.bulletPool.spawn(spike.x, spike.y, angleToPlayer + 0.15, 150);
+      });
+    }
 
     // Slight shimmer effect
     this.iceSpikes.forEach((spike, i) => {
