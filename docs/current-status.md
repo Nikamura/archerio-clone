@@ -6,6 +6,12 @@ _Last updated: 2026-01-18_
 
 _No known bugs at this time._
 
+## Recently Fixed
+
+| Bug | Fix |
+| --- | --- |
+| VoidLordBoss phase shift invulnerability - inverted condition caused teleport to never execute while boss remained immune to damage | Fixed guard flag logic to properly track teleport state (2026-01-18) |
+
 ## Upcoming Features
 
 | Feature                   | Description                           |
