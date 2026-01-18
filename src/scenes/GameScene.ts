@@ -854,9 +854,9 @@ export default class GameScene extends Phaser.Scene {
    * Higher values make the game run faster (2x, 3x, 5x)
    */
   private applyGameSpeed(multiplier: GameSpeedMultiplier): void {
-    // Phaser's physics timeScale affects simulation speed
-    // Higher values = faster simulation
-    this.physics.world.timeScale = multiplier;
+    // Phaser's physics timeScale is inverted: lower values = faster simulation
+    // To achieve 2x speed, we use timeScale = 0.5 (1/2)
+    this.physics.world.timeScale = 1 / multiplier;
     console.log(`GameScene: Applied game speed ${multiplier}x`);
   }
 }
