@@ -798,5 +798,9 @@ export default class UIScene extends Phaser.Scene {
     this.events.off("showAutoLevelUp");
     this.events.off("showAutoLevelUpDouble");
     this.events.off("updateAbilities");
+    this.events.off("initScore");
+    this.events.off("scoreKill");
+    this.events.off("scoreRoom");
+    this.events.off("scoreGold");
   }
 }
