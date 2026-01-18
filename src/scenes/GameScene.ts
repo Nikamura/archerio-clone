@@ -13,6 +13,7 @@ import { RespawnSystem } from "./game/RespawnSystem";
 import { PassiveEffectSystem } from "./game/PassiveEffectSystem";
 import { TutorialSystem } from "./game/TutorialSystem";
 import { PickupSystem } from "./game/PickupSystem";
+import { RunEndSystem } from "./game/RunEndSystem";
 import {
   InitializationSystem,
   type InitializationResult,
@@ -25,8 +26,6 @@ import BombPool from "../systems/BombPool";
 import GoldPool from "../systems/GoldPool";
 import HealthPool from "../systems/HealthPool";
 import DamageNumberPool from "../systems/DamageNumberPool";
-import type { DifficultyConfig } from "../config/difficulty";
-import { audioManager } from "../systems/AudioManager";
 import { chapterManager } from "../systems/ChapterManager";
 import { currencyManager } from "../systems/CurrencyManager";
 import { saveManager, GraphicsQuality, ColorblindMode } from "../systems/SaveManager";
@@ -39,7 +38,6 @@ import type { SeededRandom } from "../systems/SeededRandom";
 import type { RespawnRoomState } from "./GameOverScene";
 
 export default class GameScene extends Phaser.Scene {
-  private difficultyConfig!: DifficultyConfig;
   private player!: Player;
   private inputSystem!: InputSystem;
   private abilitySystem!: AbilitySystem;
@@ -52,6 +50,7 @@ export default class GameScene extends Phaser.Scene {
   private passiveEffectSystem!: PassiveEffectSystem;
   private tutorialSystem!: TutorialSystem;
   private pickupSystem!: PickupSystem;
+  private runEndSystem!: RunEndSystem;
 
   private bulletPool!: BulletPool;
   private enemyBulletPool!: EnemyBulletPool;
@@ -68,17 +67,12 @@ export default class GameScene extends Phaser.Scene {
   // Game state tracking
   private isGameOver: boolean = false;
   private boss: Boss | null = null;
-  private runStartTime: number = 0;
-
-  // Endless mode
-  private isEndlessMode: boolean = false;
 
   // Physics groups
   private wallGroup!: WallGroup;
 
   // Seeded random for deterministic runs
   private runRng!: SeededRandom;
-  private runSeedString: string = "";
 
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses;
@@ -175,22 +169,25 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off("resetLevel", this.resetLevel, this);
     });
 
-    // Skip run event
-    this.game.events.on("skipRun", this.handleSkipRun, this);
+    // Skip run event (delegated to RunEndSystem)
+    const handleSkipRun = () => this.runEndSystem?.handleSkipRun();
+    this.game.events.on("skipRun", handleSkipRun);
     this.events.once("shutdown", () => {
-      this.game.events.off("skipRun", this.handleSkipRun, this);
+      this.game.events.off("skipRun", handleSkipRun);
     });
 
-    // Pause event
-    this.game.events.on("pauseRequested", this.handlePause, this);
+    // Pause event (delegated to RunEndSystem)
+    const handlePause = () => this.runEndSystem?.handlePause();
+    this.game.events.on("pauseRequested", handlePause);
     this.events.once("shutdown", () => {
-      this.game.events.off("pauseRequested", this.handlePause, this);
+      this.game.events.off("pauseRequested", handlePause);
     });
 
-    // Quit from pause event
-    this.game.events.on("quitFromPause", this.handleQuitFromPause, this);
+    // Quit from pause event (delegated to RunEndSystem)
+    const handleQuitFromPause = () => this.runEndSystem?.handleQuitFromPause();
+    this.game.events.on("quitFromPause", handleQuitFromPause);
     this.events.once("shutdown", () => {
-      this.game.events.off("quitFromPause", this.handleQuitFromPause, this);
+      this.game.events.off("quitFromPause", handleQuitFromPause);
     });
 
     // Respawn event
@@ -263,7 +260,7 @@ export default class GameScene extends Phaser.Scene {
         this.scene.get("UIScene").events.emit("hideBossHealth");
       },
       onVictory: () => {
-        this.triggerVictory();
+        this.runEndSystem.triggerVictory();
       },
       onBombExplosion: (x, y, radius, damage) => {
         this.handleBombExplosion(x, y, radius, damage);
@@ -328,6 +325,11 @@ export default class GameScene extends Phaser.Scene {
       onGiantLevelChanged: () => {
         this.updatePlayerHitboxForGiant();
       },
+
+      // Run end events
+      onInputDestroyed: () => {
+        this.inputSystem = null!;
+      },
     };
   }
 
@@ -363,18 +365,15 @@ export default class GameScene extends Phaser.Scene {
     this.passiveEffectSystem = result.systems.passiveEffectSystem;
     this.tutorialSystem = result.systems.tutorialSystem;
     this.pickupSystem = result.systems.pickupSystem;
+    this.runEndSystem = result.systems.runEndSystem;
 
     // Physics
     this.enemies = result.physics.enemies;
     this.wallGroup = result.physics.wallGroup;
 
     // Game state
-    this.difficultyConfig = result.gameState.difficultyConfig;
     this.talentBonuses = result.gameState.talentBonuses;
     this.runRng = result.gameState.runRng;
-    this.runSeedString = result.gameState.runSeedString;
-    this.isEndlessMode = result.gameState.isEndlessMode;
-    this.runStartTime = result.gameState.runStartTime;
 
     // Reset game state
     this.isGameOver = false;
@@ -446,53 +445,6 @@ export default class GameScene extends Phaser.Scene {
       undefined,
       this,
     );
-  }
-
-  private triggerVictory() {
-    this.isGameOver = true;
-    audioManager.playVictory();
-    console.log("Victory! All rooms cleared!");
-
-    // Complete chapter in manager to unlock next chapter and calculate rewards
-    // Pass difficulty gold multiplier for reward scaling
-    const completionResult = chapterManager.completeChapter(
-      this.player.getHealth(),
-      this.player.getMaxHealth(),
-      this.difficultyConfig.goldMultiplier,
-    );
-
-    // Clean up input system
-    if (this.inputSystem) {
-      this.inputSystem.destroy();
-    }
-
-    // Calculate play time
-    const playTimeMs = Date.now() - this.runStartTime;
-
-    // Brief delay before showing victory screen
-    this.time.delayedCall(500, () => {
-      // Stop UIScene first
-      this.scene.stop("UIScene");
-
-      // Launch victory scene (reusing GameOverScene for now)
-      this.scene.launch("GameOverScene", {
-        roomsCleared: this.roomManager.getTotalRooms(),
-        enemiesKilled: this.enemyDeathHandler.getEnemiesKilled(),
-        isVictory: true,
-        playTimeMs,
-        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.pickupSystem.getGoldEarned(),
-        completionResult: completionResult ?? undefined,
-        runSeed: this.runSeedString,
-        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
-        chapterId: chapterManager.getSelectedChapter(),
-        difficulty: this.difficultyConfig.label.toLowerCase(),
-      });
-
-      // Stop GameScene last - this prevents texture issues when restarting
-      this.scene.stop("GameScene");
-    });
   }
 
   /**
@@ -735,96 +687,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Handle skip run - allows player to end run early and collect rewards
-   */
-  private handleSkipRun(): void {
-    if (this.isGameOver) return;
-
-    this.isGameOver = true;
-    console.log("Run skipped! Collecting rewards...");
-
-    // End the chapter run (skipped counts as failed/abandoned)
-    chapterManager.endRun(true);
-
-    // Stop player movement
-    this.player.setVelocity(0, 0);
-
-    // Clean up input system
-    if (this.inputSystem) {
-      this.inputSystem.destroy();
-    }
-
-    // Calculate play time
-    const playTimeMs = Date.now() - this.runStartTime;
-
-    // Brief delay before showing game over screen
-    this.time.delayedCall(300, () => {
-      // Stop UIScene first
-      this.scene.stop("UIScene");
-
-      // Calculate total rooms cleared in endless mode (across all waves)
-      const currentRoom = this.roomManager.getRoomNumber();
-      const totalRooms = this.roomManager.getTotalRooms();
-      const endlessWave = this.roomManager.getEndlessWave();
-      const totalRoomsCleared = this.isEndlessMode
-        ? (endlessWave - 1) * totalRooms + currentRoom - 1
-        : currentRoom - 1;
-
-      // Launch game over scene with stats (not a victory, but not a death either)
-      this.scene.launch("GameOverScene", {
-        roomsCleared: totalRoomsCleared,
-        enemiesKilled: this.enemyDeathHandler.getEnemiesKilled(),
-        isVictory: false,
-        playTimeMs,
-        abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.pickupSystem.getGoldEarned(),
-        runSeed: this.runSeedString,
-        acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
-        heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
-        isEndlessMode: this.isEndlessMode,
-        endlessWave: endlessWave,
-        chapterId: chapterManager.getSelectedChapter(),
-        difficulty: this.difficultyConfig.label.toLowerCase(),
-      });
-
-      // Stop GameScene last - this prevents texture issues when restarting
-      this.scene.stop("GameScene");
-    });
-  }
-
-  /**
-   * Handle pause request - pause game and show pause menu
-   */
-  private handlePause(): void {
-    if (this.isGameOver) return;
-
-    // Check if scene is running before attempting to pause
-    if (!this.scene.isActive("GameScene")) {
-      console.log("GameScene: Cannot pause - scene is not active");
-      return;
-    }
-
-    console.log("GameScene: Pausing game");
-
-    // Pause this scene (freezes physics, tweens, timers)
-    this.scene.pause("GameScene");
-
-    // Launch pause scene overlay
-    this.scene.launch("PauseScene");
-  }
-
-  /**
-   * Handle quit from pause menu - end run and return to main menu
-   */
-  private handleQuitFromPause(): void {
-    // Resume scene first so we can properly shut it down
-    this.scene.resume("GameScene");
-
-    // Use skip run logic to properly end the run
-    this.handleSkipRun();
-  }
-
-  /**
    * Handle enemy death from DOT (fire/poison damage)
    * Extracted for batch processing in update loop
    */
@@ -989,6 +851,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.pickupSystem) {
       this.pickupSystem.destroy();
       this.pickupSystem = null!;
+    }
+
+    // Clean up run end system
+    if (this.runEndSystem) {
+      this.runEndSystem.destroy();
+      this.runEndSystem = null!;
     }
 
     // Clean up pools

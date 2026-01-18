@@ -41,6 +41,7 @@ export {
   type TutorialEventHandlers,
 } from "./TutorialSystem";
 export { PickupSystem, type PickupSystemConfig, type PickupEventHandlers } from "./PickupSystem";
+export { RunEndSystem, type RunEndSystemConfig, type RunEndEventHandlers } from "./RunEndSystem";
 export {
   InitializationSystem,
   type InitializationSystemConfig,

@@ -12,6 +12,7 @@ import { RespawnSystem } from "./RespawnSystem";
 import { PassiveEffectSystem } from "./PassiveEffectSystem";
 import { TutorialSystem } from "./TutorialSystem";
 import { PickupSystem } from "./PickupSystem";
+import { RunEndSystem } from "./RunEndSystem";
 import BulletPool from "../../systems/BulletPool";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import SpiritCatPool from "../../systems/SpiritCatPool";
@@ -101,6 +102,9 @@ export interface GameSceneEventHandlers {
   onAbilitiesUpdated: (abilities: unknown[]) => void;
   onHealthUpdated: (current: number, max: number) => void;
   onGiantLevelChanged: () => void;
+
+  // Run end events
+  onInputDestroyed: () => void;
 }
 
 /**
@@ -149,6 +153,7 @@ export interface InitializationSystems {
   passiveEffectSystem: PassiveEffectSystem;
   tutorialSystem: TutorialSystem;
   pickupSystem: PickupSystem;
+  runEndSystem: RunEndSystem;
 }
 
 /**
@@ -286,11 +291,13 @@ export class InitializationSystem {
       difficultyConfig,
       gameState.talentBonuses,
       runRng,
+      runSeedString,
       weaponProjectileConfig,
       spiritCatConfig,
       roomGenerator,
       gameState.isEndlessMode,
       gameState.totalRooms,
+      gameState.runStartTime,
     );
 
     // Initialize passive effect graphics
@@ -621,11 +628,13 @@ export class InitializationSystem {
     difficultyConfig: DifficultyConfig,
     talentBonuses: TalentBonuses,
     runRng: SeededRandom,
+    runSeedString: string,
     weaponProjectileConfig: ProjectileConfig,
     spiritCatConfig: SpiritCatConfig | null,
     roomGenerator: RoomGenerator,
     isEndlessMode: boolean,
     totalRooms: number,
+    runStartTime: number,
   ): InitializationSystems {
     // Input system
     const gameContainer = this.game.canvas.parentElement;
@@ -783,7 +792,7 @@ export class InitializationSystem {
       particles: visualEffects.particles,
       difficultyConfig,
       goldEarnedRef,
-      runSeedString: runRng.getSeedString(),
+      runSeedString,
       isEndlessMode,
       eventHandlers: {
         onRespawnComplete: this.eventHandlers.onRespawnComplete,
@@ -838,6 +847,29 @@ export class InitializationSystem {
     // Wire up enemy death handler boss reference
     enemyDeathHandler.setBoss(this.boss);
 
+    // Run end system (handles victory, skip, pause, quit)
+    const runEndSystem = new RunEndSystem({
+      scene: this.scene,
+      player,
+      getInputSystem: () => inputSystem,
+      getRoomManager: () => roomManager,
+      getAbilitySystem: () => abilitySystem,
+      getEnemyDeathHandler: () => enemyDeathHandler,
+      getLevelUpSystem: () => levelUpSystem,
+      getPickupSystem: () => pickupSystem,
+      getIsGameOver: () => this.isGameOver,
+      setIsGameOver: (value: boolean) => {
+        this.isGameOver = value;
+      },
+      difficultyConfig,
+      runStartTime,
+      runSeedString,
+      isEndlessMode,
+      eventHandlers: {
+        onDestroyInput: this.eventHandlers.onInputDestroyed,
+      },
+    });
+
     return {
       inputSystem,
       abilitySystem,
@@ -850,6 +882,7 @@ export class InitializationSystem {
       passiveEffectSystem,
       tutorialSystem,
       pickupSystem,
+      runEndSystem,
     };
   }
 }
