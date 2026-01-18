@@ -4,7 +4,6 @@ import Enemy from "../entities/Enemy";
 import Boss from "../entities/Boss";
 import { getCurrentDifficulty } from "../config/difficulty";
 import { InputSystem } from "./game/InputSystem";
-import { AbilitySystem } from "./game/AbilitySystem";
 import { CombatSystem } from "./game/CombatSystem";
 import { RoomManager } from "./game/RoomManager";
 import { EnemyDeathHandler } from "./game/EnemyDeathHandler";
@@ -24,21 +23,17 @@ import BombPool from "../systems/BombPool";
 import GoldPool from "../systems/GoldPool";
 import HealthPool from "../systems/HealthPool";
 import DamageNumberPool from "../systems/DamageNumberPool";
-import { chapterManager } from "../systems/ChapterManager";
-import { currencyManager } from "../systems/CurrencyManager";
 import { saveManager, GraphicsQuality, ColorblindMode } from "../systems/SaveManager";
 import type { ParticleManager } from "../systems/ParticleManager";
 import type { BackgroundAnimationManager } from "../systems/BackgroundAnimationManager";
 import type { TalentBonuses } from "../config/talentData";
 import { performanceMonitor } from "../systems/PerformanceMonitor";
 import WallGroup from "../systems/WallGroup";
-import type { SeededRandom } from "../systems/SeededRandom";
 import type { RespawnRoomState } from "./GameOverScene";
 
 export default class GameScene extends Phaser.Scene {
   private player!: Player;
   private inputSystem!: InputSystem;
-  private abilitySystem!: AbilitySystem;
   private combatSystem!: CombatSystem;
   private roomManager!: RoomManager;
   private enemyDeathHandler!: EnemyDeathHandler;
@@ -68,9 +63,6 @@ export default class GameScene extends Phaser.Scene {
 
   // Physics groups
   private wallGroup!: WallGroup;
-
-  // Seeded random for deterministic runs
-  private runRng!: SeededRandom;
 
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses;
@@ -196,12 +188,6 @@ export default class GameScene extends Phaser.Scene {
       });
     }
 
-    // Reset level event
-    this.game.events.on("resetLevel", this.resetLevel, this);
-    this.events.once("shutdown", () => {
-      this.game.events.off("resetLevel", this.resetLevel, this);
-    });
-
     // Skip run event (delegated to RunEndSystem)
     const handleSkipRun = () => this.runEndSystem?.handleSkipRun();
     this.game.events.on("skipRun", handleSkipRun);
@@ -254,7 +240,6 @@ export default class GameScene extends Phaser.Scene {
 
     // Systems
     this.inputSystem = result.systems.inputSystem;
-    this.abilitySystem = result.systems.abilitySystem;
     this.combatSystem = result.systems.combatSystem;
     this.roomManager = result.systems.roomManager;
     this.enemyDeathHandler = result.systems.enemyDeathHandler;
@@ -272,7 +257,6 @@ export default class GameScene extends Phaser.Scene {
 
     // Game state
     this.talentBonuses = result.gameState.talentBonuses;
-    this.runRng = result.gameState.runRng;
 
     // Reset game state
     this.isGameOver = false;
@@ -454,89 +438,6 @@ export default class GameScene extends Phaser.Scene {
     // (transitionToNextRoom will set it to false when finished)
     this.roomManager.setTransitioning(false);
     this.roomManager.triggerTransitionToNextRoom();
-  }
-
-  /**
-   * Reset the level back to room 1 while keeping all acquired upgrades
-   * This allows infinite ability stacking for fun overpowered runs
-   */
-  private resetLevel() {
-    if (this.isGameOver || this.roomManager.isInTransition()) {
-      console.log(
-        "Reset: Ignored (GameOver:",
-        this.isGameOver,
-        "Transitioning:",
-        this.roomManager.isInTransition(),
-        ")",
-      );
-      return;
-    }
-
-    console.log("Resetting level - keeping all upgrades! Current level:", this.player.getLevel());
-
-    this.roomManager.setTransitioning(true);
-
-    // Collect any remaining pickups before reset
-    const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y);
-    if (collectedGold > 0) {
-      this.pickupSystem.addGoldEarned(collectedGold);
-      currencyManager.add("gold", collectedGold);
-      saveManager.addGold(collectedGold);
-    }
-    this.healthPool.collectAll(this.player.x, this.player.y, (healAmount) => {
-      this.player.heal(healAmount);
-    });
-
-    // Fade out
-    this.cameras.main.fadeOut(300, 0, 0, 0);
-
-    this.time.delayedCall(300, () => {
-      // Restart chapter run to sync ChapterManager room counter with GameScene
-      // This fixes desync caused by resetting GameScene.currentRoom without updating ChapterManager
-      const selectedChapter = chapterManager.getSelectedChapter();
-      chapterManager.startChapter(selectedChapter);
-
-      // Reset to room 1
-      this.roomManager.setRoomNumber(1);
-
-      // Reset RNG to initial state so enemies spawn in same locations
-      this.runRng.reset();
-
-      // Clean up current room (but NOT the player - keep abilities!)
-      this.roomManager.cleanupRoom();
-
-      // Reset player position and heal to full (bottom center spawn)
-      const width = this.cameras.main.width;
-      const height = this.cameras.main.height;
-      this.player.setPosition(width / 2, height - 100);
-      this.player.setVelocity(0, 0);
-      this.player.heal(this.player.getMaxHealth()); // Full heal on reset
-      // Reset Iron Will state after full heal
-      this.passiveEffectSystem.checkIronWillStatus();
-
-      // Spawn enemies for room 1 (will use reset RNG)
-      this.roomManager.spawnEnemiesForRoom();
-
-      // Reset room state
-      this.roomManager.setRoomCleared(false);
-      this.roomManager.setTransitioning(false);
-
-      // Update UI
-      this.roomManager.updateRoomUI();
-      this.scene
-        .get("UIScene")
-        .events.emit("updateHealth", this.player.getHealth(), this.player.getMaxHealth());
-      this.scene.get("UIScene").events.emit("roomEntered");
-
-      // Fade back in
-      this.cameras.main.fadeIn(300, 0, 0, 0);
-
-      console.log(
-        "Level reset complete! Starting room 1 with",
-        this.abilitySystem.getTotalAbilitiesGained(),
-        "abilities",
-      );
-    });
   }
 
   /**
