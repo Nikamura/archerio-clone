@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import { EnemyUpdateResult } from "../Enemy";
+import { getBossDefinition } from "../../config/bossData";
 
 type NightmarePhase = "idle" | "distortion" | "clone_attack" | "fear_pulse";
 
@@ -45,16 +46,10 @@ export default class NightmareBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_nightmare", options);
+    super(scene, x, y, bulletPool, getBossDefinition("nightmare"), options);
 
-    this.baseHealth = 380;
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
+    // Override attack cooldown for this boss
     this.attackCooldown = 2100;
-    this.attackPatternCount = 3;
-    this.displaySize = 68;
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
 
     // Create distortion graphics layer
     this.distortionGraphics = scene.add.graphics();

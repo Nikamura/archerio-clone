@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
+import { getBossDefinition } from "../../config/bossData";
 
 type TreeGuardianPhase = "idle" | "vine_whip" | "root_trap" | "leaf_storm";
 
@@ -36,16 +37,7 @@ export default class TreeGuardianBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_tree_guardian", options);
-
-    this.baseHealth = 250;
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
-    this.attackCooldown = 2200;
-    this.attackPatternCount = 3;
-    this.displaySize = 72;
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
+    super(scene, x, y, bulletPool, getBossDefinition("tree_guardian"), options);
   }
 
   protected getPlaceholderColor(): number {

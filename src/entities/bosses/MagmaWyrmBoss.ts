@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import { EnemyUpdateResult } from "../Enemy";
+import { getBossDefinition } from "../../config/bossData";
 
 type MagmaWyrmPhase = "idle" | "burrow" | "emerge" | "fire_breath" | "body_slam";
 
@@ -53,16 +54,10 @@ export default class MagmaWyrmBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_magma_wyrm", options);
+    super(scene, x, y, bulletPool, getBossDefinition("magma_wyrm"), options);
 
-    this.baseHealth = 300;
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
+    // Override attack cooldown for this boss
     this.attackCooldown = 2200;
-    this.attackPatternCount = 3;
-    this.displaySize = 56;
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
 
     // Create body segments
     this.createSegments();

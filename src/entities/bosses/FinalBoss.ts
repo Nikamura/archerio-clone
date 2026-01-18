@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import { EnemyUpdateResult } from "../Enemy";
+import { getBossDefinition } from "../../config/bossData";
 
 type FinalBossPhase =
   | "idle"
@@ -79,16 +80,11 @@ export default class FinalBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_final_boss", options);
+    super(scene, x, y, bulletPool, getBossDefinition("final_boss"), options);
 
-    this.baseHealth = 600; // Much higher HP for final boss
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
+    // Override attack cooldown and pattern count for this boss's phase system
     this.attackCooldown = 1800; // Faster attacks
     this.attackPatternCount = 2; // Per phase
-    this.displaySize = 96; // Larger boss
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
   }
 
   protected getPlaceholderColor(): number {
