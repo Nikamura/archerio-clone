@@ -401,12 +401,7 @@ export class EnemyDeathHandler {
       const enemy = child as Enemy;
       if (!enemy.active || enemy === dyingEnemy) continue;
 
-      const distance = Phaser.Math.Distance.Between(
-        dyingEnemy.x,
-        dyingEnemy.y,
-        enemy.x,
-        enemy.y,
-      );
+      const distance = Phaser.Math.Distance.Between(dyingEnemy.x, dyingEnemy.y, enemy.x, enemy.y);
 
       if (distance <= novaRadius) {
         const killed = enemy.takeDamage(novaDamage);

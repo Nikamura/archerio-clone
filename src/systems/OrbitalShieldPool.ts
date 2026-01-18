@@ -42,12 +42,7 @@ export default class OrbitalShieldPool extends Phaser.Physics.Arcade.Group {
   /**
    * Update all active shields
    */
-  updateAll(
-    playerX: number,
-    playerY: number,
-    time: number,
-    totalShields: number,
-  ): void {
+  updateAll(playerX: number, playerY: number, time: number, totalShields: number): void {
     this.children.iterate((child) => {
       const shield = child as OrbitalShield;
       if (shield.active) {

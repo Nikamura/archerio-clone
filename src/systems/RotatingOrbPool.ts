@@ -42,12 +42,7 @@ export default class RotatingOrbPool extends Phaser.Physics.Arcade.Group {
   /**
    * Update all active orbs
    */
-  updateAll(
-    playerX: number,
-    playerY: number,
-    time: number,
-    totalOrbs: number,
-  ): void {
+  updateAll(playerX: number, playerY: number, time: number, totalOrbs: number): void {
     this.children.iterate((child) => {
       const orb = child as RotatingOrb;
       if (orb.active) {

@@ -190,6 +190,12 @@ export class LevelUpSystem {
   launchStartingAbilitySelection(): void {
     const totalSelections = this.talentBonuses.startingAbilities;
 
+    // Check if auto level up is enabled - if so, auto-select starting abilities
+    if (saveManager.getAutoLevelUp()) {
+      this.handleAutoStartingAbilities(totalSelections);
+      return;
+    }
+
     // Physics already paused in create() - hide joystick now that inputSystem exists
     this.inputSystem.hide();
     // Clean up any existing listeners to prevent multiple applications
@@ -338,6 +344,66 @@ export class LevelUpSystem {
     this.scene.time.delayedCall(500, () => {
       this._isLevelingUp = false;
     });
+  }
+
+  /**
+   * Handle auto starting abilities - select abilities using priority without showing UI
+   */
+  private handleAutoStartingAbilities(totalSelections: number): void {
+    console.log(
+      `LevelUpSystem: Auto-selecting ${totalSelections} starting abilities from Glory talent`,
+    );
+
+    // Build ability levels record from ability system
+    const abilityLevels: Record<string, number> = {};
+    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
+      abilityLevels[ability.id] = ability.level;
+    }
+
+    // Select and apply abilities one by one
+    for (let i = 0; i < totalSelections; i++) {
+      // Get abilities that aren't maxed (re-check each time as levels change)
+      const availableAbilities = this.getAvailableAbilities();
+
+      if (availableAbilities.length === 0) {
+        console.log("LevelUpSystem: No more available abilities for auto starting selection");
+        break;
+      }
+
+      // Randomly select 3 abilities (mimics the UI behavior)
+      const shuffled = [...availableAbilities].sort(() => this.runRng.random() - 0.5);
+      const randomSubset = shuffled.slice(0, 3);
+
+      // Select highest priority ability from the random subset
+      const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+        randomSubset,
+        abilityLevels,
+      );
+
+      if (!selectedAbility) {
+        console.log("LevelUpSystem: No ability could be selected for starting ability");
+        break;
+      }
+
+      // Apply the ability
+      this.applyAbility(selectedAbility.id);
+
+      // Update the ability levels record
+      abilityLevels[selectedAbility.id] = (abilityLevels[selectedAbility.id] || 0) + 1;
+
+      console.log(
+        `LevelUpSystem: Auto starting ability ${i + 1}/${totalSelections} selected: ${selectedAbility.id}`,
+      );
+
+      // Show notification for each auto-selected starting ability
+      this.eventHandlers.onAutoLevelUp(selectedAbility);
+    }
+
+    // Complete the starting abilities flow and resume gameplay
+    console.log("LevelUpSystem: All auto starting abilities selected, resuming gameplay");
+    this.eventHandlers.onStartingAbilitiesComplete();
+    this.roomManager.spawnEnemiesForRoom();
+    this.scene.physics.resume();
   }
 
   /**

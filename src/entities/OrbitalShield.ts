@@ -48,12 +48,7 @@ export default class OrbitalShield extends Phaser.Physics.Arcade.Sprite {
   /**
    * Update shield position based on player position and orbit angle
    */
-  updateOrbitPosition(
-    playerX: number,
-    playerY: number,
-    time: number,
-    totalShields: number,
-  ): void {
+  updateOrbitPosition(playerX: number, playerY: number, time: number, totalShields: number): void {
     if (!this.active) return;
 
     // Calculate orbit angle based on time and shield index

@@ -50,12 +50,7 @@ export default class RotatingOrb extends Phaser.Physics.Arcade.Sprite {
   /**
    * Update orb position based on player position and orbit angle
    */
-  updateOrbitPosition(
-    playerX: number,
-    playerY: number,
-    time: number,
-    totalOrbs: number,
-  ): void {
+  updateOrbitPosition(playerX: number, playerY: number, time: number, totalOrbs: number): void {
     if (!this.active) return;
 
     // Calculate orbit angle based on time and orb index

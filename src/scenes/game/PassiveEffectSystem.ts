@@ -232,12 +232,7 @@ export class PassiveEffectSystem {
   /**
    * Update spirit pet spawning for Spirit Pets ability
    */
-  private updateSpiritPets(
-    time: number,
-    playerX: number,
-    playerY: number,
-    petCount: number,
-  ): void {
+  private updateSpiritPets(time: number, playerX: number, playerY: number, petCount: number): void {
     // Find nearest enemy to target
     const target = this.getShootingSystem().getCachedNearestEnemy();
     if (!target) return;
