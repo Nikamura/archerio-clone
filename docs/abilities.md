@@ -40,7 +40,7 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | Bloodthirst  | Heal HP on enemy kill            |
 | Speed Boost  | +movement speed                  |
 | Vitality     | +max HP                          |
-| Dodge Master | +3% dodge chance (capped at 15%) |
+| Dodge Master | +3% dodge chance (max 5 stacks = 15% cap) |
 
 ### Devil Abilities (HP Cost)
 
