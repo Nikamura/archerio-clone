@@ -148,7 +148,7 @@ export class EventHandlerFactory {
   }
 
   /**
-   * Room event handlers (7 handlers)
+   * Room event handlers (8 handlers)
    */
   private createRoomHandlers(): Pick<
     GameSceneEventHandlers,
@@ -160,6 +160,7 @@ export class EventHandlerFactory {
     | "onHideBossHealth"
     | "onVictory"
     | "onBombExplosion"
+    | "onChapterChanged"
   > {
     return {
       onRoomCleared: (roomNumber, collectedGold) => {
@@ -169,6 +170,14 @@ export class EventHandlerFactory {
         this.deps.scene.scene
           .get("UIScene")
           .events.emit("updateHealth", player.getHealth(), player.getMaxHealth());
+
+        // Update score display with cumulative rooms cleared
+        const roomManager = this.deps.getRoomManager();
+        const totalRooms = roomManager.getTotalRooms();
+        const endlessWave = roomManager.getEndlessWave();
+        const cumulativeRooms = (endlessWave - 1) * totalRooms + roomNumber;
+        this.deps.scene.scene.get("UIScene").events.emit("scoreRoom", cumulativeRooms);
+
         console.log("Room", roomNumber, "cleared - UI notified, gold collected:", collectedGold);
       },
       onRoomEntered: (roomNumber, endlessWave) => {
@@ -202,6 +211,11 @@ export class EventHandlerFactory {
       },
       onBombExplosion: (x, y, radius, damage) => {
         this.deps.handleBombExplosion(x, y, radius, damage);
+      },
+      onChapterChanged: (newChapter) => {
+        // Notify UIScene of chapter change for any UI updates
+        this.deps.scene.scene.get("UIScene").events.emit("chapterChanged", newChapter);
+        console.log(`Chapter changed to ${newChapter}`);
       },
     };
   }

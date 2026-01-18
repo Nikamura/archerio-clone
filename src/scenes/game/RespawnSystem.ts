@@ -29,6 +29,7 @@ export interface RespawnEventHandlers {
 
 /**
  * Configuration for RespawnSystem
+ * Note: Always endless mode
  */
 export interface RespawnSystemConfig {
   scene: Phaser.Scene;
@@ -50,7 +51,6 @@ export interface RespawnSystemConfig {
   difficultyConfig: DifficultyConfig;
   goldEarnedRef: { value: number };
   runSeedString: string;
-  isEndlessMode: boolean;
   eventHandlers: RespawnEventHandlers;
 }
 
@@ -84,7 +84,6 @@ export class RespawnSystem {
   private difficultyConfig: DifficultyConfig;
   private goldEarnedRef: { value: number };
   private runSeedString: string;
-  private isEndlessMode: boolean;
   private eventHandlers: RespawnEventHandlers;
 
   // Respawn tracking (one-time use per run)
@@ -113,7 +112,6 @@ export class RespawnSystem {
     this.difficultyConfig = config.difficultyConfig;
     this.goldEarnedRef = config.goldEarnedRef;
     this.runSeedString = config.runSeedString;
-    this.isEndlessMode = config.isEndlessMode;
     this.eventHandlers = config.eventHandlers;
   }
 
@@ -217,13 +215,11 @@ export class RespawnSystem {
       const enemyDeathHandler = this.getEnemyDeathHandler();
       const levelUpSystem = this.getLevelUpSystem();
 
-      // Calculate total rooms cleared in endless mode (across all waves)
+      // Calculate total rooms cleared across all waves (always endless mode)
       const currentRoom = roomManager.getRoomNumber();
       const totalRooms = roomManager.getTotalRooms();
       const endlessWave = roomManager.getEndlessWave();
-      const totalRoomsCleared = this.isEndlessMode
-        ? (endlessWave - 1) * totalRooms + currentRoom - 1
-        : currentRoom - 1;
+      const totalRoomsCleared = (endlessWave - 1) * totalRooms + currentRoom - 1;
 
       // Launch game over scene with stats
       this.scene.scene.launch("GameOverScene", {
@@ -236,7 +232,7 @@ export class RespawnSystem {
         runSeed: this.runSeedString,
         acquiredAbilities: levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: enemyDeathHandler.getHeroXPEarned(),
-        isEndlessMode: this.isEndlessMode,
+        isEndlessMode: true,
         endlessWave: endlessWave,
         chapterId: chapterManager.getSelectedChapter(),
         difficulty: this.difficultyConfig.label.toLowerCase(),

@@ -26,8 +26,9 @@ export interface DifficultyConfig {
   bossHealthMultiplier: number;
   bossDamageMultiplier: number;
 
-  // Reward modifiers (effort:reward principle - harder = more gold)
+  // Reward modifiers (effort:reward principle - harder = more gold/score)
   goldMultiplier: number;
+  scoreMultiplier: number;
 
   // Display
   label: string;
@@ -52,8 +53,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     bossHealthMultiplier: 0.6, // -40% health
     bossDamageMultiplier: 0.75, // -25% damage
 
-    // Reward - less gold for easier mode (effort:reward)
+    // Reward - less gold/score for easier mode (effort:reward)
     goldMultiplier: 0.7, // -30% gold
+    scoreMultiplier: 0.75, // -25% score
 
     // Display
     label: "EASY",
@@ -78,6 +80,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
 
     // Standard rewards
     goldMultiplier: 1.0,
+    scoreMultiplier: 1.0,
 
     // Display
     label: "NORMAL",
@@ -100,8 +103,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     bossHealthMultiplier: 1.5, // +50% health
     bossDamageMultiplier: 1.3, // +30% damage
 
-    // Reward - more gold for harder mode (effort:reward)
+    // Reward - more gold/score for harder mode (effort:reward)
     goldMultiplier: 1.5, // +50% gold
+    scoreMultiplier: 1.5, // +50% score
 
     // Display
     label: "HARD",
@@ -124,8 +128,9 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     bossHealthMultiplier: 2.0, // +100% HP (was 1.5)
     bossDamageMultiplier: 1.75, // +75% damage (was 1.5)
 
-    // Reward - highest gold for insanity mode
+    // Reward - highest gold/score for insanity mode
     goldMultiplier: 2.5, // +150% gold (was 2.0)
+    scoreMultiplier: 2.5, // +150% score
 
     // Display
     label: "INSANITY",

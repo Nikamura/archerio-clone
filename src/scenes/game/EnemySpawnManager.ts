@@ -287,12 +287,18 @@ export class EnemySpawnManager {
               chapterDef.scaling.enemyDamageMultiplier *
               endlessMult *
               roomScaling.damageMultiplier,
-            speedMultiplier:
-              (chapterModifiers.speedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.5), // Speed scales less aggressively
-            attackCooldownMultiplier:
-              (chapterModifiers.attackCooldownMultiplier ?? 1) / (1 + (endlessMult - 1) * 0.3), // Faster attacks
-            projectileSpeedMultiplier:
-              (chapterModifiers.projectileSpeedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.3),
+            speedMultiplier: Math.min(
+              1.8,
+              (chapterModifiers.speedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.15),
+            ), // Speed scales gently, capped at 1.8x
+            attackCooldownMultiplier: Math.max(
+              0.5,
+              (chapterModifiers.attackCooldownMultiplier ?? 1) / (1 + (endlessMult - 1) * 0.15),
+            ), // Faster attacks, capped at 2x rate
+            projectileSpeedMultiplier: Math.min(
+              1.6,
+              (chapterModifiers.projectileSpeedMultiplier ?? 1) * (1 + (endlessMult - 1) * 0.15),
+            ), // Projectile speed capped at 1.6x
             abilityIntensityMultiplier: chapterModifiers.abilityIntensityMultiplier,
           };
 

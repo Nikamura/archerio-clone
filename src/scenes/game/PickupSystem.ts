@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import type Player from "../../entities/Player";
 import type GoldPool from "../../systems/GoldPool";
 import type HealthPool from "../../systems/HealthPool";
@@ -20,6 +21,7 @@ export interface PickupEventHandlers {
  * Configuration for PickupSystem
  */
 export interface PickupSystemConfig {
+  scene: Phaser.Scene;
   player: Player;
   goldPool: GoldPool;
   healthPool: HealthPool;
@@ -41,6 +43,7 @@ export interface PickupSystemConfig {
  * - Iron Will talent state checking
  */
 export class PickupSystem {
+  private scene: Phaser.Scene;
   private player: Player;
   private goldPool: GoldPool;
   private healthPool: HealthPool;
@@ -53,6 +56,7 @@ export class PickupSystem {
   private goldEarned: number = 0;
 
   constructor(config: PickupSystemConfig) {
+    this.scene = config.scene;
     this.player = config.player;
     this.goldPool = config.goldPool;
     this.healthPool = config.healthPool;
@@ -78,6 +82,8 @@ export class PickupSystem {
       this.particles.emitGoldCollect(playerX, playerY);
       hapticManager.light(); // Haptic feedback for collecting gold
       this.eventHandlers.onGoldCollected(goldCollected);
+      // Update score display
+      this.scene.scene.get("UIScene").events.emit("scoreGold", this.goldEarned);
     }
 
     // Update health pickups - check for collection

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { audioManager } from "../systems/AudioManager";
 import { saveManager } from "../systems/SaveManager";
+import { DifficultyLevel, DIFFICULTY_CONFIGS } from "../config/difficulty";
 import { achievementManager } from "../systems/AchievementManager";
 import { currencyManager } from "../systems/CurrencyManager";
 import { chestManager } from "../systems/ChestManager";
@@ -112,6 +113,8 @@ interface ScoreBreakdown {
   goldPoints: number;
   timeBonus: number;
   victoryBonus: number;
+  difficultyMultiplier: number;
+  baseTotal: number;
   total: number;
 }
 
@@ -120,6 +123,7 @@ const MAX_TIME_BONUS_MS = 5 * 60 * 1000;
 
 /**
  * Calculate run score from performance metrics
+ * Score is multiplied by difficulty: Easy 0.75x, Normal 1x, Hard 1.5x, Insanity 2.5x
  */
 function calculateScore(
   enemiesKilled: number,
@@ -127,6 +131,7 @@ function calculateScore(
   goldEarned: number,
   playTimeMs: number,
   isVictory: boolean,
+  difficulty: DifficultyLevel = DifficultyLevel.NORMAL,
 ): ScoreBreakdown {
   const killPoints = enemiesKilled * 10;
   const roomPoints = roomsCleared * roomsCleared * 25;
@@ -134,13 +139,19 @@ function calculateScore(
   const timeBonus = Math.max(0, Math.floor((MAX_TIME_BONUS_MS - playTimeMs) / 1000) * 2);
   const victoryBonus = isVictory ? 500 : 0;
 
+  const baseTotal = killPoints + roomPoints + goldPoints + timeBonus + victoryBonus;
+  const difficultyMultiplier = DIFFICULTY_CONFIGS[difficulty].scoreMultiplier;
+  const total = Math.floor(baseTotal * difficultyMultiplier);
+
   return {
     killPoints,
     roomPoints,
     goldPoints,
     timeBonus,
     victoryBonus,
-    total: killPoints + roomPoints + goldPoints + timeBonus + victoryBonus,
+    difficultyMultiplier,
+    baseTotal,
+    total,
   };
 }
 
@@ -168,7 +179,8 @@ export default class GameOverScene extends Phaser.Scene {
     this.stats = data || { roomsCleared: 0, enemiesKilled: 0, isVictory: false };
     this.rewardsCollected = false;
     this.acquiredAbilities = data?.acquiredAbilities ?? [];
-    this.isEndlessMode = data?.isEndlessMode ?? false;
+    // Always endless mode now
+    this.isEndlessMode = true;
     this.endlessWave = data?.endlessWave ?? 1;
     this.canRespawn = data?.canRespawn ?? false;
     this.respawnRoomState = data?.respawnRoomState ?? null;
@@ -199,25 +211,21 @@ export default class GameOverScene extends Phaser.Scene {
       this.isEndlessMode,
     );
 
-    // Calculate score
+    // Calculate score (scaled by difficulty)
+    const scoreDifficulty = (difficulty as DifficultyLevel) ?? DifficultyLevel.NORMAL;
     this.scoreBreakdown = calculateScore(
       this.stats.enemiesKilled,
       this.stats.roomsCleared,
       this.goldEarned,
       this.stats.playTimeMs ?? 0,
       this.stats.isVictory ?? false,
+      scoreDifficulty,
     );
 
-    // Check if new high score (regular or endless)
-    if (this.isEndlessMode) {
-      const previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
-      this.isNewEndlessHighScore = this.endlessWave > previousEndlessHighWave;
-      this.isNewHighScore = false; // Don't track regular high score in endless mode
-    } else {
-      const previousHighScore = saveManager.getStatistics().highestScore;
-      this.isNewHighScore = this.scoreBreakdown.total > previousHighScore;
-      this.isNewEndlessHighScore = false;
-    }
+    // Check if new high score - always endless mode
+    const previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
+    this.isNewEndlessHighScore = this.endlessWave > previousEndlessHighWave;
+    this.isNewHighScore = false; // Don't track regular high score in endless mode
 
     // Record run statistics to save data
     this.recordRunStats();
@@ -232,23 +240,22 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   /**
-   * Record this run's statistics to persistent save data
+   * Record this run's statistics to persistent save data (always endless mode)
    */
   private recordRunStats(): void {
     const selectedChapter = chapterManager.getSelectedChapter();
-    const isVictory = this.stats.isVictory === true;
-    const stars = this.stats.completionResult?.stars ?? 0;
     const score = this.scoreBreakdown?.total ?? 0;
 
     saveManager.recordRun({
       kills: this.stats.enemiesKilled,
       roomsCleared: this.stats.roomsCleared,
       playTimeMs: this.stats.playTimeMs ?? 0,
-      bossDefeated: isVictory,
+      bossDefeated: false, // Always false in endless mode
       abilitiesGained: this.stats.abilitiesGained ?? 0,
-      victory: isVictory,
+      victory: false, // Always false in endless mode
       score,
-      isEndlessMode: this.isEndlessMode,
+      difficulty: (this.stats.difficulty as DifficultyLevel) ?? DifficultyLevel.NORMAL,
+      isEndlessMode: true,
       endlessWave: this.endlessWave,
     });
 
@@ -258,40 +265,27 @@ export default class GameOverScene extends Phaser.Scene {
       enemiesKilled: this.stats.enemiesKilled,
       playTimeMs: this.stats.playTimeMs ?? 0,
       score,
-      isVictory,
-      isEndlessMode: this.isEndlessMode,
+      isVictory: false,
+      isEndlessMode: true,
       endlessWave: this.endlessWave,
       chapterId: selectedChapter,
       difficulty: this.stats.difficulty,
       abilitiesGained: this.stats.abilitiesGained,
     });
 
-    // Track high scores
-    if (this.isNewHighScore && this.scoreBreakdown) {
-      const previousHighScore = saveManager.getStatistics().highestScore - score; // Approximate previous
-      errorReporting.trackNewHighScore(score, Math.max(0, previousHighScore), "normal");
-    }
+    // Track high score for endless mode
     if (this.isNewEndlessHighScore) {
       const previousHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
       errorReporting.trackNewHighScore(this.endlessWave, previousHighWave, "endless");
     }
 
-    // Update chapter progress in SaveManager for persistence (only for normal mode)
-    if (!this.isEndlessMode) {
-      saveManager.updateChapterProgress(selectedChapter, this.stats.roomsCleared, isVictory, stars);
-    }
+    // Chapter progress update removed - endless mode doesn't track chapter completion
 
-    // Log updated statistics
+    // Log updated statistics (always endless mode)
     const totalStats = saveManager.getStatistics();
-    if (this.isEndlessMode) {
-      console.log(
-        `GameOverScene: Endless run recorded - Wave ${this.endlessWave}, High Wave: ${totalStats.endlessHighWave ?? 0}`,
-      );
-    } else {
-      console.log(
-        `GameOverScene: Run recorded - Total runs: ${totalStats.totalRuns}, Total kills: ${totalStats.totalKills}, Chapter ${selectedChapter} completed: ${isVictory}`,
-      );
-    }
+    console.log(
+      `GameOverScene: Endless run recorded - Wave ${this.endlessWave}, High Wave: ${totalStats.endlessHighWave ?? 0}`,
+    );
 
     // Check achievements after recording stats
     achievementManager.checkAchievements();
@@ -318,13 +312,13 @@ export default class GameOverScene extends Phaser.Scene {
   create() {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
-    const isVictory = this.stats.isVictory;
 
-    // Track game end for error context
+    // Track game end for error context - always game over in endless mode
     errorReporting.setScene("GameOverScene");
-    errorReporting.addBreadcrumb("game", isVictory ? "Victory" : "Game Over", {
+    errorReporting.addBreadcrumb("game", "Game Over", {
       roomsCleared: this.stats.roomsCleared,
       enemiesKilled: this.stats.enemiesKilled,
+      endlessWave: this.endlessWave,
     });
 
     // Register shutdown event
@@ -357,16 +351,9 @@ export default class GameOverScene extends Phaser.Scene {
     // Dark overlay background
     this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0);
 
-    // Title text - different for each game mode
-    let titleText: string;
-    let titleColor: string;
-    if (this.isEndlessMode) {
-      titleText = `WAVE ${this.endlessWave}`;
-      titleColor = this.isNewEndlessHighScore ? "#ffdd00" : "#ff6b35";
-    } else {
-      titleText = isVictory ? "RUN COMPLETE!" : "GAME OVER";
-      titleColor = isVictory ? "#00ff88" : "#ff4444";
-    }
+    // Title text - always endless mode
+    const titleText = `WAVE ${this.endlessWave}`;
+    const titleColor = this.isNewEndlessHighScore ? "#ffdd00" : "#ff6b35";
 
     this.add
       .text(width / 2, 60, titleText, {
@@ -377,9 +364,9 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Show new best for endless mode
+    // Show new best for endless high wave
     let subtitleOffset = 0;
-    if (this.isEndlessMode && this.isNewEndlessHighScore) {
+    if (this.isNewEndlessHighScore) {
       this.add
         .text(width / 2, 95, "NEW BEST!", {
           fontSize: "16px",
@@ -395,26 +382,14 @@ export default class GameOverScene extends Phaser.Scene {
     const statsStartY = 120 + subtitleOffset;
     const lineHeight = 32;
 
-    // Rooms cleared
-    const totalRooms = chapterManager.getTotalRooms();
-    if (this.isEndlessMode) {
-      // Show total rooms cleared across all waves
-      this.add
-        .text(width / 2, statsStartY, `Rooms Cleared: ${this.stats.roomsCleared}`, {
-          fontSize: "20px",
-          fontFamily: "Arial",
-          color: "#ffffff",
-        })
-        .setOrigin(0.5);
-    } else {
-      this.add
-        .text(width / 2, statsStartY, `Rooms: ${this.stats.roomsCleared}/${totalRooms}`, {
-          fontSize: "20px",
-          fontFamily: "Arial",
-          color: "#ffffff",
-        })
-        .setOrigin(0.5);
-    }
+    // Rooms cleared - always show total across all waves (endless mode)
+    this.add
+      .text(width / 2, statsStartY, `Rooms Cleared: ${this.stats.roomsCleared}`, {
+        fontSize: "20px",
+        fontFamily: "Arial",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
 
     // Enemies killed
     this.add
@@ -514,9 +489,9 @@ export default class GameOverScene extends Phaser.Scene {
     const skillsY = chestsY + 110;
     this.displayAcquiredSkills(skillsY);
 
-    // Continue button
+    // Continue button - always not victory in endless mode
     const buttonY = height - 100;
-    this.createContinueButton(buttonY, isVictory ?? false);
+    this.createContinueButton(buttonY);
 
     // Allow keyboard shortcuts
     this.input.keyboard?.once("keydown-SPACE", () => {
@@ -527,10 +502,7 @@ export default class GameOverScene extends Phaser.Scene {
       this.continueGame();
     });
 
-    // Add victory particles if won
-    if (isVictory) {
-      this.addVictoryEffect();
-    }
+    // Victory effects removed - endless mode never wins
 
     console.log(
       `GameOverScene: Created - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`,
@@ -592,12 +564,30 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // Show difficulty multiplier if not 1.0x
+    if (this.scoreBreakdown.difficultyMultiplier !== 1.0) {
+      const multText =
+        this.scoreBreakdown.difficultyMultiplier > 1.0
+          ? `Difficulty Bonus: x${this.scoreBreakdown.difficultyMultiplier}`
+          : `Difficulty Penalty: x${this.scoreBreakdown.difficultyMultiplier}`;
+      const multColor = this.scoreBreakdown.difficultyMultiplier > 1.0 ? "#00ff88" : "#ff6666";
+      this.add
+        .text(width / 2, startY + 38, multText, {
+          fontSize: "12px",
+          fontFamily: "Arial",
+          color: multColor,
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+    }
+
     // Personal best (if not new high score)
     if (!this.isNewHighScore && saveManager.getStatistics().highestScore > 0) {
+      const bestY = this.scoreBreakdown.difficultyMultiplier !== 1.0 ? startY + 55 : startY + 42;
       this.add
         .text(
           width / 2,
-          startY + 42,
+          bestY,
           `Best: ${saveManager.getStatistics().highestScore.toLocaleString()}`,
           {
             fontSize: "13px",
@@ -826,17 +816,17 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   /**
-   * Create the continue button
+   * Create the continue button (always non-victory in endless mode)
    */
-  private createContinueButton(y: number, isVictory: boolean): void {
+  private createContinueButton(y: number): void {
     const width = this.cameras.main.width;
     const buttonWidth = 200;
     const buttonHeight = 50;
     const buttonText = "MAIN MENU";
-    const buttonColor = isVictory ? 0x00ff88 : 0x4a9eff;
+    const buttonColor = 0x4a9eff;
 
     // If respawn is available, add respawn button above main menu button
-    if (this.canRespawn && !isVictory) {
+    if (this.canRespawn) {
       this.createRespawnButton(y - 65);
     }
 
@@ -856,8 +846,8 @@ export default class GameOverScene extends Phaser.Scene {
       .setDepth(101); // Text above button
 
     // Button hover effects
-    const hoverColor = isVictory ? 0x33ffaa : 0x6ab0ff;
-    const pressColor = isVictory ? 0x00cc66 : 0x3a8edf;
+    const hoverColor = 0x6ab0ff;
+    const pressColor = 0x3a8edf;
 
     button.on("pointerover", () => {
       debugToast.show("Button: pointerover");
@@ -893,36 +883,6 @@ export default class GameOverScene extends Phaser.Scene {
       position: { x: button.x, y: button.y },
       size: { width: buttonWidth, height: buttonHeight },
     });
-  }
-
-  private addVictoryEffect() {
-    // Simple star burst effect
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-
-    for (let i = 0; i < 20; i++) {
-      const star = this.add.text(
-        Phaser.Math.Between(20, width - 20),
-        Phaser.Math.Between(50, height - 100),
-        "\u2605", // Star character
-        {
-          fontSize: `${Phaser.Math.Between(16, 32)}px`,
-          color: "#ffdd00",
-        },
-      );
-      star.setAlpha(0);
-
-      this.tweens.add({
-        targets: star,
-        alpha: 1,
-        y: star.y - 50,
-        duration: 1000,
-        delay: i * 100,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-    }
   }
 
   /**

@@ -152,6 +152,7 @@ describe("RoomManager Event Handlers", () => {
       onHideBossHealth: vi.fn(),
       onVictory: vi.fn(),
       onBombExplosion: vi.fn(),
+      onChapterChanged: vi.fn(),
     };
   });
 

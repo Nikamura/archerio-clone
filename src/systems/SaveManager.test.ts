@@ -396,25 +396,25 @@ describe("SaveManager", () => {
       expect(stats.bossesDefeated).toBe(0);
     });
 
-    it("should record victory correctly", () => {
+    it("should record run with boss defeated correctly (endless mode - always counts as death)", () => {
       saveManager.recordRun({
         kills: 100,
         roomsCleared: 10,
         playTimeMs: 600000,
         bossDefeated: true,
         abilitiesGained: 5,
-        victory: true,
+        victory: true, // Ignored in endless mode
         score: 5000,
       });
 
       const stats = saveManager.getStatistics();
       expect(stats.totalRuns).toBe(1);
-      expect(stats.totalDeaths).toBe(0);
+      expect(stats.totalDeaths).toBe(1); // All runs count as deaths in endless mode
       expect(stats.bossesDefeated).toBe(1);
       expect(stats.longestRun).toBe(10);
     });
 
-    it("should track cumulative statistics", () => {
+    it("should track cumulative statistics (endless mode - all runs are deaths)", () => {
       saveManager.recordRun({
         kills: 50,
         roomsCleared: 5,
@@ -431,14 +431,14 @@ describe("SaveManager", () => {
         playTimeMs: 400000,
         bossDefeated: true,
         abilitiesGained: 4,
-        victory: true,
+        victory: true, // Ignored in endless mode
         score: 4000,
       });
 
       const stats = saveManager.getStatistics();
       expect(stats.totalRuns).toBe(2);
       expect(stats.totalKills).toBe(125);
-      expect(stats.totalDeaths).toBe(1);
+      expect(stats.totalDeaths).toBe(2); // Both runs count as deaths in endless mode
       expect(stats.totalPlayTimeMs).toBe(600000);
       expect(stats.abilitiesAcquired).toBe(6);
       expect(stats.highestRoom).toBe(10);

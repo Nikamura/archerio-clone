@@ -11,12 +11,29 @@ import { audioManager } from "../../systems/AudioManager";
 import { chapterManager } from "../../systems/ChapterManager";
 import { currencyManager } from "../../systems/CurrencyManager";
 import { saveManager } from "../../systems/SaveManager";
-import type { BossType } from "../../config/chapterData";
+import type { BossType, ChapterId } from "../../config/chapterData";
 import type { DifficultyConfig } from "../../config/difficulty";
 import type { RoomGenerator } from "../../systems/RoomGenerator";
 import type WallGroup from "../../systems/WallGroup";
 import type { SeededRandom } from "../../systems/SeededRandom";
 import { EnemySpawnManager } from "./EnemySpawnManager";
+
+/**
+ * Calculate chapter based on endless wave number.
+ * Progressive difficulty: chapter advances as waves increase.
+ * - Wave 1-2: Chapter 1
+ * - Wave 3-4: Chapter 2
+ * - Wave 5-6: Chapter 3
+ * - Wave 7-8: Chapter 4
+ * - Wave 9+: Chapter 5
+ */
+export function getChapterForWave(wave: number): ChapterId {
+  if (wave <= 2) return 1;
+  if (wave <= 4) return 2;
+  if (wave <= 6) return 3;
+  if (wave <= 8) return 4;
+  return 5;
+}
 
 /**
  * Event handlers interface for RoomManager callbacks
@@ -30,6 +47,7 @@ export interface RoomEventHandlers {
   onHideBossHealth: () => void;
   onVictory: () => void;
   onBombExplosion: (x: number, y: number, radius: number, damage: number) => void;
+  onChapterChanged: (newChapter: ChapterId) => void;
 }
 
 /**
@@ -54,8 +72,7 @@ export interface RoomManagerConfig {
   runRng: SeededRandom;
   difficultyConfig: DifficultyConfig;
 
-  // Config
-  isEndlessMode: boolean;
+  // Config - always endless mode with 10 rooms per wave
   totalRooms: number;
 
   eventHandlers: RoomEventHandlers;
@@ -93,8 +110,7 @@ export class RoomManager {
   private doorText: Phaser.GameObjects.Text | null = null;
   private isTransitioning: boolean = false;
 
-  // Endless mode state
-  private isEndlessMode: boolean;
+  // Endless mode state (always endless now)
   private endlessWave: number = 1;
   private endlessDifficultyMultiplier: number = 1.0;
 
@@ -122,8 +138,7 @@ export class RoomManager {
     // Systems
     this.wallGroup = config.wallGroup;
 
-    // Config
-    this.isEndlessMode = config.isEndlessMode;
+    // Config - always 10 rooms per wave
     this.totalRooms = config.totalRooms;
 
     this.eventHandlers = config.eventHandlers;
@@ -265,11 +280,8 @@ export class RoomManager {
   // ========================================
 
   updateRoomUI(): void {
-    if (this.isEndlessMode) {
-      this.eventHandlers.onUpdateRoomUI(this.currentRoom, this.totalRooms, this.endlessWave);
-    } else {
-      this.eventHandlers.onUpdateRoomUI(this.currentRoom, this.totalRooms);
-    }
+    // Always endless mode - pass wave number
+    this.eventHandlers.onUpdateRoomUI(this.currentRoom, this.totalRooms, this.endlessWave);
   }
 
   // ========================================
@@ -363,24 +375,10 @@ export class RoomManager {
   private transitionToNextRoom(): void {
     this.currentRoom++;
 
-    // Check for victory or wave completion
+    // Check for wave completion - always endless mode
     if (this.currentRoom > this.totalRooms) {
-      if (this.isEndlessMode) {
-        // Endless mode: Start next wave with increased difficulty
-        this.startNextEndlessWave();
-        return;
-      } else {
-        this.eventHandlers.onVictory();
-        return;
-      }
-    }
-
-    // Notify chapter manager of room advancement (only in normal mode)
-    if (!this.isEndlessMode) {
-      const advanced = chapterManager.advanceRoom();
-      if (!advanced) {
-        console.warn("RoomManager: Failed to advance room in chapter manager");
-      }
+      this.startNextEndlessWave();
+      return;
     }
 
     // Clean up current room
@@ -397,10 +395,7 @@ export class RoomManager {
     this.updateRoomUI();
 
     // Notify handlers
-    this.eventHandlers.onRoomEntered(
-      this.currentRoom,
-      this.isEndlessMode ? this.endlessWave : undefined,
-    );
+    this.eventHandlers.onRoomEntered(this.currentRoom, this.endlessWave);
 
     // Fade back in
     this.scene.cameras.main.fadeIn(300, 0, 0, 0);
@@ -410,7 +405,7 @@ export class RoomManager {
 
   /**
    * Start the next wave in endless mode
-   * Increases difficulty and resets room counter
+   * Increases difficulty, resets room counter, and updates chapter based on wave
    */
   private startNextEndlessWave(): void {
     this.endlessWave++;
@@ -418,6 +413,16 @@ export class RoomManager {
 
     // Exponential scaling: difficulty increases 1.5x each wave
     this.endlessDifficultyMultiplier = Math.pow(1.5, this.endlessWave - 1);
+
+    // Update chapter based on wave number for progressive difficulty
+    const newChapter = getChapterForWave(this.endlessWave);
+    const currentChapter = chapterManager.getSelectedChapter();
+    if (newChapter !== currentChapter) {
+      chapterManager.selectChapter(newChapter);
+      console.log(`Endless Mode: Chapter advanced to ${newChapter} at wave ${this.endlessWave}`);
+      // Notify to update background and other chapter-specific elements
+      this.eventHandlers.onChapterChanged(newChapter);
+    }
 
     // Clean up current room
     this.cleanupRoom();
@@ -593,11 +598,8 @@ export class RoomManager {
   // ========================================
 
   spawnEnemiesForRoom(): void {
-    this.enemySpawnManager.setEndlessMode(
-      this.isEndlessMode,
-      this.endlessWave,
-      this.endlessDifficultyMultiplier,
-    );
+    // Always endless mode with progressive difficulty
+    this.enemySpawnManager.setEndlessMode(true, this.endlessWave, this.endlessDifficultyMultiplier);
     this.enemySpawnManager.spawnEnemiesForRoom(this.currentRoom, this.totalRooms);
   }
 

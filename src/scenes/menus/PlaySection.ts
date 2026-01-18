@@ -2,70 +2,43 @@ import Phaser from "phaser";
 import { audioManager } from "../../systems/AudioManager";
 import { THEME_ASSETS, THEME_COLORS } from "../../config/themeData";
 import { applyButtonEffects } from "../../systems/UIAnimations";
-import { ChapterSelectPanel } from "./ChapterSelectPanel";
 import { DifficultyPanel } from "./DifficultyPanel";
-import { createModeButtonBar, GameMode } from "../../ui/components/ModeButtonBar";
 
 export interface PlaySectionConfig {
   scene: Phaser.Scene;
   x: number;
   y: number;
   width: number;
-  onPlay: (mode: GameMode) => void;
+  onPlay: () => void;
   depth?: number;
 }
 
 export interface PlaySectionResult {
   container: Phaser.GameObjects.Container;
-  getSelectedMode: () => GameMode;
   destroy: () => void;
 }
 
 /**
- * PlaySection - Contains mode buttons, chapter selector, difficulty selector, and PLAY button
+ * PlaySection - Contains difficulty selector and PLAY button (endless mode only)
  */
 export function createPlaySection(config: PlaySectionConfig): PlaySectionResult {
-  const { scene, x, y, width, onPlay, depth = 10 } = config;
+  const { scene, x, y, onPlay, depth = 10 } = config;
 
   const container = scene.add.container(x, y);
   container.setDepth(depth);
 
-  let currentMode: GameMode = "story";
-
-  // Mode button bar (Story | Endless | Daily)
-  const modeButtonBar = createModeButtonBar({
-    scene,
-    x: 0,
-    y: 0,
-    initialMode: "story",
-    onModeChange: (mode) => {
-      currentMode = mode;
-    },
-    depth,
-  });
-  container.add(modeButtonBar.container);
-
-  // Chapter panel - visible only in story mode
-  const chapterPanel = new ChapterSelectPanel({
-    scene,
-    x: 0,
-    y: 55,
-    width,
-  });
-  container.add(chapterPanel.getContainer());
-
-  // Difficulty panel - below chapters
+  // Difficulty panel - at the top
   const difficultyPanel = new DifficultyPanel({
     scene,
     x: 0,
-    y: 130,
+    y: 0,
     game: scene.game,
   });
   container.add(difficultyPanel.getContainer());
 
   // PLAY button
   const playButtonKey = THEME_ASSETS.playButton;
-  const playButtonY = 200;
+  const playButtonY = 70;
 
   // Check if texture exists, fallback to text button if not
   let playButton: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
@@ -95,21 +68,16 @@ export function createPlaySection(config: PlaySectionConfig): PlaySectionResult 
 
   playButton.on("pointerdown", () => {
     audioManager.playGameStart();
-    onPlay(currentMode);
+    onPlay();
   });
 
-  const getSelectedMode = () => currentMode;
-
   const destroy = () => {
-    chapterPanel.destroy();
     difficultyPanel.destroy();
-    modeButtonBar.destroy();
     container.destroy();
   };
 
   return {
     container,
-    getSelectedMode,
     destroy,
   };
 }

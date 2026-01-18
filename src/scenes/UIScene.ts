@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { THEME_COLORS } from "../config/themeData";
 import { ABILITIES, type AbilityData } from "./LevelUpScene";
+import { DifficultyLevel, DIFFICULTY_CONFIGS } from "../config/difficulty";
 
 interface AcquiredAbility {
   id: string;
@@ -35,6 +36,14 @@ export default class UIScene extends Phaser.Scene {
 
   // FPS counter (debug only)
   private fpsText?: Phaser.GameObjects.Text;
+
+  // Score display
+  private scoreText!: Phaser.GameObjects.Text;
+  private currentScore: number = 0;
+  private scoreKills: number = 0;
+  private scoreRooms: number = 0;
+  private scoreGold: number = 0;
+  private scoreDifficulty: DifficultyLevel = DifficultyLevel.NORMAL;
 
   // Notification queue
   private notificationContainer!: Phaser.GameObjects.Container;
@@ -157,7 +166,7 @@ export default class UIScene extends Phaser.Scene {
     this.updateHealthBar(100, 100, 100);
 
     // --- ROOM COUNTER (center) ---
-    this.roomText = this.add.text(width / 2, 28, "Room 1/20", {
+    this.roomText = this.add.text(width / 2, 22, "Room 1/20", {
       fontSize: "16px",
       color: "#ffffff",
       fontStyle: "bold",
@@ -165,6 +174,16 @@ export default class UIScene extends Phaser.Scene {
     this.roomText.setOrigin(0.5);
     this.roomText.setStroke("#000000", 3);
     this.hudContainer.add(this.roomText);
+
+    // --- SCORE DISPLAY (below room counter) ---
+    this.scoreText = this.add.text(width / 2, 40, "Score: 0", {
+      fontSize: "12px",
+      color: "#FFD700",
+      fontStyle: "bold",
+    });
+    this.scoreText.setOrigin(0.5);
+    this.scoreText.setStroke("#000000", 2);
+    this.hudContainer.add(this.scoreText);
 
     // --- LEVEL BADGE with XP (right side, before menu button) ---
     const levelX = width - 70;
@@ -320,6 +339,46 @@ export default class UIScene extends Phaser.Scene {
     this.events.on("updateAbilities", (abilities: AcquiredAbility[]) => {
       this.updateSkillsBar(abilities);
     });
+
+    // Score tracking events
+    this.events.on("initScore", (difficulty: DifficultyLevel) => {
+      this.scoreDifficulty = difficulty;
+      this.scoreKills = 0;
+      this.scoreRooms = 0;
+      this.scoreGold = 0;
+      this.updateScoreDisplay();
+    });
+    this.events.on("scoreKill", () => {
+      this.scoreKills++;
+      this.updateScoreDisplay();
+    });
+    this.events.on("scoreRoom", (roomsCleared: number) => {
+      this.scoreRooms = roomsCleared;
+      this.updateScoreDisplay();
+    });
+    this.events.on("scoreGold", (totalGold: number) => {
+      this.scoreGold = totalGold;
+      this.updateScoreDisplay();
+    });
+  }
+
+  /**
+   * Calculate and update the score display
+   */
+  private updateScoreDisplay() {
+    const killPoints = this.scoreKills * 10;
+    const roomPoints = this.scoreRooms * this.scoreRooms * 25;
+    const goldPoints = Math.floor(this.scoreGold * 0.5);
+    const baseScore = killPoints + roomPoints + goldPoints;
+    const multiplier = DIFFICULTY_CONFIGS[this.scoreDifficulty].scoreMultiplier;
+    this.currentScore = Math.floor(baseScore * multiplier);
+
+    // Show multiplier if not 1x
+    if (multiplier !== 1.0) {
+      this.scoreText.setText(`Score: ${this.currentScore.toLocaleString()} (x${multiplier})`);
+    } else {
+      this.scoreText.setText(`Score: ${this.currentScore.toLocaleString()}`);
+    }
   }
 
   update() {

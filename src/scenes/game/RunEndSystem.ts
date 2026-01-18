@@ -7,12 +7,10 @@ import type { EnemyDeathHandler } from "./EnemyDeathHandler";
 import type { LevelUpSystem } from "./LevelUpSystem";
 import type { PickupSystem } from "./PickupSystem";
 import type { DifficultyConfig } from "../../config/difficulty";
-import { audioManager } from "../../systems/AudioManager";
 import { chapterManager } from "../../systems/ChapterManager";
-import type { ChapterCompletionResult } from "../../systems/ChapterManager";
 
 /**
- * Data passed to GameOverScene
+ * Data passed to GameOverScene (always endless mode)
  */
 interface GameOverData {
   roomsCleared: number;
@@ -21,12 +19,11 @@ interface GameOverData {
   playTimeMs: number;
   abilitiesGained: number;
   goldEarned: number;
-  completionResult?: ChapterCompletionResult;
   runSeed: string;
   acquiredAbilities: AcquiredAbility[];
   heroXPEarned: number;
-  isEndlessMode?: boolean;
-  endlessWave?: number;
+  isEndlessMode: boolean;
+  endlessWave: number;
   chapterId: number;
   difficulty: string;
 }
@@ -41,6 +38,7 @@ export interface RunEndEventHandlers {
 
 /**
  * Configuration for RunEndSystem
+ * Note: Always endless mode
  */
 export interface RunEndSystemConfig {
   scene: Phaser.Scene;
@@ -56,18 +54,16 @@ export interface RunEndSystemConfig {
   difficultyConfig: DifficultyConfig;
   runStartTime: number;
   runSeedString: string;
-  isEndlessMode: boolean;
   eventHandlers: RunEndEventHandlers;
 }
 
 /**
- * RunEndSystem - Manages run lifecycle (victory, skip, pause, quit)
+ * RunEndSystem - Manages run lifecycle (skip, pause, quit)
  *
- * Extracted from GameScene to consolidate run-ending logic and reduce
- * code duplication between triggerVictory() and handleSkipRun().
+ * Extracted from GameScene to consolidate run-ending logic.
+ * Always endless mode - no story victory flow.
  *
  * Handles:
- * - Victory flow (chapter completion, rewards)
  * - Skip run flow (abandon run, collect partial rewards)
  * - Pause handling
  * - Quit from pause
@@ -86,7 +82,6 @@ export class RunEndSystem {
   private difficultyConfig: DifficultyConfig;
   private runStartTime: number;
   private runSeedString: string;
-  private isEndlessMode: boolean;
   private eventHandlers: RunEndEventHandlers;
 
   constructor(config: RunEndSystemConfig) {
@@ -103,32 +98,18 @@ export class RunEndSystem {
     this.difficultyConfig = config.difficultyConfig;
     this.runStartTime = config.runStartTime;
     this.runSeedString = config.runSeedString;
-    this.isEndlessMode = config.isEndlessMode;
     this.eventHandlers = config.eventHandlers;
   }
 
   /**
-   * Trigger victory - called when all rooms are cleared
+   * Trigger victory - no longer used in endless mode
+   * Endless mode always transitions to next wave, never "wins"
+   * @deprecated This method is kept for interface compatibility but is never called
    */
   triggerVictory(): void {
-    this.gameOverSetter(true);
-    audioManager.playVictory();
-    console.log("Victory! All rooms cleared!");
-
-    // Complete chapter in manager to unlock next chapter and calculate rewards
-    // Pass difficulty gold multiplier for reward scaling
-    const completionResult = chapterManager.completeChapter(
-      this.player.getHealth(),
-      this.player.getMaxHealth(),
-      this.difficultyConfig.goldMultiplier,
-    );
-
-    // Clean up input system
-    this.destroyInputSystem();
-
-    // Build game over data and transition
-    const data = this.buildGameOverData(true, completionResult ?? undefined);
-    this.transitionToGameOver(data, 500);
+    // In endless mode, we never win - just go to next wave
+    // This method is kept for interface compatibility
+    console.warn("triggerVictory called but endless mode never ends with victory");
   }
 
   /**
@@ -140,7 +121,7 @@ export class RunEndSystem {
     this.gameOverSetter(true);
     console.log("Run skipped! Collecting rewards...");
 
-    // End the chapter run (skipped counts as failed/abandoned)
+    // End the chapter run (skipped counts as abandoned)
     chapterManager.endRun(true);
 
     // Stop player movement
@@ -150,7 +131,7 @@ export class RunEndSystem {
     this.destroyInputSystem();
 
     // Build game over data and transition
-    const data = this.buildGameOverData(false);
+    const data = this.buildGameOverData();
     this.transitionToGameOver(data, 300);
   }
 
@@ -187,29 +168,22 @@ export class RunEndSystem {
   }
 
   /**
-   * Calculate rooms cleared based on game state
+   * Calculate rooms cleared based on game state (always endless mode)
    */
-  private calculateRoomsCleared(isVictory: boolean): number {
+  private calculateRoomsCleared(): number {
     const roomManager = this.getRoomManager();
-
-    if (isVictory) {
-      return roomManager.getTotalRooms();
-    }
-
     const currentRoom = roomManager.getRoomNumber();
     const totalRooms = roomManager.getTotalRooms();
     const endlessWave = roomManager.getEndlessWave();
 
-    return this.isEndlessMode ? (endlessWave - 1) * totalRooms + currentRoom - 1 : currentRoom - 1;
+    // Always endless: calculate total rooms across all waves
+    return (endlessWave - 1) * totalRooms + currentRoom - 1;
   }
 
   /**
-   * Build game over data object with all stats
+   * Build game over data object with all stats (always endless mode)
    */
-  private buildGameOverData(
-    isVictory: boolean,
-    completionResult?: ChapterCompletionResult,
-  ): GameOverData {
+  private buildGameOverData(): GameOverData {
     const roomManager = this.getRoomManager();
     const abilitySystem = this.getAbilitySystem();
     const enemyDeathHandler = this.getEnemyDeathHandler();
@@ -217,12 +191,13 @@ export class RunEndSystem {
     const pickupSystem = this.getPickupSystem();
 
     const playTimeMs = Date.now() - this.runStartTime;
-    const roomsCleared = this.calculateRoomsCleared(isVictory);
+    const roomsCleared = this.calculateRoomsCleared();
+    const endlessWave = roomManager.getEndlessWave();
 
     const data: GameOverData = {
       roomsCleared,
       enemiesKilled: enemyDeathHandler.getEnemiesKilled(),
-      isVictory,
+      isVictory: false, // Always false in endless mode
       playTimeMs,
       abilitiesGained: abilitySystem.getTotalAbilitiesGained(),
       goldEarned: pickupSystem.getGoldEarned(),
@@ -231,19 +206,9 @@ export class RunEndSystem {
       heroXPEarned: enemyDeathHandler.getHeroXPEarned(),
       chapterId: chapterManager.getSelectedChapter(),
       difficulty: this.difficultyConfig.label.toLowerCase(),
+      isEndlessMode: true,
+      endlessWave,
     };
-
-    // Add victory-specific data
-    if (isVictory && completionResult) {
-      data.completionResult = completionResult;
-    }
-
-    // Add endless mode data for non-victory
-    if (!isVictory) {
-      const endlessWave = roomManager.getEndlessWave();
-      data.isEndlessMode = this.isEndlessMode;
-      data.endlessWave = endlessWave;
-    }
 
     return data;
   }

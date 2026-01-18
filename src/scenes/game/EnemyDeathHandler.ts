@@ -240,6 +240,9 @@ export class EnemyDeathHandler {
     this.recordKill(enemy, isBoss);
     this.eventHandlers.onKillRecorded();
 
+    // Update score display
+    this.scene.scene.get("UIScene").events.emit("scoreKill");
+
     // 2. Bloodthirst healing is handled by CombatSystem
 
     // 3. Spawn drops

@@ -106,6 +106,7 @@ export interface PlayerStatistics {
   longestRun: number; // in rooms
   fastestBossKill: number; // in milliseconds, 0 if never killed
   highestScore: number; // personal best score
+  highScoreDifficulty?: DifficultyLevel; // difficulty when high score was achieved
   endlessHighWave?: number; // highest wave reached in endless mode
   monsterKills: MonsterKillStats; // per-enemy and per-boss kill counts
 }
@@ -850,7 +851,7 @@ export class SaveManager {
   }
 
   /**
-   * Record a completed run
+   * Record a completed run (always endless mode)
    */
   recordRun(options: {
     kills: number;
@@ -860,7 +861,8 @@ export class SaveManager {
     abilitiesGained: number;
     victory: boolean;
     score: number;
-    isEndlessMode?: boolean;
+    difficulty?: DifficultyLevel;
+    isEndlessMode?: boolean; // Kept for compatibility, always treated as true
     endlessWave?: number;
   }): void {
     const stats = this.data.statistics;
@@ -870,9 +872,8 @@ export class SaveManager {
     stats.totalPlayTimeMs += options.playTimeMs;
     stats.abilitiesAcquired += options.abilitiesGained;
 
-    if (!options.victory) {
-      stats.totalDeaths++;
-    }
+    // Always count as death in endless mode (no victory)
+    stats.totalDeaths++;
 
     if (options.bossDefeated) {
       stats.bossesDefeated++;
@@ -886,13 +887,14 @@ export class SaveManager {
       stats.longestRun = options.roomsCleared;
     }
 
-    // Track regular score only in non-endless mode
-    if (!options.isEndlessMode && options.score > stats.highestScore) {
+    // Track high score with difficulty
+    if (options.score > stats.highestScore) {
       stats.highestScore = options.score;
+      stats.highScoreDifficulty = options.difficulty;
     }
 
-    // Track endless mode high wave
-    if (options.isEndlessMode && options.endlessWave !== undefined) {
+    // Track endless mode high wave (always endless now)
+    if (options.endlessWave !== undefined) {
       const currentHighWave = stats.endlessHighWave ?? 0;
       if (options.endlessWave > currentHighWave) {
         stats.endlessHighWave = options.endlessWave;

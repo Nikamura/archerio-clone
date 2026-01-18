@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import Player from "../entities/Player";
 import Enemy from "../entities/Enemy";
 import Boss from "../entities/Boss";
+import { getCurrentDifficulty } from "../config/difficulty";
 import { InputSystem } from "./game/InputSystem";
 import { AbilitySystem } from "./game/AbilitySystem";
 import { CombatSystem } from "./game/CombatSystem";
@@ -169,6 +170,9 @@ export default class GameScene extends Phaser.Scene {
     this.scene
       .get("UIScene")
       .events.emit("updateHealth", this.player.getHealth(), this.player.getMaxHealth());
+
+    // Initialize score tracking with current difficulty
+    this.scene.get("UIScene").events.emit("initScore", getCurrentDifficulty(this.game));
 
     // Show tutorial for first-time players
     if (!saveManager.isTutorialCompleted()) {

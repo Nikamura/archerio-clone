@@ -16,7 +16,6 @@ import {
   showNoEnergyModal,
   showMockAdPopup,
   createNavigationGrid,
-  GameMode,
 } from "../ui/components";
 import { createPlaySection } from "./menus/PlaySection";
 
@@ -84,15 +83,23 @@ export default class MainMenuScene extends Phaser.Scene {
     title.setOrigin(0.5);
     title.setDepth(10);
 
-    // High score
-    const highScore = saveManager.getStatistics().highestScore;
-    if (highScore > 0) {
-      const highScoreText = this.add.text(width / 2, 80, `Best: ${highScore.toLocaleString()}`, {
-        fontSize: "14px",
-        color: "#FFD700",
-        stroke: "#000000",
-        strokeThickness: 2,
-      });
+    // High score with difficulty
+    const stats = saveManager.getStatistics();
+    if (stats.highestScore > 0) {
+      const difficultyLabel = stats.highScoreDifficulty
+        ? ` (${stats.highScoreDifficulty.charAt(0).toUpperCase() + stats.highScoreDifficulty.slice(1)})`
+        : "";
+      const highScoreText = this.add.text(
+        width / 2,
+        80,
+        `Best: ${stats.highestScore.toLocaleString()}${difficultyLabel}`,
+        {
+          fontSize: "14px",
+          color: "#FFD700",
+          stroke: "#000000",
+          strokeThickness: 2,
+        },
+      );
       highScoreText.setOrigin(0.5);
       highScoreText.setDepth(10);
     }
@@ -104,17 +111,20 @@ export default class MainMenuScene extends Phaser.Scene {
       x: width / 2,
       y: 115,
       width,
-      onPlay: (mode: GameMode) => {
-        if (!this.trySpendEnergy(mode)) return;
-        this.startGame(mode);
+      onPlay: () => {
+        if (!this.trySpendEnergy()) return;
+        this.startGame();
       },
       depth: 10,
     });
   }
 
-  private startGame(mode: GameMode) {
-    // Set game mode
-    this.game.registry.set("isEndlessMode", mode === "endless");
+  private startGame() {
+    // Always endless mode now
+    this.game.registry.set("isEndlessMode", true);
+
+    // Set chapter 1 as default for wave 1
+    chapterManager.selectChapter(1);
 
     transitionToScene(this, "GameScene", TransitionType.FADE, DURATION.NORMAL);
     this.scene.launch("UIScene");
@@ -173,7 +183,7 @@ export default class MainMenuScene extends Phaser.Scene {
     instructionsText.setDepth(10);
   }
 
-  private trySpendEnergy(mode: GameMode): boolean {
+  private trySpendEnergy(): boolean {
     const currentEnergy = currencyManager.get("energy");
     if (currentEnergy <= 0) {
       showNoEnergyModal({
@@ -185,7 +195,7 @@ export default class MainMenuScene extends Phaser.Scene {
             onComplete: () => {
               // Ad gave us +1 energy, spend it and start game
               currencyManager.spendEnergy(1);
-              this.startGame(mode);
+              this.startGame();
             },
           });
         },

@@ -71,6 +71,7 @@ export interface GameSceneEventHandlers {
   onHideBossHealth: () => void;
   onVictory: () => void;
   onBombExplosion: (x: number, y: number, radius: number, damage: number) => void;
+  onChapterChanged: (newChapter: number) => void;
 
   // Level up events
   onLevelUpStarted: () => void;
@@ -140,6 +141,7 @@ export interface InitializationVisualEffects {
   screenShake: ScreenShake;
   particles: ParticleManager;
   backgroundAnimations: BackgroundAnimationManager;
+  backgroundImage: Phaser.GameObjects.Image;
 }
 
 /**
@@ -170,6 +172,7 @@ export interface InitializationPhysics {
 
 /**
  * Game state created during initialization
+ * Note: Always endless mode with 10 rooms per wave
  */
 export interface InitializationGameState {
   difficultyConfig: DifficultyConfig;
@@ -181,7 +184,6 @@ export interface InitializationGameState {
   weaponProjectileConfig: ProjectileConfig;
   spiritCatConfig: SpiritCatConfig | null;
   roomGenerator: RoomGenerator;
-  isEndlessMode: boolean;
   totalRooms: number;
   runStartTime: number;
   selectedHeroId: string | null;
@@ -277,7 +279,7 @@ export class InitializationSystem {
     // Initialize seeded RNG and room generator
     const { runRng, runSeedString, roomGenerator } = this.initializeRngAndRoomGenerator();
 
-    // Create all systems
+    // Create all systems - always endless mode
     const systems = this.createSystems(
       player,
       pools,
@@ -291,7 +293,6 @@ export class InitializationSystem {
       weaponProjectileConfig,
       spiritCatConfig,
       roomGenerator,
-      gameState.isEndlessMode,
       gameState.totalRooms,
       gameState.runStartTime,
     );
@@ -323,7 +324,6 @@ export class InitializationSystem {
         weaponProjectileConfig,
         spiritCatConfig,
         roomGenerator,
-        isEndlessMode: gameState.isEndlessMode,
         totalRooms: gameState.totalRooms,
         runStartTime: gameState.runStartTime,
         selectedHeroId: gameState.selectedHeroId,
@@ -332,11 +332,12 @@ export class InitializationSystem {
   }
 
   /**
-   * Initialize game state: mode, timing, error reporting, physics bounds
+   * Initialize game state: timing, error reporting, physics bounds
+   * Always endless mode with 10 rooms per wave
    */
   private initializeGameState(difficultyConfig: DifficultyConfig) {
-    const isEndlessMode = this.game.registry.get("isEndlessMode") === true;
-    const totalRooms = isEndlessMode ? 10 : chapterManager.getTotalRooms();
+    // Always endless mode with 10 rooms per wave
+    const totalRooms = 10;
     const runStartTime = Date.now();
 
     // Update error reporting context
@@ -349,10 +350,9 @@ export class InitializationSystem {
       hero: selectedHeroId,
     });
 
-    // Track game start in Sentry metrics
-    const gameMode = isEndlessMode ? "endless" : "normal";
+    // Track game start in Sentry metrics - always endless mode
     errorReporting.trackGameStart(
-      gameMode,
+      "endless",
       chapterManager.getSelectedChapter(),
       difficultyConfig.label,
     );
@@ -401,7 +401,6 @@ export class InitializationSystem {
     );
 
     return {
-      isEndlessMode,
       totalRooms,
       runStartTime,
       selectedHeroId,
@@ -573,7 +572,7 @@ export class InitializationSystem {
    */
   private createVisualEffects(
     backgroundAnimations: BackgroundAnimationManager,
-    _bg: Phaser.GameObjects.Image,
+    backgroundImage: Phaser.GameObjects.Image,
   ): InitializationVisualEffects {
     const screenShake = createScreenShake(this.scene);
     const particles = createParticleManager(this.scene);
@@ -583,7 +582,7 @@ export class InitializationSystem {
     const settings = saveManager.getSettings();
     screenShake.setEnabled(settings.screenShakeEnabled);
 
-    return { screenShake, particles, backgroundAnimations };
+    return { screenShake, particles, backgroundAnimations, backgroundImage };
   }
 
   /**
@@ -614,6 +613,7 @@ export class InitializationSystem {
 
   /**
    * Create all game systems in dependency order
+   * Note: Always endless mode
    */
   private createSystems(
     player: Player,
@@ -628,7 +628,6 @@ export class InitializationSystem {
     weaponProjectileConfig: ProjectileConfig,
     spiritCatConfig: SpiritCatConfig | null,
     roomGenerator: RoomGenerator,
-    isEndlessMode: boolean,
     totalRooms: number,
     runStartTime: number,
   ): InitializationSystems {
@@ -678,6 +677,7 @@ export class InitializationSystem {
     });
 
     // Room manager (needs enemy death handler ref, will be set later)
+    // Always endless mode with progressive chapters
     const roomManager = new RoomManager({
       scene: this.scene,
       player,
@@ -692,7 +692,6 @@ export class InitializationSystem {
       wallGroup: physics.wallGroup,
       runRng,
       difficultyConfig,
-      isEndlessMode,
       totalRooms,
       eventHandlers: {
         onRoomCleared: this.eventHandlers.onRoomCleared,
@@ -707,6 +706,24 @@ export class InitializationSystem {
         onHideBossHealth: this.eventHandlers.onHideBossHealth,
         onVictory: this.eventHandlers.onVictory,
         onBombExplosion: this.eventHandlers.onBombExplosion,
+        onChapterChanged: (newChapter) => {
+          // Update background texture for new chapter
+          const backgroundKeyName = `chapter${newChapter}Bg` as keyof typeof THEME_ASSETS;
+          const backgroundKey = THEME_ASSETS[backgroundKeyName] as string;
+          const bgKey = this.scene.textures.exists(backgroundKey) ? backgroundKey : "dungeonFloor";
+          visualEffects.backgroundImage.setTexture(bgKey);
+
+          // Re-initialize background animations for new chapter
+          visualEffects.backgroundAnimations.destroy();
+          visualEffects.backgroundAnimations.initialize(
+            newChapter,
+            saveManager.getSettings().graphicsQuality,
+            visualEffects.backgroundImage,
+          );
+
+          console.log(`Background updated for chapter ${newChapter} (texture: ${bgKey})`);
+          this.eventHandlers.onChapterChanged(newChapter);
+        },
       },
     });
 
@@ -759,7 +776,7 @@ export class InitializationSystem {
     // Passive effect system (declared first, assigned after respawn system)
     let passiveEffectSystem!: PassiveEffectSystem;
 
-    // Respawn system
+    // Respawn system - always endless mode
     const goldEarnedRef = { value: 0 };
     const respawnSystem = new RespawnSystem({
       scene: this.scene,
@@ -787,7 +804,6 @@ export class InitializationSystem {
       difficultyConfig,
       goldEarnedRef,
       runSeedString,
-      isEndlessMode,
       eventHandlers: {
         onRespawnComplete: this.eventHandlers.onRespawnComplete,
         onUpdateHealthUI: this.eventHandlers.onUpdateHealthUI,
@@ -825,6 +841,7 @@ export class InitializationSystem {
 
     // Pickup system
     const pickupSystem = new PickupSystem({
+      scene: this.scene,
       player,
       goldPool: pools.goldPool,
       healthPool: pools.healthPool,
@@ -841,7 +858,7 @@ export class InitializationSystem {
     // Wire up enemy death handler boss reference
     enemyDeathHandler.setBoss(this.boss);
 
-    // Run end system (handles victory, skip, pause, quit)
+    // Run end system (handles skip, pause, quit) - always endless mode
     const runEndSystem = new RunEndSystem({
       scene: this.scene,
       player,
@@ -856,7 +873,6 @@ export class InitializationSystem {
       difficultyConfig,
       runStartTime,
       runSeedString,
-      isEndlessMode,
       eventHandlers: {
         onDestroyInput: this.eventHandlers.onInputDestroyed,
       },
