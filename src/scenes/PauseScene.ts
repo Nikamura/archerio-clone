@@ -133,12 +133,6 @@ export default class PauseScene extends Phaser.Scene {
     );
     currentY += toggleHeight + 15;
 
-    // Reset Level button (neutral)
-    this.createButton(0, currentY, buttonWidth, toggleHeight, "↺ Reset Level", 0x555577, () =>
-      this.handleReset(),
-    );
-    currentY += toggleHeight + 10;
-
     // Quit to Menu button (red, destructive)
     this.createButton(0, currentY, buttonWidth, buttonHeight, "QUIT TO MENU", 0xaa4444, () =>
       this.handleQuit(),
@@ -303,25 +297,6 @@ export default class PauseScene extends Phaser.Scene {
       onComplete: () => {
         // Resume GameScene and close PauseScene
         this.scene.resume("GameScene");
-        this.scene.stop("PauseScene");
-      },
-    });
-  }
-
-  private handleReset(): void {
-    if (this.isClosing) return;
-    this.isClosing = true;
-
-    // Emit reset event for GameScene
-    this.game.events.emit("resetLevel");
-
-    // Animate out
-    this.tweens.add({
-      targets: [this.overlay, this.modalContainer],
-      alpha: 0,
-      duration: DURATION.FAST,
-      ease: EASING.EASE_IN,
-      onComplete: () => {
         this.scene.stop("PauseScene");
       },
     });
