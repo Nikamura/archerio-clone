@@ -167,6 +167,30 @@ export default class WallGroup extends Phaser.Physics.Arcade.StaticGroup {
   }
 
   /**
+   * Get the bounding box encompassing all walls (for early-exit optimizations)
+   * Returns null if no walls exist
+   */
+  getBounds(): { left: number; right: number; top: number; bottom: number } | null {
+    if (this.walls.length === 0) return null;
+
+    let left = Infinity;
+    let right = -Infinity;
+    let top = Infinity;
+    let bottom = -Infinity;
+
+    for (const wall of this.walls) {
+      const halfW = wall.width / 2;
+      const halfH = wall.height / 2;
+      left = Math.min(left, wall.x - halfW);
+      right = Math.max(right, wall.x + halfW);
+      top = Math.min(top, wall.y - halfH);
+      bottom = Math.max(bottom, wall.y + halfH);
+    }
+
+    return { left, right, top, bottom };
+  }
+
+  /**
    * Check if a point is inside any wall
    * Used to prevent joystick creation on wall areas
    */

@@ -57,15 +57,14 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   private lastHealthBarX: number = 0; // Track last position for cheap updates
   private lastHealthBarY: number = 0;
 
-  // Wall avoidance system
+  // Wall avoidance system - Context Steering
   protected wallGroup: WallGroup | null = null;
-  private lastPositionForStuck: { x: number; y: number } = { x: 0, y: 0 };
-  private stuckFrames: number = 0;
-  private readonly STUCK_THRESHOLD = 5; // Frames without movement before triggering avoidance
-  private readonly STUCK_DISTANCE_THRESHOLD = 0.5; // Minimum movement per frame
-  private alternateAngle: number | null = null; // Current avoidance direction
-  private alternateTimer: number = 0; // Time since avoidance started
-  private readonly ALTERNATE_DURATION = 500; // ms to follow alternate path
+  private readonly RAYCAST_DISTANCE = 60;
+  private readonly RAYCAST_COUNT = 8;
+  private readonly WALL_AVOIDANCE_STRENGTH = 1.5;
+  private readonly STEERING_SMOOTHING = 0.15;
+  private wallDangerMap: number[] = new Array(8).fill(0);
+  private smoothedMoveAngle: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, options?: EnemyOptions) {
     // Get sprite key for this enemy type
@@ -466,7 +465,21 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (!this.wallGroup) return false;
 
     const padding = 20; // Account for enemy size
-    for (const wall of this.wallGroup.getWalls()) {
+    const walls = this.wallGroup.getWalls();
+
+    // Early exit: bounding box check for quick rejection
+    const bounds = this.wallGroup.getBounds();
+    if (
+      bounds &&
+      (x < bounds.left - padding ||
+        x > bounds.right + padding ||
+        y < bounds.top - padding ||
+        y > bounds.bottom + padding)
+    ) {
+      return false;
+    }
+
+    for (const wall of walls) {
       const halfWidth = wall.width / 2 + padding;
       const halfHeight = wall.height / 2 + padding;
 
@@ -483,50 +496,36 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Find an alternate direction when blocked by a wall
+   * Proactively detect walls in 8 directions and return danger values
+   * Higher danger values = closer walls in that direction
    */
-  private findAlternateDirection(blockedAngle: number, playerX: number, playerY: number): number {
-    // Sample 7 directions offset from the blocked direction
-    const offsets = [
-      Math.PI / 4, // 45 degrees clockwise
-      -Math.PI / 4, // 45 degrees counter-clockwise
-      Math.PI / 2, // 90 degrees clockwise
-      -Math.PI / 2, // 90 degrees counter-clockwise
-      (3 * Math.PI) / 4,
-      (-3 * Math.PI) / 4,
-      Math.PI, // Opposite direction (last resort)
+  private detectWallsAhead(): void {
+    const angleStep = (Math.PI * 2) / this.RAYCAST_COUNT;
+    const distances = [
+      this.RAYCAST_DISTANCE * 0.4,
+      this.RAYCAST_DISTANCE * 0.7,
+      this.RAYCAST_DISTANCE,
     ];
 
-    const testDistance = 40; // Pixels ahead to check
-    let bestAngle = blockedAngle;
-    let bestScore = -Infinity;
+    for (let i = 0; i < this.RAYCAST_COUNT; i++) {
+      const angle = i * angleStep;
+      let maxDanger = 0;
 
-    for (const offset of offsets) {
-      const testAngle = blockedAngle + offset;
-      const testX = this.x + Math.cos(testAngle) * testDistance;
-      const testY = this.y + Math.sin(testAngle) * testDistance;
+      // Check at multiple distances (closer = more danger)
+      for (let d = 0; d < distances.length; d++) {
+        const dist = distances[d];
+        const testX = this.x + Math.cos(angle) * dist;
+        const testY = this.y + Math.sin(angle) * dist;
 
-      // Check if test position is blocked by wall
-      if (this.isPositionBlockedByWall(testX, testY)) {
-        continue;
+        if (this.isPositionBlockedByWall(testX, testY)) {
+          // Closer walls = higher danger (1.0 for closest, 0.5 for farthest)
+          const danger = 1.0 - d * 0.25;
+          maxDanger = Math.max(maxDanger, danger);
+        }
       }
 
-      // Score by how much this direction moves toward player
-      const distBefore = Phaser.Math.Distance.Between(this.x, this.y, playerX, playerY);
-      const distAfter = Phaser.Math.Distance.Between(testX, testY, playerX, playerY);
-      const progressScore = distBefore - distAfter; // Positive = getting closer
-
-      // Prefer smaller offsets (more direct paths)
-      const offsetPenalty = Math.abs(offset) * 5;
-      const score = progressScore - offsetPenalty;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestAngle = testAngle;
-      }
+      this.wallDangerMap[i] = maxDanger;
     }
-
-    return bestAngle;
   }
 
   /**
@@ -572,48 +571,73 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Calculate movement with wall avoidance
+   * Calculate movement with wall avoidance using context steering
    * Returns velocity components for wall-aware movement
    */
   protected calculateMovementWithWallAvoidance(
     playerX: number,
     playerY: number,
     baseSpeed: number,
-    time: number,
+    _time: number,
   ): { vx: number; vy: number } {
-    // Direct angle to player
+    // Proactively detect walls in all directions
+    this.detectWallsAhead();
+
+    // Calculate direct angle to player
     const directAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY);
+    const angleStep = (Math.PI * 2) / this.RAYCAST_COUNT;
 
-    // Check if currently stuck (position hasn't changed despite velocity)
-    const dx = this.x - this.lastPositionForStuck.x;
-    const dy = this.y - this.lastPositionForStuck.y;
-    const distMoved = Math.sqrt(dx * dx + dy * dy);
+    // Build interest and danger maps, then combine to find best direction
+    let weightedSinSum = 0;
+    let weightedCosSum = 0;
+    let totalWeight = 0;
+    let maxDanger = 0;
 
-    if (distMoved < this.STUCK_DISTANCE_THRESHOLD && this.body) {
-      this.stuckFrames++;
-    } else {
-      this.stuckFrames = 0;
-      this.alternateAngle = null; // Clear alternate path when moving freely
-    }
+    for (let i = 0; i < this.RAYCAST_COUNT; i++) {
+      const angle = i * angleStep;
 
-    // Update last position
-    this.lastPositionForStuck.x = this.x;
-    this.lastPositionForStuck.y = this.y;
+      // Interest: cosine similarity to player direction (1.0 when aligned, -1 when opposite)
+      const angleDiff = angle - directAngle;
+      const interest = Math.cos(angleDiff);
 
-    // If stuck, find alternate direction
-    if (this.stuckFrames > this.STUCK_THRESHOLD) {
-      if (this.alternateAngle === null || time - this.alternateTimer > this.ALTERNATE_DURATION) {
-        this.alternateAngle = this.findAlternateDirection(directAngle, playerX, playerY);
-        this.alternateTimer = time;
+      // Danger from wall detection (0-1 scale, higher = more dangerous)
+      const danger = this.wallDangerMap[i] * this.WALL_AVOIDANCE_STRENGTH;
+      maxDanger = Math.max(maxDanger, this.wallDangerMap[i]);
+
+      // Combined score: interest minus danger
+      const score = interest - danger;
+
+      // Only consider directions with positive score
+      if (score > 0) {
+        weightedCosSum += Math.cos(angle) * score;
+        weightedSinSum += Math.sin(angle) * score;
+        totalWeight += score;
       }
     }
 
-    // Use alternate angle if set, otherwise direct
-    const moveAngle = this.alternateAngle ?? directAngle;
+    // Calculate target angle from weighted average
+    let targetAngle: number;
+    if (totalWeight > 0.01) {
+      targetAngle = Math.atan2(weightedSinSum / totalWeight, weightedCosSum / totalWeight);
+    } else {
+      // All directions blocked or equally bad - try perpendicular to direct angle
+      targetAngle = directAngle + Math.PI / 2;
+    }
+
+    // Smooth steering with exponential moving average
+    let angleDiff = targetAngle - this.smoothedMoveAngle;
+    // Normalize angle difference to [-PI, PI]
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    this.smoothedMoveAngle += angleDiff * this.STEERING_SMOOTHING;
+
+    // Reduce speed when near walls (up to 30% slower)
+    const speedMultiplier = 1.0 - maxDanger * 0.3;
+    const speed = baseSpeed * speedMultiplier;
 
     return {
-      vx: Math.cos(moveAngle) * baseSpeed,
-      vy: Math.sin(moveAngle) * baseSpeed,
+      vx: Math.cos(this.smoothedMoveAngle) * speed,
+      vy: Math.sin(this.smoothedMoveAngle) * speed,
     };
   }
 
