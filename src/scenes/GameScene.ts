@@ -12,6 +12,7 @@ import { LevelUpSystem } from "./game/LevelUpSystem";
 import { RespawnSystem } from "./game/RespawnSystem";
 import { PassiveEffectSystem } from "./game/PassiveEffectSystem";
 import { TutorialSystem } from "./game/TutorialSystem";
+import { PickupSystem } from "./game/PickupSystem";
 import {
   InitializationSystem,
   type InitializationResult,
@@ -31,7 +32,6 @@ import { currencyManager } from "../systems/CurrencyManager";
 import { saveManager, GraphicsQuality, ColorblindMode } from "../systems/SaveManager";
 import type { ParticleManager } from "../systems/ParticleManager";
 import type { BackgroundAnimationManager } from "../systems/BackgroundAnimationManager";
-import { hapticManager } from "../systems/HapticManager";
 import type { TalentBonuses } from "../config/talentData";
 import { performanceMonitor } from "../systems/PerformanceMonitor";
 import WallGroup from "../systems/WallGroup";
@@ -51,6 +51,7 @@ export default class GameScene extends Phaser.Scene {
   private respawnSystem!: RespawnSystem;
   private passiveEffectSystem!: PassiveEffectSystem;
   private tutorialSystem!: TutorialSystem;
+  private pickupSystem!: PickupSystem;
 
   private bulletPool!: BulletPool;
   private enemyBulletPool!: EnemyBulletPool;
@@ -68,7 +69,6 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver: boolean = false;
   private boss: Boss | null = null;
   private runStartTime: number = 0;
-  private goldEarned: number = 0; // Track gold earned this run
 
   // Endless mode
   private isEndlessMode: boolean = false;
@@ -82,9 +82,6 @@ export default class GameScene extends Phaser.Scene {
 
   // Talent bonuses (cached for use throughout the game)
   private talentBonuses!: TalentBonuses;
-
-  // Equipment bonuses
-  private goldBonusMultiplier: number = 1.0;
 
   // Spirit cat pool (needed for physics setup)
   private spiritCatPool: SpiritCatPool | null = null;
@@ -234,7 +231,7 @@ export default class GameScene extends Phaser.Scene {
 
       // Room events
       onRoomCleared: (roomNumber, collectedGold) => {
-        this.goldEarned += collectedGold;
+        this.pickupSystem.addGoldEarned(collectedGold);
         this.scene.get("UIScene").events.emit("roomCleared");
         this.scene
           .get("UIScene")
@@ -365,6 +362,7 @@ export default class GameScene extends Phaser.Scene {
     this.respawnSystem = result.systems.respawnSystem;
     this.passiveEffectSystem = result.systems.passiveEffectSystem;
     this.tutorialSystem = result.systems.tutorialSystem;
+    this.pickupSystem = result.systems.pickupSystem;
 
     // Physics
     this.enemies = result.physics.enemies;
@@ -373,7 +371,6 @@ export default class GameScene extends Phaser.Scene {
     // Game state
     this.difficultyConfig = result.gameState.difficultyConfig;
     this.talentBonuses = result.gameState.talentBonuses;
-    this.goldBonusMultiplier = result.gameState.goldBonusMultiplier;
     this.runRng = result.gameState.runRng;
     this.runSeedString = result.gameState.runSeedString;
     this.isEndlessMode = result.gameState.isEndlessMode;
@@ -381,7 +378,6 @@ export default class GameScene extends Phaser.Scene {
 
     // Reset game state
     this.isGameOver = false;
-    this.goldEarned = 0;
   }
 
   /**
@@ -485,7 +481,7 @@ export default class GameScene extends Phaser.Scene {
         isVictory: true,
         playTimeMs,
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
+        goldEarned: this.pickupSystem.getGoldEarned(),
         completionResult: completionResult ?? undefined,
         runSeed: this.runSeedString,
         acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
@@ -678,7 +674,7 @@ export default class GameScene extends Phaser.Scene {
     // Collect any remaining pickups before reset
     const collectedGold = this.goldPool.collectAll(this.player.x, this.player.y);
     if (collectedGold > 0) {
-      this.goldEarned += collectedGold;
+      this.pickupSystem.addGoldEarned(collectedGold);
       currencyManager.add("gold", collectedGold);
       saveManager.addGold(collectedGold);
     }
@@ -781,7 +777,7 @@ export default class GameScene extends Phaser.Scene {
         isVictory: false,
         playTimeMs,
         abilitiesGained: this.abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarned,
+        goldEarned: this.pickupSystem.getGoldEarned(),
         runSeed: this.runSeedString,
         acquiredAbilities: this.levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: this.enemyDeathHandler.getHeroXPEarned(),
@@ -913,31 +909,8 @@ export default class GameScene extends Phaser.Scene {
       // Update all passive effects (damage aura, chainsaw orbit, spirit cats)
       this.passiveEffectSystem.update(time, delta, playerX, playerY);
 
-      // Update gold pickups - check for collection, apply equipment gold bonus
-      const baseGoldCollected = this.goldPool.updateAll(playerX, playerY);
-      if (baseGoldCollected > 0) {
-        const goldCollected = Math.round(baseGoldCollected * this.goldBonusMultiplier);
-        this.goldEarned += goldCollected;
-        currencyManager.add("gold", goldCollected);
-        saveManager.addGold(goldCollected);
-        // Gold collect particles at player position
-        this.particles.emitGoldCollect(playerX, playerY);
-        hapticManager.light(); // Haptic feedback for collecting gold
-      }
-
-      // Update health pickups - check for collection
-      this.healthPool.updateAll(playerX, playerY, (healAmount) => {
-        this.player.heal(healAmount);
-        // Update health UI
-        this.scene
-          .get("UIScene")
-          .events.emit("updateHealth", this.player.getHealth(), this.player.getMaxHealth());
-        // Check Iron Will talent (deactivate if above threshold after healing)
-        this.passiveEffectSystem.checkIronWillStatus();
-        // Heal particles at player position
-        this.particles.emitHeal(playerX, playerY);
-        hapticManager.light(); // Haptic feedback for collecting health
-      });
+      // Update pickup collection (gold and health)
+      this.pickupSystem.update(playerX, playerY);
 
       // Update performance monitor with entity counts
       performanceMonitor.updateEntityCounts(
@@ -1010,6 +983,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.tutorialSystem) {
       this.tutorialSystem.destroy();
       this.tutorialSystem = null!;
+    }
+
+    // Clean up pickup system
+    if (this.pickupSystem) {
+      this.pickupSystem.destroy();
+      this.pickupSystem = null!;
     }
 
     // Clean up pools

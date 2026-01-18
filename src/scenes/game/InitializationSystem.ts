@@ -11,6 +11,7 @@ import { LevelUpSystem } from "./LevelUpSystem";
 import { RespawnSystem } from "./RespawnSystem";
 import { PassiveEffectSystem } from "./PassiveEffectSystem";
 import { TutorialSystem } from "./TutorialSystem";
+import { PickupSystem } from "./PickupSystem";
 import BulletPool from "../../systems/BulletPool";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import SpiritCatPool from "../../systems/SpiritCatPool";
@@ -147,6 +148,7 @@ export interface InitializationSystems {
   respawnSystem: RespawnSystem;
   passiveEffectSystem: PassiveEffectSystem;
   tutorialSystem: TutorialSystem;
+  pickupSystem: PickupSystem;
 }
 
 /**
@@ -818,6 +820,21 @@ export class InitializationSystem {
       },
     });
 
+    // Pickup system
+    const pickupSystem = new PickupSystem({
+      player,
+      goldPool: pools.goldPool,
+      healthPool: pools.healthPool,
+      particles: visualEffects.particles,
+      goldBonusMultiplier: 1 + (equipmentManager.getEquippedStats().goldBonusPercent ?? 0),
+      getPassiveEffectSystem: () => passiveEffectSystem,
+      eventHandlers: {
+        onGoldCollected: () => {},
+        onHealthCollected: () => {},
+        onUpdateHealthUI: this.eventHandlers.onUpdateHealthUI,
+      },
+    });
+
     // Wire up enemy death handler boss reference
     enemyDeathHandler.setBoss(this.boss);
 
@@ -832,6 +849,7 @@ export class InitializationSystem {
       respawnSystem,
       passiveEffectSystem,
       tutorialSystem,
+      pickupSystem,
     };
   }
 }

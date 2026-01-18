@@ -40,6 +40,7 @@ export {
   type TutorialSystemConfig,
   type TutorialEventHandlers,
 } from "./TutorialSystem";
+export { PickupSystem, type PickupSystemConfig, type PickupEventHandlers } from "./PickupSystem";
 export {
   InitializationSystem,
   type InitializationSystemConfig,
