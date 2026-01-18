@@ -55,7 +55,7 @@ function getTargetSize(spriteType: string): number {
  * Get image info (dimensions and file size)
  */
 async function getImageInfo(
-  filePath: string
+  filePath: string,
 ): Promise<{ width: number; height: number; size: number }> {
   const stats = fs.statSync(filePath);
   const metadata = await sharp(filePath).metadata();
@@ -72,7 +72,7 @@ async function getImageInfo(
 async function optimizeSprite(
   filePath: string,
   targetSize: number,
-  dryRun: boolean
+  dryRun: boolean,
 ): Promise<OptimizationResult | null> {
   const info = await getImageInfo(filePath);
 
@@ -124,7 +124,7 @@ async function optimizeSprite(
  */
 async function optimizeBackground(
   filePath: string,
-  dryRun: boolean
+  dryRun: boolean,
 ): Promise<OptimizationResult | null> {
   const info = await getImageInfo(filePath);
   const metadata = await sharp(filePath).metadata();
@@ -253,16 +253,14 @@ export async function optimizeAllAssets(dryRun = false): Promise<OptimizationSum
         results.push(result);
         const savedPct = ((result.saved / result.originalSize) * 100).toFixed(1);
         console.log(
-          `  [OK] ${relativePath}: ${result.originalDimensions.width}x${result.originalDimensions.height} → ${result.newDimensions.width}x${result.newDimensions.height} (${formatBytes(result.originalSize)} → ${formatBytes(result.newSize)}, saved ${savedPct}%)`
+          `  [OK] ${relativePath}: ${result.originalDimensions.width}x${result.originalDimensions.height} → ${result.newDimensions.width}x${result.newDimensions.height} (${formatBytes(result.originalSize)} → ${formatBytes(result.newSize)}, saved ${savedPct}%)`,
         );
       } else {
         console.log(`  [SKIP] ${relativePath} (already optimized)`);
         skipped++;
       }
     } catch (error) {
-      console.error(
-        `  [ERROR] ${relativePath}: ${error instanceof Error ? error.message : error}`
-      );
+      console.error(`  [ERROR] ${relativePath}: ${error instanceof Error ? error.message : error}`);
       errors++;
     }
   }

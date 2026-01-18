@@ -33,15 +33,8 @@ export interface GenerateImageResult {
 /**
  * Generate an image with the specified options
  */
-export async function generateImage(
-  options: GenerateImageOptions
-): Promise<GenerateImageResult> {
-  const {
-    description,
-    width = 512,
-    height = 512,
-    fitToBackground = false,
-  } = options;
+export async function generateImage(options: GenerateImageOptions): Promise<GenerateImageResult> {
+  const { description, width = 512, height = 512, fitToBackground = false } = options;
 
   // Build output path
   const timestamp = Date.now();
@@ -84,7 +77,7 @@ export async function generateImage(
 
   if (fitToBackground) {
     console.log(
-      `  Resizing to background dimensions (${BACKGROUND_CONFIG.width}x${BACKGROUND_CONFIG.height})...`
+      `  Resizing to background dimensions (${BACKGROUND_CONFIG.width}x${BACKGROUND_CONFIG.height})...`,
     );
     const resizeResult = await resizeImage({
       inputPath: outputPath,
@@ -95,7 +88,7 @@ export async function generateImage(
     finalWidth = resizeResult.newWidth;
     finalHeight = resizeResult.newHeight;
     console.log(
-      `    Resized from ${resizeResult.originalWidth}x${resizeResult.originalHeight} to ${finalWidth}x${finalHeight}`
+      `    Resized from ${resizeResult.originalWidth}x${resizeResult.originalHeight} to ${finalWidth}x${finalHeight}`,
     );
   }
 

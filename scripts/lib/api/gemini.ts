@@ -61,9 +61,7 @@ export class GeminiClient {
     this.model = options.model || DEFAULT_MODEL;
 
     if (!this.apiKey) {
-      throw new Error(
-        "GEMINI_API_KEY environment variable is not set. Add it to your .env file."
-      );
+      throw new Error("GEMINI_API_KEY environment variable is not set. Add it to your .env file.");
     }
   }
 
@@ -72,9 +70,7 @@ export class GeminiClient {
    */
   async generateImage(prompt: string): Promise<GenerationResult> {
     const isImagen = this.model.startsWith("imagen");
-    return isImagen
-      ? this.generateWithImagen(prompt)
-      : this.generateWithGemini(prompt);
+    return isImagen ? this.generateWithImagen(prompt) : this.generateWithGemini(prompt);
   }
 
   /**
@@ -117,10 +113,7 @@ export class GeminiClient {
   /**
    * Make HTTP request to the API
    */
-  private async makeRequest(
-    url: string,
-    body: Record<string, unknown>
-  ): Promise<Response> {
+  private async makeRequest(url: string, body: Record<string, unknown>): Promise<Response> {
     let response: Response;
 
     try {
@@ -135,9 +128,7 @@ export class GeminiClient {
     } catch (fetchError) {
       console.error("API Network Error:");
       console.error(`  URL: ${url}`);
-      console.error(
-        `  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`
-      );
+      console.error(`  Error: ${fetchError instanceof Error ? fetchError.message : fetchError}`);
       throw fetchError;
     }
 
@@ -167,9 +158,7 @@ export class GeminiClient {
       throw new Error("No content in response");
     }
 
-    const imagePart = parts.find((part) =>
-      part.inlineData?.mimeType?.startsWith("image/")
-    );
+    const imagePart = parts.find((part) => part.inlineData?.mimeType?.startsWith("image/"));
 
     if (!imagePart?.inlineData) {
       const textPart = parts.find((part) => part.text);

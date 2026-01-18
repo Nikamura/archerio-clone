@@ -109,7 +109,7 @@ export async function resizeImage(options: ResizeOptions): Promise<ResizeResult>
 export async function resizeSpriteToType(
   inputPath: string,
   spriteType: string,
-  outputPath?: string
+  outputPath?: string,
 ): Promise<ResizeResult> {
   const config = getSizeConfig(spriteType);
   return resizeImage({
@@ -125,7 +125,7 @@ export async function resizeSpriteToType(
  */
 export async function resizeToBackground(
   inputPath: string,
-  outputPath?: string
+  outputPath?: string,
 ): Promise<ResizeResult> {
   return resizeImage({
     inputPath,
@@ -140,7 +140,7 @@ export async function resizeToBackground(
  * Get image dimensions without loading full image
  */
 export async function getImageDimensions(
-  inputPath: string
+  inputPath: string,
 ): Promise<{ width: number; height: number }> {
   const metadata = await sharp(inputPath).metadata();
   return {

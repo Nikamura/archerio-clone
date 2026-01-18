@@ -36,7 +36,7 @@ export interface GenerateSpriteResult {
  * Generate a sprite with the specified options
  */
 export async function generateSprite(
-  options: GenerateSpriteOptions
+  options: GenerateSpriteOptions,
 ): Promise<GenerateSpriteResult> {
   const { description, type, preset = "default", clean = false } = options;
   const config = getSizeConfig(type);
@@ -45,7 +45,7 @@ export async function generateSprite(
   // Validate type
   if (!getValidSpriteTypes().includes(type)) {
     throw new Error(
-      `Invalid sprite type: ${type}. Valid types: ${getValidSpriteTypes().join(", ")}`
+      `Invalid sprite type: ${type}. Valid types: ${getValidSpriteTypes().join(", ")}`,
     );
   }
 
@@ -103,7 +103,7 @@ export async function generateSprite(
     interpolation: config.interpolation,
   });
   console.log(
-    `    Resized from ${resizeResult.originalWidth}x${resizeResult.originalHeight} to ${resizeResult.newWidth}x${resizeResult.newHeight}`
+    `    Resized from ${resizeResult.originalWidth}x${resizeResult.originalHeight} to ${resizeResult.newWidth}x${resizeResult.newHeight}`,
   );
 
   console.log(`Sprite saved to: ${outputPath}`);

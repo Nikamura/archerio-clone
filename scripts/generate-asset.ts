@@ -64,9 +64,7 @@ async function handleSprite(args: string[]): Promise<void> {
       if (getValidSpriteTypes().includes(typeArg)) {
         type = typeArg as AssetType;
       } else {
-        console.error(
-          `Invalid type: ${typeArg}. Valid types: ${getValidSpriteTypes().join(", ")}`
-        );
+        console.error(`Invalid type: ${typeArg}. Valid types: ${getValidSpriteTypes().join(", ")}`);
         process.exit(1);
       }
     } else if (arg === "--size" || arg === "-s") {

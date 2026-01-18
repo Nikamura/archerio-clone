@@ -123,17 +123,11 @@ export function isCharacterType(assetType: AssetType): boolean {
 /**
  * Build a complete style prompt for asset generation
  */
-export function buildStylePrompt(
-  assetType: AssetType,
-  preset: StylePreset = "default"
-): string {
+export function buildStylePrompt(assetType: AssetType, preset: StylePreset = "default"): string {
   const typeStyle = ASSET_TYPE_STYLES[assetType];
   const presetStyle = STYLE_PRESETS[preset];
 
-  const parts = [
-    `Style: ${BASE_STYLE.artStyle}, ${typeStyle.mood}`,
-    typeStyle.details,
-  ];
+  const parts = [`Style: ${BASE_STYLE.artStyle}, ${typeStyle.mood}`, typeStyle.details];
 
   // Only add outline for non-icon types
   if (!isIconType(assetType)) {
@@ -162,7 +156,7 @@ export function buildSpritePrompt(
   description: string,
   assetType: AssetType,
   poseDescription?: string,
-  preset: StylePreset = "default"
+  preset: StylePreset = "default",
 ): string {
   const stylePrompt = buildStylePrompt(assetType, preset);
 
@@ -210,11 +204,7 @@ export function buildSpritePrompt(
 /**
  * Build a prompt for background/texture images
  */
-export function buildImagePrompt(
-  description: string,
-  width: number,
-  height: number
-): string {
+export function buildImagePrompt(description: string, width: number, height: number): string {
   return [
     `Generate an image: ${description}.`,
     `Target aspect ratio approximately ${width}x${height} pixels.`,

@@ -26,7 +26,7 @@ export interface BackgroundRemovalResult {
  * Uses ONNX model for accurate subject detection
  */
 export async function removeBackground(
-  options: BackgroundRemovalOptions
+  options: BackgroundRemovalOptions,
 ): Promise<BackgroundRemovalResult> {
   const { inputPath, model = "small" } = options;
   const outputPath = options.outputPath || inputPath;
@@ -56,9 +56,7 @@ export async function removeBackground(
       success: true,
     };
   } catch (error) {
-    console.error(
-      `  Background removal failed: ${error instanceof Error ? error.message : error}`
-    );
+    console.error(`  Background removal failed: ${error instanceof Error ? error.message : error}`);
     return {
       outputPath: inputPath,
       success: false,
@@ -71,7 +69,7 @@ export async function removeBackground(
  */
 export async function removeBackgroundBatch(
   inputPaths: string[],
-  options: Omit<BackgroundRemovalOptions, "inputPath"> = {}
+  options: Omit<BackgroundRemovalOptions, "inputPath"> = {},
 ): Promise<BackgroundRemovalResult[]> {
   const results: BackgroundRemovalResult[] = [];
 
@@ -100,9 +98,7 @@ export function findImagesInDirectory(directory: string, pattern = "*.png"): str
   }
 
   const files = fs.readdirSync(directory);
-  const regex = new RegExp(
-    "^" + pattern.replace(/\*/g, ".*").replace(/\?/g, ".") + "$"
-  );
+  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*").replace(/\?/g, ".") + "$");
 
   return files.filter((f) => regex.test(f)).map((f) => path.join(directory, f));
 }

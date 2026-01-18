@@ -633,7 +633,6 @@ describe("PlayerStats", () => {
         expect(stats.getLightningChainDamageMultiplier(3)).toBeCloseTo(0.512);
       });
     });
-
   });
 
   // ============================================
