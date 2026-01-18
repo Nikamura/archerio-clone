@@ -353,9 +353,8 @@ export default class VoidLordBoss extends BaseBoss {
       return;
     }
 
-    // Invulnerable and move to new position
-    if (!this.isPhaseShifting && elapsed >= 400) {
-      this.isPhaseShifting = true;
+    // Teleport to new position (only once, when still visible)
+    if (this.visible && elapsed >= 400) {
       this.setVisible(false);
 
       // Move to random position
