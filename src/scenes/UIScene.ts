@@ -3,6 +3,7 @@ import { THEME_COLORS } from "../config/themeData";
 import { ABILITIES, type AbilityData } from "./LevelUpScene";
 import { DifficultyLevel, DIFFICULTY_CONFIGS } from "../config/difficulty";
 import { performanceMonitor } from "../systems/PerformanceMonitor";
+import { saveManager, type GameSpeedMultiplier } from "../systems/SaveManager";
 
 interface AcquiredAbility {
   id: string;
@@ -31,6 +32,11 @@ export default class UIScene extends Phaser.Scene {
 
   // Menu button (opens unified pause menu)
   private menuButton!: Phaser.GameObjects.Container;
+
+  // Speed toggle button
+  private speedButton!: Phaser.GameObjects.Container;
+  private speedText!: Phaser.GameObjects.Text;
+  private currentSpeed: GameSpeedMultiplier = 1;
 
   // Skills bar (bottom)
   private skillsContainer!: Phaser.GameObjects.Container;
@@ -90,6 +96,9 @@ export default class UIScene extends Phaser.Scene {
 
     // === MENU BUTTON & PANEL ===
     this.createMenuSystem(width, height);
+
+    // === SPEED TOGGLE BUTTON ===
+    this.createSpeedButton(width);
 
     // === SKILLS BAR (bottom) ===
     this.createSkillsBar(height);
@@ -259,6 +268,93 @@ export default class UIScene extends Phaser.Scene {
     });
     menuBg.on("pointerover", () => menuBg.setStrokeStyle(2, 0x888888));
     menuBg.on("pointerout", () => menuBg.setStrokeStyle(2, 0x666666));
+  }
+
+  /**
+   * Create speed toggle button below the menu button
+   */
+  private createSpeedButton(width: number) {
+    // Initialize current speed from saved settings
+    this.currentSpeed = saveManager.getGameSpeedMultiplier();
+
+    // Position below menu button
+    this.speedButton = this.add.container(width - 26, 56);
+    this.speedButton.setDepth(50);
+
+    // Button background - wider to accommodate text
+    const speedBg = this.add.graphics();
+    speedBg.fillStyle(0x000000, 0.6);
+    speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+    speedBg.lineStyle(2, 0x4488ff);
+    speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+    this.speedButton.add(speedBg);
+
+    // Speed text
+    this.speedText = this.add
+      .text(0, 0, `${this.currentSpeed}x`, {
+        fontSize: "12px",
+        color: "#4488ff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    this.speedButton.add(this.speedText);
+
+    // Make container interactive with explicit hit area (per CLAUDE.md pattern)
+    this.speedButton.setInteractive(
+      new Phaser.Geom.Rectangle(-18, -10, 36, 20),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.speedButton.input!.cursor = "pointer";
+
+    // Click handler to cycle speed
+    this.speedButton.on("pointerdown", () => {
+      const newSpeed = saveManager.cycleGameSpeed();
+      this.currentSpeed = newSpeed;
+      this.speedText.setText(`${newSpeed}x`);
+
+      // Update color based on speed
+      const color = newSpeed === 1 ? 0x4488ff : newSpeed === 2 ? 0x44ff88 : 0xff8844;
+      speedBg.clear();
+      speedBg.fillStyle(0x000000, 0.6);
+      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      speedBg.lineStyle(2, color);
+      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+      this.speedText.setColor(`#${color.toString(16).padStart(6, "0")}`);
+
+      // Emit event to GameScene to apply the speed
+      this.game.events.emit("gameSpeedChanged", newSpeed);
+    });
+
+    // Hover effects
+    this.speedButton.on("pointerover", () => {
+      speedBg.clear();
+      speedBg.fillStyle(0x000000, 0.8);
+      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      const color =
+        this.currentSpeed === 1 ? 0x4488ff : this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
+      speedBg.lineStyle(2, color);
+      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+    });
+    this.speedButton.on("pointerout", () => {
+      speedBg.clear();
+      speedBg.fillStyle(0x000000, 0.6);
+      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      const color =
+        this.currentSpeed === 1 ? 0x4488ff : this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
+      speedBg.lineStyle(2, color);
+      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+    });
+
+    // Initialize color based on current speed
+    if (this.currentSpeed !== 1) {
+      const color = this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
+      speedBg.clear();
+      speedBg.fillStyle(0x000000, 0.6);
+      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      speedBg.lineStyle(2, color);
+      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+      this.speedText.setColor(`#${color.toString(16).padStart(6, "0")}`);
+    }
   }
 
   /**

@@ -117,7 +117,7 @@ export const someManager = SomeManager.instance;
 
 **Existing Managers**:
 
-- `SaveManager` - Overall game save state
+- `SaveManager` - Overall game save state, settings (including `gameSpeedMultiplier`)
 - `CurrencyManager` - Gold, gems, scrolls, energy
 - `EquipmentManager` - Inventory, equipped items, fusion
 - `TalentManager` - Talent lottery system
@@ -156,3 +156,15 @@ src/
 | `aura_archer_hero_data`         | HeroManager         |
 | `aura_archer_chapter_data`      | ChapterManager      |
 | `aura_archer_encyclopedia_data` | EncyclopediaManager |
+
+## Game Events
+
+Key events emitted via `game.events`:
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `pauseRequested` | none | UI requests game pause |
+| `gameSpeedChanged` | `GameSpeedMultiplier` | Speed multiplier changed (1, 2, 3, or 5) |
+| `debugSkipLevel` | none | Debug: skip current room |
+| `playerRespawn` | `RespawnRoomState` | Player respawns after watching ad |
+| `quitFromPause` | none | Player quits from pause menu |

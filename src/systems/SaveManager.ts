@@ -131,6 +131,12 @@ export enum ColorblindMode {
 }
 
 /**
+ * Available game speed multiplier options
+ */
+export const GAME_SPEED_OPTIONS = [1, 2, 3, 5] as const;
+export type GameSpeedMultiplier = (typeof GAME_SPEED_OPTIONS)[number];
+
+/**
  * Game settings that persist
  */
 export interface GameSettings {
@@ -145,6 +151,7 @@ export interface GameSettings {
   graphicsQuality: GraphicsQuality;
   screenShakeEnabled: boolean;
   colorblindMode: ColorblindMode;
+  gameSpeedMultiplier: GameSpeedMultiplier;
 }
 
 /**
@@ -271,6 +278,7 @@ function getDefaultSettings(): GameSettings {
     graphicsQuality: GraphicsQuality.HIGH,
     screenShakeEnabled: true,
     colorblindMode: ColorblindMode.NONE,
+    gameSpeedMultiplier: 1,
   };
 }
 
@@ -643,6 +651,33 @@ export class SaveManager {
     this.data.settings.autoRoomAdvance = !this.data.settings.autoRoomAdvance;
     this.markDirty();
     return this.data.settings.autoRoomAdvance;
+  }
+
+  /**
+   * Get game speed multiplier setting
+   */
+  getGameSpeedMultiplier(): GameSpeedMultiplier {
+    return this.data.settings.gameSpeedMultiplier ?? 1;
+  }
+
+  /**
+   * Set game speed multiplier
+   */
+  setGameSpeedMultiplier(speed: GameSpeedMultiplier): void {
+    this.data.settings.gameSpeedMultiplier = speed;
+    this.markDirty();
+  }
+
+  /**
+   * Cycle to next game speed option (1x -> 2x -> 3x -> 5x -> 1x)
+   */
+  cycleGameSpeed(): GameSpeedMultiplier {
+    const currentSpeed = this.getGameSpeedMultiplier();
+    const currentIndex = GAME_SPEED_OPTIONS.indexOf(currentSpeed);
+    const nextIndex = (currentIndex + 1) % GAME_SPEED_OPTIONS.length;
+    const nextSpeed = GAME_SPEED_OPTIONS[nextIndex];
+    this.setGameSpeedMultiplier(nextSpeed);
+    return nextSpeed;
   }
 
   /**
