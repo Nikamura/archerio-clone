@@ -127,6 +127,7 @@ export const ABILITIES: AbilityData[] = [
     description: "+3% dodge chance",
     color: 0xaaaaff,
     iconKey: "abilityDodgeMaster",
+    maxLevel: 5, // 3% × 5 = 15% cap
   },
   // Devil abilities (powerful but with HP cost or risk)
   {
