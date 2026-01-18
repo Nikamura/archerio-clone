@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { THEME_COLORS } from "../config/themeData";
 import { ABILITIES, type AbilityData } from "./LevelUpScene";
 import { DifficultyLevel, DIFFICULTY_CONFIGS } from "../config/difficulty";
+import { performanceMonitor } from "../systems/PerformanceMonitor";
 
 interface AcquiredAbility {
   id: string;
@@ -382,9 +383,9 @@ export default class UIScene extends Phaser.Scene {
   }
 
   update() {
-    // Update FPS counter (debug only)
+    // Update FPS counter (debug only) - use performanceMonitor for consistency with debug overlay
     if (this.fpsText) {
-      const fps = Math.round(this.game.loop.actualFps);
+      const fps = Math.round(performanceMonitor.getAverageFps());
       this.fpsText.setText(`${fps}`);
       this.fpsText.setColor(fps >= 55 ? "#00ff00" : fps >= 30 ? "#ffff00" : "#ff0000");
     }

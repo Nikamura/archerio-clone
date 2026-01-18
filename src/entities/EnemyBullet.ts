@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
   private speed: number = 170;
-  private lifetime: number = 3000; // 3 seconds
+  private lifetime: number = 10000; // 10 seconds - generous fallback, bullets should hit or go off-screen first
   private spawnTime: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -44,7 +44,8 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
     this.setRotation(angle);
   }
 
-  update(time: number) {
+  preUpdate(time: number, _delta: number) {
+    super.preUpdate(time, _delta);
     if (!this.active) return;
 
     // Deactivate bullet after lifetime expires

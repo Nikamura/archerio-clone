@@ -655,7 +655,7 @@ export default class GameScene extends Phaser.Scene {
       // Update performance monitor with entity counts
       performanceMonitor.updateEntityCounts(
         enemyCount,
-        this.bulletPool.getLength() + this.enemyBulletPool.getLength(),
+        this.bulletPool.countActive(true) + this.enemyBulletPool.countActive(true),
         this.particles.getActiveEmitterCount(),
       );
     }

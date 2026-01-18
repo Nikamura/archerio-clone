@@ -559,9 +559,8 @@ export class RoomManager {
       audioManager.playRoomClear();
       console.log("Room", this.currentRoom, "cleared!");
 
-      // Clear enemy bullets immediately when room is cleared
-      // This prevents bullets from getting stuck on screen during the transition
-      this.enemyBulletPool.clear(true, true);
+      // Let enemy bullets continue flying until they expire or leave the screen
+      // This prevents high-damage strategies from being overpowered
 
       // Notify chapter manager that room was cleared
       chapterManager.clearRoom();

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private speed: number = 400;
-  private lifetime: number = 2000; // 2 seconds
+  private lifetime: number = 10000; // 10 seconds - generous fallback, bullets should hit or go off-screen first
   private spawnTime: number = 0;
 
   // Ability tracking
@@ -130,7 +130,8 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  update(time: number) {
+  preUpdate(time: number, _delta: number) {
+    super.preUpdate(time, _delta);
     if (!this.active) return;
 
     // Deactivate bullet after lifetime expires
