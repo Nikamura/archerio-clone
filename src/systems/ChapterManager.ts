@@ -265,6 +265,15 @@ export class ChapterManager {
   }
 
   /**
+   * Set chapter for endless mode (bypasses unlock check)
+   * Used when endless mode automatically advances to higher chapters
+   */
+  setChapterForEndlessMode(chapterId: ChapterId): void {
+    this.selectedChapter = chapterId;
+    // Don't save to storage - this is a temporary override for the current run
+  }
+
+  /**
    * Check if a chapter is unlocked
    */
   isChapterUnlocked(chapterId: ChapterId): boolean {

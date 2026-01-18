@@ -51,6 +51,7 @@ export default class VoidLordBoss extends BaseBoss {
 
   // Phase shift tracking
   private isPhaseShifting: boolean = false;
+  private hasPhaseShiftTeleported: boolean = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -88,6 +89,7 @@ export default class VoidLordBoss extends BaseBoss {
       case 2:
         this.phase = "phase_shift";
         this.isPhaseShifting = true; // Start invincible during phase shift
+        this.hasPhaseShiftTeleported = false; // Reset teleport guard
         break;
     }
   }
@@ -353,9 +355,9 @@ export default class VoidLordBoss extends BaseBoss {
       return;
     }
 
-    // Invulnerable and move to new position
-    if (!this.isPhaseShifting && elapsed >= 400) {
-      this.isPhaseShifting = true;
+    // Teleport to new position (only once per phase shift)
+    if (!this.hasPhaseShiftTeleported && elapsed >= 400) {
+      this.hasPhaseShiftTeleported = true;
       this.setVisible(false);
 
       // Move to random position

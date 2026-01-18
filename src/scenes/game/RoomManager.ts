@@ -418,7 +418,9 @@ export class RoomManager {
     const newChapter = getChapterForWave(this.endlessWave);
     const currentChapter = chapterManager.getSelectedChapter();
     if (newChapter !== currentChapter) {
-      chapterManager.selectChapter(newChapter);
+      // Use setChapterForEndlessMode to bypass unlock check
+      // Players should experience all chapters as they progress in endless mode
+      chapterManager.setChapterForEndlessMode(newChapter);
       console.log(`Endless Mode: Chapter advanced to ${newChapter} at wave ${this.endlessWave}`);
       // Notify to update background and other chapter-specific elements
       this.eventHandlers.onChapterChanged(newChapter);
