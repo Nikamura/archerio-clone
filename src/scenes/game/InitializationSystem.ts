@@ -777,7 +777,6 @@ export class InitializationSystem {
     let passiveEffectSystem!: PassiveEffectSystem;
 
     // Respawn system - always endless mode
-    const goldEarnedRef = { value: 0 };
     const respawnSystem = new RespawnSystem({
       scene: this.scene,
       game: this.game,
@@ -802,7 +801,7 @@ export class InitializationSystem {
       bombPool: pools.bombPool,
       particles: visualEffects.particles,
       difficultyConfig,
-      goldEarnedRef,
+      getPickupSystem: () => pickupSystem,
       runSeedString,
       eventHandlers: {
         onRespawnComplete: this.eventHandlers.onRespawnComplete,

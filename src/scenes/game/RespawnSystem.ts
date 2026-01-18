@@ -7,6 +7,7 @@ import type { LevelUpSystem } from "./LevelUpSystem";
 import type { RoomManager } from "./RoomManager";
 import type { AbilitySystem } from "./AbilitySystem";
 import type { EnemyDeathHandler } from "./EnemyDeathHandler";
+import type { PickupSystem } from "./PickupSystem";
 import type EnemyBulletPool from "../../systems/EnemyBulletPool";
 import type BombPool from "../../systems/BombPool";
 import type { ParticleManager } from "../../systems/ParticleManager";
@@ -49,7 +50,7 @@ export interface RespawnSystemConfig {
   bombPool: BombPool;
   particles: ParticleManager;
   difficultyConfig: DifficultyConfig;
-  goldEarnedRef: { value: number };
+  getPickupSystem: () => PickupSystem;
   runSeedString: string;
   eventHandlers: RespawnEventHandlers;
 }
@@ -82,7 +83,7 @@ export class RespawnSystem {
   private bombPool: BombPool;
   private particles: ParticleManager;
   private difficultyConfig: DifficultyConfig;
-  private goldEarnedRef: { value: number };
+  private getPickupSystem: () => PickupSystem;
   private runSeedString: string;
   private eventHandlers: RespawnEventHandlers;
 
@@ -110,7 +111,7 @@ export class RespawnSystem {
     this.bombPool = config.bombPool;
     this.particles = config.particles;
     this.difficultyConfig = config.difficultyConfig;
-    this.goldEarnedRef = config.goldEarnedRef;
+    this.getPickupSystem = config.getPickupSystem;
     this.runSeedString = config.runSeedString;
     this.eventHandlers = config.eventHandlers;
   }
@@ -228,7 +229,7 @@ export class RespawnSystem {
         isVictory: false,
         playTimeMs,
         abilitiesGained: abilitySystem.getTotalAbilitiesGained(),
-        goldEarned: this.goldEarnedRef.value,
+        goldEarned: this.getPickupSystem().getGoldEarned(),
         runSeed: this.runSeedString,
         acquiredAbilities: levelUpSystem.getAcquiredAbilitiesArray(),
         heroXPEarned: enemyDeathHandler.getHeroXPEarned(),
