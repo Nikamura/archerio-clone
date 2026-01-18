@@ -135,7 +135,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 6000, // 20x multiplier
+      baseHealth: 3000,
       baseDamage: 19, // +25%
       baseSpeed: 45,
       attackCooldown: 1800,
@@ -162,7 +162,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 7500, // 20x multiplier
+      baseHealth: 3750,
       baseDamage: 15, // +25%
       baseSpeed: 35,
       attackCooldown: 2000,
@@ -186,7 +186,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 6600, // 20x multiplier
+      baseHealth: 3300,
       baseDamage: 23, // +25%
       baseSpeed: 70,
       attackCooldown: 1600,
@@ -210,7 +210,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 5400, // 20x multiplier
+      baseHealth: 2700,
       baseDamage: 18, // +25%
       baseSpeed: 0, // Teleports instead of moving
       attackCooldown: 1800,
@@ -237,7 +237,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 10500, // 20x multiplier
+      baseHealth: 5250,
       baseDamage: 25, // +25%
       baseSpeed: 30,
       attackCooldown: 2200,
@@ -261,7 +261,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 8400, // 20x multiplier
+      baseHealth: 4200,
       baseDamage: 28, // +25%
       baseSpeed: 90,
       attackCooldown: 2000,
@@ -285,7 +285,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 9000, // 20x multiplier
+      baseHealth: 4500,
       baseDamage: 20, // +25%
       baseSpeed: 40,
       attackCooldown: 2200,
@@ -312,7 +312,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 12000, // 20x multiplier
+      baseHealth: 6000,
       baseDamage: 31, // +25%
       baseSpeed: 55,
       attackCooldown: 1800,
@@ -336,7 +336,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 10500, // 20x multiplier
+      baseHealth: 5250,
       baseDamage: 35, // +25%
       baseSpeed: 50,
       attackCooldown: 1600,
@@ -360,7 +360,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 13500, // 20x multiplier
+      baseHealth: 6750,
       baseDamage: 28, // +25%
       baseSpeed: 30,
       attackCooldown: 2400,
@@ -387,7 +387,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: true,
     orderInChapter: 1,
     stats: {
-      baseHealth: 15000, // 20x multiplier
+      baseHealth: 7500,
       baseDamage: 38, // +25%
       baseSpeed: 45,
       attackCooldown: 1600,
@@ -411,7 +411,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 2,
     stats: {
-      baseHealth: 18000, // 20x multiplier
+      baseHealth: 9000,
       baseDamage: 44, // +25%
       baseSpeed: 55,
       attackCooldown: 1300,
@@ -435,7 +435,7 @@ export const BOSS_DEFINITIONS: Record<BossId, BossDefinition> = {
     isMainBoss: false,
     orderInChapter: 3,
     stats: {
-      baseHealth: 11400, // 20x multiplier
+      baseHealth: 5700,
       baseDamage: 40, // +25%
       baseSpeed: 60,
       attackCooldown: 1800,
