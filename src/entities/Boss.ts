@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import Enemy, { EnemyUpdateResult } from "./Enemy";
 import EnemyBulletPool from "../systems/EnemyBulletPool";
+import { getBossDefinition } from "../config/bossData";
 
 type BossPhase = "idle" | "spread" | "barrage_aim" | "barrage_fire" | "charge_windup" | "charging";
 
@@ -43,8 +44,9 @@ export default class Boss extends Enemy {
 
     this.bulletPool = bulletPool;
 
-    // Apply difficulty modifiers to boss health
-    const baseHealth = 200;
+    // Apply difficulty modifiers to boss health - use config value
+    const bossConfig = getBossDefinition("demon");
+    const baseHealth = bossConfig.stats.baseHealth;
     this.bossMaxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0));
     this.bossHealth = this.bossMaxHealth;
 

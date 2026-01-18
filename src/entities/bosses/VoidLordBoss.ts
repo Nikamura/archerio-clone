@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import { EnemyUpdateResult } from "../Enemy";
+import { getBossDefinition } from "../../config/bossData";
 
 type VoidLordPhase = "idle" | "darkness_zones" | "tentacle_attack" | "phase_shift";
 
@@ -60,16 +61,10 @@ export default class VoidLordBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_void_lord", options);
+    super(scene, x, y, bulletPool, getBossDefinition("void_lord"), options);
 
-    this.baseHealth = 400;
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
+    // Override attack cooldown for this boss
     this.attackCooldown = 2300;
-    this.attackPatternCount = 3;
-    this.displaySize = 72;
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
   }
 
   protected getPlaceholderColor(): number {

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BaseBoss, { BossOptions } from "./BaseBoss";
 import EnemyBulletPool from "../../systems/EnemyBulletPool";
 import { EnemyUpdateResult } from "../Enemy";
+import { getBossDefinition } from "../../config/bossData";
 
 type LavaGolemPhase = "idle" | "lava_pool" | "meteor_shower" | "fire_wave";
 
@@ -40,16 +41,10 @@ export default class LavaGolemBoss extends BaseBoss {
     bulletPool: EnemyBulletPool,
     options?: BossOptions,
   ) {
-    super(scene, x, y, bulletPool, "boss_lava_golem", options);
+    super(scene, x, y, bulletPool, getBossDefinition("lava_golem"), options);
 
-    this.baseHealth = 250;
-    this.bossMaxHealth = Math.round(this.baseHealth * (options?.healthMultiplier ?? 1.0));
-    this.bossHealth = this.bossMaxHealth;
+    // Override attack cooldown for this boss's slower attack pattern
     this.attackCooldown = 2500;
-    this.attackPatternCount = 3;
-    this.displaySize = 72;
-
-    this.setDisplaySize(this.displaySize, this.displaySize);
   }
 
   protected getPlaceholderColor(): number {
