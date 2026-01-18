@@ -23,7 +23,12 @@ import BombPool from "../systems/BombPool";
 import GoldPool from "../systems/GoldPool";
 import HealthPool from "../systems/HealthPool";
 import DamageNumberPool from "../systems/DamageNumberPool";
-import { saveManager, GraphicsQuality, ColorblindMode } from "../systems/SaveManager";
+import {
+  saveManager,
+  GraphicsQuality,
+  ColorblindMode,
+  type GameSpeedMultiplier,
+} from "../systems/SaveManager";
 import type { ParticleManager } from "../systems/ParticleManager";
 import type { BackgroundAnimationManager } from "../systems/BackgroundAnimationManager";
 import type { TalentBonuses } from "../config/talentData";
@@ -132,6 +137,7 @@ export default class GameScene extends Phaser.Scene {
     const settings = saveManager.getSettings();
     this.applyGraphicsQuality(settings.graphicsQuality);
     this.applyColorblindMode(settings.colorblindMode);
+    this.applyGameSpeed(saveManager.getGameSpeedMultiplier());
 
     // Debug keyboard controls
     if (this.game.registry.get("debug")) {
@@ -215,6 +221,15 @@ export default class GameScene extends Phaser.Scene {
     });
     this.events.once("shutdown", () => {
       this.game.events.off("playerRespawn");
+    });
+
+    // Game speed change event
+    const handleSpeedChange = (speed: GameSpeedMultiplier) => {
+      this.applyGameSpeed(speed);
+    };
+    this.game.events.on("gameSpeedChanged", handleSpeedChange);
+    this.events.once("shutdown", () => {
+      this.game.events.off("gameSpeedChanged", handleSpeedChange);
     });
   }
 
@@ -733,5 +748,16 @@ export default class GameScene extends Phaser.Scene {
         ]);
         break;
     }
+  }
+
+  /**
+   * Apply game speed multiplier to the physics world
+   * Higher values make the game run faster (2x, 3x, 5x)
+   */
+  private applyGameSpeed(multiplier: GameSpeedMultiplier): void {
+    // Phaser's physics timeScale is inverted: lower values = faster simulation
+    // To achieve 2x speed, we use timeScale = 0.5 (1/2)
+    this.physics.world.timeScale = 1 / multiplier;
+    console.log(`GameScene: Applied game speed ${multiplier}x`);
   }
 }
