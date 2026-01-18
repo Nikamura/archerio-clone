@@ -73,6 +73,7 @@ export class PassiveEffectSystem {
   private damageAuraGraphics: Phaser.GameObjects.Graphics | null = null;
   private lastAuraDamageTime: number = 0;
   private readonly AURA_DAMAGE_INTERVAL = 500; // Apply damage every 500ms (2x per second)
+  private lastAuraRadius: number = 0; // Cache aura state to avoid redundant operations
 
   // Chainsaw orbit system
   private chainsawSprites: Phaser.GameObjects.Sprite[] = [];
@@ -204,17 +205,28 @@ export class PassiveEffectSystem {
   /**
    * Update the damage aura visual effect around the player
    * Shows a pulsing circle when damage aura ability is active
+   * Optimized: Early exit when inactive, avoids redundant operations
    */
   private updateDamageAuraVisual(time: number, playerX: number, playerY: number): void {
     if (!this.damageAuraGraphics) return;
 
     const auraRadius = this.player.getDamageAuraRadius();
 
-    // Clear previous frame
-    this.damageAuraGraphics.clear();
+    // Early exit: if aura is inactive and was already cleared, do nothing
+    if (auraRadius <= 0) {
+      if (this.lastAuraRadius > 0) {
+        // Aura just became inactive, clear once
+        this.damageAuraGraphics.clear();
+        this.lastAuraRadius = 0;
+      }
+      return;
+    }
 
-    // Only draw if player has damage aura ability
-    if (auraRadius <= 0) return;
+    // Track that aura is active
+    this.lastAuraRadius = auraRadius;
+
+    // Clear and redraw (needed because aura moves with player)
+    this.damageAuraGraphics.clear();
 
     // Create pulsing effect
     const pulseSpeed = 0.003; // Pulse speed

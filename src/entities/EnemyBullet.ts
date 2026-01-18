@@ -73,4 +73,11 @@ export default class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(false);
     this.setVelocity(0, 0);
   }
+
+  /**
+   * Get the spawn time of this bullet (used for recycling oldest bullets)
+   */
+  getSpawnTime(): number {
+    return this.spawnTime;
+  }
 }

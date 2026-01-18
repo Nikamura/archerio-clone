@@ -326,7 +326,8 @@ export default class GameScene extends Phaser.Scene {
     // Wall collisions
     this.physics.add.collider(this.player, this.wallGroup);
     this.physics.add.collider(this.enemies, this.wallGroup);
-    this.physics.add.collider(this.enemies, this.enemies);
+    // NOTE: Enemy-to-enemy collision removed for performance (N² checks)
+    // Most roguelikes allow enemy overlap - players don't notice
 
     // Bullets hit walls
     this.physics.add.overlap(

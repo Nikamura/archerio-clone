@@ -1,5 +1,5 @@
 // Phaser-native virtual joystick implementation
-// Replaces nipplejs with built-in Phaser Graphics for better performance and reliability
+// Uses pre-rendered sprites instead of redrawing Graphics every frame for better performance
 
 // Joystick configuration
 const JOYSTICK_CONFIG = {
@@ -22,8 +22,8 @@ const JOYSTICK_CONFIG = {
 
 export default class Joystick {
   private scene: Phaser.Scene;
-  private baseGraphics: Phaser.GameObjects.Graphics | null = null;
-  private thumbGraphics: Phaser.GameObjects.Graphics | null = null;
+  private baseSprite: Phaser.GameObjects.Image | null = null;
+  private thumbSprite: Phaser.GameObjects.Image | null = null;
   private baseX: number = 0;
   private baseY: number = 0;
   private isActive: boolean = false;
@@ -33,6 +33,7 @@ export default class Joystick {
   private isVisible: boolean = true;
   private isCreated: boolean = false;
   private isBlockedAtPoint: ((x: number, y: number) => boolean) | null = null;
+  private texturesGenerated: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -46,26 +47,60 @@ export default class Joystick {
     this.isBlockedAtPoint = callback;
   }
 
+  /**
+   * Generate joystick textures once (called on first create)
+   */
+  private generateTextures(): void {
+    if (this.texturesGenerated || this.scene.textures.exists("joystick_base")) {
+      return;
+    }
+
+    // Generate base texture
+    const baseSize = JOYSTICK_CONFIG.BASE_RADIUS * 2 + 4;
+    const baseGraphics = this.scene.make.graphics({ x: 0, y: 0 }, false);
+    baseGraphics.fillStyle(JOYSTICK_CONFIG.BASE_COLOR, JOYSTICK_CONFIG.BASE_ALPHA);
+    baseGraphics.fillCircle(baseSize / 2, baseSize / 2, JOYSTICK_CONFIG.BASE_RADIUS);
+    baseGraphics.lineStyle(2, JOYSTICK_CONFIG.BASE_COLOR, JOYSTICK_CONFIG.BASE_ALPHA + 0.2);
+    baseGraphics.strokeCircle(baseSize / 2, baseSize / 2, JOYSTICK_CONFIG.BASE_RADIUS);
+    baseGraphics.generateTexture("joystick_base", baseSize, baseSize);
+    baseGraphics.destroy();
+
+    // Generate thumb texture
+    const thumbSize = JOYSTICK_CONFIG.THUMB_RADIUS * 2 + 4;
+    const thumbGraphics = this.scene.make.graphics({ x: 0, y: 0 }, false);
+    thumbGraphics.fillStyle(JOYSTICK_CONFIG.THUMB_COLOR, JOYSTICK_CONFIG.THUMB_ALPHA);
+    thumbGraphics.fillCircle(thumbSize / 2, thumbSize / 2, JOYSTICK_CONFIG.THUMB_RADIUS);
+    thumbGraphics.lineStyle(2, JOYSTICK_CONFIG.THUMB_COLOR, JOYSTICK_CONFIG.THUMB_ALPHA + 0.2);
+    thumbGraphics.strokeCircle(thumbSize / 2, thumbSize / 2, JOYSTICK_CONFIG.THUMB_RADIUS);
+    thumbGraphics.generateTexture("joystick_thumb", thumbSize, thumbSize);
+    thumbGraphics.destroy();
+
+    this.texturesGenerated = true;
+  }
+
   create(_container: HTMLElement) {
     if (this.isCreated) return;
 
-    // Create graphics objects for base and thumb
-    this.baseGraphics = this.scene.add.graphics();
-    this.thumbGraphics = this.scene.add.graphics();
+    // Generate textures once
+    this.generateTextures();
+
+    // Create sprite objects for base and thumb
+    this.baseSprite = this.scene.add.image(0, 0, "joystick_base");
+    this.thumbSprite = this.scene.add.image(0, 0, "joystick_thumb");
 
     // Set high depth to render above game objects
-    this.baseGraphics.setDepth(1000);
-    this.thumbGraphics.setDepth(1001);
+    this.baseSprite.setDepth(1000);
+    this.thumbSprite.setDepth(1001);
 
     // Initially hidden until touch starts
-    this.baseGraphics.setVisible(false);
-    this.thumbGraphics.setVisible(false);
+    this.baseSprite.setVisible(false);
+    this.thumbSprite.setVisible(false);
 
     // Set up input handlers
     this.setupInputHandlers();
 
     this.isCreated = true;
-    console.log("Joystick created (Phaser-native)");
+    console.log("Joystick created (sprite-based)");
   }
 
   private setupInputHandlers() {
@@ -90,12 +125,12 @@ export default class Joystick {
       this.baseX = pointer.x;
       this.baseY = pointer.y;
 
-      // Draw joystick at touch position
-      this.drawBase();
-      this.drawThumb(this.baseX, this.baseY);
+      // Position joystick sprites at touch position
+      this.baseSprite?.setPosition(this.baseX, this.baseY);
+      this.thumbSprite?.setPosition(this.baseX, this.baseY);
 
-      this.baseGraphics?.setVisible(true);
-      this.thumbGraphics?.setVisible(true);
+      this.baseSprite?.setVisible(true);
+      this.thumbSprite?.setVisible(true);
     });
 
     // Handle pointer move - update joystick
@@ -127,30 +162,6 @@ export default class Joystick {
     });
   }
 
-  private drawBase() {
-    if (!this.baseGraphics) return;
-
-    this.baseGraphics.clear();
-    this.baseGraphics.fillStyle(JOYSTICK_CONFIG.BASE_COLOR, JOYSTICK_CONFIG.BASE_ALPHA);
-    this.baseGraphics.fillCircle(this.baseX, this.baseY, JOYSTICK_CONFIG.BASE_RADIUS);
-
-    // Add subtle border
-    this.baseGraphics.lineStyle(2, JOYSTICK_CONFIG.BASE_COLOR, JOYSTICK_CONFIG.BASE_ALPHA + 0.2);
-    this.baseGraphics.strokeCircle(this.baseX, this.baseY, JOYSTICK_CONFIG.BASE_RADIUS);
-  }
-
-  private drawThumb(x: number, y: number) {
-    if (!this.thumbGraphics) return;
-
-    this.thumbGraphics.clear();
-    this.thumbGraphics.fillStyle(JOYSTICK_CONFIG.THUMB_COLOR, JOYSTICK_CONFIG.THUMB_ALPHA);
-    this.thumbGraphics.fillCircle(x, y, JOYSTICK_CONFIG.THUMB_RADIUS);
-
-    // Add subtle border
-    this.thumbGraphics.lineStyle(2, JOYSTICK_CONFIG.THUMB_COLOR, JOYSTICK_CONFIG.THUMB_ALPHA + 0.2);
-    this.thumbGraphics.strokeCircle(x, y, JOYSTICK_CONFIG.THUMB_RADIUS);
-  }
-
   private updateThumbPosition(pointerX: number, pointerY: number) {
     // Calculate distance and angle from base center
     const dx = pointerX - this.baseX;
@@ -165,8 +176,8 @@ export default class Joystick {
     const thumbX = this.baseX + Math.cos(Math.atan2(dy, dx)) * clampedDistance;
     const thumbY = this.baseY + Math.sin(Math.atan2(dy, dx)) * clampedDistance;
 
-    // Draw thumb at new position
-    this.drawThumb(thumbX, thumbY);
+    // Move thumb sprite to new position (no redraw needed!)
+    this.thumbSprite?.setPosition(thumbX, thumbY);
 
     // Calculate force (0-1)
     let force = clampedDistance / JOYSTICK_CONFIG.MAX_DISTANCE;
@@ -190,8 +201,8 @@ export default class Joystick {
     this.pointerId = -1;
 
     // Hide joystick
-    this.baseGraphics?.setVisible(false);
-    this.thumbGraphics?.setVisible(false);
+    this.baseSprite?.setVisible(false);
+    this.thumbSprite?.setVisible(false);
 
     // Call end callback
     if (this.onEnd) {
@@ -215,9 +226,9 @@ export default class Joystick {
       this.deactivate();
     }
 
-    // Hide graphics
-    this.baseGraphics?.setVisible(false);
-    this.thumbGraphics?.setVisible(false);
+    // Hide sprites
+    this.baseSprite?.setVisible(false);
+    this.thumbSprite?.setVisible(false);
 
     console.log("Joystick: hidden");
   }
@@ -240,15 +251,15 @@ export default class Joystick {
     this.scene.input.off("pointerupoutside");
     this.scene.input.off("gameout");
 
-    // Destroy graphics objects
-    if (this.baseGraphics) {
-      this.baseGraphics.destroy();
-      this.baseGraphics = null;
+    // Destroy sprite objects
+    if (this.baseSprite) {
+      this.baseSprite.destroy();
+      this.baseSprite = null;
     }
 
-    if (this.thumbGraphics) {
-      this.thumbGraphics.destroy();
-      this.thumbGraphics = null;
+    if (this.thumbSprite) {
+      this.thumbSprite.destroy();
+      this.thumbSprite = null;
     }
 
     this.isCreated = false;

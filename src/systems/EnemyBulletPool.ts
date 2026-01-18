@@ -19,10 +19,48 @@ export default class EnemyBulletPool extends Phaser.Physics.Arcade.Group {
   }
 
   spawn(x: number, y: number, angle: number, speed: number = 170): EnemyBullet | null {
-    const bullet = this.get(x, y) as EnemyBullet;
+    let bullet = this.get(x, y) as EnemyBullet | null;
+
+    // If pool is exhausted, recycle the oldest active bullet
+    if (!bullet) {
+      bullet = this.recycleOldestBullet();
+    }
+
     if (bullet) {
       bullet.fire(x, y, angle, speed);
     }
     return bullet;
+  }
+
+  /**
+   * Recycle the oldest active bullet when pool is exhausted.
+   * This ensures gameplay continues smoothly even with high bullet counts.
+   * Only recycles bullets that have lived at least 300ms to prevent visible pop-in.
+   */
+  private recycleOldestBullet(): EnemyBullet | null {
+    let oldest: EnemyBullet | null = null;
+    let oldestSpawnTime = Infinity;
+    const currentTime = this.scene.time.now;
+    const minLifetime = 300; // Don't recycle bullets younger than 300ms
+
+    this.children.iterate((child) => {
+      const bullet = child as EnemyBullet;
+      if (bullet.active) {
+        const spawnTime = bullet.getSpawnTime();
+        const bulletAge = currentTime - spawnTime;
+        // Only consider bullets that have lived long enough
+        if (bulletAge >= minLifetime && spawnTime < oldestSpawnTime) {
+          oldestSpawnTime = spawnTime;
+          oldest = bullet;
+        }
+      }
+      return true;
+    });
+
+    if (oldest !== null) {
+      (oldest as EnemyBullet).deactivate();
+      return oldest;
+    }
+    return null;
   }
 }

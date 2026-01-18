@@ -60,11 +60,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   // Wall avoidance system - Context Steering
   protected wallGroup: WallGroup | null = null;
   private readonly RAYCAST_DISTANCE = 60;
-  private readonly RAYCAST_COUNT = 8;
+  private readonly RAYCAST_COUNT = 4; // Reduced from 8 for performance
   private readonly WALL_AVOIDANCE_STRENGTH = 1.5;
   private readonly STEERING_SMOOTHING = 0.15;
-  private wallDangerMap: number[] = new Array(8).fill(0);
+  private wallDangerMap: number[] = new Array(4).fill(0); // Match RAYCAST_COUNT
   private smoothedMoveAngle: number = 0;
+  private wallDetectionFrame: number = 0; // Throttle wall detection
+  private readonly WALL_DETECTION_INTERVAL = 5; // Only check every 5 frames
 
   constructor(scene: Phaser.Scene, x: number, y: number, options?: EnemyOptions) {
     // Get sprite key for this enemy type
@@ -313,6 +315,77 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Full reset for object pooling - resets all state for reuse
+   * @param x New X position
+   * @param y New Y position
+   * @param options New enemy options
+   */
+  resetForPool(x: number, y: number, options?: EnemyOptions): void {
+    // Reset position
+    this.setPosition(x, y);
+    this.setActive(true);
+    this.setVisible(true);
+
+    // Reset health with new multipliers
+    const baseHealth = 30;
+    this.maxHealth = Math.round(baseHealth * (options?.healthMultiplier ?? 1.0));
+    this.health = this.maxHealth;
+    this.damageMultiplier = options?.damageMultiplier ?? 1.0;
+    this.speedMultiplier = options?.speedMultiplier ?? 1.0;
+
+    // Reset melee attack cooldown
+    this.meleeAttackCooldown = Math.round(1000 * (options?.attackCooldownMultiplier ?? 1.0));
+    this.lastMeleeAttackTime = 0;
+
+    // Reset status effects
+    this.statusEffects.reset();
+    this.clearTint();
+
+    // Reset wall avoidance state
+    this.wallDangerMap.fill(0);
+    this.smoothedMoveAngle = 0;
+    this.wallDetectionFrame = 0;
+
+    // Reset health bar state
+    this.lastHealthBarValue = -1;
+    this.lastHealthBarX = 0;
+    this.lastHealthBarY = 0;
+    if (this.healthBar) {
+      this.healthBar.setVisible(false);
+      this.healthBar.clear();
+    }
+
+    // Kill any active tweens and reset scale
+    this.scene.tweens.killTweensOf(this);
+    this.setScale(1, 1);
+
+    // Reset velocity
+    this.setVelocity(0, 0);
+  }
+
+  /**
+   * Deactivate for pooling (instead of destroying)
+   */
+  deactivateForPool(): void {
+    this.setActive(false);
+    this.setVisible(false);
+    this.setVelocity(0, 0);
+
+    // Clear health bar
+    if (this.healthBar) {
+      this.healthBar.setVisible(false);
+      this.healthBar.clear();
+    }
+
+    // Kill any active tweens
+    this.scene?.tweens.killTweensOf(this);
+
+    // Reset status effects
+    this.statusEffects.reset();
+    this.clearTint();
+  }
+
+  /**
    * Heal the enemy by the specified amount (capped at max health)
    * @param amount Amount of HP to restore
    * @returns The actual amount healed
@@ -496,16 +569,14 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Proactively detect walls in 8 directions and return danger values
+   * Proactively detect walls in 4 directions and return danger values
    * Higher danger values = closer walls in that direction
+   * Optimized: Reduced from 8 to 4 directions, 3 to 2 distances
    */
   private detectWallsAhead(): void {
     const angleStep = (Math.PI * 2) / this.RAYCAST_COUNT;
-    const distances = [
-      this.RAYCAST_DISTANCE * 0.4,
-      this.RAYCAST_DISTANCE * 0.7,
-      this.RAYCAST_DISTANCE,
-    ];
+    // Reduced from 3 distances to 2 for performance
+    const distances = [this.RAYCAST_DISTANCE * 0.5, this.RAYCAST_DISTANCE];
 
     for (let i = 0; i < this.RAYCAST_COUNT; i++) {
       const angle = i * angleStep;
@@ -519,7 +590,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         if (this.isPositionBlockedByWall(testX, testY)) {
           // Closer walls = higher danger (1.0 for closest, 0.5 for farthest)
-          const danger = 1.0 - d * 0.25;
+          const danger = 1.0 - d * 0.5;
           maxDanger = Math.max(maxDanger, danger);
         }
       }
@@ -580,8 +651,12 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     baseSpeed: number,
     _time: number,
   ): { vx: number; vy: number } {
-    // Proactively detect walls in all directions
-    this.detectWallsAhead();
+    // Throttle wall detection to every N frames for performance
+    this.wallDetectionFrame++;
+    if (this.wallDetectionFrame >= this.WALL_DETECTION_INTERVAL) {
+      this.wallDetectionFrame = 0;
+      this.detectWallsAhead();
+    }
 
     // Calculate direct angle to player
     const directAngle = Phaser.Math.Angle.Between(this.x, this.y, playerX, playerY);

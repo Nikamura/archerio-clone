@@ -34,9 +34,25 @@ export default class UIScene extends Phaser.Scene {
 
   // Skills bar (bottom)
   private skillsContainer!: Phaser.GameObjects.Container;
+  private skillSlots: Array<{
+    bg: Phaser.GameObjects.Graphics;
+    icon: Phaser.GameObjects.Image | null;
+    badge: Phaser.GameObjects.Arc | null;
+    levelText: Phaser.GameObjects.Text | null;
+  }> = [];
+  private skillOverflowText: Phaser.GameObjects.Text | null = null;
+  private readonly MAX_SKILL_DISPLAY = 12;
 
   // FPS counter (debug only)
   private fpsText?: Phaser.GameObjects.Text;
+  private lastFpsValue: number = -1; // Track last FPS to avoid redundant setText
+
+  // UI caching to avoid redundant redraws
+  private lastHealthPercent: number = -1;
+  private lastHealthCurrent: number = -1;
+  private lastXpPercent: number = -1;
+  private lastLevel: number = -1;
+  private lastBossHealthPercent: number = -1;
 
   // Score display
   private scoreText!: Phaser.GameObjects.Text;
@@ -246,12 +262,62 @@ export default class UIScene extends Phaser.Scene {
   }
 
   /**
-   * Create skills bar at the bottom
+   * Create skills bar at the bottom with pre-allocated slots for performance
    */
   private createSkillsBar(height: number) {
     this.skillsContainer = this.add.container(10, height - 45);
     this.skillsContainer.setDepth(10);
     this.hudContainer.add(this.skillsContainer);
+
+    const iconSize = 22;
+    const iconSpacing = 26;
+
+    // Pre-create skill slots (hidden by default)
+    this.skillSlots = [];
+    for (let i = 0; i < this.MAX_SKILL_DISPLAY; i++) {
+      const x = i * iconSpacing;
+
+      // Background graphics (reusable)
+      const iconBg = this.add.graphics();
+      iconBg.setVisible(false);
+      this.skillsContainer.add(iconBg);
+
+      // Icon image (null until needed)
+      const icon = this.add.image(x, 0, "abilityAttackBoost"); // Placeholder texture
+      icon.setDisplaySize(iconSize - 4, iconSize - 4);
+      icon.setVisible(false);
+      this.skillsContainer.add(icon);
+
+      // Level badge (null until needed)
+      const badgeX = x + iconSize / 2 - 5;
+      const badgeY = iconSize / 2 - 5;
+      const badge = this.add.circle(badgeX, badgeY, 6, 0x000000, 0.9);
+      badge.setVisible(false);
+      this.skillsContainer.add(badge);
+
+      // Level text
+      const levelText = this.add
+        .text(badgeX, badgeY, "", {
+          fontSize: "8px",
+          color: "#ffffff",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+      levelText.setVisible(false);
+      this.skillsContainer.add(levelText);
+
+      this.skillSlots.push({ bg: iconBg, icon, badge, levelText });
+    }
+
+    // Pre-create overflow text
+    this.skillOverflowText = this.add
+      .text(this.MAX_SKILL_DISPLAY * iconSpacing, 0, "", {
+        fontSize: "11px",
+        color: "#888888",
+      })
+      .setOrigin(0, 0.5);
+    this.skillOverflowText.setVisible(false);
+    this.skillsContainer.add(this.skillOverflowText);
   }
 
   /**
@@ -383,15 +449,29 @@ export default class UIScene extends Phaser.Scene {
   }
 
   update() {
-    // Update FPS counter (debug only) - use performanceMonitor for consistency with debug overlay
+    // Update FPS counter (debug only) - only update when value changes
     if (this.fpsText) {
       const fps = Math.round(performanceMonitor.getAverageFps());
-      this.fpsText.setText(`${fps}`);
-      this.fpsText.setColor(fps >= 55 ? "#00ff00" : fps >= 30 ? "#ffff00" : "#ff0000");
+      if (fps !== this.lastFpsValue) {
+        this.lastFpsValue = fps;
+        this.fpsText.setText(`${fps}`);
+        this.fpsText.setColor(fps >= 55 ? "#00ff00" : fps >= 30 ? "#ffff00" : "#ff0000");
+      }
     }
   }
 
   updateHealthBar(percentage: number, currentHealth: number, _maxHealth: number) {
+    // Round for comparison to avoid floating point issues
+    const roundedPercent = Math.round(percentage);
+    const roundedCurrent = Math.ceil(currentHealth);
+
+    // Skip redraw if values haven't changed
+    if (roundedPercent === this.lastHealthPercent && roundedCurrent === this.lastHealthCurrent) {
+      return;
+    }
+    this.lastHealthPercent = roundedPercent;
+    this.lastHealthCurrent = roundedCurrent;
+
     const healthX = 16;
     const healthY = 16;
     const healthWidth = 120;
@@ -407,7 +487,7 @@ export default class UIScene extends Phaser.Scene {
     const fillWidth = Math.max(0, (percentage / 100) * (healthWidth - 4));
     this.healthBar.fillRoundedRect(healthX + 2, healthY + 2, fillWidth, healthHeight - 4, 3);
 
-    this.healthText.setText(`${Math.ceil(currentHealth)}`);
+    this.healthText.setText(`${roundedCurrent}`);
   }
 
   updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {
@@ -419,6 +499,14 @@ export default class UIScene extends Phaser.Scene {
   }
 
   updateXPBar(percentage: number) {
+    const roundedPercent = Math.round(percentage);
+
+    // Skip redraw if value hasn't changed
+    if (roundedPercent === this.lastXpPercent) {
+      return;
+    }
+    this.lastXpPercent = roundedPercent;
+
     const xpBarWidth = 40;
     const xpBarHeight = 4;
 
@@ -429,6 +517,11 @@ export default class UIScene extends Phaser.Scene {
   }
 
   updateLevel(level: number) {
+    // Skip if level hasn't changed
+    if (level === this.lastLevel) {
+      return;
+    }
+    this.lastLevel = level;
     this.levelText.setText(`Lv.${level}`);
   }
 
@@ -460,17 +553,26 @@ export default class UIScene extends Phaser.Scene {
       this.bossNameText.setText(bossName.toUpperCase());
     }
     this.bossHealthContainer.setVisible(true);
+    // Reset cache to force initial draw
+    this.lastBossHealthPercent = -1;
     this.updateBossHealthBar(health, maxHealth);
   }
 
   private updateBossHealthBar(health: number, maxHealth: number) {
+    const percentage = Math.max(0, health / maxHealth);
+    const roundedPercent = Math.round(percentage * 100);
+
+    // Skip redraw if value hasn't changed
+    if (roundedPercent === this.lastBossHealthPercent) {
+      return;
+    }
+    this.lastBossHealthPercent = roundedPercent;
+
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     const barWidth = width - 44;
     const barHeight = 8;
     const yPos = height - 53;
-
-    const percentage = Math.max(0, health / maxHealth);
 
     this.bossHealthBar.clear();
     this.bossHealthBar.fillStyle(THEME_COLORS.bossHealth, 1);
@@ -607,63 +709,80 @@ export default class UIScene extends Phaser.Scene {
 
   /**
    * Update skills bar with acquired abilities
+   * Optimized: Reuses pre-created objects instead of destroying/recreating
    */
   private updateSkillsBar(abilities: AcquiredAbility[]) {
-    this.skillsContainer.removeAll(true);
-
     const iconSize = 22;
     const iconSpacing = 26;
-    const maxDisplay = 12;
 
-    abilities.slice(0, maxDisplay).forEach((acquired, index) => {
-      const abilityData = ABILITIES.find((a) => a.id === acquired.id);
-      if (!abilityData) return;
+    // Update each pre-created slot
+    for (let index = 0; index < this.MAX_SKILL_DISPLAY; index++) {
+      const slot = this.skillSlots[index];
+      if (!slot) continue;
 
-      const x = index * iconSpacing;
+      const acquired = abilities[index];
+      const abilityData = acquired ? ABILITIES.find((a) => a.id === acquired.id) : null;
 
-      // Icon background
-      const iconBg = this.add.graphics();
-      iconBg.fillStyle(0x000000, 0.6);
-      iconBg.fillRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
-      iconBg.lineStyle(1, abilityData.color, 0.8);
-      iconBg.strokeRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
-      this.skillsContainer.add(iconBg);
+      if (acquired && abilityData) {
+        const x = index * iconSpacing;
 
-      // Icon
-      if (this.textures.exists(abilityData.iconKey)) {
-        const icon = this.add.image(x, 0, abilityData.iconKey);
-        icon.setDisplaySize(iconSize - 4, iconSize - 4);
-        this.skillsContainer.add(icon);
+        // Update background graphics
+        slot.bg.clear();
+        slot.bg.fillStyle(0x000000, 0.6);
+        slot.bg.fillRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
+        slot.bg.lineStyle(1, abilityData.color, 0.8);
+        slot.bg.strokeRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
+        slot.bg.setVisible(true);
+
+        // Update icon
+        if (slot.icon) {
+          if (this.textures.exists(abilityData.iconKey)) {
+            slot.icon.setTexture(abilityData.iconKey);
+            slot.icon.setPosition(x, 0);
+            slot.icon.setDisplaySize(iconSize - 4, iconSize - 4);
+            slot.icon.setVisible(true);
+          } else {
+            slot.icon.setVisible(false);
+          }
+        }
+
+        // Update level badge (only if > 1)
+        if (acquired.level > 1) {
+          const badgeX = x + iconSize / 2 - 5;
+          const badgeY = iconSize / 2 - 5;
+
+          if (slot.badge) {
+            slot.badge.setPosition(badgeX, badgeY);
+            slot.badge.setStrokeStyle(1, abilityData.color);
+            slot.badge.setVisible(true);
+          }
+
+          if (slot.levelText) {
+            slot.levelText.setPosition(badgeX, badgeY);
+            slot.levelText.setText(`${acquired.level}`);
+            slot.levelText.setVisible(true);
+          }
+        } else {
+          slot.badge?.setVisible(false);
+          slot.levelText?.setVisible(false);
+        }
+      } else {
+        // Hide unused slot
+        slot.bg.setVisible(false);
+        slot.icon?.setVisible(false);
+        slot.badge?.setVisible(false);
+        slot.levelText?.setVisible(false);
       }
+    }
 
-      // Level badge (only if > 1)
-      if (acquired.level > 1) {
-        const badgeX = x + iconSize / 2 - 5;
-        const badgeY = iconSize / 2 - 5;
-        const badge = this.add.circle(badgeX, badgeY, 6, 0x000000, 0.9);
-        badge.setStrokeStyle(1, abilityData.color);
-        this.skillsContainer.add(badge);
-
-        const levelNum = this.add
-          .text(badgeX, badgeY, `${acquired.level}`, {
-            fontSize: "8px",
-            color: "#ffffff",
-            fontStyle: "bold",
-          })
-          .setOrigin(0.5);
-        this.skillsContainer.add(levelNum);
+    // Update overflow indicator
+    if (this.skillOverflowText) {
+      if (abilities.length > this.MAX_SKILL_DISPLAY) {
+        this.skillOverflowText.setText(`+${abilities.length - this.MAX_SKILL_DISPLAY}`);
+        this.skillOverflowText.setVisible(true);
+      } else {
+        this.skillOverflowText.setVisible(false);
       }
-    });
-
-    // Overflow indicator
-    if (abilities.length > maxDisplay) {
-      const moreText = this.add
-        .text(maxDisplay * iconSpacing, 0, `+${abilities.length - maxDisplay}`, {
-          fontSize: "11px",
-          color: "#888888",
-        })
-        .setOrigin(0, 0.5);
-      this.skillsContainer.add(moreText);
     }
   }
 
