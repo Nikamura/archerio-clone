@@ -265,10 +265,10 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image("abilityExtraLife", "assets/sprites/abilities/extra_life.png");
     this.load.image("abilityThroughWall", "assets/sprites/abilities/through_wall.png")
 
-    // Load hero icons
-    this.load.image("heroAtreus", "assets/sprites/ui/hero_atreus.png");
-    this.load.image("heroHelix", "assets/sprites/ui/hero_helix.png");
-    this.load.image("heroMeowgik", "assets/sprites/ui/hero_meowgik.png");
+    // Load hero icons (use player sprites)
+    this.load.image("heroAtreus", "assets/sprites/player/archer.png");
+    this.load.image("heroHelix", "assets/sprites/player/helix.png");
+    this.load.image("heroMeowgik", "assets/sprites/player/meowgik.png");
 
     // Load chapter icons
     this.load.image("chapter1Icon_medieval", "assets/sprites/ui/chapter1_icon_medieval.png");

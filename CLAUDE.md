@@ -100,12 +100,12 @@ Set `CAPACITOR_DEV_SERVER_URL=http://192.168.x.x:3000` in `.env` for live reload
 ## Asset Generation
 
 ```bash
-pnpm run generate-sprite "archer with bow" --type player --clean
+pnpm run generate sprite "archer with bow" --type player --clean
 ```
 
 **Types**: player (64px), enemy (64px), boss (128px), projectile (32px), item (32px), ui (48px)
 
-**IMPORTANT**: Always use `--clean` flag - AI generates fake checkerboard backgrounds
+**IMPORTANT**: Always use `--clean` flag for transparent backgrounds
 
 See [Asset Generation](./docs/asset-generation.md) for full documentation.
 

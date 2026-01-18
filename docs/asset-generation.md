@@ -6,39 +6,41 @@ The project includes AI-powered scripts for generating game art assets using Goo
 
 - Set `GEMINI_API_KEY` in `.env` file
 - Optionally set `GEMINI_MODEL` (default: `gemini-2.0-flash-exp`)
+- Run `pnpm install` to install dependencies
 
-## Generic Image Generation
+## Unified CLI
 
-```bash
-pnpm run generate-image <prompt> [width] [height] [--output <path>]
-```
-
-Use for backgrounds, UI elements, and non-sprite assets:
+All asset generation is handled through a single unified command:
 
 ```bash
-# Examples
-pnpm run generate-image "dark dungeon stone floor texture" 512 512
-pnpm run generate-image "forest background parallax layer" 1024 768
-pnpm run generate-image "treasure chest icon" 64 64 --output assets/ui/chest.png
+pnpm run generate <command> [options]
 ```
+
+### Commands
+
+| Command    | Description                              |
+| ---------- | ---------------------------------------- |
+| `sprite`   | Generate a pixel art game sprite         |
+| `image`    | Generate a background or texture image   |
+| `optimize` | Optimize all assets in public/assets     |
+| `clean`    | Remove background from existing image(s) |
+| `help`     | Show help message                        |
 
 ## Sprite Generation
 
 ```bash
-pnpm run generate-sprite <description> [options]
+pnpm run generate sprite <description> [options]
 ```
 
 ### Options
 
-| Option         | Description                                                                             |
-| -------------- | --------------------------------------------------------------------------------------- |
-| `--type, -t`   | Sprite type: `player`, `enemy`, `boss`, `projectile`, `item`, `effect`, `ui`, `generic` |
-| `--size, -s`   | Sprite size in pixels (default varies by type)                                          |
-| `--style`      | Art style: `"pixel art"`, `"hand-drawn"`, `"vector"` (default: pixel art)               |
-| `--output, -o` | Output file/directory path                                                              |
-| `--anim, -a`   | Animation type for multi-frame generation                                               |
-| `--frames, -f` | Number of animation frames                                                              |
-| `--clean, -c`  | **Recommended:** Remove background for true PNG transparency                            |
+| Option           | Description                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `--type, -t`     | Sprite type: `player`, `enemy`, `boss`, `projectile`, `item`, `effect`, `ui`, `generic`  |
+| `--size, -s`     | Sprite size in pixels (default varies by type)                                           |
+| `--preset, -p`   | Style preset: `default`, `dark`, `fire`, `ice`, `nature`, `shadow`, `holy`               |
+| `--output, -o`   | Output file path                                                                         |
+| `--clean, -c`    | **Recommended:** Remove background for true PNG transparency                             |
 
 ### Sprite Types & Default Sizes
 
@@ -52,73 +54,90 @@ pnpm run generate-sprite <description> [options]
 | `effect`     | 64px  | Visual effects, particles |
 | `ui`         | 48px  | Interface icons           |
 
-### Single Sprite Examples
+### Sprite Examples
 
 ```bash
-pnpm run generate-sprite "archer with bow" --type player --clean
-pnpm run generate-sprite "red slime monster" --type enemy --clean
-pnpm run generate-sprite "golden arrow" --type projectile -c
-pnpm run generate-sprite "health potion" --type item --clean
-pnpm run generate-sprite "fire dragon" --type boss --size 128 -c
+pnpm run generate sprite "archer with bow" --type player --clean
+pnpm run generate sprite "red slime monster" --type enemy --clean
+pnpm run generate sprite "golden arrow" --type projectile -c
+pnpm run generate sprite "health potion" --type item --clean
+pnpm run generate sprite "fire dragon" --type boss --size 128 -c
+pnpm run generate sprite "ice golem" --type boss --preset ice --clean
 ```
 
-## Animation Sequences
+### Style Presets
 
-Generate multiple frames for animated sprites:
+Style presets modify the color palette and mood of generated sprites:
 
-### Animation Types & Default Frames
+| Preset    | Description                              |
+| --------- | ---------------------------------------- |
+| `default` | Standard vibrant fantasy colors          |
+| `dark`    | Dark and muted colors, deep shadows      |
+| `fire`    | Warm fire colors - reds, oranges, embers |
+| `ice`     | Cool ice colors - blues, whites, frost   |
+| `nature`  | Natural greens, browns, earthy tones     |
+| `shadow`  | Purples, blacks, ethereal wisps          |
+| `holy`    | Golds, whites, divine glow               |
 
-| Animation | Frames | Description               |
-| --------- | ------ | ------------------------- |
-| `idle`    | 4      | Breathing/subtle movement |
-| `walk`    | 6      | Walking cycle             |
-| `run`     | 6      | Running cycle             |
-| `attack`  | 4      | Attack swing/action       |
-| `hit`     | 3      | Damage reaction           |
-| `death`   | 4      | Death sequence            |
-| `cast`    | 4      | Spell casting             |
-| `jump`    | 4      | Jump arc                  |
-
-### Animation Examples
+## Image Generation
 
 ```bash
-# Generate walk animation for player (6 frames) with clean backgrounds
-pnpm run generate-sprite "knight warrior" --type player --anim walk --clean
-
-# Generate idle animation for enemy (4 frames)
-pnpm run generate-sprite "green slime" --type enemy --anim idle -c
-
-# Generate attack animation with custom frame count
-pnpm run generate-sprite "wizard" --type player --anim attack --frames 6 --clean
-
-# Generate death animation
-pnpm run generate-sprite "skeleton" --type enemy --anim death -c
+pnpm run generate image <description> [options]
 ```
 
-Animation frames are saved to: `assets/sprites/<type>/<name>_<anim>_<timestamp>/frame_XX.png`
+### Options
 
-## Background Removal (Standalone)
+| Option         | Description                                 |
+| -------------- | ------------------------------------------- |
+| `--size`       | Image size as WxH (default: 512x512)        |
+| `--output, -o` | Output file path                            |
+| `--background` | Resize to game background dimensions (375x667) |
 
-For existing images with checkerboard/solid backgrounds:
+### Image Examples
 
 ```bash
-pnpm run remove-bg <image-path> [--tolerance <0-255>] [--output <path>]
+pnpm run generate image "dark dungeon floor texture"
+pnpm run generate image "forest background" --size 1024x768
+pnpm run generate image "mystic cave" --background
+pnpm run generate image "stone wall texture" --output assets/backgrounds/stone.png
+```
+
+## Background Removal
+
+The `clean` command removes backgrounds from existing images using ML-based detection:
+
+```bash
+pnpm run generate clean <path>
 ```
 
 ### Examples
 
 ```bash
 # Remove background from single image
-pnpm run remove-bg assets/sprites/enemy/slime.png
+pnpm run generate clean public/assets/sprites/enemy/slime.png
 
 # Process multiple images with glob pattern
-pnpm run remove-bg "assets/sprites/player/*.png" --tolerance 40
-
-# Custom output path
-pnpm run remove-bg image.png --output clean.png
+pnpm run generate clean "public/assets/sprites/player/*.png"
 ```
 
-The tolerance option (default: 35) controls how aggressively similar colors are removed. Higher values remove more.
+The ML-based background removal uses the `@imgly/background-removal-node` library which provides accurate subject detection regardless of background color.
+
+## Asset Optimization
+
+Optimize all assets in `public/assets`:
+
+```bash
+pnpm run generate optimize [--dry]
+```
+
+Options:
+- `--dry, -d`: Preview changes without modifying files
+
+This command:
+- Resizes oversized images to appropriate game sizes
+- Compresses images for optimal file size
+- Uses nearest-neighbor interpolation for pixel art sprites
+- Uses Lanczos interpolation for backgrounds
 
 ## Asset Organization
 
@@ -128,24 +147,43 @@ Generated assets are automatically organized:
 assets/
 ├── generated/           # Generic images
 ├── sprites/
-│   ├── player/          # Player sprites & animations
-│   ├── enemy/           # Enemy sprites & animations
-│   ├── boss/            # Boss sprites & animations
+│   ├── player/          # Player sprites
+│   ├── enemy/           # Enemy sprites
+│   ├── boss/            # Boss sprites
 │   ├── projectile/      # Bullet/arrow sprites
 │   ├── item/            # Collectible sprites
 │   ├── effect/          # Visual effect sprites
 │   └── ui/              # UI icons
 ```
 
+## Architecture
+
+The unified asset generation system uses a modular architecture:
+
+```
+scripts/
+├── generate-asset.ts           # Main CLI entry point
+├── lib/
+│   ├── api/
+│   │   └── gemini.ts           # Shared Gemini API client
+│   ├── config/
+│   │   ├── styles.ts           # Centralized style definitions
+│   │   └── sizes.ts            # Asset size configurations
+│   ├── generators/
+│   │   ├── sprite.ts           # Sprite generation
+│   │   └── image.ts            # Background/texture generation
+│   └── processing/
+│       ├── background-removal.ts  # ML-based background removal
+│       ├── resize.ts           # Image resizing utilities
+│       └── optimize.ts         # Asset optimization
+```
+
 ## Best Practices
 
-1. **Always use `--clean`**: AI generates fake checkerboard backgrounds, use `--clean` or `-c` for true transparency
-2. **Auto-resize**: The script automatically resizes sprites to target size (AI generates 1024x1024, script resizes to type default)
-3. **Consistency**: Generate all sprites for a character type in one session to maintain visual consistency
+1. **Always use `--clean`**: Use `--clean` or `-c` for true transparency on sprites
+2. **Auto-resize**: The script automatically resizes sprites to target size (AI generates 1024x1024)
+3. **Use presets**: Style presets ensure visual consistency for themed content
 4. **Naming**: Use descriptive prompts that include key visual features
 5. **Review**: AI generation can vary - regenerate if needed
-6. **Animation**: For smooth animations, generate more frames and remove duplicates
-7. **Style**: Specify art style consistently across all assets (e.g., always use "pixel art")
-8. **IMPORTANT - Resize images**: AI generates 1024px+ images that will cover the entire screen if not resized
-9. **Update encyclopedia**: When adding new enemies, bosses, abilities, or game mechanics, always update `src/config/encyclopediaData.ts`
-10. **Add localStorage persistence**: Any new manager must implement `saveToStorage()` and `loadFromStorage()` methods
+6. **IMPORTANT - Resize images**: AI generates 1024px+ images that will cover the entire screen if not resized
+7. **Update encyclopedia**: When adding new content, always update `src/config/encyclopediaData.ts`

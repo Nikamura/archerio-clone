@@ -15,10 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "test:visual": "vitest run --config vitest.visual.config.ts",
     "test:all": "vitest run --config vitest.all.config.ts",
-    "generate-image": "tsx scripts/generate-image.ts",
-    "generate-sprite": "tsx scripts/generate-sprite.ts",
-    "remove-bg": "tsx scripts/remove-background.ts",
-    "optimize-assets": "tsx scripts/optimize-assets.ts",
+    "generate": "tsx scripts/generate-asset.ts",
     "cap:sync": "cap sync",
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",
@@ -37,6 +34,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
+    "@imgly/background-removal-node": "^1.4.5",
     "@eslint/js": "^9.39.2",
     "@types/node": "^20.11.5",
     "@types/sharp": "^0.32.0",
@@ -53,5 +51,8 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
     "vitest": "^4.0.16"
+  },
+  "resolutions": {
+    "sharp": "^0.34.5"
   }
 }
