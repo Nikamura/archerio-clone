@@ -149,6 +149,26 @@ export default class SomeBoss extends BaseBoss {
 - Combines attack patterns from previous bosses
 - Final phase has enrage mechanic
 
+## Boss Stats
+
+Base HP values (before chapter/difficulty multipliers):
+
+| Boss | Chapter | Base HP |
+| ---- | ------- | ------- |
+| Demon Lord | 1 | 3,000 |
+| Tree Guardian | 2 | 3,750 |
+| Wild Boar King | 2 | 3,300 |
+| Forest Spirit | 2 | 2,700 |
+| Ice Golem | 3 | 5,250 |
+| Frost Wyrm | 3 | 4,200 |
+| Crystal Guardian | 3 | 4,500 |
+| Magma Wyrm | 4 | 6,000 |
+| Inferno Demon | 4 | 5,250 |
+| Lava Golem | 4 | 6,750 |
+| Void Lord | 5 | 7,500 |
+| Nightmare | 5 | 5,700 |
+| The Void Incarnate (Final) | 5 | 9,000 |
+
 ## Boss Visual Telegraphs
 
 All boss attacks have visual warnings:

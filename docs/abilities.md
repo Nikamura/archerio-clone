@@ -28,19 +28,42 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 
 ### Arrow Modifiers
 
-| Ability        | Effect                           |
-| -------------- | -------------------------------- |
-| Diagonal Arrow | Fires additional diagonal arrows |
-| Through Wall   | Arrows pass through walls        |
+| Ability          | Effect                           | Max Level |
+| ---------------- | -------------------------------- | --------- |
+| Diagonal Arrow   | Fires additional diagonal arrows | —         |
+| Through Wall     | Arrows pass through walls        | 1         |
+| Homing Arrows    | Bullets track enemies            | 3         |
+| Explosive Arrows | AOE on bullet impact             | 3         |
+
+### Orbital Abilities
+
+| Ability        | Effect                         | Max Level |
+| -------------- | ------------------------------ | --------- |
+| Rotating Orbs  | +1 damage orb orbits player    | 5         |
+| Orbital Shields| +1 shield that blocks bullets  | 3         |
+| Spirit Pets    | +1 homing wisp companion       | 5         |
+
+### Defensive Abilities
+
+| Ability        | Effect                         | Max Level |
+| -------------- | ------------------------------ | --------- |
+| Shield Barrier | Absorbs damage (UI bar shown)  | 3         |
+| Knockback      | Push enemies on hit            | 3         |
+
+### On-Kill Effects
+
+| Ability    | Effect                         | Max Level |
+| ---------- | ------------------------------ | --------- |
+| Death Nova | AOE explosion on enemy kill    | 3         |
 
 ### Utility Abilities
 
-| Ability      | Effect                           |
-| ------------ | -------------------------------- |
-| Bloodthirst  | Heal HP on enemy kill            |
-| Speed Boost  | +movement speed                  |
-| Vitality     | +max HP                          |
-| Dodge Master | +3% dodge chance (max 5 stacks = 15% cap) |
+| Ability      | Effect                           | Max Level |
+| ------------ | -------------------------------- | --------- |
+| Bloodthirst  | Heal HP on enemy kill            | 5         |
+| Speed Boost  | +15% move, +5% attack speed      | —         |
+| Vitality     | +15% max HP                      | —         |
+| Dodge Master | +3% dodge chance (15% cap)       | 5         |
 
 ### Devil Abilities (HP Cost)
 

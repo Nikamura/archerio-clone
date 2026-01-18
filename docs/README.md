@@ -9,7 +9,7 @@ Comprehensive documentation for the Aura Archer roguelike shooter game.
 | Document                            | Description                                                     |
 | ----------------------------------- | --------------------------------------------------------------- |
 | [Core Gameplay](./core-gameplay.md) | Core loop, mechanics, difficulty levels, elemental resistances  |
-| [Abilities](./abilities.md)         | All 21 abilities, synergies, stacking behavior, priority system |
+| [Abilities](./abilities.md)         | All 27 abilities, synergies, stacking behavior, priority system |
 | [Enemies](./enemies.md)             | 9 enemy types, behaviors, attack patterns, chapter modifiers    |
 | [Bosses](./bosses.md)               | 15 bosses across 5 chapters, attack phases, visual telegraphs   |
 
@@ -52,7 +52,7 @@ Aura Archer is a roguelike shooter built with Phaser 3. The core mechanic is **s
 
 ### Key Features
 
-- 21 stackable abilities with synergies
+- 27 stackable abilities with synergies
 - 9 enemy types with unique behaviors
 - 15 bosses across 5 chapters
 - Equipment system with fusion
