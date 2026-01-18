@@ -288,7 +288,7 @@ export class ShootingSystem {
       poisonDamage: this.player.getPoisonDamage(),
       bleedDamage: this.player.getBleedDamage(),
       lightningChainCount: this.player.getLightningChainCount(),
-      maxWallBounces: this.player.getWallBounces(),
+      maxWallBounces: 0, // Wall bounce ability removed
       throughWall: this.player.isThroughWallEnabled(),
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
@@ -342,9 +342,6 @@ export class ShootingSystem {
 
     // Diagonal Arrows
     this.spawnDiagonalArrows(angle, bulletOptions);
-
-    // Rear Arrows
-    this.spawnRearArrows(angle, bulletOptions);
 
     // Play shoot sound (once per attack, not per projectile)
     audioManager.playShoot();
@@ -455,30 +452,6 @@ export class ShootingSystem {
         diagAngle2,
         this.BULLET_SPEED,
         diagOptions2,
-      );
-    }
-  }
-
-  /**
-   * Spawn arrows shooting backwards (Rear Arrow ability - 70% damage)
-   */
-  private spawnRearArrows(angle: number, bulletOptions: Record<string, unknown>): void {
-    const rearArrows = this.player.getRearArrows();
-    if (rearArrows <= 0) return;
-
-    const rearAngle = angle + Math.PI; // 180 degrees from forward
-    for (let i = 0; i < rearArrows; i++) {
-      // Slight spread for multiple rear arrows
-      const spreadOffset = i > 0 ? (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * 0.1 : 0;
-      const rearBulletAngle = rearAngle + spreadOffset;
-      const rearSpawn = this.getSpawnPos(rearBulletAngle);
-      const rearOptions = { ...bulletOptions, isCrit: this.player.rollCrit() };
-      this.bulletPool.spawn(
-        rearSpawn.x,
-        rearSpawn.y,
-        rearBulletAngle,
-        this.BULLET_SPEED,
-        rearOptions,
       );
     }
   }

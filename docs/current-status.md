@@ -1,19 +1,16 @@
 # Current Status
 
-_Last updated: 2026-01-04_
+_Last updated: 2026-01-18_
 
 ## Open Bugs
 
-| #   | Bug                          | Status                                 |
-| --- | ---------------------------- | -------------------------------------- |
-| 8   | Damage aura visual indicator | Missing - no visual showing aura range |
+_No known bugs at this time._
 
 ## Upcoming Features
 
 | Feature                   | Description                           |
 | ------------------------- | ------------------------------------- |
 | Multiple priority layouts | Save up to 4 ability priority presets |
-| Damage aura visual        | Show aura range indicator             |
 
 ## V2 Roadmap (Not Started)
 

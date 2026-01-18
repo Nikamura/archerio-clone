@@ -100,33 +100,12 @@ export const ABILITIES: AbilityData[] = [
     iconKey: "abilityDiagonalArrows",
   },
   {
-    id: "rear_arrow",
-    name: "Rear Arrow",
-    description: "+2 backwards",
-    color: 0x6699ff,
-    iconKey: "abilityRearArrow",
-  },
-  {
-    id: "damage_aura",
-    name: "Damage Aura",
-    description: "15% weapon DPS, 100px radius",
-    color: 0xff6666,
-    iconKey: "abilityDamageAura",
-  },
-  {
     id: "bloodthirst",
     name: "Bloodthirst",
     description: "+1% max HP per kill",
     color: 0xff3333,
     iconKey: "abilityBloodthirst",
     maxLevel: 5,
-  },
-  {
-    id: "rage",
-    name: "Rage",
-    description: "+5% dmg per 10% HP lost",
-    color: 0xcc0000,
-    iconKey: "abilityRage",
   },
   {
     id: "speed_boost",
@@ -141,13 +120,6 @@ export const ABILITIES: AbilityData[] = [
     description: "+15% max HP",
     color: 0x22cc66,
     iconKey: "abilityMaxHealth",
-  },
-  {
-    id: "bouncy_wall",
-    name: "Bouncy Wall",
-    description: "+2 bounces, +10% dmg/bounce",
-    color: 0x88ccff,
-    iconKey: "abilityBouncyWall",
   },
   {
     id: "dodge_master",
@@ -172,21 +144,6 @@ export const ABILITIES: AbilityData[] = [
     color: 0x9933ff,
     iconKey: "abilityThroughWall",
     maxLevel: 1, // Non-stacking ability
-  },
-  {
-    id: "giant",
-    name: "Giant",
-    description: "+40% damage, larger hitbox",
-    color: 0xcc3300,
-    iconKey: "abilityGiant",
-  },
-  // Orbital abilities
-  {
-    id: "chainsaw_orbit",
-    name: "Chainsaw Orbit",
-    description: "Spinning saw deals damage",
-    color: 0xcc4400,
-    iconKey: "abilityChainsawOrbit",
   },
   // Note: Shatter and Fire Spread are now passive effects:
   // - Ice Shot: Frozen enemies take +50% damage (shatter is built-in)

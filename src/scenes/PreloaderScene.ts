@@ -254,24 +254,16 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image("abilityPiercing", "assets/sprites/abilities/piercing.png");
     this.load.image("abilityRicochet", "assets/sprites/abilities/ricochet.png");
     // Load ability icons - V1 abilities
-    this.load.image("abilityRearArrow", "assets/sprites/abilities/rear_arrow.png");
     this.load.image("abilityDiagonalArrows", "assets/sprites/abilities/diagonal_arrows.png");
-    this.load.image("abilityDamageAura", "assets/sprites/abilities/damage_aura.png");
     this.load.image("abilityIceShot", "assets/sprites/abilities/ice_shot.png");
     this.load.image("abilityPoisonShot", "assets/sprites/abilities/poison_shot.png");
     this.load.image("abilityLightningChain", "assets/sprites/abilities/lightning_chain.png");
     this.load.image("abilityBloodthirst", "assets/sprites/abilities/bloodthirst.png");
-    this.load.image("abilityRage", "assets/sprites/abilities/rage.png");
     this.load.image("abilityMaxHealth", "assets/sprites/abilities/max_health.png");
     this.load.image("abilitySpeedBoost", "assets/sprites/abilities/speed_boost.png");
-    this.load.image("abilityBouncyWall", "assets/sprites/abilities/bouncy_wall.png");
     this.load.image("abilityDodgeMaster", "assets/sprites/abilities/dodge_master.png");
     this.load.image("abilityExtraLife", "assets/sprites/abilities/extra_life.png");
-    this.load.image("abilityThroughWall", "assets/sprites/abilities/through_wall.png");
-    this.load.image("abilityGiant", "assets/sprites/abilities/giant.png");
-    // Orbital abilities
-    this.load.image("abilityChainsawOrbit", "assets/sprites/abilities/chainsaw_orbit.png");
-    this.load.image("chainsawOrbit", "assets/sprites/abilities/chainsaw_orbit.png"); // Sprite for in-game visual
+    this.load.image("abilityThroughWall", "assets/sprites/abilities/through_wall.png")
 
     // Load hero icons
     this.load.image("heroAtreus", "assets/sprites/ui/hero_atreus.png");

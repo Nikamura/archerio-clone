@@ -124,7 +124,7 @@ export const HERO_DEFINITIONS: Record<HeroId, HeroDefinition> = {
   helix: {
     id: "helix",
     name: "Helix",
-    description: "A berserker who grows stronger as health drops. High risk, high reward.",
+    description: "A fierce warrior with deadly precision. Higher crit chance and damage.",
     unlockCost: 1500,
     unlockCurrency: "gold",
     baseStats: {
@@ -133,9 +133,9 @@ export const HERO_DEFINITIONS: Record<HeroId, HeroDefinition> = {
       attackSpeed: 0.95,
     },
     ability: {
-      id: "rage",
-      name: "Rage",
-      description: "+5% damage for every 10% missing HP",
+      id: "crit",
+      name: "Critical Strike",
+      description: "+10% crit chance, +20% crit damage",
       type: "passive",
     },
     perks: [
@@ -147,15 +147,15 @@ export const HERO_DEFINITIONS: Record<HeroId, HeroDefinition> = {
       },
       {
         level: 20,
-        name: "Bloodlust",
-        description: "Rage bonus increased to +7% per 10% missing HP",
-        effect: { type: "ability_enhance", special: "rage_boost" },
+        name: "Deadly Precision",
+        description: "+5% additional crit chance",
+        effect: { type: "stat_boost", stat: "critChance", value: 0.05 },
       },
       {
         level: 40,
-        name: "Berserker",
-        description: "+25% crit damage when below 50% HP",
-        effect: { type: "special", special: "berserker_crit" },
+        name: "Executioner",
+        description: "+25% crit damage",
+        effect: { type: "stat_boost", stat: "critDamage", value: 0.25 },
       },
       {
         level: 60,
@@ -284,25 +284,6 @@ export function getHeroXPThreshold(currentLevel: number): number {
 // ============================================
 // Hero Ability Helpers
 // ============================================
-
-/**
- * Calculate Helix's rage damage bonus based on missing HP
- * @param currentHP Current health points
- * @param maxHP Maximum health points
- * @param boosted Whether the rage_boost perk is active (level 20)
- * @returns Damage multiplier (e.g., 1.25 = 25% bonus)
- */
-export function calculateHelixDamageBonus(
-  currentHP: number,
-  maxHP: number,
-  boosted: boolean = false,
-): number {
-  if (maxHP <= 0) return 1.0;
-  const missingHPPercent = 1 - currentHP / maxHP;
-  const bonusPerTenPercent = boosted ? 0.07 : 0.05;
-  const bonusMultiplier = Math.floor(missingHPPercent * 10) * bonusPerTenPercent;
-  return 1 + bonusMultiplier;
-}
 
 /**
  * Spirit cat configuration for Meowgik

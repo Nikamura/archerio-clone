@@ -39,7 +39,6 @@ export interface EventHandlerDependencies {
   updatePlayerHealthUI: (player: Player) => void;
   updateXPUI: () => void;
   resetJoystickState: () => void;
-  updatePlayerHitboxForGiant: () => void;
   handleBombExplosion: (x: number, y: number, radius: number, damage: number) => void;
 }
 
@@ -339,11 +338,11 @@ export class EventHandlerFactory {
   }
 
   /**
-   * Ability event handlers (3 handlers)
+   * Ability event handlers (2 handlers)
    */
   private createAbilityHandlers(): Pick<
     GameSceneEventHandlers,
-    "onAbilitiesUpdated" | "onHealthUpdated" | "onGiantLevelChanged"
+    "onAbilitiesUpdated" | "onHealthUpdated"
   > {
     return {
       onAbilitiesUpdated: (abilities) => {
@@ -351,9 +350,6 @@ export class EventHandlerFactory {
       },
       onHealthUpdated: (current, max) => {
         this.deps.scene.scene.get("UIScene").events.emit("updateHealth", current, max);
-      },
-      onGiantLevelChanged: () => {
-        this.deps.updatePlayerHitboxForGiant();
       },
     };
   }

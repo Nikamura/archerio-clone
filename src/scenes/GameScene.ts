@@ -115,7 +115,6 @@ export default class GameScene extends Phaser.Scene {
         updatePlayerHealthUI: (player) => this.updatePlayerHealthUI(player),
         updateXPUI: () => this.updateXPUI(),
         resetJoystickState: () => this.resetJoystickState(),
-        updatePlayerHitboxForGiant: () => this.updatePlayerHitboxForGiant(),
         handleBombExplosion: (x, y, radius, damage) =>
           this.handleBombExplosion(x, y, radius, damage),
       },
@@ -422,31 +421,6 @@ export default class GameScene extends Phaser.Scene {
     this.scene
       .get("UIScene")
       .events.emit("updateHealth", player.getHealth(), player.getMaxHealth());
-  }
-
-  /**
-   * Update player hitbox size for Giant ability
-   * Each level increases hitbox by 15%
-   */
-  private updatePlayerHitboxForGiant() {
-    const giantLevel = this.player.getGiantLevel();
-    if (giantLevel <= 0) return;
-
-    // Base hitbox is 16, increase by 15% per level
-    const newHitboxRadius = 16 * (1 + giantLevel * 0.15);
-
-    // Also scale player sprite slightly
-    const scaleMultiplier = 1 + giantLevel * 0.1; // 10% larger per level
-    this.player.setScale(scaleMultiplier);
-
-    // Update physics body
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (body) {
-      const displaySize = 64 * scaleMultiplier;
-      const offset = (displaySize - newHitboxRadius * 2) / 2;
-      body.setSize(displaySize, displaySize);
-      body.setCircle(newHitboxRadius, offset, offset);
-    }
   }
 
   /**

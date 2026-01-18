@@ -14,7 +14,6 @@ export interface AcquiredAbility {
 export interface AbilityEventHandlers {
   onAbilitiesUpdated: (abilities: AcquiredAbility[]) => void;
   onHealthUpdated: (current: number, max: number) => void;
-  onGiantLevelChanged?: (level: number) => void;
 }
 
 /**
@@ -78,26 +77,14 @@ export class AbilitySystem {
       case "diagonal_arrows":
         this.player.addDiagonalArrows();
         break;
-      case "rear_arrow":
-        this.player.addRearArrow();
-        break;
-      case "damage_aura":
-        this.player.addDamageAura();
-        break;
       case "bloodthirst":
         this.player.addBloodthirst();
-        break;
-      case "rage":
-        this.player.addRage();
         break;
       case "speed_boost":
         this.player.addSpeedBoost();
         break;
       case "max_health":
         this.player.addMaxHealthBoost();
-        break;
-      case "bouncy_wall":
-        this.player.addWallBounce();
         break;
       case "dodge_master":
         this.player.addDodgeMaster();
@@ -109,18 +96,6 @@ export class AbilitySystem {
         break;
       case "through_wall":
         this.player.addThroughWall();
-        break;
-      case "giant":
-        this.player.addGiant();
-        // Notify about giant level change for hitbox update
-        if (this.eventHandlers.onGiantLevelChanged) {
-          this.eventHandlers.onGiantLevelChanged(this.player.getGiantLevel());
-        }
-        break;
-
-      // Orbital abilities
-      case "chainsaw_orbit":
-        this.player.addChainsawOrbit();
         break;
 
       // Note: Shatter and Fire Spread are now passive effects of Ice Shot and Fire Damage

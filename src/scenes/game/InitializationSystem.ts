@@ -102,7 +102,6 @@ export interface GameSceneEventHandlers {
   // Ability events
   onAbilitiesUpdated: (abilities: unknown[]) => void;
   onHealthUpdated: (current: number, max: number) => void;
-  onGiantLevelChanged: () => void;
 
   // Run end events
   onInputDestroyed: () => void;
@@ -267,7 +266,6 @@ export class InitializationSystem {
     const abilitySystem = new AbilitySystem(player, {
       onAbilitiesUpdated: this.eventHandlers.onAbilitiesUpdated,
       onHealthUpdated: this.eventHandlers.onHealthUpdated,
-      onGiantLevelChanged: this.eventHandlers.onGiantLevelChanged,
     });
 
     // Create physics groups
@@ -500,10 +498,10 @@ export class InitializationSystem {
     // Set dodge chance from equipment
     player.setDodgeChance(calculatedStats.dodgeChance);
 
-    // Apply Helix rage passive
+    // Apply Helix crit passive
     if (selectedHeroId === "helix") {
-      player.addRage();
-      console.log("GameScene: Helix passive - Rage level 1 applied automatically");
+      player.addCritBoost();
+      console.log("GameScene: Helix passive - Critical Strike level 1 applied automatically");
     }
 
     // Initialize spirit cat system if Meowgik

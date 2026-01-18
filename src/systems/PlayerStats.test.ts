@@ -634,32 +634,6 @@ describe("PlayerStats", () => {
       });
     });
 
-    describe("Bouncy Wall", () => {
-      it("adds 2 wall bounces per level", () => {
-        expect(stats.getWallBounces()).toBe(0);
-        stats.addWallBounce();
-        expect(stats.getWallBounces()).toBe(2);
-        stats.addWallBounce();
-        expect(stats.getWallBounces()).toBe(4);
-      });
-
-      it("applies 10% damage bonus per wall bounce", () => {
-        stats.addWallBounce(); // Enable wall bounce ability
-        // No bounces: 1.0x damage
-        expect(stats.getWallBounceDamageMultiplier(0)).toBeCloseTo(1.0);
-        // 1 bounce: 1.1x damage
-        expect(stats.getWallBounceDamageMultiplier(1)).toBeCloseTo(1.1);
-        // 2 bounces: 1.2x damage
-        expect(stats.getWallBounceDamageMultiplier(2)).toBeCloseTo(1.2);
-        // 5 bounces: 1.5x damage
-        expect(stats.getWallBounceDamageMultiplier(5)).toBeCloseTo(1.5);
-      });
-
-      it("returns 1.0 if ability not acquired", () => {
-        // Without the ability, no bonus even with bounces
-        expect(stats.getWallBounceDamageMultiplier(3)).toBeCloseTo(1.0);
-      });
-    });
   });
 
   // ============================================

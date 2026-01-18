@@ -222,20 +222,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addDiagonalArrows();
   }
 
-  addRearArrow() {
-    this.stats?.addRearArrow();
-  }
-
-  addDamageAura() {
-    this.stats?.addDamageAura();
-  }
-
   addBloodthirst() {
     this.stats?.addBloodthirst();
-  }
-
-  addRage() {
-    this.stats?.addRage();
   }
 
   addSpeedBoost() {
@@ -244,10 +232,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   addMaxHealthBoost() {
     this.stats?.addMaxHealthBoost();
-  }
-
-  addWallBounce() {
-    this.stats?.addWallBounce();
   }
 
   addDodgeMaster() {
@@ -260,14 +244,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   addThroughWall() {
     this.stats?.addThroughWall();
-  }
-
-  addGiant() {
-    this.stats?.addGiant();
-  }
-
-  addChainsawOrbit() {
-    this.stats?.addChainsawOrbit();
   }
 
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
@@ -361,36 +337,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.getDiagonalArrows() ?? 0;
   }
 
-  getRearArrows(): number {
-    return this.stats?.getRearArrows() ?? 0;
-  }
-
-  getDamageAuraLevel(): number {
-    return this.stats?.getDamageAuraLevel() ?? 0;
-  }
-
-  getDamageAuraDPS(): number {
-    return this.stats?.getDamageAuraDPS() ?? 0;
-  }
-
-  getDamageAuraRadius(): number {
-    return this.stats?.getDamageAuraRadius() ?? 0;
-  }
-
   getBloodthirstHeal(): number {
     return this.stats?.getBloodthirstHeal() ?? 0;
   }
 
-  getRageLevel(): number {
-    return this.stats?.getRageLevel() ?? 0;
-  }
-
   getMovementSpeedMultiplier(): number {
     return this.stats?.getMovementSpeedMultiplier() ?? 1.0;
-  }
-
-  getWallBounces(): number {
-    return this.stats?.getWallBounces() ?? 0;
   }
 
   // Devil ability getters
@@ -404,23 +356,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   isThroughWallEnabled(): boolean {
     return this.stats?.isThroughWallEnabled() ?? false;
-  }
-
-  getGiantLevel(): number {
-    return this.stats?.getGiantLevel() ?? 0;
-  }
-
-  getGiantDamageMultiplier(): number {
-    return this.stats?.getGiantDamageMultiplier() ?? 1.0;
-  }
-
-  // Chainsaw orbit getters
-  getChainsawOrbitCount(): number {
-    return this.stats?.getChainsawOrbitCount() ?? 0;
-  }
-
-  getChainsawOrbitDamage(): number {
-    return this.stats?.getChainsawOrbitDamage() ?? 0;
   }
 
   // Conditional damage ability getters
@@ -439,11 +374,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   // Lightning chain damage multiplier (progressive reduction per chain)
   getLightningChainDamageMultiplier(chainNumber: number): number {
     return this.stats?.getLightningChainDamageMultiplier(chainNumber) ?? 1.0;
-  }
-
-  // Wall bounce damage multiplier (bonus damage per bounce)
-  getWallBounceDamageMultiplier(bounceCount: number): number {
-    return this.stats?.getWallBounceDamageMultiplier(bounceCount) ?? 1.0;
   }
 
   // Reset run-based stats

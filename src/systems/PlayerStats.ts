@@ -55,21 +55,13 @@ export class PlayerStats {
   private lightningChainCount: number = 0; // Number of enemies lightning chains to
   private bleedDamagePercent: number = 0; // Percentage of weapon damage as bleed DOT (2x when moving)
   private diagonalArrows: number = 0; // Number of diagonal arrow pairs
-  private rearArrows: number = 0; // Number of rear arrows
-  private damageAuraLevel: number = 0; // AOE damage aura around player
   private bloodthirstHealPercent: number = 0; // Percentage of max HP healed per kill (caps at 5%)
-  private rageLevel: number = 0; // +5% damage per 10% missing HP, per level
   private movementSpeedMultiplier: number = 1.0; // Movement speed multiplier
   private maxHealthMultiplier: number = 1.0; // Max health multiplier from Vitality ability
-  private wallBounceLevel: number = 0; // Number of wall bounces per level
 
   // Devil abilities
   private extraLives: number = 0; // Number of revives available
   private throughWallEnabled: boolean = false; // Arrows pass through walls
-  private giantLevel: number = 0; // +40% damage per level, larger player hitbox
-
-  // Orbital abilities
-  private chainsawOrbitLevel: number = 0; // Number of chainsaws orbiting player
 
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
@@ -213,28 +205,11 @@ export class PlayerStats {
   /**
    * Calculate current damage with ability modifiers
    * Front Arrow reduces damage by 15% per extra projectile (buffed from 25%)
-   * Rage adds +5% damage per 10% missing HP per level
-   * Giant adds +40% damage per level
    */
   getDamage(): number {
     const frontArrowPenalty = Math.pow(0.85, this.extraProjectiles);
 
-    // Calculate rage bonus based on missing HP
-    let rageBonus = 1.0;
-    if (this.rageLevel > 0) {
-      const missingHpPercent = 1 - this.health / this.maxHealth;
-      // +5% damage per 10% missing HP per level
-      // At 50% HP missing with level 1: 5 * 0.05 = 25% bonus
-      const bonusPercent = Math.floor(missingHpPercent * 10) * 0.05 * this.rageLevel;
-      rageBonus = 1 + bonusPercent;
-    }
-
-    // Giant damage bonus
-    const giantBonus = this.getGiantDamageMultiplier();
-
-    return Math.floor(
-      this.baseDamage * this.damageMultiplier * frontArrowPenalty * rageBonus * giantBonus,
-    );
+    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty);
   }
 
   /**
@@ -346,31 +321,6 @@ export class PlayerStats {
     return this.diagonalArrows;
   }
 
-  getRearArrows(): number {
-    return this.rearArrows;
-  }
-
-  getDamageAuraLevel(): number {
-    return this.damageAuraLevel;
-  }
-
-  /**
-   * Get damage aura DPS (15% of weapon damage per second per level)
-   * Scales with weapon damage for late-game relevance
-   */
-  getDamageAuraDPS(): number {
-    if (this.damageAuraLevel <= 0) return 0;
-    // 15% of weapon damage per second per level
-    return Math.floor(this.getDamage() * 0.15 * this.damageAuraLevel);
-  }
-
-  /**
-   * Get damage aura radius (100px base, buffed from 80px)
-   */
-  getDamageAuraRadius(): number {
-    return this.damageAuraLevel > 0 ? 100 : 0;
-  }
-
   /**
    * Get bloodthirst heal amount (percentage of max HP)
    * Returns the actual HP amount to heal based on current max HP
@@ -384,33 +334,8 @@ export class PlayerStats {
     return this.bloodthirstHealPercent;
   }
 
-  getRageLevel(): number {
-    return this.rageLevel;
-  }
-
   getMovementSpeedMultiplier(): number {
     return Math.min(4.0, this.movementSpeedMultiplier); // Cap at 400%
-  }
-
-  getWallBounceLevel(): number {
-    return this.wallBounceLevel;
-  }
-
-  /**
-   * Get total wall bounces (2 per level)
-   */
-  getWallBounces(): number {
-    return this.wallBounceLevel * 2;
-  }
-
-  /**
-   * Get wall bounce damage bonus (+10% per bounce)
-   * @param bounceCount number of wall bounces the projectile has done
-   * @returns damage multiplier (e.g., 1.3 for 3 bounces)
-   */
-  getWallBounceDamageMultiplier(bounceCount: number): number {
-    if (this.wallBounceLevel <= 0 || bounceCount <= 0) return 1.0;
-    return 1 + bounceCount * 0.1; // +10% per bounce
   }
 
   // Devil ability getters
@@ -435,30 +360,6 @@ export class PlayerStats {
 
   isThroughWallEnabled(): boolean {
     return this.throughWallEnabled;
-  }
-
-  getGiantLevel(): number {
-    return this.giantLevel;
-  }
-
-  /**
-   * Get giant damage multiplier (+40% per level)
-   */
-  getGiantDamageMultiplier(): number {
-    return 1 + this.giantLevel * 0.4;
-  }
-
-  // Chainsaw orbit getters
-  getChainsawOrbitCount(): number {
-    return this.chainsawOrbitLevel;
-  }
-
-  /**
-   * Get chainsaw orbit damage (50% of weapon damage per hit)
-   */
-  getChainsawOrbitDamage(): number {
-    if (this.chainsawOrbitLevel <= 0) return 0;
-    return Math.floor(this.getDamage() * 0.5);
   }
 
   // Conditional damage ability getters (now passive effects)
@@ -634,35 +535,11 @@ export class PlayerStats {
   }
 
   /**
-   * Add Rear Arrow ability (+2 arrows shooting backwards)
-   * Stacking: Each level adds +2 rear arrows (buffed from +1)
-   */
-  addRearArrow(): void {
-    this.rearArrows += 2;
-  }
-
-  /**
-   * Add Damage Aura ability (15% weapon DPS in 100px radius)
-   * Stacking: Each level adds +15% weapon damage per second (scales with damage)
-   */
-  addDamageAura(): void {
-    this.damageAuraLevel++;
-  }
-
-  /**
    * Add Bloodthirst ability (+1% max HP per kill per level)
    * Stacking: Each level adds +1% max HP healed per kill (caps at 5%)
    */
   addBloodthirst(): void {
     this.bloodthirstHealPercent = Math.min(0.05, this.bloodthirstHealPercent + 0.01);
-  }
-
-  /**
-   * Add Rage ability (+5% damage per 10% missing HP per level)
-   * Stacking: Each level increases damage scaling
-   */
-  addRage(): void {
-    this.rageLevel++;
   }
 
   /**
@@ -693,14 +570,6 @@ export class PlayerStats {
   }
 
   /**
-   * Add Bouncy Wall ability (+2 wall bounces per level, +10% damage per bounce)
-   * Stacking: Each level adds +2 wall bounces, damage increases per bounce
-   */
-  addWallBounce(): void {
-    this.wallBounceLevel++;
-  }
-
-  /**
    * Add Dodge Master ability (+3% dodge chance per level)
    * Stacking: Additive (capped at 15%, buffed from 3%)
    */
@@ -722,22 +591,6 @@ export class PlayerStats {
    */
   addThroughWall(): void {
     this.throughWallEnabled = true;
-  }
-
-  /**
-   * Add Giant ability (+40% damage, larger hitbox per level)
-   * Stacking: Each level adds +40% damage
-   */
-  addGiant(): void {
-    this.giantLevel++;
-  }
-
-  /**
-   * Add Chainsaw Orbit ability (+1 orbiting chainsaw per level)
-   * Stacking: Each level adds +1 chainsaw at even spacing
-   */
-  addChainsawOrbit(): void {
-    this.chainsawOrbitLevel++;
   }
 
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
@@ -795,19 +648,12 @@ export class PlayerStats {
     this.bleedDamagePercent = 0;
     this.lightningChainCount = 0;
     this.diagonalArrows = 0;
-    this.rearArrows = 0;
-    this.damageAuraLevel = 0;
     this.bloodthirstHealPercent = 0;
-    this.rageLevel = 0;
     this.movementSpeedMultiplier = 1.0;
     this.maxHealthMultiplier = 1.0;
-    this.wallBounceLevel = 0;
     // Reset devil abilities
     this.extraLives = 0;
     this.throughWallEnabled = false;
-    this.giantLevel = 0;
-    // Reset orbital abilities
-    this.chainsawOrbitLevel = 0;
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
@@ -834,17 +680,11 @@ export class PlayerStats {
     bleedDamagePercent: number;
     lightningChainCount: number;
     diagonalArrows: number;
-    rearArrows: number;
-    damageAuraLevel: number;
     bloodthirstHealPercent: number;
-    rageLevel: number;
     movementSpeedMultiplier: number;
     maxHealthMultiplier: number;
-    wallBounceLevel: number;
     extraLives: number;
     throughWallEnabled: boolean;
-    giantLevel: number;
-    chainsawOrbitLevel: number;
     hasFireSpread: boolean;
     hasShatter: boolean;
   } {
@@ -868,17 +708,11 @@ export class PlayerStats {
       bleedDamagePercent: this.bleedDamagePercent,
       lightningChainCount: this.lightningChainCount,
       diagonalArrows: this.diagonalArrows,
-      rearArrows: this.rearArrows,
-      damageAuraLevel: this.damageAuraLevel,
       bloodthirstHealPercent: this.bloodthirstHealPercent,
-      rageLevel: this.rageLevel,
       movementSpeedMultiplier: this.movementSpeedMultiplier,
       maxHealthMultiplier: this.maxHealthMultiplier,
-      wallBounceLevel: this.wallBounceLevel,
       extraLives: this.extraLives,
       throughWallEnabled: this.throughWallEnabled,
-      giantLevel: this.giantLevel,
-      chainsawOrbitLevel: this.chainsawOrbitLevel,
       hasFireSpread: this.hasFireSpread(),
       hasShatter: this.getShatterLevel() > 0,
     };

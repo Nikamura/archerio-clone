@@ -82,10 +82,6 @@ export class CombatSystem {
   private isLevelingUp: boolean = false;
   private isTransitioning: boolean = false;
 
-  // Damage aura tracking
-  private lastAuraDamageTime: number = 0;
-  private readonly AURA_DAMAGE_INTERVAL = 500; // Apply damage every 500ms
-
   constructor(config: CombatSystemConfig) {
     this.scene = config.scene;
     this.player = config.player;
@@ -160,13 +156,6 @@ export class CombatSystem {
     const hitCount = bulletSprite.getHitCount();
     if (hitCount > 0 && bulletSprite.getMaxPierces() > 0) {
       damage = this.player.getPiercingDamage(hitCount);
-    }
-
-    // Apply wall bounce damage bonus (+10% per wall bounce)
-    const wallBounceCount = bulletSprite.getWallBounceCount();
-    if (wallBounceCount > 0) {
-      const wallBounceMultiplier = this.player.getWallBounceDamageMultiplier(wallBounceCount);
-      damage = Math.floor(damage * wallBounceMultiplier);
     }
 
     // Shatter: bonus damage to frozen enemies
@@ -514,50 +503,6 @@ export class CombatSystem {
 
     if (killed) {
       this.handleEnemyKilled(enemySprite, !!isBoss);
-    }
-  }
-
-  /**
-   * Apply damage aura to nearby enemies
-   */
-  applyDamageAura(time: number, playerX: number, playerY: number): void {
-    const auraDPS = this.player.getDamageAuraDPS();
-    if (auraDPS <= 0) return;
-
-    // Only apply damage at intervals
-    if (time - this.lastAuraDamageTime < this.AURA_DAMAGE_INTERVAL) return;
-    this.lastAuraDamageTime = time;
-
-    const auraRadius = this.player.getDamageAuraRadius();
-    const damagePerTick = Math.floor(auraDPS / 2);
-
-    const enemiesToDestroy: Enemy[] = [];
-
-    // Find and damage all enemies within aura radius
-    this.enemies.getChildren().forEach((enemy) => {
-      const e = enemy as Enemy;
-      if (!e.active) return;
-
-      const distance = Phaser.Math.Distance.Between(playerX, playerY, e.x, e.y);
-      if (distance <= auraRadius) {
-        const killed = e.takeDamage(damagePerTick);
-
-        // Show damage number
-        this.damageNumberPool.showEnemyDamage(e.x, e.y, damagePerTick, false);
-
-        // Visual feedback
-        this.particles.emitHit(e.x, e.y);
-
-        if (killed) {
-          enemiesToDestroy.push(e);
-        }
-      }
-    });
-
-    // Handle deaths from aura damage
-    for (const e of enemiesToDestroy) {
-      const isBoss = this.boss && e === (this.boss as unknown as Enemy);
-      this.handleEnemyKilled(e, !!isBoss);
     }
   }
 

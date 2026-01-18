@@ -31,33 +31,22 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | Ability        | Effect                           |
 | -------------- | -------------------------------- |
 | Diagonal Arrow | Fires additional diagonal arrows |
-| Rear Arrow     | Fires arrows behind player       |
-| Bouncy Wall    | Arrows bounce off walls          |
 | Through Wall   | Arrows pass through walls        |
 
 ### Utility Abilities
 
 | Ability      | Effect                           |
 | ------------ | -------------------------------- |
-| Damage Aura  | Deals damage to nearby enemies   |
 | Bloodthirst  | Heal HP on enemy kill            |
-| Rage         | Damage increases as HP decreases |
 | Speed Boost  | +movement speed                  |
 | Vitality     | +max HP                          |
 | Dodge Master | +3% dodge chance (capped at 15%) |
 
 ### Devil Abilities (HP Cost)
 
-| Ability    | Effect                     | Cost         |
-| ---------- | -------------------------- | ------------ |
-| Extra Life | Revive once per run        | HP sacrifice |
-| Giant      | +40% damage, larger hitbox | HP sacrifice |
-
-### Orbital Abilities
-
-| Ability        | Effect                                   |
-| -------------- | ---------------------------------------- |
-| Chainsaw Orbit | Rotating chainsaw damages nearby enemies |
+| Ability    | Effect              | Cost         |
+| ---------- | ------------------- | ------------ |
+| Extra Life | Revive once per run | HP sacrifice |
 
 ## Passive Synergies
 

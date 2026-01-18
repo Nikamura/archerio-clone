@@ -143,16 +143,10 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     const gameWidth = this.scene.scale.width;
     const gameHeight = this.scene.scale.height;
 
-    // Through Wall: Arrows wrap around screen edges
-    if (this.throughWallEnabled) {
-      if (this.x < 0) this.x = gameWidth;
-      else if (this.x > gameWidth) this.x = 0;
-      if (this.y < 0) this.y = gameHeight;
-      else if (this.y > gameHeight) this.y = 0;
-      return; // Skip wall bouncing and normal deactivation
-    }
+    // Through Wall: Bullets pass through walls but still deactivate off-screen
+    // Wall collision is handled in CombatSystem.bulletHitWall (returns early if throughWallEnabled)
 
-    // Handle wall bouncing
+    // Handle wall bouncing (only if ability is active)
     if (this.maxWallBounces > 0 && this.wallBounceCount < this.maxWallBounces) {
       let bounced = false;
       const body = this.body as Phaser.Physics.Arcade.Body;
