@@ -37,6 +37,19 @@ Different chapters have different elemental resistances, encouraging players to 
 
 _Values < 1.0 = resistant (less damage), > 1.0 = vulnerable (more damage)_
 
+## Game Speed
+
+Players can speed up gameplay for faster progression using the speed toggle button in the top-right corner of the HUD:
+
+| Speed | Effect | Color |
+|-------|--------|-------|
+| **1x** | Normal speed | Blue |
+| **2x** | Double speed | Green |
+| **3x** | Triple speed | Orange |
+| **5x** | Five times speed | Orange |
+
+Click the button to cycle through speeds. The setting persists across sessions.
+
 ## Level Structure
 
 - 20 rooms per chapter with door transitions

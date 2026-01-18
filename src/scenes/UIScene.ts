@@ -289,11 +289,6 @@ export default class UIScene extends Phaser.Scene {
     speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
     this.speedButton.add(speedBg);
 
-    // Make interactive
-    const hitArea = this.add.rectangle(0, 0, 36, 20, 0x000000, 0);
-    hitArea.setInteractive({ useHandCursor: true });
-    this.speedButton.add(hitArea);
-
     // Speed text
     this.speedText = this.add
       .text(0, 0, `${this.currentSpeed}x`, {
@@ -304,8 +299,15 @@ export default class UIScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.speedButton.add(this.speedText);
 
+    // Make container interactive with explicit hit area (per CLAUDE.md pattern)
+    this.speedButton.setInteractive(
+      new Phaser.Geom.Rectangle(-18, -10, 36, 20),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.speedButton.input!.cursor = "pointer";
+
     // Click handler to cycle speed
-    hitArea.on("pointerdown", () => {
+    this.speedButton.on("pointerdown", () => {
       const newSpeed = saveManager.cycleGameSpeed();
       this.currentSpeed = newSpeed;
       this.speedText.setText(`${newSpeed}x`);
@@ -324,7 +326,7 @@ export default class UIScene extends Phaser.Scene {
     });
 
     // Hover effects
-    hitArea.on("pointerover", () => {
+    this.speedButton.on("pointerover", () => {
       speedBg.clear();
       speedBg.fillStyle(0x000000, 0.8);
       speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
@@ -333,7 +335,7 @@ export default class UIScene extends Phaser.Scene {
       speedBg.lineStyle(2, color);
       speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
     });
-    hitArea.on("pointerout", () => {
+    this.speedButton.on("pointerout", () => {
       speedBg.clear();
       speedBg.fillStyle(0x000000, 0.6);
       speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
