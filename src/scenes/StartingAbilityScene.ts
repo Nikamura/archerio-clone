@@ -4,6 +4,7 @@ import { DURATION, EASING } from "../systems/UIAnimations";
 import { abilityPriorityManager } from "../systems/AbilityPriorityManager";
 import { ABILITIES, AbilityData } from "../config/abilityData";
 import { SeededRandom } from "../systems/SeededRandom";
+import { ScrollContainer } from "../ui/components/ScrollContainer";
 
 export interface StartingAbilityData {
   /** Number of starting abilities remaining to select */
@@ -30,6 +31,8 @@ export default class StartingAbilityScene extends Phaser.Scene {
   private currentSelection: number = 1;
   private totalSelections: number = 1;
   private rng!: SeededRandom;
+  private isDebugMode: boolean = false;
+  private scrollContainer?: ScrollContainer;
 
   constructor() {
     super({ key: "StartingAbilityScene" });
@@ -42,6 +45,8 @@ export default class StartingAbilityScene extends Phaser.Scene {
     this.progressBar = undefined;
     this.timerText = undefined;
     this.isSelecting = false;
+    this.isDebugMode = false;
+    this.scrollContainer = undefined;
     this.remainingSelections = data.remainingSelections;
     this.currentSelection = data.currentSelection;
     this.totalSelections = data.totalSelections;
@@ -87,13 +92,16 @@ export default class StartingAbilityScene extends Phaser.Scene {
       this.modalContainer.setScale(0.8);
       this.modalContainer.setAlpha(0);
 
-      // Modal background
+      // Check for debug mode
+      this.isDebugMode = this.game.registry.get("debug") === true;
+
+      // Modal background - taller in debug mode for scrolling
       const modalWidth = width - 40;
-      const modalHeight = 340;
+      const modalHeight = this.isDebugMode ? height - 80 : 340;
       const modalBg = this.add.graphics();
       modalBg.fillStyle(0x1a1a2e, 0.98);
       modalBg.fillRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16);
-      modalBg.lineStyle(2, 0x8855ff, 1); // Purple border to differentiate from level-up
+      modalBg.lineStyle(2, this.isDebugMode ? 0xff6666 : 0x8855ff, 1); // Red border in debug mode
       modalBg.strokeRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16);
       this.modalContainer.add(modalBg);
 
@@ -105,7 +113,7 @@ export default class StartingAbilityScene extends Phaser.Scene {
       const title = this.add
         .text(0, -modalHeight / 2 + 30, titleText, {
           fontSize: "20px",
-          color: "#bb88ff",
+          color: this.isDebugMode ? "#ff6666" : "#bb88ff",
           fontStyle: "bold",
         })
         .setOrigin(0.5);
@@ -113,30 +121,71 @@ export default class StartingAbilityScene extends Phaser.Scene {
       this.modalContainer.add(title);
 
       // Subtitle
+      const subtitleText = this.isDebugMode
+        ? "DEBUG: All abilities (scroll)"
+        : "Glory talent bonus - Choose wisely!";
       const subtitle = this.add
-        .text(0, -modalHeight / 2 + 55, "Glory talent bonus - Choose wisely!", {
+        .text(0, -modalHeight / 2 + 55, subtitleText, {
           fontSize: "12px",
-          color: "#888888",
+          color: this.isDebugMode ? "#ff6666" : "#888888",
         })
         .setOrigin(0.5);
       this.modalContainer.add(subtitle);
 
-      // Select 3 random abilities using seeded RNG
-      this.selectedAbilities = this.selectRandomAbilities(3);
+      // Select abilities - all in debug mode, 3 random otherwise
+      if (this.isDebugMode) {
+        this.selectedAbilities = [...ABILITIES];
+      } else {
+        this.selectedAbilities = this.selectRandomAbilities(3);
+      }
 
       // Create ability cards
       const cardWidth = modalWidth - 30;
       const cardHeight = 60;
       const cardSpacing = 70;
-      const startY = -30;
 
-      this.selectedAbilities.forEach((ability, index) => {
-        const y = startY + index * cardSpacing;
-        this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index);
-      });
+      if (this.isDebugMode) {
+        // Debug mode: use scroll container for all abilities
+        const scrollTop = height / 2 - modalHeight / 2 + 70;
+        const scrollBottom = height / 2 + modalHeight / 2 - 40;
 
-      // Progress bar at bottom of modal
-      this.createProgressBar(modalWidth, modalHeight);
+        this.scrollContainer = new ScrollContainer({
+          scene: this,
+          width,
+          bounds: { top: scrollTop, bottom: scrollBottom },
+          depth: 20, // Above modal (depth 10)
+        });
+
+        let currentY = scrollTop + 10;
+        this.selectedAbilities.forEach((ability, index) => {
+          const card = this.createAbilityCardForScroll(
+            width / 2,
+            currentY,
+            cardWidth,
+            cardHeight,
+            ability,
+            index,
+          );
+          this.scrollContainer!.add(card);
+          this.abilityCards.push(card);
+          currentY += cardSpacing;
+        });
+
+        const contentHeight = this.selectedAbilities.length * cardSpacing + 20;
+        this.scrollContainer.setContentHeight(contentHeight);
+      } else {
+        // Normal mode: fixed cards in modal
+        const startY = -30;
+        this.selectedAbilities.forEach((ability, index) => {
+          const y = startY + index * cardSpacing;
+          this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index);
+        });
+      }
+
+      // Progress bar at bottom of modal (only in normal mode)
+      if (!this.isDebugMode) {
+        this.createProgressBar(modalWidth, modalHeight);
+      }
 
       // Animate modal in
       this.tweens.add({
@@ -146,7 +195,10 @@ export default class StartingAbilityScene extends Phaser.Scene {
         duration: 200,
         ease: "Back.easeOut",
         onComplete: () => {
-          this.startSelectionTimer();
+          // Only start timer in normal mode
+          if (!this.isDebugMode) {
+            this.startSelectionTimer();
+          }
         },
       });
 
@@ -423,6 +475,107 @@ export default class StartingAbilityScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Creates an ability card for debug mode scroll container (absolute positioning)
+   */
+  private createAbilityCardForScroll(
+    x: number,
+    y: number,
+    cardWidth: number,
+    cardHeight: number,
+    ability: AbilityData,
+    _index: number,
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    // Depth is set by caller after creation
+
+    // Card background
+    const cardBg = this.add.graphics();
+    cardBg.fillStyle(0x252540, 1);
+    cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10);
+
+    // Left accent bar (ability color)
+    cardBg.fillStyle(ability.color, 1);
+    cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, {
+      tl: 10,
+      bl: 10,
+      tr: 0,
+      br: 0,
+    });
+
+    container.add(cardBg);
+
+    // Interactive area
+    const hitArea = this.add.rectangle(0, 0, cardWidth, cardHeight, 0x000000, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+    container.add(hitArea);
+
+    // Icon
+    const iconX = -cardWidth / 2 + 40;
+    if (this.textures.exists(ability.iconKey)) {
+      const icon = this.add.image(iconX, 0, ability.iconKey);
+      icon.setDisplaySize(36, 36);
+      container.add(icon);
+    } else {
+      const iconCircle = this.add.circle(iconX, 0, 16, ability.color);
+      container.add(iconCircle);
+    }
+
+    // Name
+    const nameText = this.add
+      .text(iconX + 35, -10, ability.name, {
+        fontSize: "16px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0, 0.5);
+    container.add(nameText);
+
+    // Description
+    const descText = this.add
+      .text(iconX + 35, 10, ability.description, {
+        fontSize: "11px",
+        color: "#888888",
+      })
+      .setOrigin(0, 0.5);
+    container.add(descText);
+
+    // Hover effects
+    hitArea.on("pointerover", () => {
+      cardBg.clear();
+      cardBg.fillStyle(0x303050, 1);
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10);
+      cardBg.fillStyle(ability.color, 1);
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, {
+        tl: 10,
+        bl: 10,
+        tr: 0,
+        br: 0,
+      });
+    });
+
+    hitArea.on("pointerout", () => {
+      cardBg.clear();
+      cardBg.fillStyle(0x252540, 1);
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 10);
+      cardBg.fillStyle(ability.color, 1);
+      cardBg.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, 6, cardHeight, {
+        tl: 10,
+        bl: 10,
+        tr: 0,
+        br: 0,
+      });
+    });
+
+    // Click handler
+    hitArea.on("pointerdown", () => {
+      console.log("StartingAbilityScene: Selected", ability.id);
+      this.selectAbility(ability.id, container);
+    });
+
+    return container;
+  }
+
   private selectAbility(abilityId: string, selectedContainer?: Phaser.GameObjects.Container) {
     if (this.isSelecting) return;
     this.isSelecting = true;
@@ -521,6 +674,11 @@ export default class StartingAbilityScene extends Phaser.Scene {
     if (this.selectionTimer) {
       this.selectionTimer.destroy();
       this.selectionTimer = undefined;
+    }
+
+    if (this.scrollContainer) {
+      this.scrollContainer.destroy();
+      this.scrollContainer = undefined;
     }
 
     this.input.removeAllListeners();

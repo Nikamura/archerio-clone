@@ -198,6 +198,10 @@ export class RoomManager {
     return this.endlessWave;
   }
 
+  getEnemyGroup(): Phaser.Physics.Arcade.Group {
+    return this.enemies;
+  }
+
   getEndlessDifficultyMultiplier(): number {
     return this.endlessDifficultyMultiplier;
   }

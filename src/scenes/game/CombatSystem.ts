@@ -5,6 +5,9 @@ import Boss from "../../entities/Boss";
 import Bullet from "../../entities/Bullet";
 import EnemyBullet from "../../entities/EnemyBullet";
 import SpiritCat from "../../entities/SpiritCat";
+import RotatingOrb from "../../entities/RotatingOrb";
+import OrbitalShield from "../../entities/OrbitalShield";
+import SpiritPet from "../../entities/SpiritPet";
 import { audioManager } from "../../systems/AudioManager";
 import { hapticManager } from "../../systems/HapticManager";
 import type { ScreenShake } from "../../systems/ScreenShake";
@@ -12,6 +15,7 @@ import type { ParticleManager } from "../../systems/ParticleManager";
 import type DamageNumberPool from "../../systems/DamageNumberPool";
 import type { TalentBonuses } from "../../config/talentData";
 import type { DifficultyConfig } from "../../config/difficulty";
+import type { PassiveEffectSystem } from "./PassiveEffectSystem";
 import { chapterManager } from "../../systems/ChapterManager";
 import {
   getChapterDefinition,
@@ -57,6 +61,7 @@ export interface CombatSystemConfig {
   difficultyConfig: DifficultyConfig;
   bonusXPMultiplier: number;
   eventHandlers: CombatEventHandlers;
+  getPassiveEffectSystem?: () => PassiveEffectSystem | null;
 }
 
 /**
@@ -81,6 +86,7 @@ export class CombatSystem {
   private isGameOver: boolean = false;
   private isLevelingUp: boolean = false;
   private isTransitioning: boolean = false;
+  private getPassiveEffectSystem: (() => PassiveEffectSystem | null) | null = null;
 
   constructor(config: CombatSystemConfig) {
     this.scene = config.scene;
@@ -94,6 +100,7 @@ export class CombatSystem {
     this.difficultyConfig = config.difficultyConfig;
     this.bonusXPMultiplier = config.bonusXPMultiplier;
     this.eventHandlers = config.eventHandlers;
+    this.getPassiveEffectSystem = config.getPassiveEffectSystem ?? null;
   }
 
   /**
@@ -110,6 +117,13 @@ export class CombatSystem {
    */
   setBoss(boss: Boss | null): void {
     this.boss = boss;
+  }
+
+  /**
+   * Set passive effect system getter (for shield barrier)
+   */
+  setPassiveEffectSystemGetter(getter: () => PassiveEffectSystem | null): void {
+    this.getPassiveEffectSystem = getter;
   }
 
   /**
@@ -186,6 +200,16 @@ export class CombatSystem {
 
     // Apply status effects from bullet
     this.applyBulletStatusEffects(bulletSprite, enemySprite, killed, damage);
+
+    // Trigger explosive arrow AOE if enabled
+    if (bulletSprite.getExplosiveRadius() > 0) {
+      this.triggerArrowExplosion(bulletSprite, enemySprite, damage);
+    }
+
+    // Apply knockback if enabled (and enemy not killed)
+    if (!killed && bulletSprite.getKnockbackForce() > 0) {
+      this.applyBulletKnockback(bulletSprite, enemySprite);
+    }
 
     // Check if bullet should be deactivated or continue (piercing/ricochet)
     const shouldDeactivate = bulletSprite.onHit(enemy);
@@ -355,12 +379,22 @@ export class CombatSystem {
     const selectedChapter = chapterManager.getSelectedChapter() as ChapterId;
     const chapterDef = getChapterDefinition(selectedChapter);
     const damageReduction = 1 - this.talentBonuses.percentDamageReduction / 100;
-    const bulletDamage = Math.round(
+    let bulletDamage = Math.round(
       baseBulletDamage *
         this.difficultyConfig.enemyDamageMultiplier *
         chapterDef.scaling.enemyDamageMultiplier *
         damageReduction,
     );
+
+    // Absorb damage through shield barrier first
+    const passiveSystem = this.getPassiveEffectSystem?.();
+    if (passiveSystem) {
+      bulletDamage = passiveSystem.absorbDamageWithShield(bulletDamage);
+      if (bulletDamage <= 0) {
+        // Shield absorbed all damage
+        return;
+      }
+    }
 
     // Try to damage player
     const damageResult = playerSprite.takeDamage(bulletDamage);
@@ -399,7 +433,17 @@ export class CombatSystem {
     // Get enemy damage with talent damage reduction
     const baseDamage = enemySprite.getDamage();
     const damageReduction = 1 - this.talentBonuses.percentDamageReduction / 100;
-    const damage = Math.round(baseDamage * damageReduction);
+    let damage = Math.round(baseDamage * damageReduction);
+
+    // Absorb damage through shield barrier first
+    const passiveSystem = this.getPassiveEffectSystem?.();
+    if (passiveSystem) {
+      damage = passiveSystem.absorbDamageWithShield(damage);
+      if (damage <= 0) {
+        // Shield absorbed all damage
+        return;
+      }
+    }
 
     // Try to damage player
     const damageResult = playerSprite.takeDamage(damage);
@@ -427,8 +471,19 @@ export class CombatSystem {
     const distanceToPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
     if (distanceToPlayer > radius) return;
 
+    // Absorb damage through shield barrier first
+    let actualDamage = damage;
+    const passiveSystem = this.getPassiveEffectSystem?.();
+    if (passiveSystem) {
+      actualDamage = passiveSystem.absorbDamageWithShield(actualDamage);
+      if (actualDamage <= 0) {
+        // Shield absorbed all damage
+        return;
+      }
+    }
+
     // Try to damage player
-    const damageResult = this.player.takeDamage(damage);
+    const damageResult = this.player.takeDamage(actualDamage);
 
     if (damageResult.dodged) {
       this.damageNumberPool.showDodge(this.player.x, this.player.y);
@@ -438,7 +493,7 @@ export class CombatSystem {
     if (!damageResult.damaged) return;
 
     audioManager.playPlayerHit();
-    this.eventHandlers.onPlayerDamaged(damage);
+    this.eventHandlers.onPlayerDamaged(actualDamage);
 
     // Flash screen red to indicate damage
     this.showScreenDamageFlash();
@@ -493,6 +548,121 @@ export class CombatSystem {
 
     // Deactivate cat on hit
     spiritCat.deactivate();
+
+    // Update boss health bar if this is the boss
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
+    if (isBoss && !killed) {
+      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth());
+      hapticManager.bossHit();
+    }
+
+    if (killed) {
+      this.handleEnemyKilled(enemySprite, !!isBoss);
+    }
+  }
+
+  /**
+   * Handle rotating orb hitting an enemy
+   */
+  rotatingOrbHitEnemy(
+    orb: Phaser.GameObjects.GameObject,
+    enemy: Phaser.GameObjects.GameObject,
+  ): void {
+    if (this.isGameOver || this.isTransitioning) return;
+
+    const orbSprite = orb as RotatingOrb;
+    const enemySprite = enemy as Enemy;
+
+    if (!orbSprite.active || !enemySprite.active) return;
+
+    // Check if orb can hit this enemy (cooldown)
+    const time = this.scene.time.now;
+    if (!orbSprite.canHitEnemy(enemySprite, time)) {
+      return;
+    }
+
+    // Mark this enemy as hit
+    orbSprite.markHit(enemySprite, time);
+
+    // Get damage
+    const damage = orbSprite.getDamage();
+
+    // Damage enemy
+    const killed = enemySprite.takeDamage(damage);
+    audioManager.playHit();
+
+    // Show damage number
+    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, false);
+
+    // Visual effects
+    this.particles.emitHit(enemySprite.x, enemySprite.y);
+
+    // Update boss health bar if this is the boss
+    const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
+    if (isBoss && !killed) {
+      this.eventHandlers.onBossHealthUpdate(this.boss!.getHealth(), this.boss!.getMaxHealth());
+      hapticManager.bossHit();
+    }
+
+    if (killed) {
+      this.handleEnemyKilled(enemySprite, !!isBoss);
+    }
+  }
+
+  /**
+   * Handle orbital shield blocking enemy bullet
+   */
+  orbitalShieldBlockBullet(
+    shield: Phaser.GameObjects.GameObject,
+    bullet: Phaser.GameObjects.GameObject,
+  ): void {
+    if (this.isGameOver) return;
+
+    const shieldSprite = shield as OrbitalShield;
+    const bulletSprite = bullet as EnemyBullet;
+
+    if (!shieldSprite.active || !bulletSprite.active) return;
+
+    // Deactivate the bullet
+    bulletSprite.deactivate();
+
+    // Shield absorbs the hit
+    shieldSprite.blockProjectile();
+
+    // Visual effect
+    this.particles.emitHit(shieldSprite.x, shieldSprite.y);
+    audioManager.playHit();
+  }
+
+  /**
+   * Handle spirit pet hitting an enemy
+   */
+  spiritPetHitEnemy(
+    pet: Phaser.GameObjects.GameObject,
+    enemy: Phaser.GameObjects.GameObject,
+  ): void {
+    if (this.isGameOver || this.isTransitioning) return;
+
+    const spiritPet = pet as SpiritPet;
+    const enemySprite = enemy as Enemy;
+
+    if (!spiritPet.active || !enemySprite.active) return;
+
+    // Get damage
+    const damage = spiritPet.getDamage();
+
+    // Damage enemy
+    const killed = enemySprite.takeDamage(damage);
+    audioManager.playHit();
+
+    // Show damage number
+    this.damageNumberPool.showEnemyDamage(enemySprite.x, enemySprite.y, damage, false);
+
+    // Visual effects
+    this.particles.emitHit(enemySprite.x, enemySprite.y);
+
+    // Deactivate pet on hit
+    spiritPet.deactivate();
 
     // Update boss health bar if this is the boss
     const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
@@ -747,6 +917,77 @@ export class CombatSystem {
 
         // Visual feedback - fire particle effect
         this.particles.emitFire(e.x, e.y);
+      }
+    });
+  }
+
+  /**
+   * Apply knockback from bullet hit
+   */
+  private applyBulletKnockback(bullet: Bullet, enemy: Enemy): void {
+    const knockbackForce = bullet.getKnockbackForce();
+    if (knockbackForce <= 0) return;
+
+    // Calculate knockback direction (from bullet to enemy)
+    const body = bullet.body as Phaser.Physics.Arcade.Body;
+    const angle = Math.atan2(body.velocity.y, body.velocity.x);
+
+    // Apply velocity to enemy
+    const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
+    if (enemyBody) {
+      enemyBody.velocity.x += Math.cos(angle) * knockbackForce;
+      enemyBody.velocity.y += Math.sin(angle) * knockbackForce;
+    }
+  }
+
+  /**
+   * Trigger arrow explosion AOE around the hit location
+   */
+  private triggerArrowExplosion(bullet: Bullet, hitEnemy: Enemy, bulletDamage: number): void {
+    const explosionRadius = bullet.getExplosiveRadius();
+    const explosionDamagePercent = bullet.getExplosiveDamagePercent();
+    const explosionDamage = Math.floor(bulletDamage * explosionDamagePercent);
+
+    if (explosionDamage <= 0 || explosionRadius <= 0) return;
+
+    // Visual effect - orange/red explosion circle
+    const graphics = this.scene.add.graphics();
+    graphics.lineStyle(2, 0xff4400, 1);
+    graphics.strokeCircle(bullet.x, bullet.y, explosionRadius);
+    graphics.fillStyle(0xff4400, 0.4);
+    graphics.fillCircle(bullet.x, bullet.y, explosionRadius);
+
+    // Fade out effect
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 200,
+      ease: "Quad.easeOut",
+      onComplete: () => graphics.destroy(),
+    });
+
+    // Emit explosion particles
+    this.particles.emitHit(bullet.x, bullet.y);
+
+    // Damage nearby enemies (excluding the one already hit)
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy;
+      if (!e.active || e === hitEnemy) return;
+
+      const distance = Phaser.Math.Distance.Between(bullet.x, bullet.y, e.x, e.y);
+      if (distance <= explosionRadius) {
+        const killed = e.takeDamage(explosionDamage);
+        this.particles.emitHit(e.x, e.y);
+
+        // Show damage number
+        this.damageNumberPool.showEnemyDamage(e.x, e.y, explosionDamage, false);
+
+        if (killed) {
+          const isBoss = this.boss && e === (this.boss as unknown as Enemy);
+          this.handleEnemyKilled(e, !!isBoss);
+        }
       }
     });
   }

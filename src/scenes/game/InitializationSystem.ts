@@ -827,6 +827,9 @@ export class InitializationSystem {
       },
     });
 
+    // Wire up passive effect system to combat system for shield barrier
+    combatSystem.setPassiveEffectSystemGetter(() => passiveEffectSystem);
+
     // Tutorial system
     const tutorialSystem = new TutorialSystem({
       scene: this.scene,

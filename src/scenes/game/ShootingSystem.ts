@@ -293,6 +293,13 @@ export class ShootingSystem {
       // Weapon projectile options
       projectileSprite: this.weaponProjectileConfig?.sprite,
       projectileSizeMultiplier: this.weaponProjectileConfig?.sizeMultiplier,
+      // Homing and explosive options
+      homingStrength: this.player.getHomingStrength(),
+      explosiveRadius: this.player.getExplosiveArrowRadius(),
+      explosiveDamagePercent: this.player.getExplosiveArrowDamagePercent(),
+      enemiesGroup: this.enemies,
+      // Knockback option
+      knockbackForce: this.player.getKnockbackForce(),
     };
   }
 

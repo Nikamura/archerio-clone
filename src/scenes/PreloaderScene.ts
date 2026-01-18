@@ -222,6 +222,10 @@ export default class PreloaderScene extends Phaser.Scene {
       "projectile_death_scythe",
       "assets/sprites/projectile/projectile_death_scythe.png",
     );
+    // Orbital and pet sprites
+    this.load.image("rotatingOrbSprite", "assets/sprites/projectile/rotating_orb.png");
+    this.load.image("orbitalShieldSprite", "assets/sprites/projectile/orbital_shield.png");
+    this.load.image("spiritPetSprite", "assets/sprites/projectile/spirit_pet.png");
 
     // Load background
     this.load.image("dungeonFloor", "assets/backgrounds/dungeon_floor.jpg");
@@ -265,6 +269,15 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.image("abilityExtraLife", "assets/sprites/abilities/extra_life.png");
     this.load.image("abilityThroughWall", "assets/sprites/abilities/through_wall.png");
     this.load.image("abilityBleed", "assets/sprites/abilities/bleed.png");
+    // Load ability icons - New orbital/effect abilities
+    this.load.image("abilityRotatingOrbs", "assets/sprites/abilities/rotating_orbs.png");
+    this.load.image("abilityOrbitalShields", "assets/sprites/abilities/orbital_shields.png");
+    this.load.image("abilitySpiritPets", "assets/sprites/abilities/spirit_pets.png");
+    this.load.image("abilityDeathNova", "assets/sprites/abilities/death_nova.png");
+    this.load.image("abilityHomingArrows", "assets/sprites/abilities/homing_arrows.png");
+    this.load.image("abilityExplosiveArrows", "assets/sprites/abilities/explosive_arrows.png");
+    this.load.image("abilityShieldBarrier", "assets/sprites/abilities/shield_barrier.png");
+    this.load.image("abilityKnockback", "assets/sprites/abilities/knockback.png");
 
     // Load hero icons (use player sprites)
     this.load.image("heroAtreus", "assets/sprites/player/archer.png");

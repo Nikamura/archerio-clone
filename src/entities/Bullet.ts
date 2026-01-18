@@ -22,6 +22,17 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private throughWallEnabled: boolean = false; // Arrows pass through walls
   private bleedDamage: number = 0; // Bleed DOT damage (deals more to moving enemies)
 
+  // Homing and explosive properties
+  private homingStrength: number = 0; // How strongly bullet tracks enemies (0-1)
+  private explosiveRadius: number = 0; // Explosion radius on impact
+  private explosiveDamagePercent: number = 0; // Explosion damage as percent of bullet damage
+
+  // Reference to enemies group for homing behavior
+  private enemiesGroup: Phaser.Physics.Arcade.Group | null = null;
+
+  // Knockback on hit
+  private knockbackForce: number = 0;
+
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set();
 
@@ -65,6 +76,11 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       bleedDamage?: number;
       projectileSprite?: string;
       projectileSizeMultiplier?: number;
+      homingStrength?: number;
+      explosiveRadius?: number;
+      explosiveDamagePercent?: number;
+      enemiesGroup?: Phaser.Physics.Arcade.Group;
+      knockbackForce?: number;
     },
   ) {
     this.setPosition(x, y);
@@ -91,6 +107,13 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.wallBounceCount = 0;
     this.throughWallEnabled = options?.throughWall ?? false;
     this.bleedDamage = options?.bleedDamage ?? 0;
+
+    // Reset homing and explosive properties
+    this.homingStrength = options?.homingStrength ?? 0;
+    this.explosiveRadius = options?.explosiveRadius ?? 0;
+    this.explosiveDamagePercent = options?.explosiveDamagePercent ?? 0;
+    this.enemiesGroup = options?.enemiesGroup ?? null;
+    this.knockbackForce = options?.knockbackForce ?? 0;
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -142,6 +165,11 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
     const gameWidth = this.scene.scale.width;
     const gameHeight = this.scene.scale.height;
+
+    // Homing behavior - gently track nearest enemy
+    if (this.homingStrength > 0 && this.enemiesGroup && this.body) {
+      this.applyHomingBehavior();
+    }
 
     // Through Wall: Bullets pass through walls but still deactivate off-screen
     // Wall collision is handled in CombatSystem.bulletHitWall (returns early if throughWallEnabled)
@@ -314,5 +342,63 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   getSpawnTime(): number {
     return this.spawnTime;
+  }
+
+  // Homing and explosive getters
+  getHomingStrength(): number {
+    return this.homingStrength;
+  }
+
+  getExplosiveRadius(): number {
+    return this.explosiveRadius;
+  }
+
+  getExplosiveDamagePercent(): number {
+    return this.explosiveDamagePercent;
+  }
+
+  getKnockbackForce(): number {
+    return this.knockbackForce;
+  }
+
+  /**
+   * Apply homing behavior - gently curve towards nearest enemy
+   */
+  private applyHomingBehavior(): void {
+    if (!this.enemiesGroup || !this.body) return;
+
+    // Find nearest enemy
+    let nearestEnemy: Phaser.GameObjects.GameObject | null = null;
+    let nearestDistance = Infinity;
+
+    this.enemiesGroup.getChildren().forEach((enemy) => {
+      if (!enemy.active) return;
+      const e = enemy as Phaser.Physics.Arcade.Sprite;
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
+      if (dist < nearestDistance) {
+        nearestDistance = dist;
+        nearestEnemy = enemy;
+      }
+    });
+
+    if (!nearestEnemy) return;
+
+    const target = nearestEnemy as Phaser.Physics.Arcade.Sprite;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+
+    // Calculate current direction and target direction
+    const currentAngle = Math.atan2(body.velocity.y, body.velocity.x);
+    const targetAngle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+
+    // Smoothly interpolate towards target angle
+    const angleDiff = Phaser.Math.Angle.Wrap(targetAngle - currentAngle);
+    const newAngle = currentAngle + angleDiff * this.homingStrength;
+
+    // Update velocity while maintaining speed
+    body.velocity.x = Math.cos(newAngle) * this.speed;
+    body.velocity.y = Math.sin(newAngle) * this.speed;
+
+    // Update rotation to face direction
+    this.setRotation(newAngle);
   }
 }

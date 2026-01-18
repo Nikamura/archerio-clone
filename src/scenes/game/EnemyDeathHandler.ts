@@ -153,6 +153,11 @@ export class EnemyDeathHandler {
     this.recordKill(enemy, isBoss);
     this.eventHandlers.onKillRecorded();
 
+    // 1.5 Death Nova: AOE damage on enemy kill
+    if (this.player.getDeathNovaLevel() > 0) {
+      this.triggerDeathNova(enemy);
+    }
+
     // 2. Bloodthirst healing on kill
     const bloodthirstHeal = this.player.getBloodthirstHeal();
     if (bloodthirstHeal > 0) {
@@ -356,5 +361,68 @@ export class EnemyDeathHandler {
       return "ranged";
     }
     return "melee";
+  }
+
+  /**
+   * Trigger Death Nova AOE damage around killed enemy
+   * Damages nearby enemies based on nova level
+   */
+  private triggerDeathNova(dyingEnemy: Enemy): void {
+    const novaRadius = this.player.getDeathNovaRadius();
+    const novaDamagePercent = this.player.getDeathNovaDamagePercent();
+    const baseDamage = this.player.getDamage();
+    const novaDamage = Math.floor(baseDamage * novaDamagePercent);
+
+    if (novaDamage <= 0 || novaRadius <= 0) return;
+
+    // Visual effect - purple/dark explosion circle
+    const graphics = this.scene.add.graphics();
+    graphics.lineStyle(3, 0x660066, 1);
+    graphics.strokeCircle(dyingEnemy.x, dyingEnemy.y, novaRadius);
+    graphics.fillStyle(0x660066, 0.3);
+    graphics.fillCircle(dyingEnemy.x, dyingEnemy.y, novaRadius);
+
+    // Fade out effect
+    this.scene.tweens.add({
+      targets: graphics,
+      alpha: 0,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      duration: 300,
+      ease: "Quad.easeOut",
+      onComplete: () => graphics.destroy(),
+    });
+
+    // Find and damage nearby enemies
+    const enemyChildren = this.roomManager.getEnemyGroup().getChildren();
+    const killedEnemies: Enemy[] = [];
+
+    for (const child of enemyChildren) {
+      const enemy = child as Enemy;
+      if (!enemy.active || enemy === dyingEnemy) continue;
+
+      const distance = Phaser.Math.Distance.Between(
+        dyingEnemy.x,
+        dyingEnemy.y,
+        enemy.x,
+        enemy.y,
+      );
+
+      if (distance <= novaRadius) {
+        const killed = enemy.takeDamage(novaDamage);
+        this.particles.emitHit(enemy.x, enemy.y);
+
+        if (killed) {
+          killedEnemies.push(enemy);
+        }
+      }
+    }
+
+    // Handle chain deaths (but don't trigger nova recursively to avoid infinite loops)
+    for (const killed of killedEnemies) {
+      const isBoss = this.boss !== null && killed === (this.boss as unknown as Enemy);
+      // Use handleCombatDeath to avoid nova recursion
+      this.handleCombatDeath(killed, isBoss);
+    }
   }
 }

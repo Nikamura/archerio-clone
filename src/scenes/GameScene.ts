@@ -321,6 +321,40 @@ export default class GameScene extends Phaser.Scene {
       );
     }
 
+    // Rotating orbs hit enemies
+    const orbitalManager = this.passiveEffectSystem.getOrbitalManager();
+    this.physics.add.overlap(
+      orbitalManager.getRotatingOrbPool(),
+      this.enemies,
+      ((orb: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.rotatingOrbHitEnemy(orb, enemy);
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this,
+    );
+
+    // Orbital shields block enemy bullets
+    this.physics.add.overlap(
+      orbitalManager.getOrbitalShieldPool(),
+      this.enemyBulletPool,
+      ((shield: Phaser.GameObjects.GameObject, bullet: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.orbitalShieldBlockBullet(shield, bullet);
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this,
+    );
+
+    // Spirit pets hit enemies (Spirit Pets ability)
+    this.physics.add.overlap(
+      this.passiveEffectSystem.getSpiritPetPool(),
+      this.enemies,
+      ((pet: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) => {
+        this.combatSystem.spiritPetHitEnemy(pet, enemy);
+      }) as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this,
+    );
+
     // Wall collisions
     this.physics.add.collider(this.player, this.wallGroup);
     this.physics.add.collider(this.enemies, this.wallGroup);
@@ -420,6 +454,17 @@ export default class GameScene extends Phaser.Scene {
     this.scene
       .get("UIScene")
       .events.emit("updateHealth", player.getHealth(), player.getMaxHealth());
+
+    // Also update shield bar if shield barrier is active
+    this.updateShieldUI();
+  }
+
+  private updateShieldUI() {
+    if (!this.passiveEffectSystem) return;
+    const shieldManager = this.passiveEffectSystem.getShieldBarrierManager();
+    this.scene
+      .get("UIScene")
+      .events.emit("updateShield", shieldManager.getCurrentShield(), shieldManager.getMaxShield());
   }
 
   /**
@@ -539,6 +584,9 @@ export default class GameScene extends Phaser.Scene {
 
       // Update all passive effects (damage aura, chainsaw orbit, spirit cats)
       this.passiveEffectSystem.update(time, delta, playerX, playerY);
+
+      // Update shield bar UI (shield regenerates over time)
+      this.updateShieldUI();
 
       // Update pickup collection (gold and health)
       this.pickupSystem.update(playerX, playerY);

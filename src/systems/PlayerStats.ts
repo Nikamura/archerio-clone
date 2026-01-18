@@ -63,6 +63,16 @@ export class PlayerStats {
   private extraLives: number = 0; // Number of revives available
   private throughWallEnabled: boolean = false; // Arrows pass through walls
 
+  // New orbital and effect abilities
+  private rotatingOrbCount: number = 0; // Number of orbs orbiting player
+  private orbitalShieldCount: number = 0; // Number of shields blocking projectiles
+  private spiritPetCount: number = 0; // Number of homing spirit pets
+  private deathNovaLevel: number = 0; // Death nova AOE level (affects radius/damage)
+  private homingStrength: number = 0; // Bullet tracking strength (0-1)
+  private explosiveArrowLevel: number = 0; // Explosive arrow AOE level (affects radius/damage)
+  private shieldBarrierLevel: number = 0; // Shield barrier level (affects shield HP)
+  private knockbackStrength: number = 0; // Knockback force on hit
+
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
   // - Fire Spread: Fire Damage enables fire spread on death automatically
@@ -362,6 +372,102 @@ export class PlayerStats {
     return this.throughWallEnabled;
   }
 
+  // New orbital and effect ability getters
+  getRotatingOrbCount(): number {
+    return this.rotatingOrbCount;
+  }
+
+  getOrbitalShieldCount(): number {
+    return this.orbitalShieldCount;
+  }
+
+  getSpiritPetCount(): number {
+    return this.spiritPetCount;
+  }
+
+  getDeathNovaLevel(): number {
+    return this.deathNovaLevel;
+  }
+
+  /**
+   * Get death nova radius based on level
+   * Level 1 = 60px, Level 2 = 80px, Level 3 = 100px
+   */
+  getDeathNovaRadius(): number {
+    if (this.deathNovaLevel <= 0) return 0;
+    return 40 + this.deathNovaLevel * 20;
+  }
+
+  /**
+   * Get death nova damage as percentage of kill damage
+   * Level 1 = 40%, Level 2 = 55%, Level 3 = 70%
+   */
+  getDeathNovaDamagePercent(): number {
+    if (this.deathNovaLevel <= 0) return 0;
+    return 0.25 + this.deathNovaLevel * 0.15;
+  }
+
+  getHomingStrength(): number {
+    return this.homingStrength;
+  }
+
+  getExplosiveArrowLevel(): number {
+    return this.explosiveArrowLevel;
+  }
+
+  /**
+   * Get explosive arrow radius based on level
+   * Level 1 = 30px, Level 2 = 45px, Level 3 = 60px
+   */
+  getExplosiveArrowRadius(): number {
+    if (this.explosiveArrowLevel <= 0) return 0;
+    return 15 + this.explosiveArrowLevel * 15;
+  }
+
+  /**
+   * Get explosive arrow damage as percentage of bullet damage
+   * Level 1 = 30%, Level 2 = 45%, Level 3 = 60%
+   */
+  getExplosiveArrowDamagePercent(): number {
+    if (this.explosiveArrowLevel <= 0) return 0;
+    return 0.15 + this.explosiveArrowLevel * 0.15;
+  }
+
+  getShieldBarrierLevel(): number {
+    return this.shieldBarrierLevel;
+  }
+
+  /**
+   * Get shield barrier max HP as percentage of player max HP
+   * Level 1 = 30%, Level 2 = 50%, Level 3 = 70%
+   */
+  getShieldBarrierMaxPercent(): number {
+    if (this.shieldBarrierLevel <= 0) return 0;
+    return 0.1 + this.shieldBarrierLevel * 0.2;
+  }
+
+  /**
+   * Get shield barrier regen rate (% of max shield per second)
+   * Level 1 = 5%, Level 2 = 7%, Level 3 = 10%
+   */
+  getShieldBarrierRegenRate(): number {
+    if (this.shieldBarrierLevel <= 0) return 0;
+    return 0.02 + this.shieldBarrierLevel * 0.03;
+  }
+
+  getKnockbackStrength(): number {
+    return this.knockbackStrength;
+  }
+
+  /**
+   * Get knockback force in pixels
+   * Level 1 = 50, Level 2 = 100, Level 3 = 150
+   */
+  getKnockbackForce(): number {
+    if (this.knockbackStrength <= 0) return 0;
+    return this.knockbackStrength * 50;
+  }
+
   // Conditional damage ability getters (now passive effects)
 
   /**
@@ -593,6 +699,72 @@ export class PlayerStats {
     this.throughWallEnabled = true;
   }
 
+  // New orbital and effect ability application methods
+
+  /**
+   * Add Rotating Orbs ability (+1 orb orbiting player)
+   * Stacking: Each level adds +1 orb (max 5)
+   */
+  addRotatingOrbs(): void {
+    this.rotatingOrbCount = Math.min(5, this.rotatingOrbCount + 1);
+  }
+
+  /**
+   * Add Orbital Shields ability (+1 projectile-blocking shield)
+   * Stacking: Each level adds +1 shield (max 3)
+   */
+  addOrbitalShields(): void {
+    this.orbitalShieldCount = Math.min(3, this.orbitalShieldCount + 1);
+  }
+
+  /**
+   * Add Spirit Pets ability (+1 homing wisp pet)
+   * Stacking: Each level adds +1 pet (max 5)
+   */
+  addSpiritPets(): void {
+    this.spiritPetCount = Math.min(5, this.spiritPetCount + 1);
+  }
+
+  /**
+   * Add Death Nova ability (AOE damage on enemy kill)
+   * Stacking: Each level increases radius and damage (max 3)
+   */
+  addDeathNova(): void {
+    this.deathNovaLevel = Math.min(3, this.deathNovaLevel + 1);
+  }
+
+  /**
+   * Add Homing Arrows ability (bullets slightly track enemies)
+   * Stacking: Each level adds +15% tracking strength (max 45%)
+   */
+  addHomingArrows(): void {
+    this.homingStrength = Math.min(0.45, this.homingStrength + 0.15);
+  }
+
+  /**
+   * Add Explosive Arrows ability (AOE on bullet impact)
+   * Stacking: Each level increases radius and damage (max 3)
+   */
+  addExplosiveArrows(): void {
+    this.explosiveArrowLevel = Math.min(3, this.explosiveArrowLevel + 1);
+  }
+
+  /**
+   * Add Shield Barrier ability (damage absorption shield)
+   * Stacking: Each level increases shield HP (max 3)
+   */
+  addShieldBarrier(): void {
+    this.shieldBarrierLevel = Math.min(3, this.shieldBarrierLevel + 1);
+  }
+
+  /**
+   * Add Knockback ability (push enemies on hit)
+   * Stacking: Each level increases knockback force (max 3)
+   */
+  addKnockback(): void {
+    this.knockbackStrength = Math.min(3, this.knockbackStrength + 1);
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
   // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
@@ -654,6 +826,15 @@ export class PlayerStats {
     // Reset devil abilities
     this.extraLives = 0;
     this.throughWallEnabled = false;
+    // Reset new orbital and effect abilities
+    this.rotatingOrbCount = 0;
+    this.orbitalShieldCount = 0;
+    this.spiritPetCount = 0;
+    this.deathNovaLevel = 0;
+    this.homingStrength = 0;
+    this.explosiveArrowLevel = 0;
+    this.shieldBarrierLevel = 0;
+    this.knockbackStrength = 0;
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 
@@ -687,6 +868,14 @@ export class PlayerStats {
     throughWallEnabled: boolean;
     hasFireSpread: boolean;
     hasShatter: boolean;
+    rotatingOrbCount: number;
+    orbitalShieldCount: number;
+    spiritPetCount: number;
+    deathNovaLevel: number;
+    homingStrength: number;
+    explosiveArrowLevel: number;
+    shieldBarrierLevel: number;
+    knockbackStrength: number;
   } {
     return {
       health: this.health,
@@ -715,6 +904,14 @@ export class PlayerStats {
       throughWallEnabled: this.throughWallEnabled,
       hasFireSpread: this.hasFireSpread(),
       hasShatter: this.getShatterLevel() > 0,
+      rotatingOrbCount: this.rotatingOrbCount,
+      orbitalShieldCount: this.orbitalShieldCount,
+      spiritPetCount: this.spiritPetCount,
+      deathNovaLevel: this.deathNovaLevel,
+      homingStrength: this.homingStrength,
+      explosiveArrowLevel: this.explosiveArrowLevel,
+      shieldBarrierLevel: this.shieldBarrierLevel,
+      knockbackStrength: this.knockbackStrength,
     };
   }
 }

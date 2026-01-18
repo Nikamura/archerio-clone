@@ -15,6 +15,8 @@ export default class UIScene extends Phaser.Scene {
   private healthBar!: Phaser.GameObjects.Graphics;
   private healthBarBg!: Phaser.GameObjects.Graphics;
   private healthText!: Phaser.GameObjects.Text;
+  private shieldBar!: Phaser.GameObjects.Graphics;
+  private shieldBarBg!: Phaser.GameObjects.Graphics;
   private levelBadge!: Phaser.GameObjects.Container;
   private levelText!: Phaser.GameObjects.Text;
   private xpBar!: Phaser.GameObjects.Graphics;
@@ -56,6 +58,8 @@ export default class UIScene extends Phaser.Scene {
   // UI caching to avoid redundant redraws
   private lastHealthPercent: number = -1;
   private lastHealthCurrent: number = -1;
+  private lastShieldPercent: number = -1;
+  private lastShieldCurrent: number = -1;
   private lastXpPercent: number = -1;
   private lastLevel: number = -1;
   private lastBossHealthPercent: number = -1;
@@ -190,6 +194,22 @@ export default class UIScene extends Phaser.Scene {
 
     // Initialize health bar
     this.updateHealthBar(100, 100, 100);
+
+    // --- SHIELD BAR (below health bar, hidden by default) ---
+    const shieldY = healthY + healthHeight + 2;
+    const shieldHeight = 8;
+
+    // Shield bar background
+    this.shieldBarBg = this.add.graphics();
+    this.shieldBarBg.fillStyle(0x000000, 0.6);
+    this.shieldBarBg.fillRoundedRect(healthX, shieldY, healthWidth, shieldHeight, 3);
+    this.shieldBarBg.setVisible(false);
+    this.hudContainer.add(this.shieldBarBg);
+
+    // Shield bar fill
+    this.shieldBar = this.add.graphics();
+    this.shieldBar.setVisible(false);
+    this.hudContainer.add(this.shieldBar);
 
     // --- ROOM COUNTER (center) ---
     this.roomText = this.add.text(width / 2, 22, "Room 1/20", {
@@ -461,6 +481,11 @@ export default class UIScene extends Phaser.Scene {
       this.updateHealthBar(percentage, currentHealth, maxHealth);
     });
 
+    // Shield updates
+    this.events.on("updateShield", (currentShield: number, maxShield: number) => {
+      this.updateShieldBar(currentShield, maxShield);
+    });
+
     // XP updates
     this.events.on("updateXP", (xpPercentage: number, level: number) => {
       this.updateXPBar(xpPercentage);
@@ -584,6 +609,49 @@ export default class UIScene extends Phaser.Scene {
     this.healthBar.fillRoundedRect(healthX + 2, healthY + 2, fillWidth, healthHeight - 4, 3);
 
     this.healthText.setText(`${roundedCurrent}`);
+  }
+
+  updateShieldBar(currentShield: number, maxShield: number) {
+    // Hide shield bar if no shield
+    if (maxShield <= 0) {
+      if (this.shieldBar.visible) {
+        this.shieldBar.setVisible(false);
+        this.shieldBarBg.setVisible(false);
+        this.lastShieldPercent = -1;
+        this.lastShieldCurrent = -1;
+      }
+      return;
+    }
+
+    // Show shield bar
+    if (!this.shieldBar.visible) {
+      this.shieldBar.setVisible(true);
+      this.shieldBarBg.setVisible(true);
+    }
+
+    // Round for comparison
+    const percentage = maxShield > 0 ? (currentShield / maxShield) * 100 : 0;
+    const roundedPercent = Math.round(percentage);
+    const roundedCurrent = Math.ceil(currentShield);
+
+    // Skip redraw if values haven't changed
+    if (roundedPercent === this.lastShieldPercent && roundedCurrent === this.lastShieldCurrent) {
+      return;
+    }
+    this.lastShieldPercent = roundedPercent;
+    this.lastShieldCurrent = roundedCurrent;
+
+    const healthX = 16;
+    const healthY = 16;
+    const healthHeight = 14;
+    const healthWidth = 120;
+    const shieldY = healthY + healthHeight + 2;
+    const shieldHeight = 8;
+
+    this.shieldBar.clear();
+    this.shieldBar.fillStyle(0x4488ff, 1); // Blue shield color
+    const fillWidth = Math.max(0, (percentage / 100) * (healthWidth - 4));
+    this.shieldBar.fillRoundedRect(healthX + 2, shieldY + 1, fillWidth, shieldHeight - 2, 2);
   }
 
   updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {

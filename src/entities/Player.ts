@@ -246,6 +246,39 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addThroughWall();
   }
 
+  // New orbital and effect ability application methods
+  addRotatingOrbs() {
+    this.stats?.addRotatingOrbs();
+  }
+
+  addOrbitalShields() {
+    this.stats?.addOrbitalShields();
+  }
+
+  addSpiritPets() {
+    this.stats?.addSpiritPets();
+  }
+
+  addDeathNova() {
+    this.stats?.addDeathNova();
+  }
+
+  addHomingArrows() {
+    this.stats?.addHomingArrows();
+  }
+
+  addExplosiveArrows() {
+    this.stats?.addExplosiveArrows();
+  }
+
+  addShieldBarrier() {
+    this.stats?.addShieldBarrier();
+  }
+
+  addKnockback() {
+    this.stats?.addKnockback();
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot
   // - Fire Spread: Automatically enabled when player has Fire Damage
@@ -374,6 +407,67 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   // Lightning chain damage multiplier (progressive reduction per chain)
   getLightningChainDamageMultiplier(chainNumber: number): number {
     return this.stats?.getLightningChainDamageMultiplier(chainNumber) ?? 1.0;
+  }
+
+  // New orbital and effect ability getters
+  getRotatingOrbCount(): number {
+    return this.stats?.getRotatingOrbCount() ?? 0;
+  }
+
+  getOrbitalShieldCount(): number {
+    return this.stats?.getOrbitalShieldCount() ?? 0;
+  }
+
+  getSpiritPetCount(): number {
+    return this.stats?.getSpiritPetCount() ?? 0;
+  }
+
+  getDeathNovaLevel(): number {
+    return this.stats?.getDeathNovaLevel() ?? 0;
+  }
+
+  getDeathNovaRadius(): number {
+    return this.stats?.getDeathNovaRadius() ?? 0;
+  }
+
+  getDeathNovaDamagePercent(): number {
+    return this.stats?.getDeathNovaDamagePercent() ?? 0;
+  }
+
+  getHomingStrength(): number {
+    return this.stats?.getHomingStrength() ?? 0;
+  }
+
+  getExplosiveArrowLevel(): number {
+    return this.stats?.getExplosiveArrowLevel() ?? 0;
+  }
+
+  getExplosiveArrowRadius(): number {
+    return this.stats?.getExplosiveArrowRadius() ?? 0;
+  }
+
+  getExplosiveArrowDamagePercent(): number {
+    return this.stats?.getExplosiveArrowDamagePercent() ?? 0;
+  }
+
+  getShieldBarrierLevel(): number {
+    return this.stats?.getShieldBarrierLevel() ?? 0;
+  }
+
+  getShieldBarrierMaxPercent(): number {
+    return this.stats?.getShieldBarrierMaxPercent() ?? 0;
+  }
+
+  getShieldBarrierRegenRate(): number {
+    return this.stats?.getShieldBarrierRegenRate() ?? 0;
+  }
+
+  getKnockbackStrength(): number {
+    return this.stats?.getKnockbackStrength() ?? 0;
+  }
+
+  getKnockbackForce(): number {
+    return this.stats?.getKnockbackForce() ?? 0;
   }
 
   // Reset run-based stats

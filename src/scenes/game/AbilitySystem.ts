@@ -102,6 +102,32 @@ export class AbilitySystem {
       case "bleed":
         this.player.addBleed();
         break;
+
+      // New orbital and effect abilities
+      case "rotating_orbs":
+        this.player.addRotatingOrbs();
+        break;
+      case "orbital_shields":
+        this.player.addOrbitalShields();
+        break;
+      case "spirit_pets":
+        this.player.addSpiritPets();
+        break;
+      case "death_nova":
+        this.player.addDeathNova();
+        break;
+      case "homing_arrows":
+        this.player.addHomingArrows();
+        break;
+      case "explosive_arrows":
+        this.player.addExplosiveArrows();
+        break;
+      case "shield_barrier":
+        this.player.addShieldBarrier();
+        break;
+      case "knockback":
+        this.player.addKnockback();
+        break;
     }
 
     this.abilitiesGained++;
