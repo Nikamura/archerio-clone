@@ -24,12 +24,13 @@ import { errorToast } from "./systems/ErrorToast";
 // This sets up global error handlers to catch and display errors visually
 errorToast.setDuration(5000); // 5 seconds display
 
-const config: Phaser.Types.Core.GameConfig = {
+const config = {
   type: Phaser.AUTO,
   width: 375,
   height: 667,
   parent: "game",
   backgroundColor: "#2d2d2d",
+  disableVisibilityChange: true, // Keep game running when tab is not focused
   physics: {
     default: "arcade",
     arcade: {
