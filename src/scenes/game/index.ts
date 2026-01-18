@@ -53,3 +53,8 @@ export {
   type InitializationPhysics,
   type InitializationGameState,
 } from "./InitializationSystem";
+export {
+  EventHandlerFactory,
+  type EventHandlerFactoryConfig,
+  type EventHandlerDependencies,
+} from "./EventHandlerFactory";

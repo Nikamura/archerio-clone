@@ -14,11 +14,8 @@ import { PassiveEffectSystem } from "./game/PassiveEffectSystem";
 import { TutorialSystem } from "./game/TutorialSystem";
 import { PickupSystem } from "./game/PickupSystem";
 import { RunEndSystem } from "./game/RunEndSystem";
-import {
-  InitializationSystem,
-  type InitializationResult,
-  type GameSceneEventHandlers,
-} from "./game/InitializationSystem";
+import { InitializationSystem, type InitializationResult } from "./game/InitializationSystem";
+import { EventHandlerFactory } from "./game/EventHandlerFactory";
 import BulletPool from "../systems/BulletPool";
 import EnemyBulletPool from "../systems/EnemyBulletPool";
 import SpiritCatPool from "../systems/SpiritCatPool";
@@ -88,8 +85,41 @@ export default class GameScene extends Phaser.Scene {
     // Register event listeners
     this.registerEventListeners();
 
-    // Create event handlers for InitializationSystem
-    const eventHandlers = this.createEventHandlers();
+    // Create event handlers for InitializationSystem using factory
+    const eventHandlerFactory = new EventHandlerFactory({
+      dependencies: {
+        scene: this,
+        getPlayer: () => this.player,
+        getBoss: () => this.boss,
+        setBoss: (boss) => {
+          this.boss = boss;
+        },
+        getIsGameOver: () => this.isGameOver,
+        setIsGameOver: (value) => {
+          this.isGameOver = value;
+        },
+        getInputSystem: () => this.inputSystem,
+        setInputSystem: (system) => {
+          this.inputSystem = system!;
+        },
+        getLevelUpSystem: () => this.levelUpSystem,
+        getPassiveEffectSystem: () => this.passiveEffectSystem,
+        getRoomManager: () => this.roomManager,
+        getEnemyDeathHandler: () => this.enemyDeathHandler,
+        getCombatSystem: () => this.combatSystem,
+        getShootingSystem: () => this.shootingSystem,
+        getPickupSystem: () => this.pickupSystem,
+        getRunEndSystem: () => this.runEndSystem,
+        getRespawnSystem: () => this.respawnSystem,
+        updatePlayerHealthUI: (player) => this.updatePlayerHealthUI(player),
+        updateXPUI: () => this.updateXPUI(),
+        resetJoystickState: () => this.resetJoystickState(),
+        updatePlayerHitboxForGiant: () => this.updatePlayerHitboxForGiant(),
+        handleBombExplosion: (x, y, radius, damage) =>
+          this.handleBombExplosion(x, y, radius, damage),
+      },
+    });
+    const eventHandlers = eventHandlerFactory.createHandlers();
 
     // Initialize game using InitializationSystem
     const initSystem = new InitializationSystem({
@@ -197,146 +227,6 @@ export default class GameScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.game.events.off("playerRespawn");
     });
-  }
-
-  /**
-   * Create event handlers for InitializationSystem
-   */
-  private createEventHandlers(): GameSceneEventHandlers {
-    return {
-      // Combat events
-      onEnemyKilled: (enemy, isBoss) => this.handleCombatEnemyKilled(enemy as Enemy, isBoss),
-      onPlayerDamaged: (damage) => this.handleCombatPlayerDamaged(damage),
-      onPlayerHealed: (_amount) => this.updatePlayerHealthUI(this.player),
-      onPlayerDeath: () => this.handleCombatPlayerDeath(),
-      onBossHealthUpdate: (health, maxHealth) => {
-        this.scene.get("UIScene").events.emit("updateBossHealth", health, maxHealth);
-      },
-      onBossKilled: () => {
-        this.boss = null;
-        this.roomManager.clearBoss();
-        this.scene.get("UIScene").events.emit("hideBossHealth");
-      },
-      onLevelUp: () => this.levelUpSystem.handleLevelUp(this.isGameOver),
-      onXPGained: (xp) => {
-        const leveledUp = this.player.addXP(xp);
-        this.updateXPUI();
-        if (leveledUp && !this.player.isDead() && !this.isGameOver) {
-          this.levelUpSystem.handleLevelUp(this.isGameOver);
-        }
-      },
-
-      // Room events
-      onRoomCleared: (roomNumber, collectedGold) => {
-        this.pickupSystem.addGoldEarned(collectedGold);
-        this.scene.get("UIScene").events.emit("roomCleared");
-        this.scene
-          .get("UIScene")
-          .events.emit("updateHealth", this.player.getHealth(), this.player.getMaxHealth());
-        console.log("Room", roomNumber, "cleared - UI notified, gold collected:", collectedGold);
-      },
-      onRoomEntered: (roomNumber, endlessWave) => {
-        this.scene.get("UIScene").events.emit("roomEntered");
-        if (endlessWave) {
-          console.log(`Entered room ${roomNumber} (Wave ${endlessWave})`);
-        }
-      },
-      onUpdateRoomUI: (currentRoom, totalRooms, endlessWave) => {
-        if (endlessWave !== undefined) {
-          this.scene.get("UIScene").events.emit("updateRoom", currentRoom, totalRooms, endlessWave);
-        } else {
-          this.scene.get("UIScene").events.emit("updateRoom", currentRoom, totalRooms);
-        }
-      },
-      onBossSpawned: (boss, _bossType, _bossName) => {
-        this.boss = boss;
-        this.combatSystem.setBoss(boss);
-        this.enemyDeathHandler?.setBoss(boss);
-      },
-      onShowBossHealth: (health, maxHealth, name) => {
-        this.scene.get("UIScene").events.emit("showBossHealth", health, maxHealth, name);
-      },
-      onHideBossHealth: () => {
-        this.scene.get("UIScene").events.emit("hideBossHealth");
-      },
-      onVictory: () => {
-        this.runEndSystem.triggerVictory();
-      },
-      onBombExplosion: (x, y, radius, damage) => {
-        this.handleBombExplosion(x, y, radius, damage);
-      },
-
-      // Level up events
-      onLevelUpStarted: () => {
-        this.resetJoystickState();
-      },
-      onLevelUpCompleted: () => {
-        this.resetJoystickState();
-      },
-      onAbilityApplied: (_abilityId) => {},
-      onStartingAbilitiesComplete: () => {
-        this.resetJoystickState();
-      },
-      onAutoLevelUp: (ability) => {
-        this.scene.get("UIScene").events.emit("showAutoLevelUp", ability);
-      },
-      onCheckIronWill: () => {
-        this.passiveEffectSystem.checkIronWillStatus();
-      },
-
-      // Enemy death events
-      onKillRecorded: () => {},
-      onPlayerHealthUpdated: () => this.updatePlayerHealthUI(this.player),
-      onXPUIUpdated: () => this.updateXPUI(),
-      onEnemyCacheInvalidated: () => this.shootingSystem.invalidateTargetCache(),
-
-      // Respawn events
-      onRespawnComplete: (newInputSystem: InputSystem) => {
-        this.inputSystem = newInputSystem;
-        this.resetJoystickState();
-      },
-      onUpdateHealthUI: () => {
-        this.updatePlayerHealthUI(this.player);
-      },
-
-      // Passive effects events
-      onIronWillActivated: (bonusHP) => {
-        console.log(`GameScene: Iron Will activated! +${bonusHP} max HP`);
-      },
-      onIronWillDeactivated: (bonusHP) => {
-        console.log(`GameScene: Iron Will deactivated, removed ${bonusHP} bonus HP`);
-      },
-
-      // Tutorial events
-      onTutorialShown: () => {
-        this.physics.pause();
-      },
-      onTutorialDismissed: () => {
-        this.physics.resume();
-      },
-
-      // Ability events
-      onAbilitiesUpdated: (abilities) => {
-        this.scene.get("UIScene").events.emit("updateAbilities", abilities);
-      },
-      onHealthUpdated: (current, max) => {
-        this.scene.get("UIScene").events.emit("updateHealth", current, max);
-      },
-      onGiantLevelChanged: () => {
-        this.updatePlayerHitboxForGiant();
-      },
-
-      // Run end events
-      onInputDestroyed: () => {
-        this.inputSystem = null!;
-      },
-
-      // Game state
-      getIsGameOver: () => this.isGameOver,
-      setIsGameOver: (value: boolean) => {
-        this.isGameOver = value;
-      },
-    };
   }
 
   /**
@@ -475,28 +365,6 @@ export default class GameScene extends Phaser.Scene {
     const xpPercentage = this.player.getXPPercentage();
     const level = this.player.getLevel();
     this.scene.get("UIScene").events.emit("updateXP", xpPercentage, level);
-  }
-
-  /**
-   * Combat event handler: Called when an enemy is killed by CombatSystem
-   */
-  private handleCombatEnemyKilled(enemy: Enemy, isBoss: boolean): void {
-    // Delegate to EnemyDeathHandler (Bloodthirst healing handled by CombatSystem)
-    this.enemyDeathHandler.handleCombatDeath(enemy, isBoss);
-  }
-
-  /**
-   * Combat event handler: Called when player takes damage
-   */
-  private handleCombatPlayerDamaged(_damage: number): void {
-    this.updatePlayerHealthUI(this.player);
-  }
-
-  /**
-   * Combat event handler: Called when player dies
-   */
-  private handleCombatPlayerDeath(): void {
-    this.respawnSystem.triggerGameOver();
   }
 
   /**
