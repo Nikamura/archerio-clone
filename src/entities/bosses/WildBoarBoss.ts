@@ -18,6 +18,10 @@ export default class WildBoarBoss extends BaseBoss {
   private readonly chargeSpeed = 500; // Faster than demon (400)
   private chargeTelegraph: Phaser.GameObjects.Line | null = null;
 
+  // Charge damage multiplier (higher damage during charge)
+  private isCharging: boolean = false;
+  private static readonly CHARGE_DAMAGE_MULTIPLIER = 3.0; // Higher than regular charger (2.5)
+
   // Ground stomp attack
   private stompWave: Phaser.GameObjects.Arc | null = null;
   private stompRadius: number = 0;
@@ -131,6 +135,7 @@ export default class WildBoarBoss extends BaseBoss {
       // Start charging
       this.phase = "charging";
       this.phaseStartTime = time;
+      this.isCharging = true;
 
       // Calculate charge direction
       const angle = Phaser.Math.Angle.Between(
@@ -164,6 +169,7 @@ export default class WildBoarBoss extends BaseBoss {
     if (elapsed > chargeDuration || distToTarget < 30) {
       // Stop and create impact effect
       this.setVelocity(0, 0);
+      this.isCharging = false;
       this.createImpactEffect();
       this.finishAttack(time);
     }
@@ -335,6 +341,15 @@ export default class WildBoarBoss extends BaseBoss {
         },
       });
     }
+  }
+
+  /**
+   * Override getDamage to return higher damage during charge
+   */
+  getDamage(): number {
+    const baseDamage = 15;
+    const multiplier = this.isCharging ? WildBoarBoss.CHARGE_DAMAGE_MULTIPLIER : 1.0;
+    return Math.round(baseDamage * this.damageMultiplier * multiplier);
   }
 
   destroy(fromScene?: boolean): void {
