@@ -330,6 +330,12 @@ export default class GameScene extends Phaser.Scene {
       onInputDestroyed: () => {
         this.inputSystem = null!;
       },
+
+      // Game state
+      getIsGameOver: () => this.isGameOver,
+      setIsGameOver: (value: boolean) => {
+        this.isGameOver = value;
+      },
     };
   }
 

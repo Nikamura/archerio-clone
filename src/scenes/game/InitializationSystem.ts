@@ -105,6 +105,10 @@ export interface GameSceneEventHandlers {
 
   // Run end events
   onInputDestroyed: () => void;
+
+  // Game state
+  getIsGameOver: () => boolean;
+  setIsGameOver: (value: boolean) => void;
 }
 
 /**
@@ -213,7 +217,6 @@ export class InitializationSystem {
 
   // Cached references for physics callbacks
   private boss: Boss | null = null;
-  private isGameOver: boolean = false;
 
   constructor(config: InitializationSystemConfig) {
     this.scene = config.scene;
@@ -226,13 +229,6 @@ export class InitializationSystem {
    */
   setBoss(boss: Boss | null): void {
     this.boss = boss;
-  }
-
-  /**
-   * Set game over state (for physics callbacks)
-   */
-  setGameOver(value: boolean): void {
-    this.isGameOver = value;
   }
 
   /**
@@ -776,10 +772,8 @@ export class InitializationSystem {
       getRoomManager: () => roomManager,
       getAbilitySystem: () => abilitySystem,
       getEnemyDeathHandler: () => enemyDeathHandler,
-      getIsGameOver: () => this.isGameOver,
-      setIsGameOver: (value: boolean) => {
-        this.isGameOver = value;
-      },
+      getIsGameOver: this.eventHandlers.getIsGameOver,
+      setIsGameOver: this.eventHandlers.setIsGameOver,
       createInputSystem: () => {
         const container = this.game.canvas.parentElement;
         return new InputSystem({
@@ -857,10 +851,8 @@ export class InitializationSystem {
       getEnemyDeathHandler: () => enemyDeathHandler,
       getLevelUpSystem: () => levelUpSystem,
       getPickupSystem: () => pickupSystem,
-      getIsGameOver: () => this.isGameOver,
-      setIsGameOver: (value: boolean) => {
-        this.isGameOver = value;
-      },
+      getIsGameOver: this.eventHandlers.getIsGameOver,
+      setIsGameOver: this.eventHandlers.setIsGameOver,
       difficultyConfig,
       runStartTime,
       runSeedString,
