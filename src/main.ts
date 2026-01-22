@@ -30,6 +30,11 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 667,
   parent: "game",
   backgroundColor: "#2d2d2d",
+  // Cap frame rate at 60 FPS for consistent gameplay across all refresh rates (60Hz, 120Hz, etc.)
+  fps: {
+    target: 60,
+    forceSetTimeOut: true, // Use setTimeout for more consistent timing across devices
+  },
   physics: {
     default: "arcade",
     arcade: {
