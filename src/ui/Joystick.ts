@@ -4,7 +4,8 @@
 // Joystick configuration
 const JOYSTICK_CONFIG = {
   // Dead zone - ignore input below this threshold (0-1)
-  DEAD_ZONE: 0.15,
+  // Higher value = more tolerance for resting finger without movement
+  DEAD_ZONE: 0.25,
   // Base circle radius
   BASE_RADIUS: 60,
   // Thumb circle radius
