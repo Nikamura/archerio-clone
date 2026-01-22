@@ -20,6 +20,8 @@ export default class UIScene extends Phaser.Scene {
   private levelBadge!: Phaser.GameObjects.Container;
   private levelText!: Phaser.GameObjects.Text;
   private xpBar!: Phaser.GameObjects.Graphics;
+  private xpBarBg!: Phaser.GameObjects.Graphics;
+  private xpText!: Phaser.GameObjects.Text;
   private roomText!: Phaser.GameObjects.Text;
 
   // Boss health bar
@@ -231,25 +233,12 @@ export default class UIScene extends Phaser.Scene {
     this.scoreText.setStroke("#000000", 2);
     this.hudContainer.add(this.scoreText);
 
-    // --- LEVEL BADGE with XP (right side, before menu button) ---
+    // --- LEVEL BADGE (right side, before menu button) ---
     const levelX = width - 70;
     this.levelBadge = this.add.container(levelX, 28);
 
-    // XP bar background
-    const xpBarWidth = 40;
-    const xpBarHeight = 4;
-    const xpBg = this.add.graphics();
-    xpBg.fillStyle(0x000000, 0.6);
-    xpBg.fillRoundedRect(-xpBarWidth / 2, 8, xpBarWidth, xpBarHeight, 2);
-    this.levelBadge.add(xpBg);
-
-    // XP bar fill
-    this.xpBar = this.add.graphics();
-    this.levelBadge.add(this.xpBar);
-    this.updateXPBar(0);
-
     // Level text
-    this.levelText = this.add.text(0, -2, "Lv.1", {
+    this.levelText = this.add.text(0, 0, "Lv.1", {
       fontSize: "14px",
       color: "#ffdd00",
       fontStyle: "bold",
@@ -259,6 +248,44 @@ export default class UIScene extends Phaser.Scene {
     this.levelBadge.add(this.levelText);
 
     this.hudContainer.add(this.levelBadge);
+
+    // --- XP BAR (full width below top HUD) ---
+    this.createXPBar(width);
+  }
+
+  /**
+   * Create the experience bar below the top HUD
+   */
+  private createXPBar(width: number) {
+    const xpBarX = 16;
+    const xpBarY = 56;
+    const xpBarWidth = width - 32;
+    const xpBarHeight = 10;
+
+    // XP bar background
+    this.xpBarBg = this.add.graphics();
+    this.xpBarBg.fillStyle(0x000000, 0.5);
+    this.xpBarBg.fillRoundedRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight, 4);
+    this.xpBarBg.lineStyle(1, 0x333333, 0.8);
+    this.xpBarBg.strokeRoundedRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight, 4);
+    this.hudContainer.add(this.xpBarBg);
+
+    // XP bar fill
+    this.xpBar = this.add.graphics();
+    this.hudContainer.add(this.xpBar);
+
+    // XP text (percentage)
+    this.xpText = this.add.text(width / 2, xpBarY + xpBarHeight / 2, "0%", {
+      fontSize: "8px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    });
+    this.xpText.setOrigin(0.5);
+    this.xpText.setStroke("#000000", 2);
+    this.hudContainer.add(this.xpText);
+
+    // Initialize XP bar
+    this.updateXPBar(0);
   }
 
   /**
@@ -671,13 +698,23 @@ export default class UIScene extends Phaser.Scene {
     }
     this.lastXpPercent = roundedPercent;
 
-    const xpBarWidth = 40;
-    const xpBarHeight = 4;
+    const width = this.cameras.main.width;
+    const xpBarX = 16;
+    const xpBarY = 56;
+    const xpBarWidth = width - 32;
+    const xpBarHeight = 10;
 
     this.xpBar.clear();
     this.xpBar.fillStyle(THEME_COLORS.xpBar, 1);
-    const fillWidth = Math.max(0, (percentage / 100) * xpBarWidth);
-    this.xpBar.fillRoundedRect(-xpBarWidth / 2, 8, fillWidth, xpBarHeight, 2);
+    const fillWidth = Math.max(0, (percentage / 100) * (xpBarWidth - 4));
+    if (fillWidth > 0) {
+      this.xpBar.fillRoundedRect(xpBarX + 2, xpBarY + 2, fillWidth, xpBarHeight - 4, 3);
+    }
+
+    // Update XP text
+    if (this.xpText) {
+      this.xpText.setText(`${roundedPercent}%`);
+    }
   }
 
   updateLevel(level: number) {
