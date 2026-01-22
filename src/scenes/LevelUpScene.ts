@@ -16,15 +16,10 @@ export interface LevelUpData {
   hasExtraLife?: boolean; // Whether player currently has an extra life available
 }
 
-const SELECTION_TIME_MS = 5000; // 5 seconds to choose
-
 export default class LevelUpScene extends Phaser.Scene {
   private abilityCards: Phaser.GameObjects.Container[] = [];
   private modalContainer!: Phaser.GameObjects.Container;
   private selectedAbilities: AbilityData[] = [];
-  private selectionTimer?: Phaser.Time.TimerEvent;
-  private progressBar?: Phaser.GameObjects.Graphics;
-  private timerText?: Phaser.GameObjects.Text;
   private isSelecting: boolean = false;
   private abilityLevels: Record<string, number> = {};
   private hasExtraLife: boolean = false;
@@ -38,9 +33,6 @@ export default class LevelUpScene extends Phaser.Scene {
   init(data: LevelUpData) {
     this.abilityCards = [];
     this.selectedAbilities = [];
-    this.selectionTimer = undefined;
-    this.progressBar = undefined;
-    this.timerText = undefined;
     this.isSelecting = false;
     this.abilityLevels = data.abilityLevels ?? {};
     this.hasExtraLife = data.hasExtraLife ?? false;
@@ -150,11 +142,6 @@ export default class LevelUpScene extends Phaser.Scene {
         });
       }
 
-      // Progress bar at bottom of modal (skip in debug mode)
-      if (!this.isDebugMode) {
-        this.createProgressBar(modalWidth, modalHeight);
-      }
-
       // Animate modal in
       this.tweens.add({
         targets: this.modalContainer,
@@ -162,12 +149,6 @@ export default class LevelUpScene extends Phaser.Scene {
         alpha: 1,
         duration: 200,
         ease: "Back.easeOut",
-        onComplete: () => {
-          // Only start timer in normal mode
-          if (!this.isDebugMode) {
-            this.startSelectionTimer();
-          }
-        },
       });
 
       console.log("LevelUpScene: Created (modern modal)");
@@ -414,118 +395,6 @@ export default class LevelUpScene extends Phaser.Scene {
     }
   }
 
-  private createProgressBar(modalWidth: number, modalHeight: number) {
-    const barWidth = modalWidth - 60;
-    const barHeight = 6;
-    const barY = modalHeight / 2 - 25;
-
-    // Background
-    const bgBar = this.add.graphics();
-    bgBar.fillStyle(0x333355, 1);
-    bgBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3);
-    this.modalContainer.add(bgBar);
-
-    // Progress bar
-    this.progressBar = this.add.graphics();
-    this.modalContainer.add(this.progressBar);
-    this.progressBar.setData("width", barWidth);
-    this.progressBar.setData("y", barY);
-    this.progressBar.setData("height", barHeight);
-
-    // Timer text
-    this.timerText = this.add
-      .text(0, barY - 12, "5.0", {
-        fontSize: "12px",
-        color: "#888888",
-      })
-      .setOrigin(0.5);
-    this.modalContainer.add(this.timerText);
-
-    // Initial fill
-    this.progressBar.fillStyle(0xffdd00, 1);
-    this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3);
-  }
-
-  private startSelectionTimer() {
-    if (this.isSelecting) return;
-
-    const barWidth = this.progressBar?.getData("width") || 200;
-    const barY = this.progressBar?.getData("y") || 0;
-    const barHeight = this.progressBar?.getData("height") || 6;
-    const startTime = this.time.now;
-
-    const updateEvent = this.time.addEvent({
-      delay: 16,
-      loop: true,
-      callback: () => {
-        if (this.isSelecting) {
-          updateEvent.destroy();
-          return;
-        }
-
-        const elapsed = this.time.now - startTime;
-        const remaining = Math.max(0, SELECTION_TIME_MS - elapsed);
-        const progress = remaining / SELECTION_TIME_MS;
-
-        // Update progress bar
-        if (this.progressBar) {
-          this.progressBar.clear();
-
-          let color = 0xffdd00;
-          if (progress < 0.3) color = 0xff3333;
-          else if (progress < 0.6) color = 0xff9933;
-
-          this.progressBar.fillStyle(color, 1);
-          this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth * progress, barHeight, 3);
-        }
-
-        // Update timer text
-        if (this.timerText) {
-          this.timerText.setText((remaining / 1000).toFixed(1));
-          if (progress < 0.3) this.timerText.setColor("#ff3333");
-          else if (progress < 0.6) this.timerText.setColor("#ff9933");
-        }
-
-        if (remaining <= 0) {
-          updateEvent.destroy();
-          this.selectRandomAbilityOnTimeout();
-        }
-      },
-    });
-
-    this.selectionTimer = updateEvent;
-  }
-
-  private selectRandomAbilityOnTimeout() {
-    if (this.isSelecting || this.selectedAbilities.length === 0) return;
-
-    // Select highest priority ability from the 3 shown options
-    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(
-      this.selectedAbilities,
-      this.abilityLevels,
-    );
-    if (!priorityAbility) return;
-
-    const priorityIndex = this.selectedAbilities.findIndex((a) => a.id === priorityAbility.id);
-    const priorityContainer = this.abilityCards[priorityIndex];
-
-    console.log("LevelUpScene: Auto-selecting (priority):", priorityAbility.id);
-
-    if (priorityContainer) {
-      this.tweens.add({
-        targets: priorityContainer,
-        scale: 1.05,
-        duration: 100,
-        yoyo: true,
-        onComplete: () => {
-          this.selectAbility(priorityAbility.id, priorityContainer);
-        },
-      });
-    } else {
-      this.selectAbility(priorityAbility.id);
-    }
-  }
-
   private createAbilityCard(
     x: number,
     y: number,
@@ -681,11 +550,6 @@ export default class LevelUpScene extends Phaser.Scene {
     errorReporting.trackAbilityAcquired(abilityId, currentLevel);
     errorReporting.addBreadcrumb("game", `Selected ability: ${abilityId}`);
 
-    if (this.selectionTimer) {
-      this.selectionTimer.destroy();
-      this.selectionTimer = undefined;
-    }
-
     try {
       // Disable all interactions
       this.abilityCards.forEach((card) => {
@@ -764,11 +628,6 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   shutdown() {
-    if (this.selectionTimer) {
-      this.selectionTimer.destroy();
-      this.selectionTimer = undefined;
-    }
-
     // Clean up scroll container if in debug mode
     if (this.scrollContainer) {
       this.scrollContainer.destroy();
