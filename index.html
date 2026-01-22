@@ -23,8 +23,11 @@
     <title>Aura Archer</title>
 
     <!-- 100% privacy-first analytics -->
-    <script data-collect-dnt="true" async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
-    <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true" alt="" referrerpolicy="no-referrer-when-downgrade"/></noscript>
+    <script
+      data-collect-dnt="true"
+      async
+      src="https://scripts.simpleanalyticscdn.com/latest.js"
+    ></script>
 
     <style>
       * {
@@ -58,6 +61,13 @@
     </style>
   </head>
   <body>
+    <!-- Simple Analytics noscript fallback (must be in body, not head) -->
+    <noscript
+      ><img
+        src="https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true"
+        alt=""
+        referrerpolicy="no-referrer-when-downgrade"
+    /></noscript>
     <div id="game"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
