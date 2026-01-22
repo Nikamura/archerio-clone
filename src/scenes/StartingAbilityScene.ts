@@ -17,15 +17,10 @@ export interface StartingAbilityData {
   rngState: number;
 }
 
-const SELECTION_TIME_MS = 5000; // 5 seconds to choose
-
 export default class StartingAbilityScene extends Phaser.Scene {
   private abilityCards: Phaser.GameObjects.Container[] = [];
   private modalContainer!: Phaser.GameObjects.Container;
   private selectedAbilities: AbilityData[] = [];
-  private selectionTimer?: Phaser.Time.TimerEvent;
-  private progressBar?: Phaser.GameObjects.Graphics;
-  private timerText?: Phaser.GameObjects.Text;
   private isSelecting: boolean = false;
   private remainingSelections: number = 1;
   private currentSelection: number = 1;
@@ -41,9 +36,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
   init(data: StartingAbilityData) {
     this.abilityCards = [];
     this.selectedAbilities = [];
-    this.selectionTimer = undefined;
-    this.progressBar = undefined;
-    this.timerText = undefined;
     this.isSelecting = false;
     this.isDebugMode = false;
     this.scrollContainer = undefined;
@@ -182,11 +174,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
         });
       }
 
-      // Progress bar at bottom of modal (only in normal mode)
-      if (!this.isDebugMode) {
-        this.createProgressBar(modalWidth, modalHeight);
-      }
-
       // Animate modal in
       this.tweens.add({
         targets: this.modalContainer,
@@ -194,12 +181,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
         alpha: 1,
         duration: 200,
         ease: "Back.easeOut",
-        onComplete: () => {
-          // Only start timer in normal mode
-          if (!this.isDebugMode) {
-            this.startSelectionTimer();
-          }
-        },
       });
 
       console.log(
@@ -215,118 +196,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
     // Shuffle using seeded RNG for deterministic selection
     const shuffled = [...ABILITIES].sort(() => this.rng.random() - 0.5);
     return shuffled.slice(0, count);
-  }
-
-  private createProgressBar(modalWidth: number, modalHeight: number) {
-    const barWidth = modalWidth - 60;
-    const barHeight = 6;
-    const barY = modalHeight / 2 - 25;
-
-    // Background
-    const bgBar = this.add.graphics();
-    bgBar.fillStyle(0x333355, 1);
-    bgBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3);
-    this.modalContainer.add(bgBar);
-
-    // Progress bar
-    this.progressBar = this.add.graphics();
-    this.modalContainer.add(this.progressBar);
-    this.progressBar.setData("width", barWidth);
-    this.progressBar.setData("y", barY);
-    this.progressBar.setData("height", barHeight);
-
-    // Timer text
-    this.timerText = this.add
-      .text(0, barY - 12, "5.0", {
-        fontSize: "12px",
-        color: "#888888",
-      })
-      .setOrigin(0.5);
-    this.modalContainer.add(this.timerText);
-
-    // Initial fill
-    this.progressBar.fillStyle(0xbb88ff, 1); // Purple to match theme
-    this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth, barHeight, 3);
-  }
-
-  private startSelectionTimer() {
-    if (this.isSelecting) return;
-
-    const barWidth = this.progressBar?.getData("width") || 200;
-    const barY = this.progressBar?.getData("y") || 0;
-    const barHeight = this.progressBar?.getData("height") || 6;
-    const startTime = this.time.now;
-
-    const updateEvent = this.time.addEvent({
-      delay: 16,
-      loop: true,
-      callback: () => {
-        if (this.isSelecting) {
-          updateEvent.destroy();
-          return;
-        }
-
-        const elapsed = this.time.now - startTime;
-        const remaining = Math.max(0, SELECTION_TIME_MS - elapsed);
-        const progress = remaining / SELECTION_TIME_MS;
-
-        // Update progress bar
-        if (this.progressBar) {
-          this.progressBar.clear();
-
-          let color = 0xbb88ff; // Purple
-          if (progress < 0.3) color = 0xff3333;
-          else if (progress < 0.6) color = 0xff9933;
-
-          this.progressBar.fillStyle(color, 1);
-          this.progressBar.fillRoundedRect(-barWidth / 2, barY, barWidth * progress, barHeight, 3);
-        }
-
-        // Update timer text
-        if (this.timerText) {
-          this.timerText.setText((remaining / 1000).toFixed(1));
-          if (progress < 0.3) this.timerText.setColor("#ff3333");
-          else if (progress < 0.6) this.timerText.setColor("#ff9933");
-        }
-
-        if (remaining <= 0) {
-          updateEvent.destroy();
-          this.selectPriorityAbilityOnTimeout();
-        }
-      },
-    });
-
-    this.selectionTimer = updateEvent;
-  }
-
-  private selectPriorityAbilityOnTimeout() {
-    if (this.isSelecting || this.selectedAbilities.length === 0) return;
-
-    // Select highest priority ability from the 3 shown options (no levels yet at start)
-    const priorityAbility = abilityPriorityManager.getHighestPriorityAbility(
-      this.selectedAbilities,
-      {},
-    );
-    if (!priorityAbility) return;
-
-    const priorityIndex = this.selectedAbilities.findIndex((a) => a.id === priorityAbility.id);
-    const priorityContainer = this.abilityCards[priorityIndex];
-
-    console.log("StartingAbilityScene: Auto-selecting (priority):", priorityAbility.id);
-
-    if (priorityContainer) {
-      this.tweens.add({
-        targets: priorityContainer,
-        scale: 1.05,
-        duration: 100,
-        yoyo: true,
-        onComplete: () => {
-          this.selectAbility(priorityAbility.id, priorityContainer);
-        },
-      });
-    } else {
-      this.selectAbility(priorityAbility.id);
-    }
   }
 
   private createAbilityCard(
@@ -580,11 +449,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
     if (this.isSelecting) return;
     this.isSelecting = true;
 
-    if (this.selectionTimer) {
-      this.selectionTimer.destroy();
-      this.selectionTimer = undefined;
-    }
-
     try {
       // Disable all interactions
       this.abilityCards.forEach((card) => {
@@ -671,11 +535,6 @@ export default class StartingAbilityScene extends Phaser.Scene {
   }
 
   shutdown() {
-    if (this.selectionTimer) {
-      this.selectionTimer.destroy();
-      this.selectionTimer = undefined;
-    }
-
     if (this.scrollContainer) {
       this.scrollContainer.destroy();
       this.scrollContainer = undefined;
