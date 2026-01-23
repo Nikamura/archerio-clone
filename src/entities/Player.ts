@@ -279,6 +279,31 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.addKnockback();
   }
 
+  // Game modifier abilities
+  addAscetic() {
+    this.stats?.addAscetic();
+  }
+
+  addHordeMagnet() {
+    this.stats?.addHordeMagnet();
+  }
+
+  isAsceticEnabled(): boolean {
+    return this.stats?.isAsceticEnabled() ?? false;
+  }
+
+  getHordeMagnetLevel(): number {
+    return this.stats?.getHordeMagnetLevel() ?? 0;
+  }
+
+  getHordeMagnetEnemyMultiplier(): number {
+    return this.stats?.getHordeMagnetEnemyMultiplier() ?? 1.0;
+  }
+
+  getXPMultiplier(): number {
+    return this.stats?.getXPMultiplier() ?? 1.0;
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot
   // - Fire Spread: Automatically enabled when player has Fire Damage

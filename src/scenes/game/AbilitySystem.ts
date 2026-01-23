@@ -128,6 +128,14 @@ export class AbilitySystem {
       case "knockback":
         this.player.addKnockback();
         break;
+
+      // Game modifier abilities
+      case "ascetic":
+        this.player.addAscetic();
+        break;
+      case "horde_magnet":
+        this.player.addHordeMagnet();
+        break;
     }
 
     this.abilitiesGained++;

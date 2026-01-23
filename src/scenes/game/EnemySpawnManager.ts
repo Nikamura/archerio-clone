@@ -183,7 +183,8 @@ export class EnemySpawnManager {
     // Calculate base enemy count (scales with room number and difficulty)
     // In endless mode, increase enemy count by 50% per wave
     const waveEnemyMultiplier = this.isEndlessMode ? 1 + (this.endlessWave - 1) * 0.5 : 1;
-    const baseEnemies = Math.round(4 * waveEnemyMultiplier);
+    const hordeMagnetMultiplier = this.player.getHordeMagnetEnemyMultiplier(); // +50% per level (stacks)
+    const baseEnemies = Math.round(4 * waveEnemyMultiplier * hordeMagnetMultiplier);
     const scaledBase =
       Math.round(baseEnemies * this.difficultyConfig.enemySpawnMultiplier) +
       this.difficultyConfig.extraEnemyCount;
