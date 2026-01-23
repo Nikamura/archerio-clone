@@ -546,7 +546,8 @@ export default class GameScene extends Phaser.Scene {
       // Using both checks ensures shooting works correctly:
       // - input.isShooting: Immediate response to input release (no frame delay)
       // - isPlayerMoving: Accounts for momentum/sliding before shooting
-      if (input.isShooting && !this.player.isPlayerMoving()) {
+      // Don't shoot during level up (skill selection popup)
+      if (input.isShooting && !this.player.isPlayerMoving() && !isLevelingUp) {
         this.shootingSystem.tryShoot(
           time,
           isTransitioning,
@@ -583,7 +584,10 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // Update all passive effects (damage aura, chainsaw orbit, spirit cats)
-      this.passiveEffectSystem.update(time, delta, playerX, playerY);
+      // Skip during level up to prevent pets from spawning while skill selection is active
+      if (!isLevelingUp) {
+        this.passiveEffectSystem.update(time, delta, playerX, playerY);
+      }
 
       // Update shield bar UI (shield regenerates over time)
       this.updateShieldUI();
