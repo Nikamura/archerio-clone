@@ -315,12 +315,30 @@ export class LevelUpSystem {
       abilityLevels[ability.id] = ability.level;
     }
 
-    // Select the highest priority ability from ALL available abilities (not just 3 random)
-    // This ensures priority system works as expected
-    const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-      availableAbilities,
-      abilityLevels,
-    );
+    let selectedAbility: AbilityData | null = null;
+
+    // Check if debug mode is enabled
+    const isDebugMode = this.game.registry.get("debug") === true;
+
+    if (isDebugMode) {
+      // Debug mode: Select from ALL abilities based on priority
+      selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+        availableAbilities,
+        abilityLevels,
+      );
+      console.log("LevelUpSystem: Debug mode - selecting from ALL abilities");
+    } else {
+      // Normal mode: First randomly select 3 abilities, then pick highest priority from those 3
+      // This ensures variety while still respecting priority for the random subset
+      const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
+      const randomSubset = shuffled.slice(0, 3);
+
+      selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+        randomSubset,
+        abilityLevels,
+      );
+      console.log("LevelUpSystem: Normal mode - selecting from 3 random abilities");
+    }
 
     if (!selectedAbility) {
       console.log("LevelUpSystem: No ability could be selected");
@@ -366,12 +384,27 @@ export class LevelUpSystem {
         break;
       }
 
-      // Select highest priority ability from ALL available abilities (not just 3 random)
-      // This ensures priority system works as expected for starting abilities
-      const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-        availableAbilities,
-        abilityLevels,
-      );
+      // Check if debug mode is enabled
+      const isDebugMode = this.game.registry.get("debug") === true;
+
+      let selectedAbility: AbilityData | null = null;
+
+      if (isDebugMode) {
+        // Debug mode: Select from ALL abilities based on priority
+        selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+          availableAbilities,
+          abilityLevels,
+        );
+      } else {
+        // Normal mode: Randomly select 3 abilities, then pick highest priority from those 3
+        const shuffled = [...availableAbilities].sort(() => this.runRng.random() - 0.5);
+        const randomSubset = shuffled.slice(0, 3);
+
+        selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+          randomSubset,
+          abilityLevels,
+        );
+      }
 
       if (!selectedAbility) {
         console.log("LevelUpSystem: No ability could be selected for starting ability");
