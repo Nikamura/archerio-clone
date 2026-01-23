@@ -13,7 +13,7 @@ Detailed documentation is in [`docs/`](./docs/README.md):
 | Document | Description |
 |----------|-------------|
 | [Core Gameplay](./docs/core-gameplay.md) | Core loop, difficulty, elemental resistances |
-| [Abilities](./docs/abilities.md) | 27 abilities, synergies, priority system |
+| [Abilities](./docs/abilities.md) | 29 abilities, synergies, priority system |
 | [Enemies](./docs/enemies.md) | 9 enemy types, behaviors, chapter modifiers |
 | [Bosses](./docs/bosses.md) | 15 bosses, attack patterns, architecture |
 | [Equipment](./docs/equipment.md) | 4 slots, 5 rarities, fusion, weapons |

@@ -23,6 +23,23 @@ This dual-loop drives both session engagement and long-term retention.
 | **Normal** | Standard (100 HP)                | Standard stats                                  |
 | **Hard**   | -20% HP (80), -10% damage/speed  | +40% HP, +30% damage, +30% spawns, +50% boss HP |
 
+## Room Scaling
+
+Enemy stats progressively increase as you advance through rooms to prevent late-game snowballing:
+
+| Room Range | HP Multiplier | Damage Multiplier |
+| ---------- | ------------- | ----------------- |
+| Room 1     | 1.0x          | 1.0x              |
+| Room 2     | 1.03x         | 1.02x             |
+| Room 5     | 1.12x         | 1.08x             |
+| Room 10    | 1.27x         | 1.18x             |
+| Room 15    | 1.42x         | 1.28x             |
+| Room 20    | 1.57x         | 1.38x             |
+
+**Scaling Formula**: +3% HP and +2% damage per room after room 1
+
+**Design**: Room 1 serves as a minimal tutorial for new players, while experienced players with talents and equipment face scaling challenges immediately from room 2 onward. This ensures early game engagement for veterans without overwhelming beginners.
+
 ## Elemental Resistances
 
 Different chapters have different elemental resistances, encouraging players to adapt their builds:
