@@ -25,6 +25,7 @@ export default class LevelUpScene extends Phaser.Scene {
   private hasExtraLife: boolean = false;
   private isDebugMode: boolean = false;
   private scrollContainer?: ScrollContainer;
+  private pointerDownPositions: Map<number, { x: number; y: number }> = new Map();
 
   constructor() {
     super({ key: "LevelUpScene" });
@@ -112,8 +113,23 @@ export default class LevelUpScene extends Phaser.Scene {
 
       // Select abilities based on mode
       if (this.isDebugMode) {
-        // Debug mode: show ALL abilities
-        this.selectedAbilities = [...ABILITIES];
+        // Debug mode: show ALL available abilities (filtered by max level)
+        this.selectedAbilities = ABILITIES.filter((ability) => {
+          const currentLevel = this.abilityLevels[ability.id] ?? 0;
+
+          // Special case for extra_life: only show if player doesn't have one
+          if (ability.id === "extra_life") {
+            return !this.hasExtraLife;
+          }
+
+          // Check max level for ALL abilities with a defined maxLevel
+          // This prevents abilities like Ascetic (maxLevel: 1) from appearing again
+          if (ability.maxLevel !== undefined && currentLevel >= ability.maxLevel) {
+            return false;
+          }
+
+          return true;
+        });
       } else {
         // Normal mode: 3 random abilities
         this.selectedAbilities = this.selectRandomAbilities(3);
@@ -372,19 +388,37 @@ export default class LevelUpScene extends Phaser.Scene {
         });
       });
 
-      // Click handler
-      hitArea.on("pointerdown", () => {
-        console.log("LevelUpScene: Selected", ability.id);
-        this.tweens.add({
-          targets: cardContainer,
-          scale: 1.05,
-          duration: 80,
-          yoyo: true,
-          ease: "Power2.easeOut",
-          onComplete: () => {
-            this.selectAbility(ability.id, cardContainer);
-          },
-        });
+      // Click handler - track pointer down position for scroll detection
+      hitArea.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        this.pointerDownPositions.set(pointer.id, { x: pointer.x, y: pointer.y });
+      });
+
+      hitArea.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+        const downPos = this.pointerDownPositions.get(pointer.id);
+        if (!downPos) return;
+
+        // Calculate distance moved
+        const dx = pointer.x - downPos.x;
+        const dy = pointer.y - downPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Only select if pointer didn't move much (threshold: 10px)
+        // If moved more, it was a scroll/drag, not a click
+        if (distance < 10) {
+          console.log("LevelUpScene: Selected", ability.id);
+          this.tweens.add({
+            targets: cardContainer,
+            scale: 1.05,
+            duration: 80,
+            yoyo: true,
+            ease: "Power2.easeOut",
+            onComplete: () => {
+              this.selectAbility(ability.id, cardContainer);
+            },
+          });
+        }
+
+        this.pointerDownPositions.delete(pointer.id);
       });
 
       // Add to scroll container

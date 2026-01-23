@@ -339,7 +339,37 @@ export default class PreloaderScene extends Phaser.Scene {
 
   create() {
     console.log("PreloaderScene: Assets loaded");
+
+    // Create emoji textures for new abilities
+    this.createEmojiTexture("abilityAscetic", "🙏", 64);
+    this.createEmojiTexture("abilityHordeMagnet", "🧲", 64);
+
     this.scene.start("MainMenuScene");
+  }
+
+  /**
+   * Create a texture from an emoji
+   */
+  private createEmojiTexture(key: string, emoji: string, size: number): void {
+    // Create a render texture
+    const rt = this.add.renderTexture(0, 0, size, size);
+
+    // Create text with emoji
+    const text = this.add.text(size / 2, size / 2, emoji, {
+      fontSize: `${size * 0.8}px`,
+      color: "#ffffff",
+    });
+    text.setOrigin(0.5);
+
+    // Draw text to render texture
+    rt.draw(text);
+
+    // Save as texture
+    rt.saveTexture(key);
+
+    // Clean up
+    text.destroy();
+    rt.destroy();
   }
 
   update() {

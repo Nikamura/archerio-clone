@@ -734,26 +734,27 @@ export function getXpMultiplierForChapter(chapterId: ChapterId): number {
  * Get progressive room scaling multiplier
  * Enemies get stronger as you progress through rooms to prevent late-game snowballing.
  *
- * Scaling: +3% HP and +2% damage per room after room 5
- * - Rooms 1-5: 1.0x (no scaling)
- * - Room 10: 1.15x HP, 1.10x damage
- * - Room 15: 1.30x HP, 1.20x damage
- * - Room 20: 1.45x HP, 1.30x damage
+ * Scaling: +3% HP and +2% damage per room after room 1
+ * - Room 1: 1.0x (no scaling - tutorial)
+ * - Room 2: 1.03x HP, 1.02x damage
+ * - Room 10: 1.27x HP, 1.18x damage
+ * - Room 15: 1.42x HP, 1.28x damage
+ * - Room 20: 1.57x HP, 1.38x damage
  *
- * This ensures early rooms remain approachable while later rooms
- * present a real challenge even with good ability builds.
+ * This ensures room 1 is approachable for new players while experienced players
+ * with talents and equipment face scaling challenges immediately from room 2.
  */
 export function getRoomProgressionScaling(roomNumber: number): {
   hpMultiplier: number;
   damageMultiplier: number;
 } {
-  // No scaling for early rooms (tutorial period)
-  if (roomNumber <= 5) {
+  // No scaling for room 1 only (minimal tutorial)
+  if (roomNumber <= 1) {
     return { hpMultiplier: 1.0, damageMultiplier: 1.0 };
   }
 
-  // Progressive scaling after room 5
-  const roomsAfterThreshold = roomNumber - 5;
+  // Progressive scaling starts from room 2
+  const roomsAfterThreshold = roomNumber - 1;
   const hpMultiplier = 1.0 + roomsAfterThreshold * 0.03; // +3% per room
   const damageMultiplier = 1.0 + roomsAfterThreshold * 0.02; // +2% per room
 

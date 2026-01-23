@@ -221,6 +221,23 @@ export const ABILITIES: AbilityData[] = [
     iconKey: "abilityKnockback",
     maxLevel: 3,
   },
+  // Game Modifier Abilities (Risk/Reward)
+  {
+    id: "ascetic",
+    name: "Ascetic",
+    description: "No healing, +200% XP gain",
+    color: 0xff0066,
+    iconKey: "abilityAscetic",
+    maxLevel: 1,
+  },
+  {
+    id: "horde_magnet",
+    name: "Horde Magnet",
+    description: "+50% enemies, +100% XP gain",
+    color: 0xcc3300,
+    iconKey: "abilityHordeMagnet",
+    // No maxLevel - can stack infinitely for extreme challenge
+  },
 ];
 
 /**

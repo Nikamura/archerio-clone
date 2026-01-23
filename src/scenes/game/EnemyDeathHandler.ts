@@ -179,7 +179,10 @@ export class EnemyDeathHandler {
     // 5. Calculate and add XP
     const baseXpGain = isBoss ? 10 : 2;
     const chapterXpMultiplier = getXpMultiplierForChapter(chapterManager.getSelectedChapter());
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier);
+    const modifierXpMultiplier = this.player.getXPMultiplier(); // Ascetic (3x) and/or Horde Magnet (2x)
+    const xpGain = Math.round(
+      baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier * modifierXpMultiplier,
+    );
     const leveledUp = this.player.addXP(xpGain);
     this.eventHandlers.onXPUIUpdated();
 

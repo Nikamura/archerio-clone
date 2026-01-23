@@ -73,6 +73,10 @@ export class PlayerStats {
   private shieldBarrierLevel: number = 0; // Shield barrier level (affects shield HP)
   private knockbackStrength: number = 0; // Knockback force on hit
 
+  // Game modifier abilities (Risk/Reward)
+  private asceticEnabled: boolean = false; // No healing, +200% XP gain
+  private hordeMagnetLevel: number = 0; // Each level: +50% enemies, +100% XP gain (stacks)
+
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
   // - Fire Spread: Fire Damage enables fire spread on death automatically
@@ -140,6 +144,10 @@ export class PlayerStats {
   }
 
   heal(amount: number): void {
+    // Ascetic modifier blocks all healing
+    if (this.asceticEnabled) {
+      return;
+    }
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
@@ -468,6 +476,43 @@ export class PlayerStats {
     return this.knockbackStrength * 50;
   }
 
+  // Game modifier getters
+  isAsceticEnabled(): boolean {
+    return this.asceticEnabled;
+  }
+
+  getHordeMagnetLevel(): number {
+    return this.hordeMagnetLevel;
+  }
+
+  /**
+   * Get enemy count multiplier from Horde Magnet
+   * Each level adds +50% enemies (stacks additively)
+   * Level 1: 1.5x, Level 2: 2.0x, Level 3: 2.5x, etc.
+   */
+  getHordeMagnetEnemyMultiplier(): number {
+    return 1.0 + this.hordeMagnetLevel * 0.5;
+  }
+
+  /**
+   * Get XP multiplier from game modifiers
+   * Ascetic: 3x XP (200% increase)
+   * Horde Magnet: 2x XP per level (100% increase each, stacks additively)
+   * Examples:
+   * - Ascetic only: 3x
+   * - Horde Magnet L1: 2x
+   * - Horde Magnet L2: 3x
+   * - Horde Magnet L3: 4x
+   * - Ascetic + Horde Magnet L1: 3x * 2x = 6x (multiplicative)
+   * - Ascetic + Horde Magnet L3: 3x * 4x = 12x (multiplicative)
+   */
+  getXPMultiplier(): number {
+    let multiplier = 1.0;
+    if (this.asceticEnabled) multiplier *= 3.0;
+    if (this.hordeMagnetLevel > 0) multiplier *= 1.0 + this.hordeMagnetLevel * 1.0; // 2x, 3x, 4x, etc.
+    return multiplier;
+  }
+
   // Conditional damage ability getters (now passive effects)
 
   /**
@@ -765,6 +810,24 @@ export class PlayerStats {
     this.knockbackStrength = Math.min(3, this.knockbackStrength + 1);
   }
 
+  // Game modifier abilities
+
+  /**
+   * Add Ascetic ability (no healing, +200% XP gain)
+   * Non-stacking: Only need one level
+   */
+  addAscetic(): void {
+    this.asceticEnabled = true;
+  }
+
+  /**
+   * Add Horde Magnet ability (+50% enemies, +100% XP gain per level)
+   * Stacking: Each level increases challenge and rewards
+   */
+  addHordeMagnet(): void {
+    this.hordeMagnetLevel++;
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
   // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
@@ -835,6 +898,9 @@ export class PlayerStats {
     this.explosiveArrowLevel = 0;
     this.shieldBarrierLevel = 0;
     this.knockbackStrength = 0;
+    // Reset game modifiers
+    this.asceticEnabled = false;
+    this.hordeMagnetLevel = 0;
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 

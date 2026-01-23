@@ -65,6 +65,17 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | Vitality     | +15% max HP                      | —         |
 | Dodge Master | +3% dodge chance (15% cap)       | 5         |
 
+### Game Modifier Abilities (Risk/Reward)
+
+| Ability      | Effect                             | Max Level | Risk                    |
+| ------------ | ---------------------------------- | --------- | ----------------------- |
+| Ascetic      | +200% XP gain (3x multiplier)      | 1         | Blocks ALL healing      |
+| Horde Magnet | +50% enemies, +100% XP per level   | —         | Greatly increased difficulty |
+
+**Ascetic**: High-risk glass cannon build. All healing is disabled (potions, Bloodthirst, talents). Rewards skilled play with 3x XP for rapid progression. Cannot be stacked (maxLevel: 1).
+
+**Horde Magnet**: Stackable challenge modifier. Each level adds +50% enemy count and +100% XP gain (2x, 3x, 4x...). Multiplicative with Ascetic (e.g., Ascetic + Horde Magnet L3 = 12x XP). Can be taken infinitely for extreme challenge runs.
+
 ### Devil Abilities (HP Cost)
 
 | Ability    | Effect              | Cost         |
