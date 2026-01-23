@@ -172,8 +172,11 @@ export default class Boss extends Enemy {
       this.setVelocity(0, 0);
     }
 
-    // Start next attack after cooldown
-    if (time - this.lastAttackTime > this.attackCooldown) {
+    // Start next attack after cooldown (scale by game speed)
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    const scaledCooldown = this.attackCooldown / gameSpeedMultiplier;
+    if (time - this.lastAttackTime > scaledCooldown) {
       this.startNextAttack(time, playerX, playerY);
     }
   }

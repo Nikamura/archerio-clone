@@ -145,11 +145,20 @@ export class ShootingSystem {
   }
 
   /**
-   * Get the effective fire rate accounting for player attack speed
+   * Get the effective fire rate accounting for player attack speed and game speed
+   * Game speed is derived from physics.world.timeScale (timeScale = 1/multiplier)
    */
   getEffectiveFireRate(): number {
     if (!this.player) return this.fireRate;
-    return this.fireRate / this.player.getAttackSpeed();
+    const baseRate = this.fireRate / this.player.getAttackSpeed();
+
+    // Scale fire rate by game speed multiplier
+    // physics.world.timeScale = 1/multiplier, so multiplier = 1/timeScale
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+
+    // Divide fire rate by game speed so attacks happen faster at higher speeds
+    return baseRate / gameSpeedMultiplier;
   }
 
   /**

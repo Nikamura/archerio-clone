@@ -90,8 +90,11 @@ export default class TankEnemy extends Enemy {
         this.setVelocity(0, 0);
       }
 
-      // Start charging for shot
-      if (time - this.lastShotTime > this.fireRate) {
+      // Start charging for shot (scale fire rate by game speed)
+      const timeScale = this.scene.physics.world.timeScale;
+      const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+      const scaledFireRate = this.fireRate / gameSpeedMultiplier;
+      if (time - this.lastShotTime > scaledFireRate) {
         this.startCharging(time);
       }
     } else {
