@@ -461,10 +461,16 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   /**
    * Check if the enemy can perform a melee attack (cooldown has passed)
+   * Cooldown is scaled by game speed (physics.world.timeScale = 1/multiplier)
    * @param time Current game time in ms
    */
   canMeleeAttack(time: number): boolean {
-    return time - this.lastMeleeAttackTime >= this.meleeAttackCooldown;
+    // Scale cooldown by game speed multiplier
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    const scaledCooldown = this.meleeAttackCooldown / gameSpeedMultiplier;
+
+    return time - this.lastMeleeAttackTime >= scaledCooldown;
   }
 
   /**

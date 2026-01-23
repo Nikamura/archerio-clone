@@ -76,9 +76,15 @@ export default abstract class RangedEnemy extends Enemy {
 
   /**
    * Check if enough time has passed to fire again
+   * Fire rate is scaled by game speed (physics.world.timeScale = 1/multiplier)
    */
   protected canFire(time: number): boolean {
-    return time - this.lastShotTime > this.fireRate;
+    // Scale fire rate by game speed multiplier
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    const scaledFireRate = this.fireRate / gameSpeedMultiplier;
+
+    return time - this.lastShotTime > scaledFireRate;
   }
 
   /**
