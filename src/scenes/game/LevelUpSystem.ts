@@ -315,14 +315,10 @@ export class LevelUpSystem {
       abilityLevels[ability.id] = ability.level;
     }
 
-    // First, randomly select 3 abilities (just like the UI would show)
-    // This ensures auto-level-up behavior matches manual timeout behavior
-    const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
-    const randomSubset = shuffled.slice(0, 3);
-
-    // Then select highest priority ability from the random subset
+    // Select the highest priority ability from ALL available abilities (not just 3 random)
+    // This ensures priority system works as expected
     const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-      randomSubset,
+      availableAbilities,
       abilityLevels,
     );
 
@@ -370,13 +366,10 @@ export class LevelUpSystem {
         break;
       }
 
-      // Randomly select 3 abilities (mimics the UI behavior)
-      const shuffled = [...availableAbilities].sort(() => this.runRng.random() - 0.5);
-      const randomSubset = shuffled.slice(0, 3);
-
-      // Select highest priority ability from the random subset
+      // Select highest priority ability from ALL available abilities (not just 3 random)
+      // This ensures priority system works as expected for starting abilities
       const selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-        randomSubset,
+        availableAbilities,
         abilityLevels,
       );
 
