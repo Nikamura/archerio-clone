@@ -642,17 +642,26 @@ export default class LevelUpScene extends Phaser.Scene {
       }
     } catch (error) {
       console.error("LevelUpScene: Error in selectAbility:", error);
-      this.scene.stop("LevelUpScene");
+      // Use finishSelection to ensure event is emitted before stopping
+      this.finishSelection(abilityId);
     }
   }
 
   private finishSelection(abilityId: string) {
     try {
       console.log("LevelUpScene: Finishing selection");
-      this.scene.stop("LevelUpScene");
+      // Emit event FIRST before stopping scene to ensure it's always delivered
+      // Stopping the scene triggers shutdown() which could interfere with event emission
       this.game.events.emit("abilitySelected", abilityId);
+      this.scene.stop("LevelUpScene");
     } catch (error) {
       console.error("LevelUpScene: Error in finishSelection:", error);
+      // Try to emit the event even on error to prevent soft-lock
+      try {
+        this.game.events.emit("abilitySelected", abilityId);
+      } catch (emitError) {
+        console.error("LevelUpScene: Error emitting event:", emitError);
+      }
       try {
         this.scene.stop("LevelUpScene");
       } catch (stopError) {
