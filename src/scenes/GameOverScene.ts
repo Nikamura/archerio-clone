@@ -720,10 +720,10 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Display skills in a grid (up to 6 per row)
-    const iconSize = 36;
-    const iconSpacing = 44;
-    const maxPerRow = 6;
+    // Display skills in a grid (up to 8 per row, smaller icons to avoid overlapping button)
+    const iconSize = 28;
+    const iconSpacing = 34;
+    const maxPerRow = 8;
     const skillCount = this.acquiredAbilities.length;
     const rows = Math.ceil(skillCount / maxPerRow);
 
@@ -744,11 +744,11 @@ export default class GameOverScene extends Phaser.Scene {
       const rowStartX = (width - rowWidth) / 2 + iconSpacing / 2;
 
       const x = rowStartX + col * iconSpacing;
-      const y = gridStartY + row * (iconSpacing + 8);
+      const y = gridStartY + row * (iconSpacing + 4);
 
       // Skill icon background (colored border)
-      const iconBg = this.add.rectangle(x, y, iconSize + 4, iconSize + 4, 0x222222);
-      iconBg.setStrokeStyle(2, abilityData.color);
+      const iconBg = this.add.rectangle(x, y, iconSize + 3, iconSize + 3, 0x222222);
+      iconBg.setStrokeStyle(1, abilityData.color);
 
       // Skill icon
       if (this.textures.exists(abilityData.iconKey)) {
@@ -763,13 +763,13 @@ export default class GameOverScene extends Phaser.Scene {
         const badgeX = x + iconSize / 2 - 2;
         const badgeY = y + iconSize / 2 - 2;
 
-        // Badge background
-        this.add.circle(badgeX, badgeY, 10, 0x000000, 0.9);
+        // Badge background (smaller to match icon size)
+        this.add.circle(badgeX, badgeY, 8, 0x000000, 0.9);
 
         // Level number
         this.add
           .text(badgeX, badgeY, `${acquired.level}`, {
-            fontSize: "12px",
+            fontSize: "10px",
             fontFamily: "Arial",
             color: "#ffffff",
             fontStyle: "bold",
@@ -779,7 +779,7 @@ export default class GameOverScene extends Phaser.Scene {
     });
 
     // Return total height used (title + rows)
-    return 28 + rows * (iconSpacing + 8);
+    return 28 + rows * (iconSpacing + 4);
   }
 
   /**
