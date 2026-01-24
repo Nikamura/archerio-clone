@@ -560,6 +560,16 @@ export default class GameOverScene extends Phaser.Scene {
       const activeScenes = this.scene.manager.getScenes(true).map((s) => s.scene.key);
       debugToast.show(`Active scenes: ${activeScenes.join(", ")}`);
     }
+
+    // Build date text - visible in game over screenshots
+    // (BuildInfoScene is covered by this scene's dark overlay)
+    const buildText = this.add.text(6, height - 4, __BUILD_DATE__, {
+      fontSize: "11px",
+      fontFamily: "Arial, sans-serif",
+      color: "#666666",
+    });
+    buildText.setOrigin(0, 1);
+    buildText.setAlpha(0.85);
   }
 
   /**
