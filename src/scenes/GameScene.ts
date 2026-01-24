@@ -616,9 +616,13 @@ export default class GameScene extends Phaser.Scene {
       this.inputSystem.reset();
     }
 
-    // Stop player movement immediately
+    // Stop player movement immediately and update isMoving state
+    // This ensures shooting works immediately after level-up without requiring movement
     if (this.player && this.player.body) {
       this.player.setVelocity(0, 0);
+      // Update player to sync isMoving flag with the zero velocity
+      // Without this, isMoving could remain true from before the reset
+      this.player.update(0, 0);
     }
   }
 
