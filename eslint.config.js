@@ -22,6 +22,7 @@ export default [
         document: "readonly",
         Phaser: "readonly",
         localStorage: "readonly",
+        __BUILD_DATE__: "readonly",
       },
     },
     plugins: {
