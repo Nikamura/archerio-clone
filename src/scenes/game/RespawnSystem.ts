@@ -297,14 +297,7 @@ export class RespawnSystem {
     // Reset game over state
     this.gameOverSetter(false);
 
-    const levelUpSystem = this.getLevelUpSystem();
     const roomManager = this.getRoomManager();
-
-    // Grant temporary immunity (2 seconds to escape danger)
-    levelUpSystem.setLevelingUp(true);
-    this.scene.time.delayedCall(2000, () => {
-      levelUpSystem.setLevelingUp(false);
-    });
 
     // Restore player to 50% HP
     const maxHealth = this.player.getMaxHealth();
