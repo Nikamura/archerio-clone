@@ -144,6 +144,7 @@ export interface GameSettings {
   audioEnabled: boolean;
   audioVolume: number;
   showDamageNumbers: boolean;
+  showExpNumbers: boolean;
   vibrationEnabled: boolean;
   language: string;
   autoLevelUp: boolean;
@@ -271,6 +272,7 @@ function getDefaultSettings(): GameSettings {
     audioEnabled: true,
     audioVolume: 0.3,
     showDamageNumbers: true,
+    showExpNumbers: true,
     vibrationEnabled: true,
     language: "en",
     autoLevelUp: false,
