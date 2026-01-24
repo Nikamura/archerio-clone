@@ -18,6 +18,7 @@ import GameOverScene from "./scenes/GameOverScene";
 import LevelUpScene from "./scenes/LevelUpScene";
 import StartingAbilityScene from "./scenes/StartingAbilityScene";
 import PauseScene from "./scenes/PauseScene";
+import BuildInfoScene from "./scenes/BuildInfoScene";
 import { errorToast } from "./systems/ErrorToast";
 
 // Initialize error toast for debugging on mobile
@@ -62,6 +63,7 @@ const config: Phaser.Types.Core.GameConfig = {
     LevelUpScene,
     StartingAbilityScene,
     PauseScene,
+    BuildInfoScene,
   ],
   scale: {
     mode: Phaser.Scale.FIT,

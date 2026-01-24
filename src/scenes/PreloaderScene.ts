@@ -344,6 +344,9 @@ export default class PreloaderScene extends Phaser.Scene {
     this.createEmojiTexture("abilityAscetic", "🙏", 64);
     this.createEmojiTexture("abilityHordeMagnet", "🧲", 64);
 
+    // Launch persistent build info overlay
+    this.scene.launch("BuildInfoScene");
+
     this.scene.start("MainMenuScene");
   }
 
