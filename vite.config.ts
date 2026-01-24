@@ -4,7 +4,9 @@ import path from "path";
 export default defineConfig({
   base: "/",
   define: {
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString().split("T")[0]),
+    __BUILD_DATE__: JSON.stringify(
+      new Date().toISOString().replace("T", " ").replace("Z", "").slice(0, 19),
+    ),
   },
   resolve: {
     alias: {
