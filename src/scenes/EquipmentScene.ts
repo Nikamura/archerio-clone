@@ -17,6 +17,8 @@ import {
 } from "../systems/Equipment";
 import {
   PERKS,
+  calculateEquipmentStats,
+  getEquipmentBaseData,
   calculatePerkQuality,
   getQualityColor,
   getQualityLabel,
@@ -886,6 +888,18 @@ export default class EquipmentScene extends Phaser.Scene {
     const divider = this.add.rectangle(0, -panelHeight / 2 + 130, panelWidth - 40, 1, 0x444466);
     this.detailPanel.add(divider);
 
+    // Show "Next Lv" header if item can be upgraded
+    const canUpgradeItem = equipmentManager.canUpgrade(item);
+    if (canUpgradeItem.canUpgrade) {
+      const nextLvLabel = this.add
+        .text(panelWidth / 2 - 30, -panelHeight / 2 + 140, "Next Lv", {
+          fontSize: "10px",
+          color: "#66ccff",
+        })
+        .setOrigin(1, 0);
+      this.detailPanel.add(nextLvLabel);
+    }
+
     // Stats display with comparison for inventory items
     const statsY = -panelHeight / 2 + 150;
     let yOffset = 0;
@@ -893,6 +907,9 @@ export default class EquipmentScene extends Phaser.Scene {
     // Get comparison data if this is an inventory item (not equipped)
     const equippedItem = !isEquipped ? equipmentManager.getEquipped(item.slot) : null;
     const comparison = !isEquipped ? this.compareItemStats(item, equippedItem) : null;
+
+    // Get level-up stat increases (only base stats increase, not perks)
+    const levelUpIncreases = this.getNextLevelStatIncreases(item);
 
     statsEntries.forEach(([stat, value]) => {
       const statName = this.formatStatName(stat);
@@ -944,6 +961,27 @@ export default class EquipmentScene extends Phaser.Scene {
         })
         .setOrigin(0, 0);
       this.detailPanel?.add(statText);
+
+      // Show level-up increase preview for this stat (if applicable)
+      if (levelUpIncreases) {
+        const increase = (levelUpIncreases as Record<string, number>)[stat];
+        if (increase && increase > 0) {
+          // Position the level-up preview to the right of the stat text
+          const levelUpText = this.add
+            .text(
+              panelWidth / 2 - 30,
+              statsY + yOffset,
+              `+${this.formatStatValue(increase, stat)}`,
+              {
+                fontSize: "12px",
+                color: "#66ccff", // Cyan color for level-up preview
+              },
+            )
+            .setOrigin(1, 0);
+          this.detailPanel?.add(levelUpText);
+        }
+      }
+
       yOffset += 22;
     });
 
@@ -1137,6 +1175,39 @@ export default class EquipmentScene extends Phaser.Scene {
     const rounded = Math.round(displayValue * 10) / 10;
     const valueStr = Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
     return isCapped ? `${valueStr} (max)` : valueStr;
+  }
+
+  /**
+   * Calculates the stat difference between current level and next level for an item.
+   * Returns null if the item is already at max level.
+   */
+  private getNextLevelStatIncreases(item: Equipment): EquipmentStats | null {
+    const rarityConfig = RARITY_CONFIGS[item.rarity];
+    if (item.level >= rarityConfig.maxLevel) {
+      return null; // Already at max level
+    }
+
+    // Get base data for this equipment type
+    const baseData = getEquipmentBaseData(item.type);
+    if (!baseData) return null;
+
+    // Calculate stats at current and next level
+    const currentStats = calculateEquipmentStats(baseData.baseStats, item.rarity, item.level);
+    const nextStats = calculateEquipmentStats(baseData.baseStats, item.rarity, item.level + 1);
+
+    // Calculate the differences
+    const increases: EquipmentStats = {};
+    for (const [key, nextValue] of Object.entries(nextStats)) {
+      if (nextValue !== undefined) {
+        const currentValue = (currentStats as Record<string, number>)[key] ?? 0;
+        const diff = nextValue - currentValue;
+        if (diff !== 0) {
+          (increases as Record<string, number>)[key] = diff;
+        }
+      }
+    }
+
+    return increases;
   }
 
   /**
