@@ -763,6 +763,9 @@ export class CombatSystem {
       baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier * modifierXpMultiplier,
     );
 
+    // Show XP gain visual feedback
+    this.damageNumberPool.showExpGain(enemy.x, enemy.y, xpGain);
+
     // Notify event handlers
     this.eventHandlers.onEnemyKilled(enemy, isBoss);
     this.eventHandlers.onXPGained(xpGain);
