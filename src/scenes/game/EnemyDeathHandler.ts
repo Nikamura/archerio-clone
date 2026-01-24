@@ -7,6 +7,7 @@ import type { ScreenShake } from "../../systems/ScreenShake";
 import type { ParticleManager } from "../../systems/ParticleManager";
 import type GoldPool from "../../systems/GoldPool";
 import type HealthPool from "../../systems/HealthPool";
+import type DamageNumberPool from "../../systems/DamageNumberPool";
 import type { RoomManager } from "./RoomManager";
 import type { DifficultyConfig } from "../../config/difficulty";
 import type { EnemyType } from "../../systems/CurrencyManager";
@@ -41,6 +42,7 @@ export interface EnemyDeathHandlerConfig {
   screenShake: ScreenShake;
   goldPool: GoldPool;
   healthPool: HealthPool;
+  damageNumberPool: DamageNumberPool;
   difficultyConfig: DifficultyConfig;
   bonusXPMultiplier: number;
   eventHandlers: EnemyDeathEventHandlers;
@@ -80,6 +82,7 @@ export class EnemyDeathHandler {
   private screenShake: ScreenShake;
   private goldPool: GoldPool;
   private healthPool: HealthPool;
+  private damageNumberPool: DamageNumberPool;
   private difficultyConfig: DifficultyConfig;
   private bonusXPMultiplier: number;
   private eventHandlers: EnemyDeathEventHandlers;
@@ -99,6 +102,7 @@ export class EnemyDeathHandler {
     this.screenShake = config.screenShake;
     this.goldPool = config.goldPool;
     this.healthPool = config.healthPool;
+    this.damageNumberPool = config.damageNumberPool;
     this.difficultyConfig = config.difficultyConfig;
     this.bonusXPMultiplier = config.bonusXPMultiplier;
     this.eventHandlers = config.eventHandlers;
@@ -184,6 +188,7 @@ export class EnemyDeathHandler {
       baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier * modifierXpMultiplier,
     );
     const leveledUp = this.player.addXP(xpGain);
+    this.damageNumberPool.showExpGain(enemy.x, enemy.y, xpGain);
     this.eventHandlers.onXPUIUpdated();
 
     // 6. Accumulate hero XP (boss gives 25, regular enemy gives 1)
