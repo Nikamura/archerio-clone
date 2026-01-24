@@ -83,7 +83,7 @@ export default class MainMenuScene extends Phaser.Scene {
     title.setOrigin(0.5);
     title.setDepth(10);
 
-    // High score with difficulty
+    // High score with difficulty (clickable if run data exists)
     const stats = saveManager.getStatistics();
     if (stats.highestScore > 0) {
       const difficultyLabel = stats.highScoreDifficulty
@@ -102,6 +102,30 @@ export default class MainMenuScene extends Phaser.Scene {
       );
       highScoreText.setOrigin(0.5);
       highScoreText.setDepth(10);
+
+      // Make clickable if full run data exists
+      if (stats.highScoreRun) {
+        highScoreText.setInteractive({ useHandCursor: true });
+        highScoreText.on("pointerover", () => {
+          highScoreText.setStyle({ color: "#FFEE88" });
+        });
+        highScoreText.on("pointerout", () => {
+          highScoreText.setStyle({ color: "#FFD700" });
+        });
+        highScoreText.on("pointerdown", () => {
+          transitionToScene(this, "HighScoreScene", TransitionType.FADE, DURATION.FAST);
+        });
+
+        // Add tap indicator
+        const tapHint = this.add.text(width / 2, 94, "tap to view", {
+          fontSize: "10px",
+          color: "#888888",
+          stroke: "#000000",
+          strokeThickness: 1,
+        });
+        tapHint.setOrigin(0.5);
+        tapHint.setDepth(10);
+      }
     }
   }
 

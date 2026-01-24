@@ -92,6 +92,37 @@ export interface MonsterKillStats {
 }
 
 /**
+ * Acquired ability data for high score records
+ */
+export interface HighScoreAbility {
+  id: string;
+  level: number;
+}
+
+/**
+ * Full high score run data - stores everything needed to recreate the game over screen
+ */
+export interface HighScoreRunData {
+  // When the high score was achieved
+  achievedAt: number; // timestamp
+
+  // Core stats
+  score: number;
+  endlessWave: number;
+  roomsCleared: number;
+  enemiesKilled: number;
+  goldEarned: number;
+  playTimeMs: number;
+
+  // Context
+  difficulty: DifficultyLevel;
+  heroId: string;
+
+  // Skills/abilities acquired during the run
+  acquiredAbilities: HighScoreAbility[];
+}
+
+/**
  * Player statistics
  */
 export interface PlayerStatistics {
@@ -109,6 +140,7 @@ export interface PlayerStatistics {
   highScoreDifficulty?: DifficultyLevel; // difficulty when high score was achieved
   endlessHighWave?: number; // highest wave reached in endless mode
   monsterKills: MonsterKillStats; // per-enemy and per-boss kill counts
+  highScoreRun?: HighScoreRunData; // full data from the best run
 }
 
 /**
@@ -901,6 +933,9 @@ export class SaveManager {
     difficulty?: DifficultyLevel;
     isEndlessMode?: boolean; // Kept for compatibility, always treated as true
     endlessWave?: number;
+    goldEarned?: number;
+    heroId?: string;
+    acquiredAbilities?: HighScoreAbility[];
   }): void {
     const stats = this.data.statistics;
 
@@ -924,10 +959,24 @@ export class SaveManager {
       stats.longestRun = options.roomsCleared;
     }
 
-    // Track high score with difficulty
+    // Track high score with difficulty and full run data
     if (options.score > stats.highestScore) {
       stats.highestScore = options.score;
       stats.highScoreDifficulty = options.difficulty;
+
+      // Save full run data for the high score
+      stats.highScoreRun = {
+        achievedAt: Date.now(),
+        score: options.score,
+        endlessWave: options.endlessWave ?? 1,
+        roomsCleared: options.roomsCleared,
+        enemiesKilled: options.kills,
+        goldEarned: options.goldEarned ?? 0,
+        playTimeMs: options.playTimeMs,
+        difficulty: options.difficulty ?? DifficultyLevel.NORMAL,
+        heroId: options.heroId ?? this.data.selectedHeroId,
+        acquiredAbilities: options.acquiredAbilities ?? [],
+      };
     }
 
     // Track endless mode high wave (always endless now)
@@ -939,6 +988,13 @@ export class SaveManager {
     }
 
     this.markDirty();
+  }
+
+  /**
+   * Get the full high score run data
+   */
+  getHighScoreRun(): Readonly<HighScoreRunData> | undefined {
+    return this.data.statistics.highScoreRun;
   }
 
   /**
