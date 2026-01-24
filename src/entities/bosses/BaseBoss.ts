@@ -19,7 +19,7 @@ export default abstract class BaseBoss extends Enemy {
   protected bulletPool: EnemyBulletPool;
   protected phase: BossPhase = "idle";
   protected phaseStartTime: number = 0;
-  protected lastAttackTime: number = 0;
+  protected lastAttackTime: number = -1; // -1 means not initialized yet
   protected attackCooldown: number = 2000; // Base 2 seconds between attacks
   protected attackPattern: number = 0;
   protected attackPatternCount: number = 3; // Override in subclasses
@@ -209,6 +209,12 @@ export default abstract class BaseBoss extends Enemy {
       this.setVelocity(Math.cos(angle) * 40, Math.sin(angle) * 40);
     } else {
       this.setVelocity(0, 0);
+    }
+
+    // Initialize lastAttackTime on first update to prevent immediate attack on spawn
+    if (this.lastAttackTime < 0) {
+      this.lastAttackTime = time;
+      return;
     }
 
     // Start next attack after cooldown (scale by game speed)
