@@ -78,7 +78,8 @@ export class LevelUpSystem {
   }
 
   /**
-   * Check if player is currently in the level-up selection process or has immunity
+   * Check if player is currently in the level-up selection process
+   * This blocks shooting and passive effects while the UI is shown
    */
   get isLevelingUp(): boolean {
     return this._isLevelingUp;
@@ -152,10 +153,8 @@ export class LevelUpSystem {
         this.eventHandlers.onLevelUpCompleted();
         this.scene.physics.resume();
         this.inputSystem.show();
-        // Add brief immunity period (1 second) after level up to allow dodging
-        this.scene.time.delayedCall(1000, () => {
-          this._isLevelingUp = false;
-        });
+        // End level-up state immediately so player can shoot right away
+        this._isLevelingUp = false;
       } catch (error) {
         console.error("LevelUpSystem: Error applying ability:", error);
         this.eventHandlers.onLevelUpCompleted(); // Reset even on error
@@ -354,10 +353,8 @@ export class LevelUpSystem {
     // Notify UIScene to show the auto level up notification
     this.eventHandlers.onAutoLevelUp(selectedAbility);
 
-    // Brief immunity period after auto level up
-    this.scene.time.delayedCall(500, () => {
-      this._isLevelingUp = false;
-    });
+    // End level-up state immediately so player can shoot right away
+    this._isLevelingUp = false;
   }
 
   /**
