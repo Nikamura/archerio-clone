@@ -117,9 +117,13 @@ export default class DamageNumberPool {
    * @param type The type of damage (affects color/size)
    */
   show(x: number, y: number, damage: number, type: DamageNumberType = "normal"): void {
-    // Check if damage numbers are enabled in settings
+    // Check if damage/exp numbers are enabled in settings
     const settings = saveManager.getSettings();
-    if (!settings.showDamageNumbers) return;
+    if (type === "exp") {
+      if (!settings.showExpNumbers) return;
+    } else {
+      if (!settings.showDamageNumbers) return;
+    }
 
     const text = this.getAvailableText();
     if (!text) return;

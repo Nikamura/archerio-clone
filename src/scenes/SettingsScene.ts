@@ -124,6 +124,20 @@ export default class SettingsScene extends Phaser.Scene {
     );
     currentY += rowHeight;
 
+    // EXP Numbers
+    this.createToggleSetting(
+      width,
+      currentY,
+      "EXP Numbers",
+      "Show EXP gain popups",
+      this.settings.showExpNumbers,
+      (value) => {
+        this.settings.showExpNumbers = value;
+        this.saveSettings();
+      },
+    );
+    currentY += rowHeight;
+
     // Vibration
     this.createToggleSetting(
       width,
