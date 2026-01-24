@@ -12,14 +12,14 @@ export default class BuildInfoScene extends Phaser.Scene {
   create() {
     const height = this.cameras.main.height;
 
-    // Build date text - discreet positioning in bottom left
+    // Build date text - visible positioning in bottom left
     const buildText = this.add.text(6, height - 4, __BUILD_DATE__, {
-      fontSize: "9px",
+      fontSize: "11px",
       fontFamily: "Arial, sans-serif",
-      color: "#444444",
+      color: "#666666",
     });
     buildText.setOrigin(0, 1);
-    buildText.setAlpha(0.6);
+    buildText.setAlpha(0.85);
     buildText.setDepth(1000);
   }
 }
