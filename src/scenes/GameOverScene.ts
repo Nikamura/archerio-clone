@@ -249,6 +249,7 @@ export default class GameOverScene extends Phaser.Scene {
   private recordRunStats(): void {
     const selectedChapter = chapterManager.getSelectedChapter();
     const score = this.scoreBreakdown?.total ?? 0;
+    const selectedHeroId = heroManager.getSelectedHeroId();
 
     saveManager.recordRun({
       kills: this.stats.enemiesKilled,
@@ -261,6 +262,9 @@ export default class GameOverScene extends Phaser.Scene {
       difficulty: (this.stats.difficulty as DifficultyLevel) ?? DifficultyLevel.NORMAL,
       isEndlessMode: true,
       endlessWave: this.endlessWave,
+      goldEarned: this.goldEarned,
+      heroId: selectedHeroId,
+      acquiredAbilities: this.acquiredAbilities.map((a) => ({ id: a.id, level: a.level })),
     });
 
     // Track run completion metrics in Sentry
