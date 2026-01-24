@@ -679,3 +679,76 @@ export function selectRandomPerks(slot: EquipmentSlotType, rarity: Rarity): Perk
 
   return selected;
 }
+
+// ============================================
+// Perk Quality Calculation
+// ============================================
+
+/**
+ * Perk rarity tier values for quality calculation
+ * Higher tier perks contribute more to quality score
+ */
+const PERK_TIER_VALUES: Record<Rarity, number> = {
+  [Rarity.COMMON]: 1,
+  [Rarity.GREAT]: 2,
+  [Rarity.RARE]: 3,
+  [Rarity.EPIC]: 4,
+  [Rarity.LEGENDARY]: 5,
+};
+
+/**
+ * Calculate the quality score of an item's perks as a percentage (0-100)
+ * Quality is based on the rarity tier of perks rolled vs max possible
+ *
+ * Items with no perks (Common rarity) return null since quality doesn't apply
+ */
+export function calculatePerkQuality(perks: PerkId[], itemRarity: Rarity): number | null {
+  const perkSlots = RARITY_CONFIGS[itemRarity].perkSlots;
+
+  // Common items have no perks, so no quality to show
+  if (perkSlots === 0 || perks.length === 0) {
+    return null;
+  }
+
+  // Calculate actual perk value sum
+  let actualValue = 0;
+  for (const perkId of perks) {
+    const perk = PERKS[perkId];
+    if (perk) {
+      actualValue += PERK_TIER_VALUES[perk.rarity];
+    }
+  }
+
+  // Max possible value: all perks at the highest available tier for this item rarity
+  // The highest tier perk available is limited by item rarity
+  const maxPerkTier = PERK_TIER_VALUES[itemRarity];
+  const maxValue = perkSlots * maxPerkTier;
+
+  // Calculate percentage (0-100)
+  const quality = Math.round((actualValue / maxValue) * 100);
+
+  return Math.min(100, Math.max(0, quality));
+}
+
+/**
+ * Get a color for the quality percentage
+ * Gray (poor) -> White (average) -> Green (good) -> Gold (perfect)
+ */
+export function getQualityColor(quality: number): string {
+  if (quality >= 90) return "#ffd700"; // Gold - exceptional
+  if (quality >= 70) return "#44ff44"; // Green - good
+  if (quality >= 50) return "#ffffff"; // White - average
+  if (quality >= 30) return "#aaaaaa"; // Light gray - below average
+  return "#666666"; // Dark gray - poor
+}
+
+/**
+ * Get a label for the quality percentage
+ */
+export function getQualityLabel(quality: number): string {
+  if (quality >= 90) return "Perfect";
+  if (quality >= 70) return "Good";
+  if (quality >= 50) return "Average";
+  if (quality >= 30) return "Fair";
+  return "Poor";
+}
