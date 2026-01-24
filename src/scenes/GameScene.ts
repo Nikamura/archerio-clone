@@ -557,30 +557,34 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // Update enemies and handle fire DOT deaths
-      // Use for loop (faster than forEach) with cached length
-      const enemyChildren = this.enemies.getChildren();
-      const enemyCount = enemyChildren.length;
-      const enemiesToDestroy: Enemy[] = [];
+      // Skip during level up to prevent enemies from moving/spawning during skill selection
+      // (SpreaderEnemy hopping and SpawnerEnemy minion spawning bypass physics.pause())
+      if (!isLevelingUp) {
+        // Use for loop (faster than forEach) with cached length
+        const enemyChildren = this.enemies.getChildren();
+        const enemyCount = enemyChildren.length;
+        const enemiesToDestroy: Enemy[] = [];
 
-      for (let i = 0; i < enemyCount; i++) {
-        const e = enemyChildren[i] as Enemy;
-        if (e && e.active) {
-          const updateResult = e.update(time, delta, playerX, playerY);
+        for (let i = 0; i < enemyCount; i++) {
+          const e = enemyChildren[i] as Enemy;
+          if (e && e.active) {
+            const updateResult = e.update(time, delta, playerX, playerY);
 
-          // Show DoT damage text bubble if damage was dealt
-          if (updateResult.dotDamage > 0) {
-            this.damageNumberPool.showDotDamage(e.x, e.y, updateResult.dotDamage);
-          }
+            // Show DoT damage text bubble if damage was dealt
+            if (updateResult.dotDamage > 0) {
+              this.damageNumberPool.showDotDamage(e.x, e.y, updateResult.dotDamage);
+            }
 
-          if (updateResult.died) {
-            enemiesToDestroy.push(e);
+            if (updateResult.died) {
+              enemiesToDestroy.push(e);
+            }
           }
         }
-      }
 
-      // Process dead enemies outside the main loop (batch processing)
-      for (const e of enemiesToDestroy) {
-        this.handleEnemyDOTDeath(e);
+        // Process dead enemies outside the main loop (batch processing)
+        for (const e of enemiesToDestroy) {
+          this.handleEnemyDOTDeath(e);
+        }
       }
 
       // Update all passive effects (damage aura, chainsaw orbit, spirit cats)
@@ -597,7 +601,7 @@ export default class GameScene extends Phaser.Scene {
 
       // Update performance monitor with entity counts
       performanceMonitor.updateEntityCounts(
-        enemyCount,
+        this.enemies.getChildren().length,
         this.bulletPool.countActive(true) + this.enemyBulletPool.countActive(true),
         this.particles.getActiveEmitterCount(),
       );
