@@ -11,6 +11,7 @@ import type { HeroLevelUpEvent } from "../systems/Hero";
 import { debugToast } from "../systems/DebugToast";
 import { ABILITIES } from "./LevelUpScene";
 import { showMockAdPopup } from "../ui/components/MockAdPopup";
+import { showSecondChancePopup } from "../ui/components/SecondChancePopup";
 import { errorReporting } from "../systems/ErrorReportingManager";
 import {
   calculateChestRewards,
@@ -170,6 +171,7 @@ export default class GameOverScene extends Phaser.Scene {
   private isNewEndlessHighScore: boolean = false;
   private canRespawn: boolean = false;
   private respawnRoomState: RespawnRoomState | null = null;
+  private showingSecondChancePopup: boolean = false;
 
   constructor() {
     super({ key: "GameOverScene" });
@@ -184,6 +186,8 @@ export default class GameOverScene extends Phaser.Scene {
     this.endlessWave = data?.endlessWave ?? 1;
     this.canRespawn = data?.canRespawn ?? false;
     this.respawnRoomState = data?.respawnRoomState ?? null;
+    // Reset second chance popup state
+    this.showingSecondChancePopup = this.canRespawn;
 
     // Use passed goldEarned if available (from actual gold drops), otherwise estimate
     const bossDefeated = this.stats.bossDefeated ?? this.stats.isVictory ?? false;
@@ -310,9 +314,6 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   create() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-
     // Track game end for error context - always game over in endless mode
     errorReporting.setScene("GameOverScene");
     errorReporting.addBreadcrumb("game", "Game Over", {
@@ -327,6 +328,49 @@ export default class GameOverScene extends Phaser.Scene {
     // CRITICAL: Ensure this scene receives input and is on top
     this.input.enabled = true;
     this.scene.bringToTop();
+
+    // If second chance is available, show the popup FIRST before rewards
+    if (this.showingSecondChancePopup) {
+      this.showSecondChanceOffer();
+    } else {
+      this.showRewardsScreen();
+    }
+  }
+
+  /**
+   * Show the second chance offer popup before displaying rewards
+   */
+  private showSecondChanceOffer(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Dark background only for popup phase
+    this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.85).setOrigin(0);
+
+    showSecondChancePopup({
+      scene: this,
+      onAccept: () => {
+        console.log("GameOverScene: Second chance accepted - showing ad");
+        this.showRespawnAd();
+      },
+      onDecline: () => {
+        console.log("GameOverScene: Second chance declined - showing rewards");
+        this.showingSecondChancePopup = false;
+        // Clear the scene and show full rewards
+        this.children.removeAll(true);
+        this.showRewardsScreen();
+      },
+    });
+
+    console.log("GameOverScene: Showing second chance popup");
+  }
+
+  /**
+   * Show the full rewards screen with stats, score, chests, and skills
+   */
+  private showRewardsScreen(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
 
     // Debug: Log any pointer events to diagnose input issues (use once to avoid listener accumulation)
     this.input.once("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -489,8 +533,8 @@ export default class GameOverScene extends Phaser.Scene {
     const skillsY = chestsY + 110;
     this.displayAcquiredSkills(skillsY);
 
-    // Continue button - always not victory in endless mode
-    const buttonY = height - 100;
+    // Continue button - no second chance button here anymore (shown in popup instead)
+    const buttonY = height - 70;
     this.createContinueButton(buttonY);
 
     // Allow keyboard shortcuts
@@ -502,10 +546,8 @@ export default class GameOverScene extends Phaser.Scene {
       this.continueGame();
     });
 
-    // Victory effects removed - endless mode never wins
-
     console.log(
-      `GameOverScene: Created - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`,
+      `GameOverScene: Rewards screen - Gold: ${this.goldEarned}, Chests: ${JSON.stringify(this.chestRewards)}`,
     );
 
     // Log scene input state for debugging
@@ -741,54 +783,6 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   /**
-   * Create the respawn button (watch ad for second life)
-   */
-  private createRespawnButton(y: number): void {
-    const width = this.cameras.main.width;
-    const buttonWidth = 220;
-    const buttonHeight = 50;
-    const buttonColor = 0xff9900; // Orange for ad-related button
-    const hoverColor = 0xffaa33;
-    const pressColor = 0xcc7700;
-
-    const button = this.add
-      .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(100);
-
-    // Play icon (triangle)
-    const playIcon = this.add.graphics();
-    playIcon.fillStyle(0xffffff, 1);
-    playIcon.fillTriangle(width / 2 - 80, y - 8, width / 2 - 80, y + 8, width / 2 - 65, y);
-    playIcon.setDepth(101);
-
-    this.add
-      .text(width / 2 + 10, y, "SECOND CHANCE", {
-        fontSize: "18px",
-        fontFamily: "Arial",
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5)
-      .setDepth(101);
-
-    button.on("pointerover", () => {
-      button.setFillStyle(hoverColor);
-    });
-
-    button.on("pointerout", () => {
-      button.setFillStyle(buttonColor);
-    });
-
-    button.on("pointerdown", () => {
-      console.log("GameOverScene: Respawn button clicked - showing ad");
-      button.setFillStyle(pressColor);
-      audioManager.playMenuSelect();
-      this.showRespawnAd();
-    });
-  }
-
-  /**
    * Show mock ad popup for respawn
    */
   private showRespawnAd(): void {
@@ -825,10 +819,7 @@ export default class GameOverScene extends Phaser.Scene {
     const buttonText = "MAIN MENU";
     const buttonColor = 0x4a9eff;
 
-    // If respawn is available, add respawn button above main menu button
-    if (this.canRespawn) {
-      this.createRespawnButton(y - 65);
-    }
+    // Note: Second chance is now shown in a separate popup before this screen
 
     const button = this.add
       .rectangle(width / 2, y, buttonWidth, buttonHeight, buttonColor, 1)
