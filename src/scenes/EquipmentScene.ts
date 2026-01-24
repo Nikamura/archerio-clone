@@ -918,14 +918,23 @@ export default class EquipmentScene extends Phaser.Scene {
           textColor = "#ff6666";
         }
       } else if (comparison && equippedItem) {
-        // Stat exists on this item but not on equipped - it's a change
-        if (numValue >= 0) {
-          displayText = `${baseText}  ▲${this.formatStatValue(numValue, stat)}`;
-          textColor = "#44ff44";
-        } else {
-          displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(numValue), stat)}`;
-          textColor = "#ff6666";
+        // Only show as a gain/loss if the equipped item doesn't have this stat
+        // (If both items have the same value, diff is 0 and not in differences - don't show indicator)
+        const equippedStats = this.getCombinedItemStats(equippedItem);
+        const equippedHasStat =
+          equippedStats[stat as keyof EquipmentStats] !== undefined &&
+          equippedStats[stat as keyof EquipmentStats] !== 0;
+        if (!equippedHasStat) {
+          // Stat exists on this item but not on equipped - it's a new stat
+          if (numValue >= 0) {
+            displayText = `${baseText}  ▲${this.formatStatValue(numValue, stat)}`;
+            textColor = "#44ff44";
+          } else {
+            displayText = `${baseText}  ▼${this.formatStatValue(Math.abs(numValue), stat)}`;
+            textColor = "#ff6666";
+          }
         }
+        // If equippedHasStat is true and diff is 0, stats are equal - no indicator needed
       }
 
       const statText = this.add
