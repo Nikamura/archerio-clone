@@ -754,11 +754,14 @@ export class CombatSystem {
       this.eventHandlers.onPlayerHealed(bloodthirstHeal);
     }
 
-    // Add XP with equipment XP bonus and chapter scaling
-    const baseXpGain = isBoss ? 10 : 1;
+    // Add XP with equipment XP bonus, chapter scaling, and player ability multipliers
+    const baseXpGain = isBoss ? 10 : 2;
     const chapterId = chapterManager.getSelectedChapter();
     const chapterXpMultiplier = getXpMultiplierForChapter(chapterId);
-    const xpGain = Math.round(baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier);
+    const modifierXpMultiplier = this.player.getXPMultiplier(); // Ascetic (3x) and/or Horde Magnet
+    const xpGain = Math.round(
+      baseXpGain * this.bonusXPMultiplier * chapterXpMultiplier * modifierXpMultiplier,
+    );
 
     // Notify event handlers
     this.eventHandlers.onEnemyKilled(enemy, isBoss);
