@@ -238,6 +238,15 @@ export const ABILITIES: AbilityData[] = [
     iconKey: "abilityHordeMagnet",
     // No maxLevel - can stack infinitely for extreme challenge
   },
+  // Movement Abilities
+  {
+    id: "mobile_fire",
+    name: "Mobile Fire",
+    description: "Shoot while moving",
+    color: 0x33ccff,
+    iconKey: "abilityMobileFire",
+    maxLevel: 3, // L1: 33%, L2: 67%, L3: 100% attack speed while moving
+  },
 ];
 
 /**

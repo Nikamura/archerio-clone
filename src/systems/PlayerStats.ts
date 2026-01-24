@@ -77,6 +77,9 @@ export class PlayerStats {
   private asceticEnabled: boolean = false; // No healing, +200% XP gain
   private hordeMagnetLevel: number = 0; // Each level: +50% enemies, +100% XP gain (stacks)
 
+  // Movement abilities
+  private mobileFireLevel: number = 0; // Allows shooting while moving (L1: 33%, L2: 67%, L3: 100% attack speed)
+
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
   // - Fire Spread: Fire Damage enables fire spread on death automatically
@@ -523,6 +526,31 @@ export class PlayerStats {
     return multiplier;
   }
 
+  // Movement ability getters
+
+  getMobileFireLevel(): number {
+    return this.mobileFireLevel;
+  }
+
+  /**
+   * Check if player can shoot while moving
+   * Returns true if player has at least 1 level of Mobile Fire
+   */
+  canShootWhileMoving(): boolean {
+    return this.mobileFireLevel > 0;
+  }
+
+  /**
+   * Get attack speed multiplier when shooting while moving
+   * Level 1: 33% (1/3), Level 2: 67% (2/3), Level 3: 100% (full)
+   * Returns 0 if ability not acquired (should not shoot while moving)
+   */
+  getMobileFireAttackSpeedMultiplier(): number {
+    if (this.mobileFireLevel <= 0) return 0;
+    // Level 1: 1/3, Level 2: 2/3, Level 3: 3/3 (full)
+    return Math.min(1.0, this.mobileFireLevel / 3);
+  }
+
   // Conditional damage ability getters (now passive effects)
 
   /**
@@ -838,6 +866,17 @@ export class PlayerStats {
     this.hordeMagnetLevel++;
   }
 
+  /**
+   * Add Mobile Fire ability (shoot while moving at reduced attack speed)
+   * Level 1: 33% attack speed while moving
+   * Level 2: 67% attack speed while moving
+   * Level 3: 100% attack speed while moving (full)
+   * Stacking: Each level adds +33% attack speed while moving (max 3)
+   */
+  addMobileFire(): void {
+    this.mobileFireLevel = Math.min(3, this.mobileFireLevel + 1);
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot (freezeChance > 0)
   // - Fire Spread: Automatically enabled when player has Fire Damage (fireDamagePercent > 0)
@@ -911,6 +950,8 @@ export class PlayerStats {
     // Reset game modifiers
     this.asceticEnabled = false;
     this.hordeMagnetLevel = 0;
+    // Reset movement abilities
+    this.mobileFireLevel = 0;
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
   }
 

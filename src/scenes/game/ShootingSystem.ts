@@ -82,6 +82,7 @@ export class ShootingSystem {
 
   /**
    * Try to shoot at the nearest enemy if conditions are met
+   * @param isMovingShot - Whether this shot is fired while moving (uses Mobile Fire ability)
    * @returns true if a shot was fired
    */
   tryShoot(
@@ -89,14 +90,18 @@ export class ShootingSystem {
     isInTransition: boolean,
     showingTutorial: boolean,
     isGameOver: boolean,
+    isMovingShot: boolean = false,
   ): boolean {
     // Don't shoot during transitions, tutorial, or game over
     if (isInTransition || showingTutorial || isGameOver) {
       return false;
     }
 
-    // Check fire rate cooldown
-    if (time - this.lastShotTime <= this.getEffectiveFireRate()) {
+    // Check fire rate cooldown (use moving fire rate if applicable)
+    const effectiveFireRate = isMovingShot
+      ? this.getEffectiveFireRateWhileMoving()
+      : this.getEffectiveFireRate();
+    if (time - this.lastShotTime <= effectiveFireRate) {
       return false;
     }
 
@@ -158,6 +163,30 @@ export class ShootingSystem {
     const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
 
     // Divide fire rate by game speed so attacks happen faster at higher speeds
+    return baseRate / gameSpeedMultiplier;
+  }
+
+  /**
+   * Get the effective fire rate while moving (Mobile Fire ability)
+   * Applies reduced attack speed based on Mobile Fire level:
+   * - Level 1: 33% attack speed (3x longer fire rate)
+   * - Level 2: 67% attack speed (1.5x longer fire rate)
+   * - Level 3: 100% attack speed (same as stationary)
+   */
+  getEffectiveFireRateWhileMoving(): number {
+    if (!this.player) return this.fireRate;
+
+    const mobileFireMultiplier = this.player.getMobileFireAttackSpeedMultiplier();
+    if (mobileFireMultiplier <= 0) return Infinity; // Can't shoot while moving
+
+    // Calculate base attack speed with mobile fire penalty
+    const effectiveAttackSpeed = this.player.getAttackSpeed() * mobileFireMultiplier;
+    const baseRate = this.fireRate / effectiveAttackSpeed;
+
+    // Scale fire rate by game speed multiplier
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+
     return baseRate / gameSpeedMultiplier;
   }
 

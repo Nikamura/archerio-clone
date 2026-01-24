@@ -304,6 +304,23 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.getXPMultiplier() ?? 1.0;
   }
 
+  // Movement ability methods
+  addMobileFire() {
+    this.stats?.addMobileFire();
+  }
+
+  getMobileFireLevel(): number {
+    return this.stats?.getMobileFireLevel() ?? 0;
+  }
+
+  canShootWhileMoving(): boolean {
+    return this.stats?.canShootWhileMoving() ?? false;
+  }
+
+  getMobileFireAttackSpeedMultiplier(): number {
+    return this.stats?.getMobileFireAttackSpeedMultiplier() ?? 0;
+  }
+
   // Note: addShatter() and addFireSpread() removed - these are now passive effects:
   // - Shatter: Automatically enabled when player has Ice Shot
   // - Fire Spread: Automatically enabled when player has Fire Damage

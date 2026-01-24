@@ -541,18 +541,23 @@ export default class GameScene extends Phaser.Scene {
       // Update player AFTER setting velocity so isMoving reflects current state
       this.player.update(time, delta);
 
-      // CORE MECHANIC: Auto-fire when player is stationary
+      // CORE MECHANIC: Auto-fire when player is stationary (or moving with Mobile Fire ability)
       // Player shoots when they have no active movement input AND velocity is low
       // Using both checks ensures shooting works correctly:
       // - input.isShooting: Immediate response to input release (no frame delay)
       // - isPlayerMoving: Accounts for momentum/sliding before shooting
       // Don't shoot during level up (skill selection popup)
-      if (input.isShooting && !this.player.isPlayerMoving() && !isLevelingUp) {
+      const isStationary = input.isShooting && !this.player.isPlayerMoving();
+      const canShootWhileMoving = this.player.isPlayerMoving() && this.player.canShootWhileMoving();
+      const isMovingShot = canShootWhileMoving && !isStationary;
+
+      if ((isStationary || canShootWhileMoving) && !isLevelingUp) {
         this.shootingSystem.tryShoot(
           time,
           isTransitioning,
           this.tutorialSystem.isShowing,
           this.isGameOver,
+          isMovingShot,
         );
       }
 
