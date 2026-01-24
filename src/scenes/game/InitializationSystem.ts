@@ -734,6 +734,7 @@ export class InitializationSystem {
       screenShake: visualEffects.screenShake,
       goldPool: pools.goldPool,
       healthPool: pools.healthPool,
+      damageNumberPool: pools.damageNumberPool,
       difficultyConfig,
       bonusXPMultiplier: 1 + (equipmentManager.getEquippedStats().bonusXPPercent ?? 0),
       eventHandlers: {

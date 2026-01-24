@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { saveManager } from "./SaveManager";
 
-export type DamageNumberType = "normal" | "crit" | "player" | "heal" | "dot" | "dodge";
+export type DamageNumberType = "normal" | "crit" | "player" | "heal" | "dot" | "dodge" | "exp";
 
 interface DamageNumberConfig {
   color: string;
@@ -53,6 +53,13 @@ const DAMAGE_CONFIGS: Record<DamageNumberType, DamageNumberConfig> = {
     scale: 1.2,
     duration: 800,
     floatDistance: 35,
+  },
+  exp: {
+    color: "#aa88ff",
+    fontSize: "14px",
+    scale: 1,
+    duration: 800,
+    floatDistance: 30,
   },
 };
 
@@ -124,7 +131,15 @@ export default class DamageNumberPool {
     const offsetY = Phaser.Math.Between(-5, 5);
 
     text.setPosition(x + offsetX, y + offsetY);
-    text.setText(type === "dodge" ? "DODGE" : type === "heal" ? `+${damage}` : `${damage}`);
+    text.setText(
+      type === "dodge"
+        ? "DODGE"
+        : type === "heal"
+          ? `+${damage}`
+          : type === "exp"
+            ? `+${damage} XP`
+            : `${damage}`,
+    );
     text.setStyle({
       fontSize: config.fontSize,
       fontStyle: "bold",
@@ -196,6 +211,13 @@ export default class DamageNumberPool {
    */
   showDodge(x: number, y: number): void {
     this.show(x, y, 0, "dodge");
+  }
+
+  /**
+   * Show experience gain popup
+   */
+  showExpGain(x: number, y: number, amount: number): void {
+    this.show(x, y, amount, "exp");
   }
 
   /**
