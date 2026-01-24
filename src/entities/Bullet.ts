@@ -32,6 +32,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   // Knockback on hit
   private knockbackForce: number = 0;
+  private knockbackDuration: number = 0;
 
   // Track which enemies this bullet has already hit (for piercing)
   private hitEnemies: Set<Phaser.GameObjects.GameObject> = new Set();
@@ -81,6 +82,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       explosiveDamagePercent?: number;
       enemiesGroup?: Phaser.Physics.Arcade.Group;
       knockbackForce?: number;
+      knockbackDuration?: number;
     },
   ) {
     this.setPosition(x, y);
@@ -114,6 +116,7 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.explosiveDamagePercent = options?.explosiveDamagePercent ?? 0;
     this.enemiesGroup = options?.enemiesGroup ?? null;
     this.knockbackForce = options?.knockbackForce ?? 0;
+    this.knockbackDuration = options?.knockbackDuration ?? 150;
 
     // Change texture based on equipped weapon
     if (options?.projectileSprite) {
@@ -359,6 +362,10 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
   getKnockbackForce(): number {
     return this.knockbackForce;
+  }
+
+  getKnockbackDuration(): number {
+    return this.knockbackDuration;
   }
 
   /**
