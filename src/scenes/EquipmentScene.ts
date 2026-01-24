@@ -15,7 +15,12 @@ import {
   PerkId,
   EquipmentStats,
 } from "../systems/Equipment";
-import { PERKS } from "../config/equipmentData";
+import {
+  PERKS,
+  calculatePerkQuality,
+  getQualityColor,
+  getQualityLabel,
+} from "../config/equipmentData";
 import { equipmentManager, EQUIPMENT_EVENTS } from "../systems/EquipmentManager";
 import { currencyManager } from "../systems/CurrencyManager";
 import { audioManager } from "../systems/AudioManager";
@@ -575,6 +580,23 @@ export default class EquipmentScene extends Phaser.Scene {
       // Guard against missing UI elements (can happen if scene not fully initialized)
       if (!icon || !itemBg || !itemSprite || !levelText || !bg) return;
 
+      // Get or create quality indicator for equipped slot
+      let qualityIndicator = container.getByName(
+        "qualityIndicator",
+      ) as Phaser.GameObjects.Text | null;
+      if (!qualityIndicator) {
+        qualityIndicator = this.add
+          .text(-this.SLOT_SIZE / 2 + 4, -this.SLOT_SIZE / 2 + 4, "", {
+            fontSize: "9px",
+            fontStyle: "bold",
+            backgroundColor: "#1a1a2e",
+            padding: { x: 2, y: 0 },
+          })
+          .setOrigin(0, 0)
+          .setName("qualityIndicator");
+        container.add(qualityIndicator);
+      }
+
       if (equipped) {
         // Show item
         icon.setVisible(false);
@@ -595,6 +617,17 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // Set level info
         levelText.setText(`Lv.${equipped.level}`);
+
+        // Show perk quality indicator for items with perks
+        const perkQuality = calculatePerkQuality(equipped.perks, equipped.rarity);
+        if (perkQuality !== null) {
+          const qualityColor = getQualityColor(perkQuality);
+          qualityIndicator.setText(`${perkQuality}%`);
+          qualityIndicator.setColor(qualityColor);
+          qualityIndicator.setVisible(true);
+        } else {
+          qualityIndicator.setVisible(false);
+        }
       } else {
         // Show empty slot
         icon.setVisible(true);
@@ -602,6 +635,7 @@ export default class EquipmentScene extends Phaser.Scene {
         itemSprite.setVisible(false);
         levelText.setVisible(false);
         bg.setStrokeStyle(2, 0x444466);
+        qualityIndicator.setVisible(false);
       }
     });
   }
@@ -652,6 +686,23 @@ export default class EquipmentScene extends Phaser.Scene {
         slot.container.add(upgradeIndicator);
       }
 
+      // Get or create quality indicator
+      let qualityIndicator = slot.container.getByName(
+        "qualityIndicator",
+      ) as Phaser.GameObjects.Text | null;
+      if (!qualityIndicator) {
+        qualityIndicator = this.add
+          .text(-this.INVENTORY_SLOT_SIZE / 2 + 2, -this.INVENTORY_SLOT_SIZE / 2 + 2, "", {
+            fontSize: "9px",
+            fontStyle: "bold",
+            backgroundColor: "#1a1a2e",
+            padding: { x: 2, y: 0 },
+          })
+          .setOrigin(0, 0)
+          .setName("qualityIndicator");
+        slot.container.add(qualityIndicator);
+      }
+
       if (item) {
         const rarityColor = Phaser.Display.Color.HexStringToColor(
           RARITY_CONFIGS[item.rarity].color,
@@ -668,11 +719,23 @@ export default class EquipmentScene extends Phaser.Scene {
         // Show upgrade indicator if this item is better than equipped
         const isUpgrade = this.isUpgradeOverEquipped(item);
         upgradeIndicator.setVisible(isUpgrade);
+
+        // Show perk quality indicator for items with perks
+        const perkQuality = calculatePerkQuality(item.perks, item.rarity);
+        if (perkQuality !== null) {
+          const qualityColor = getQualityColor(perkQuality);
+          qualityIndicator.setText(`${perkQuality}%`);
+          qualityIndicator.setColor(qualityColor);
+          qualityIndicator.setVisible(true);
+        } else {
+          qualityIndicator.setVisible(false);
+        }
       } else {
         slot.background.setStrokeStyle(1, 0x3a3a55);
         itemSprite.setVisible(false);
         levelText.setVisible(false);
         upgradeIndicator.setVisible(false);
+        qualityIndicator.setVisible(false);
       }
     });
   }
@@ -799,6 +862,25 @@ export default class EquipmentScene extends Phaser.Scene {
       )
       .setOrigin(0, 0.5);
     this.detailPanel.add(levelInfo);
+
+    // Perk quality indicator (only for items with perks)
+    const perkQuality = calculatePerkQuality(item.perks, item.rarity);
+    if (perkQuality !== null) {
+      const qualityColor = getQualityColor(perkQuality);
+      const qualityLabel = getQualityLabel(perkQuality);
+      const qualityText = this.add
+        .text(
+          -panelWidth / 2 + 110,
+          -panelHeight / 2 + 112,
+          `Perk Quality: ${perkQuality}% (${qualityLabel})`,
+          {
+            fontSize: "11px",
+            color: qualityColor,
+          },
+        )
+        .setOrigin(0, 0.5);
+      this.detailPanel.add(qualityText);
+    }
 
     // Divider
     const divider = this.add.rectangle(0, -panelHeight / 2 + 130, panelWidth - 40, 1, 0x444466);
