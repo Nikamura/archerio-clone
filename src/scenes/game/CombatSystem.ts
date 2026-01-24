@@ -926,21 +926,19 @@ export class CombatSystem {
 
   /**
    * Apply knockback from bullet hit
+   * Now uses enemy's applyKnockback method which includes stun effect
    */
   private applyBulletKnockback(bullet: Bullet, enemy: Enemy): void {
     const knockbackForce = bullet.getKnockbackForce();
     if (knockbackForce <= 0) return;
 
-    // Calculate knockback direction (from bullet to enemy)
+    // Calculate knockback direction (from bullet velocity)
     const body = bullet.body as Phaser.Physics.Arcade.Body;
     const angle = Math.atan2(body.velocity.y, body.velocity.x);
 
-    // Apply velocity to enemy
-    const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
-    if (enemyBody) {
-      enemyBody.velocity.x += Math.cos(angle) * knockbackForce;
-      enemyBody.velocity.y += Math.sin(angle) * knockbackForce;
-    }
+    // Apply knockback with stun to enemy
+    const knockbackDuration = bullet.getKnockbackDuration();
+    enemy.applyKnockback(angle, knockbackForce, knockbackDuration);
   }
 
   /**

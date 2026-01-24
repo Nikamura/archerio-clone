@@ -460,6 +460,30 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Apply knockback force and stun to the enemy
+   * @param angle Direction of knockback in radians
+   * @param force Force/speed of knockback in pixels
+   * @param duration How long the enemy can't override velocity (ms)
+   */
+  applyKnockback(angle: number, force: number, duration: number = 150): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (!body) return;
+
+    // Set velocity directly (not additive)
+    body.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force);
+
+    // Apply knockback stun to prevent immediate velocity override
+    this.statusEffects.applyKnockback(this.scene.time.now, duration);
+  }
+
+  /**
+   * Check if enemy is currently being knocked back
+   */
+  isKnockedBack(): boolean {
+    return this.statusEffects.isKnockedBack();
+  }
+
+  /**
    * Check if the enemy can perform a melee attack (cooldown has passed)
    * Cooldown is scaled by game speed (physics.world.timeScale = 1/multiplier)
    * @param time Current game time in ms
@@ -495,6 +519,11 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // If frozen, don't move or act
     if (this.statusEffects.isFrozen()) {
       this.setVelocity(0, 0);
+      return effectResult;
+    }
+
+    // If knocked back, don't override velocity (let knockback momentum play out)
+    if (this.statusEffects.isKnockedBack()) {
       return effectResult;
     }
 

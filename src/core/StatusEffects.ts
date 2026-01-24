@@ -5,7 +5,7 @@
  * Extracted from Enemy.ts to allow reuse across all enemy types.
  */
 
-export type StatusEffectType = "fire" | "freeze" | "poison" | "bleed";
+export type StatusEffectType = "fire" | "freeze" | "poison" | "bleed" | "knockback";
 
 export interface FireEffect {
   damage: number;
@@ -40,6 +40,14 @@ export interface BleedEffect {
   duration: number;
   /** Damage multiplier when enemy is moving (e.g., 2.0 = double damage) */
   movingMultiplier: number;
+}
+
+/**
+ * Knockback stun effect - prevents enemy from moving while being knocked back
+ */
+export interface KnockbackEffect {
+  endTime: number;
+  duration: number;
 }
 
 export interface StatusEffectTint {
@@ -104,6 +112,13 @@ export class StatusEffectSystem {
     duration: 3000,
     movingMultiplier: 2.0, // Double damage when moving
   };
+
+  // Knockback stun - prevents movement override during knockback
+  private knockback: KnockbackEffect = {
+    endTime: 0,
+    duration: 150, // 150ms knockback stun by default
+  };
+  private _isKnockedBack: boolean = false;
 
   private tints: StatusEffectTint = { ...DEFAULT_TINTS };
 
@@ -185,10 +200,27 @@ export class StatusEffectSystem {
   }
 
   /**
+   * Apply knockback stun effect - prevents enemy from overriding velocity
+   * @param currentTime Current game time
+   * @param duration Optional custom duration (default 150ms)
+   */
+  applyKnockback(currentTime: number, duration?: number): void {
+    this._isKnockedBack = true;
+    this.knockback.endTime = currentTime + (duration ?? this.knockback.duration);
+  }
+
+  /**
    * Check if entity is frozen
    */
   isFrozen(): boolean {
     return this._isFrozen;
+  }
+
+  /**
+   * Check if entity is currently knocked back (can't override velocity)
+   */
+  isKnockedBack(): boolean {
+    return this._isKnockedBack;
   }
 
   /**
@@ -246,6 +278,12 @@ export class StatusEffectSystem {
     // Update freeze
     if (this._isFrozen && currentTime >= this.freeze.endTime) {
       this._isFrozen = false;
+      effectsChanged = true;
+    }
+
+    // Update knockback stun
+    if (this._isKnockedBack && currentTime >= this.knockback.endTime) {
+      this._isKnockedBack = false;
       effectsChanged = true;
     }
 
@@ -322,7 +360,13 @@ export class StatusEffectSystem {
    * Check if any effect is active
    */
   hasActiveEffect(): boolean {
-    return this._isFrozen || this.fire.ticks > 0 || this.poison.stacks > 0 || this.bleed.ticks > 0;
+    return (
+      this._isFrozen ||
+      this._isKnockedBack ||
+      this.fire.ticks > 0 ||
+      this.poison.stacks > 0 ||
+      this.bleed.ticks > 0
+    );
   }
 
   /**
@@ -345,6 +389,10 @@ export class StatusEffectSystem {
     if (!type || type === "bleed") {
       this.bleed.damage = 0;
       this.bleed.ticks = 0;
+    }
+    if (!type || type === "knockback") {
+      this._isKnockedBack = false;
+      this.knockback.endTime = 0;
     }
   }
 

@@ -307,8 +307,9 @@ export class ShootingSystem {
       explosiveRadius: this.player.getExplosiveArrowRadius(),
       explosiveDamagePercent: this.player.getExplosiveArrowDamagePercent(),
       enemiesGroup: this.enemies,
-      // Knockback option
+      // Knockback options
       knockbackForce: this.player.getKnockbackForce(),
+      knockbackDuration: this.player.getKnockbackDuration(),
     };
   }
 

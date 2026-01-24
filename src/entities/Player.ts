@@ -495,6 +495,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.getKnockbackForce() ?? 0;
   }
 
+  getKnockbackDuration(): number {
+    return this.stats?.getKnockbackDuration() ?? 0;
+  }
+
   // Reset run-based stats
   resetRunStats() {
     this.stats?.resetRunStats();

@@ -469,11 +469,21 @@ export class PlayerStats {
 
   /**
    * Get knockback force in pixels
-   * Level 1 = 50, Level 2 = 100, Level 3 = 150
+   * Level 1 = 200, Level 2 = 300, Level 3 = 400
+   * (Buffed from 50/100/150 - now actually pushes enemies back noticeably)
    */
   getKnockbackForce(): number {
     if (this.knockbackStrength <= 0) return 0;
-    return this.knockbackStrength * 50;
+    return 100 + this.knockbackStrength * 100;
+  }
+
+  /**
+   * Get knockback stun duration in ms
+   * Level 1 = 150ms, Level 2 = 200ms, Level 3 = 250ms
+   */
+  getKnockbackDuration(): number {
+    if (this.knockbackStrength <= 0) return 0;
+    return 100 + this.knockbackStrength * 50;
   }
 
   // Game modifier getters
