@@ -399,7 +399,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateXPUI() {
-    const xpPercentage = this.player.getXPPercentage();
+    const xpPercentage = this.player.getXPPercentage() * 100;
     const level = this.player.getLevel();
     this.scene.get("UIScene").events.emit("updateXP", xpPercentage, level);
   }
