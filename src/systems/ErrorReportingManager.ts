@@ -9,10 +9,14 @@
  * - Breadcrumbs for debugging (scene transitions, level ups, etc.)
  * - Device info and session duration tracking
  *
+ * Note: Sentry metrics API was removed in v9. Analytics events are now
+ * tracked via SimpleAnalytics in AnalyticsManager.ts.
+ *
  * To override the DSN, set VITE_SENTRY_DSN environment variable.
  */
 
 import * as Sentry from "@sentry/browser";
+import { analytics } from "./AnalyticsManager";
 
 // Game context for error reports
 interface GameContext {
@@ -205,8 +209,10 @@ class ErrorReportingManager {
   }
 
   // ============================================
-  // Metrics Tracking
+  // Analytics Tracking (delegated to AnalyticsManager)
   // ============================================
+  // Note: These methods delegate to SimpleAnalytics via AnalyticsManager.
+  // Sentry metrics API was removed in SDK v9.
 
   /**
    * Track a run completion with all relevant metrics
@@ -225,57 +231,7 @@ class ErrorReportingManager {
     heroId?: string;
     abilitiesGained?: number;
   }): void {
-    if (!this.initialized) return;
-
-    // Count the run
-    Sentry.metrics.count("run_completed", 1, {
-      attributes: {
-        victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : data.isDailyChallenge ? "daily" : "normal",
-        difficulty: data.difficulty ?? "normal",
-        chapter: String(data.chapterId ?? 1),
-      },
-    });
-
-    // Track run duration as a distribution
-    Sentry.metrics.distribution("run_duration_seconds", Math.floor(data.playTimeMs / 1000), {
-      unit: "second",
-      attributes: {
-        victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : data.isDailyChallenge ? "daily" : "normal",
-      },
-    });
-
-    // Track score as a distribution
-    Sentry.metrics.distribution("run_score", data.score, {
-      attributes: {
-        victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : "normal",
-      },
-    });
-
-    // Track rooms cleared
-    Sentry.metrics.distribution("rooms_cleared", data.roomsCleared, {
-      attributes: {
-        victory: String(data.isVictory),
-        chapter: String(data.chapterId ?? 1),
-      },
-    });
-
-    // Track enemies killed
-    Sentry.metrics.distribution("enemies_killed", data.enemiesKilled, {
-      attributes: { chapter: String(data.chapterId ?? 1) },
-    });
-
-    // Track endless wave as gauge for high scores
-    if (data.isEndlessMode && data.endlessWave !== undefined) {
-      Sentry.metrics.gauge("endless_wave_reached", data.endlessWave);
-    }
-
-    // Track abilities gained
-    if (data.abilitiesGained !== undefined) {
-      Sentry.metrics.distribution("abilities_per_run", data.abilitiesGained);
-    }
+    analytics.trackRunCompleted(data);
 
     this.addBreadcrumb("game", "Run completed", {
       score: data.score,
@@ -292,15 +248,7 @@ class ErrorReportingManager {
     previousScore: number,
     mode: "normal" | "endless" = "normal",
   ): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("new_high_score", 1, {
-      attributes: { mode },
-    });
-
-    Sentry.metrics.gauge("high_score", score, {
-      attributes: { mode },
-    });
+    analytics.trackNewHighScore(score, previousScore, mode);
 
     this.addBreadcrumb("game", "New high score!", {
       newScore: score,
@@ -313,47 +261,21 @@ class ErrorReportingManager {
    * Track a level up event
    */
   trackLevelUp(playerLevel: number, abilityChosen?: string): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("level_up", 1, {
-      attributes: {
-        level: String(playerLevel),
-        ability: abilityChosen ?? "unknown",
-      },
-    });
+    analytics.trackLevelUp(playerLevel, abilityChosen);
   }
 
   /**
    * Track a boss kill
    */
   trackBossKill(bossId: string, timeToKillMs: number, chapterId: number): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("boss_kill", 1, {
-      attributes: {
-        boss: bossId,
-        chapter: String(chapterId),
-      },
-    });
-
-    Sentry.metrics.distribution("boss_kill_time_seconds", Math.floor(timeToKillMs / 1000), {
-      unit: "second",
-      attributes: { boss: bossId },
-    });
+    analytics.trackBossKill(bossId, timeToKillMs, chapterId);
   }
 
   /**
    * Track ability acquisition
    */
   trackAbilityAcquired(abilityId: string, level: number): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("ability_acquired", 1, {
-      attributes: {
-        ability: abilityId,
-        level: String(level),
-      },
-    });
+    analytics.trackAbilityAcquired(abilityId, level);
   }
 
   /**
@@ -364,66 +286,42 @@ class ErrorReportingManager {
     chapterId: number,
     difficulty: string,
   ): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("game_start", 1, {
-      attributes: {
-        mode,
-        chapter: String(chapterId),
-        difficulty,
-      },
-    });
+    analytics.trackGameStart(mode, chapterId, difficulty);
   }
 
   /**
    * Track hero usage
    */
   trackHeroUsed(heroId: string): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("hero_usage", 1, {
-      attributes: { hero: heroId },
-    });
+    analytics.trackHeroUsed(heroId);
   }
 
   /**
    * Track enemy kills by type
    */
   trackEnemyKill(enemyType: string): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("enemy_kill", 1, {
-      attributes: { type: enemyType },
-    });
+    analytics.trackEnemyKill(enemyType);
   }
 
   /**
    * Track currency earned
    */
   trackCurrencyEarned(type: "gold" | "gems" | "scrolls", amount: number): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("currency_earned", amount, {
-      attributes: { type },
-    });
+    analytics.trackCurrencyEarned(type, amount);
   }
 
   /**
    * Track a custom metric (generic counter)
    */
   trackMetric(name: string, value: number = 1, attributes?: Record<string, string>): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count(name, value, { attributes });
+    analytics.track(name, { value, ...attributes });
   }
 
   /**
    * Track a gauge metric (point-in-time value)
    */
   trackGauge(name: string, value: number, attributes?: Record<string, string>): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.gauge(name, value, { attributes });
+    analytics.track(name, { value, ...attributes });
   }
 
   /**
@@ -433,11 +331,9 @@ class ErrorReportingManager {
     name: string,
     value: number,
     attributes?: Record<string, string>,
-    unit?: string,
+    _unit?: string,
   ): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.distribution(name, value, { attributes, unit });
+    analytics.track(name, { value, ...attributes });
   }
 }
 
