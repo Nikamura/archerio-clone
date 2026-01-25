@@ -37,6 +37,7 @@ export default class UIScene extends Phaser.Scene {
 
   // Speed toggle button
   private speedButton!: Phaser.GameObjects.Container;
+  private speedBg!: Phaser.GameObjects.Graphics;
   private speedText!: Phaser.GameObjects.Text;
   private currentSpeed: GameSpeedMultiplier = 1;
 
@@ -302,12 +303,12 @@ export default class UIScene extends Phaser.Scene {
     this.speedButton.setDepth(50);
 
     // Button background - wider to accommodate text
-    const speedBg = this.add.graphics();
-    speedBg.fillStyle(0x000000, 0.6);
-    speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
-    speedBg.lineStyle(2, 0x4488ff);
-    speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
-    this.speedButton.add(speedBg);
+    this.speedBg = this.add.graphics();
+    this.speedBg.fillStyle(0x000000, 0.6);
+    this.speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+    this.speedBg.lineStyle(2, 0x4488ff);
+    this.speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+    this.speedButton.add(this.speedBg);
 
     // Speed text
     this.speedText = this.add
@@ -329,17 +330,7 @@ export default class UIScene extends Phaser.Scene {
     // Click handler to cycle speed
     this.speedButton.on("pointerdown", () => {
       const newSpeed = saveManager.cycleGameSpeed();
-      this.currentSpeed = newSpeed;
-      this.speedText.setText(`${newSpeed}x`);
-
-      // Update color based on speed
-      const color = newSpeed === 1 ? 0x4488ff : newSpeed === 2 ? 0x44ff88 : 0xff8844;
-      speedBg.clear();
-      speedBg.fillStyle(0x000000, 0.6);
-      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
-      speedBg.lineStyle(2, color);
-      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
-      this.speedText.setColor(`#${color.toString(16).padStart(6, "0")}`);
+      this.updateSpeedDisplay(newSpeed);
 
       // Emit event to GameScene to apply the speed
       this.game.events.emit("gameSpeedChanged", newSpeed);
@@ -347,34 +338,60 @@ export default class UIScene extends Phaser.Scene {
 
     // Hover effects
     this.speedButton.on("pointerover", () => {
-      speedBg.clear();
-      speedBg.fillStyle(0x000000, 0.8);
-      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.clear();
+      this.speedBg.fillStyle(0x000000, 0.8);
+      this.speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
       const color =
         this.currentSpeed === 1 ? 0x4488ff : this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
-      speedBg.lineStyle(2, color);
-      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.lineStyle(2, color);
+      this.speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
     });
     this.speedButton.on("pointerout", () => {
-      speedBg.clear();
-      speedBg.fillStyle(0x000000, 0.6);
-      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.clear();
+      this.speedBg.fillStyle(0x000000, 0.6);
+      this.speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
       const color =
         this.currentSpeed === 1 ? 0x4488ff : this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
-      speedBg.lineStyle(2, color);
-      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.lineStyle(2, color);
+      this.speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
     });
 
     // Initialize color based on current speed
     if (this.currentSpeed !== 1) {
       const color = this.currentSpeed === 2 ? 0x44ff88 : 0xff8844;
-      speedBg.clear();
-      speedBg.fillStyle(0x000000, 0.6);
-      speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
-      speedBg.lineStyle(2, color);
-      speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.clear();
+      this.speedBg.fillStyle(0x000000, 0.6);
+      this.speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+      this.speedBg.lineStyle(2, color);
+      this.speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
       this.speedText.setColor(`#${color.toString(16).padStart(6, "0")}`);
     }
+
+    // Listen for external speed reset (e.g., when entering boss room)
+    this.game.events.on("speedResetForBoss", this.handleSpeedReset, this);
+  }
+
+  /**
+   * Update speed display to reflect current speed setting
+   */
+  private updateSpeedDisplay(speed: GameSpeedMultiplier): void {
+    this.currentSpeed = speed;
+    this.speedText.setText(`${speed}x`);
+
+    const color = speed === 1 ? 0x4488ff : speed === 2 ? 0x44ff88 : 0xff8844;
+    this.speedBg.clear();
+    this.speedBg.fillStyle(0x000000, 0.6);
+    this.speedBg.fillRoundedRect(-18, -10, 36, 20, 6);
+    this.speedBg.lineStyle(2, color);
+    this.speedBg.strokeRoundedRect(-18, -10, 36, 20, 6);
+    this.speedText.setColor(`#${color.toString(16).padStart(6, "0")}`);
+  }
+
+  /**
+   * Handle external speed reset (e.g., from boss room setting)
+   */
+  private handleSpeedReset(): void {
+    this.updateSpeedDisplay(1);
   }
 
   /**
@@ -966,5 +983,6 @@ export default class UIScene extends Phaser.Scene {
     this.events.off("scoreKill");
     this.events.off("scoreRoom");
     this.events.off("scoreGold");
+    this.game.events.off("speedResetForBoss", this.handleSpeedReset, this);
   }
 }

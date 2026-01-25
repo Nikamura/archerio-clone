@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import Player from "../../entities/Player";
 import Enemy, { EnemyOptions } from "../../entities/Enemy";
+import { saveManager } from "../../systems/SaveManager";
 import {
   RangedShooterEnemy,
   SpreaderEnemy,
@@ -481,6 +482,9 @@ export class EnemySpawnManager {
   // ========================================
 
   private spawnBoss(roomNumber: number): void {
+    // Reset game speed to 1x if setting is enabled
+    this.resetSpeedIfEnabled();
+
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
@@ -559,6 +563,9 @@ export class EnemySpawnManager {
   }
 
   private spawnMiniBoss(roomNumber: number): void {
+    // Reset game speed to 1x if setting is enabled
+    this.resetSpeedIfEnabled();
+
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
@@ -765,6 +772,19 @@ export class EnemySpawnManager {
   cancelWaveTimers(): void {
     this.activeWaveTimers.forEach((timer) => timer.remove(false));
     this.activeWaveTimers = [];
+  }
+
+  /**
+   * Reset game speed to 1x if the setting is enabled
+   */
+  private resetSpeedIfEnabled(): void {
+    if (saveManager.getResetSpeedOnBossRoom() && saveManager.getGameSpeedMultiplier() !== 1) {
+      saveManager.setGameSpeedMultiplier(1);
+      this.scene.physics.world.timeScale = 1;
+      // Notify UI to update speed display
+      this.scene.game.events.emit("speedResetForBoss");
+      console.log("EnemySpawnManager: Reset game speed to 1x for boss room");
+    }
   }
 
   /**

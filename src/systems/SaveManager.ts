@@ -185,6 +185,7 @@ export interface GameSettings {
   screenShakeEnabled: boolean;
   colorblindMode: ColorblindMode;
   gameSpeedMultiplier: GameSpeedMultiplier;
+  resetSpeedOnBossRoom: boolean;
 }
 
 /**
@@ -313,6 +314,7 @@ function getDefaultSettings(): GameSettings {
     screenShakeEnabled: true,
     colorblindMode: ColorblindMode.NONE,
     gameSpeedMultiplier: 1,
+    resetSpeedOnBossRoom: false,
   };
 }
 
@@ -712,6 +714,21 @@ export class SaveManager {
     const nextSpeed = GAME_SPEED_OPTIONS[nextIndex];
     this.setGameSpeedMultiplier(nextSpeed);
     return nextSpeed;
+  }
+
+  /**
+   * Get reset speed on boss room setting
+   */
+  getResetSpeedOnBossRoom(): boolean {
+    return this.data.settings.resetSpeedOnBossRoom ?? false;
+  }
+
+  /**
+   * Set reset speed on boss room setting
+   */
+  setResetSpeedOnBossRoom(enabled: boolean): void {
+    this.data.settings.resetSpeedOnBossRoom = enabled;
+    this.markDirty();
   }
 
   /**
