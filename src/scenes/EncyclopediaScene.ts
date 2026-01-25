@@ -567,7 +567,7 @@ export default class EncyclopediaScene extends Phaser.Scene {
     // Interaction
     bg.setInteractive({ useHandCursor: !isLocked });
     if (!isLocked) {
-      bg.on("pointerdown", () => {
+      bg.on("pointerup", () => {
         // Only trigger click if we weren't scrolling
         if (!this.scrollContainer?.isDragScrolling()) {
           this.showDetailPanel(category, entry);
