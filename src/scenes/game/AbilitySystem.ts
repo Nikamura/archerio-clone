@@ -136,6 +136,11 @@ export class AbilitySystem {
       case "horde_magnet":
         this.player.addHordeMagnet();
         break;
+
+      // Movement abilities
+      case "mobile_fire":
+        this.player.addMobileFire();
+        break;
     }
 
     this.abilitiesGained++;

@@ -65,6 +65,17 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | Vitality     | +15% max HP                      | —         |
 | Dodge Master | +3% dodge chance (15% cap)       | 5         |
 
+### Movement Abilities
+
+| Ability      | Effect                           | Max Level |
+| ------------ | -------------------------------- | --------- |
+| Mobile Fire  | Shoot while moving               | 3         |
+
+**Mobile Fire**: Allows shooting while moving at reduced attack speed. Changes the core "stop to shoot" mechanic. Each level increases moving attack speed:
+- Level 1: 33% attack speed while moving (1/3 of normal)
+- Level 2: 67% attack speed while moving (2/3 of normal)
+- Level 3: 100% attack speed while moving (full normal speed)
+
 ### Game Modifier Abilities (Risk/Reward)
 
 | Ability      | Effect                             | Max Level | Risk                    |
