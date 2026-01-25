@@ -8,6 +8,7 @@
  * - Game context (current scene, player stats, chapter/room)
  * - Breadcrumbs for debugging (scene transitions, level ups, etc.)
  * - Device info and session duration tracking
+ * - Metrics tracking via Sentry metrics API (v10.25+)
  *
  * To override the DSN, set VITE_SENTRY_DSN environment variable.
  */
@@ -205,7 +206,7 @@ class ErrorReportingManager {
   }
 
   // ============================================
-  // Metrics Tracking
+  // Metrics Tracking (Sentry v10.25+)
   // ============================================
 
   /**
@@ -227,11 +228,13 @@ class ErrorReportingManager {
   }): void {
     if (!this.initialized) return;
 
+    const mode = data.isEndlessMode ? "endless" : data.isDailyChallenge ? "daily" : "normal";
+
     // Count the run
     Sentry.metrics.count("run_completed", 1, {
       attributes: {
         victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : data.isDailyChallenge ? "daily" : "normal",
+        mode,
         difficulty: data.difficulty ?? "normal",
         chapter: String(data.chapterId ?? 1),
       },
@@ -242,7 +245,7 @@ class ErrorReportingManager {
       unit: "second",
       attributes: {
         victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : data.isDailyChallenge ? "daily" : "normal",
+        mode,
       },
     });
 
@@ -250,7 +253,7 @@ class ErrorReportingManager {
     Sentry.metrics.distribution("run_score", data.score, {
       attributes: {
         victory: String(data.isVictory),
-        mode: data.isEndlessMode ? "endless" : "normal",
+        mode,
       },
     });
 
