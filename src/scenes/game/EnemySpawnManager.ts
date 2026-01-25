@@ -244,7 +244,11 @@ export class EnemySpawnManager {
     const totalSpawns = generatedRoom.enemySpawns.length;
     const waveCount = totalSpawns <= 6 ? 2 : 3;
     const chunkSize = Math.ceil(totalSpawns / waveCount);
-    const waveDelay = 1500; // ms between waves
+    // Scale wave delay by game speed so spawns feel consistent at any speed
+    // At 5x speed, divide by 5 so waves come 5x faster in real-time
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    const waveDelay = 1500 / gameSpeedMultiplier; // ms between waves (scaled)
 
     // Pre-determine which enemies will spawn from the top (for deterministic runs)
     // Skip stationary enemies (spreader, spawner) - they don't move toward player
