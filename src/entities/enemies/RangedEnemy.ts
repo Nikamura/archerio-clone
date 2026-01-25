@@ -122,12 +122,19 @@ export default abstract class RangedEnemy extends Enemy {
     bulletSpeed: number,
   ): { x: number; y: number } {
     const distance = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
-    const travelTime = distance / bulletSpeed;
+    // Account for game speed: at higher speeds, bullets travel faster
+    // so travel time is shorter in game-time
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    // Effective bullet speed is scaled by game speed (physics makes it move faster)
+    const effectiveBulletSpeed = bulletSpeed * gameSpeedMultiplier;
+    const travelTime = distance / effectiveBulletSpeed;
 
     // Try to get player velocity for prediction
     const gameScene = this.scene as { player?: { body?: Phaser.Physics.Arcade.Body } };
     if (gameScene.player?.body) {
       const playerBody = gameScene.player.body;
+      // Player velocity is also scaled by game speed in physics
       // Predict where player will be when bullet arrives (with 0.5 factor to not be too accurate)
       return {
         x: targetX + playerBody.velocity.x * travelTime * 0.5,

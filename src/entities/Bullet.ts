@@ -397,9 +397,15 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     const currentAngle = Math.atan2(body.velocity.y, body.velocity.x);
     const targetAngle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
 
+    // Scale homing strength by game speed multiplier
+    // At higher speeds, bullets travel further per frame, so we need stronger corrections
+    const timeScale = this.scene.physics.world.timeScale;
+    const gameSpeedMultiplier = timeScale > 0 ? 1 / timeScale : 1;
+    const scaledHomingStrength = Math.min(1, this.homingStrength * gameSpeedMultiplier);
+
     // Smoothly interpolate towards target angle
     const angleDiff = Phaser.Math.Angle.Wrap(targetAngle - currentAngle);
-    const newAngle = currentAngle + angleDiff * this.homingStrength;
+    const newAngle = currentAngle + angleDiff * scaledHomingStrength;
 
     // Update velocity while maintaining speed
     body.velocity.x = Math.cos(newAngle) * this.speed;
