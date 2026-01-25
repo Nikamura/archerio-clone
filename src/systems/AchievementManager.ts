@@ -16,6 +16,7 @@ import { saveManager } from "./SaveManager";
 import { currencyManager } from "./CurrencyManager";
 import { equipmentManager } from "./EquipmentManager";
 import { talentManager } from "./TalentManager";
+import { heroManager } from "./HeroManager";
 
 // ============================================
 // Types and Interfaces
@@ -158,7 +159,6 @@ export class AchievementManager {
    */
   private getStatValue(statKey: string): number {
     const stats = saveManager.getStatistics();
-    const heroes = saveManager.getAllHeroes();
 
     switch (statKey) {
       case "totalKills":
@@ -171,8 +171,8 @@ export class AchievementManager {
         // Convert milliseconds to minutes
         return Math.floor(stats.totalPlayTimeMs / 60000);
       case "unlockedHeroes":
-        // Count unlocked heroes
-        return Object.values(heroes).filter((h) => h.unlocked).length;
+        // Count unlocked heroes from HeroManager (authoritative source)
+        return heroManager.getUnlockedHeroIds().length;
       case "equippedSlots": {
         // Count equipped slots from EquipmentManager (not SaveManager)
         const allEquipped = equipmentManager.getAllEquipped();

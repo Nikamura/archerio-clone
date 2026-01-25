@@ -255,7 +255,7 @@ export default class GameOverScene extends Phaser.Scene {
       kills: this.stats.enemiesKilled,
       roomsCleared: this.stats.roomsCleared,
       playTimeMs: this.stats.playTimeMs ?? 0,
-      bossDefeated: false, // Always false in endless mode
+      bossDefeated: this.stats.bossDefeated ?? false,
       abilitiesGained: this.stats.abilitiesGained ?? 0,
       victory: false, // Always false in endless mode
       score,
