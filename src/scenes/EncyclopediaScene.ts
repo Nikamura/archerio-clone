@@ -350,6 +350,38 @@ export default class EncyclopediaScene extends Phaser.Scene {
       scene: this,
       width: width,
       bounds: { top: this.contentStartY, bottom: this.contentStartY + this.visibleHeight },
+      onScroll: () => this.updateEntryInteractivity(),
+    });
+  }
+
+  /**
+   * Update entry card interactivity based on scroll position.
+   * Disables interaction for cards scrolled outside the visible area
+   * to prevent them from capturing clicks meant for tabs above.
+   */
+  private updateEntryInteractivity(): void {
+    if (!this.scrollContainer) return;
+
+    const bounds = this.scrollContainer.getBounds();
+    const containerY = this.scrollContainer.getContainer().y;
+
+    this.entryCards.forEach((card) => {
+      if (card.isLocked) return; // Locked cards are never interactive
+
+      // Calculate the world Y position of the card
+      const cardWorldY = containerY + card.container.y;
+      const cardTop = cardWorldY - this.ENTRY_HEIGHT / 2;
+      const cardBottom = cardWorldY + this.ENTRY_HEIGHT / 2;
+
+      // Check if card is within visible bounds
+      const isVisible = cardBottom > bounds.top && cardTop < bounds.bottom;
+
+      // Enable/disable interactivity based on visibility
+      if (isVisible) {
+        card.background.setInteractive({ useHandCursor: true });
+      } else {
+        card.background.disableInteractive();
+      }
     });
   }
 
@@ -418,6 +450,9 @@ export default class EncyclopediaScene extends Phaser.Scene {
     // Calculate and set content height for scrolling
     const contentHeight = entries.length * (this.ENTRY_HEIGHT + this.ENTRY_GAP) + 15;
     this.scrollContainer?.setContentHeight(contentHeight);
+
+    // Update entry interactivity based on initial scroll position
+    this.updateEntryInteractivity();
   }
 
   private getEntriesForCategory(category: EncyclopediaCategory): AnyEntry[] {
