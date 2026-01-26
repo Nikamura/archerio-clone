@@ -272,7 +272,6 @@ export default class UIScene extends Phaser.Scene {
 
     const menuBg = this.add.circle(0, 0, 14, 0x000000, 0.6);
     menuBg.setStrokeStyle(2, 0x666666);
-    menuBg.setInteractive({ useHandCursor: true });
     this.menuButton.add(menuBg);
 
     const menuIcon = this.add
@@ -283,12 +282,20 @@ export default class UIScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.menuButton.add(menuIcon);
 
+    // Make container interactive with explicit hit area (per CLAUDE.md pattern)
+    // This fixes input not working during boss fights when scene transitions occur
+    this.menuButton.setInteractive(
+      new Phaser.Geom.Rectangle(-14, -14, 28, 28),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.menuButton.input!.cursor = "pointer";
+
     // Menu button click handler - emits pause request
-    menuBg.on("pointerdown", () => {
+    this.menuButton.on("pointerdown", () => {
       this.game.events.emit("pauseRequested");
     });
-    menuBg.on("pointerover", () => menuBg.setStrokeStyle(2, 0x888888));
-    menuBg.on("pointerout", () => menuBg.setStrokeStyle(2, 0x666666));
+    this.menuButton.on("pointerover", () => menuBg.setStrokeStyle(2, 0x888888));
+    this.menuButton.on("pointerout", () => menuBg.setStrokeStyle(2, 0x666666));
   }
 
   /**
