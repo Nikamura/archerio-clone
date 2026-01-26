@@ -299,62 +299,68 @@ export class LevelUpSystem {
    * Handle auto level up - select the highest priority ability without showing the selection UI
    */
   private handleAutoLevelUp(): void {
-    // Get abilities that aren't maxed
-    const availableAbilities = this.getAvailableAbilities();
+    try {
+      // Get abilities that aren't maxed
+      const availableAbilities = this.getAvailableAbilities();
 
-    if (availableAbilities.length === 0) {
-      console.log("LevelUpSystem: No available abilities for auto level up");
+      if (availableAbilities.length === 0) {
+        console.log("LevelUpSystem: No available abilities for auto level up");
+        this._isLevelingUp = false;
+        return;
+      }
+
+      // Build ability levels record from ability system
+      const abilityLevels: Record<string, number> = {};
+      for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
+        abilityLevels[ability.id] = ability.level;
+      }
+
+      let selectedAbility: AbilityData | null = null;
+
+      // Check if debug mode is enabled
+      const isDebugMode = this.game.registry.get("debug") === true;
+
+      if (isDebugMode) {
+        // Debug mode: Select from ALL abilities based on priority
+        selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+          availableAbilities,
+          abilityLevels,
+        );
+        console.log("LevelUpSystem: Debug mode - selecting from ALL abilities");
+      } else {
+        // Normal mode: First randomly select 3 abilities, then pick highest priority from those 3
+        // This ensures variety while still respecting priority for the random subset
+        const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
+        const randomSubset = shuffled.slice(0, 3);
+
+        selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
+          randomSubset,
+          abilityLevels,
+        );
+        console.log("LevelUpSystem: Normal mode - selecting from 3 random abilities");
+      }
+
+      if (!selectedAbility) {
+        console.log("LevelUpSystem: No ability could be selected");
+        this._isLevelingUp = false;
+        return;
+      }
+
+      // Apply the ability
+      this.applyAbility(selectedAbility.id);
+
+      console.log("LevelUpSystem: Auto level up selected (priority):", selectedAbility.id);
+
+      // Notify UIScene to show the auto level up notification
+      this.eventHandlers.onAutoLevelUp(selectedAbility);
+
+      // End level-up state immediately so player can shoot right away
       this._isLevelingUp = false;
-      return;
-    }
-
-    // Build ability levels record from ability system
-    const abilityLevels: Record<string, number> = {};
-    for (const ability of this.abilitySystem.getAcquiredAbilitiesArray()) {
-      abilityLevels[ability.id] = ability.level;
-    }
-
-    let selectedAbility: AbilityData | null = null;
-
-    // Check if debug mode is enabled
-    const isDebugMode = this.game.registry.get("debug") === true;
-
-    if (isDebugMode) {
-      // Debug mode: Select from ALL abilities based on priority
-      selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-        availableAbilities,
-        abilityLevels,
-      );
-      console.log("LevelUpSystem: Debug mode - selecting from ALL abilities");
-    } else {
-      // Normal mode: First randomly select 3 abilities, then pick highest priority from those 3
-      // This ensures variety while still respecting priority for the random subset
-      const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
-      const randomSubset = shuffled.slice(0, 3);
-
-      selectedAbility = abilityPriorityManager.getHighestPriorityAbility(
-        randomSubset,
-        abilityLevels,
-      );
-      console.log("LevelUpSystem: Normal mode - selecting from 3 random abilities");
-    }
-
-    if (!selectedAbility) {
-      console.log("LevelUpSystem: No ability could be selected");
+    } catch (error) {
+      console.error("LevelUpSystem: Error during auto level up:", error);
+      // Always reset the leveling up flag to prevent game from getting stuck
       this._isLevelingUp = false;
-      return;
     }
-
-    // Apply the ability
-    this.applyAbility(selectedAbility.id);
-
-    console.log("LevelUpSystem: Auto level up selected (priority):", selectedAbility.id);
-
-    // Notify UIScene to show the auto level up notification
-    this.eventHandlers.onAutoLevelUp(selectedAbility);
-
-    // End level-up state immediately so player can shoot right away
-    this._isLevelingUp = false;
   }
 
   /**

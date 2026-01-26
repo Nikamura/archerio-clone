@@ -32,17 +32,22 @@ export class ShieldBarrierManager {
   /**
    * Update shield stats based on player's shield barrier level
    * Called when ability is acquired or upgraded
+   * @param time Current game time (optional, used to initialize regen timer)
    */
-  updateShieldStats(): void {
+  updateShieldStats(time?: number): void {
     const shieldPercent = this.player.getShieldBarrierMaxPercent();
     const playerMaxHealth = this.player.getMaxHealth();
 
     this.maxShield = Math.floor(playerMaxHealth * shieldPercent);
     this.regenRate = this.player.getShieldBarrierRegenRate();
 
-    // On first acquisition, start with full shield
+    // On first acquisition, start with full shield and initialize regen timer
     if (this.currentShield === 0 && this.maxShield > 0) {
       this.currentShield = this.maxShield;
+      // Initialize lastRegenTime to prevent instant regen after first damage
+      if (time !== undefined) {
+        this.lastRegenTime = time;
+      }
     }
 
     // Cap current shield to new max
@@ -78,7 +83,14 @@ export class ShieldBarrierManager {
     const currentLevel = this.player.getShieldBarrierLevel();
     if (currentLevel !== this.lastShieldLevel) {
       this.lastShieldLevel = currentLevel;
-      this.updateShieldStats();
+      this.updateShieldStats(time);
+    }
+
+    // Safety check: if player has shield level but maxShield is 0, force update
+    // This handles edge cases where passiveEffectSystem.update() was skipped
+    // during auto-level (e.g., if isLevelingUp flag wasn't properly reset)
+    if (currentLevel > 0 && this.maxShield <= 0) {
+      this.updateShieldStats(time);
     }
 
     if (this.maxShield <= 0) {
