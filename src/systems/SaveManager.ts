@@ -186,6 +186,8 @@ export interface GameSettings {
   colorblindMode: ColorblindMode;
   gameSpeedMultiplier: GameSpeedMultiplier;
   resetSpeedOnBossRoom: boolean;
+  bulletSizeMultiplier: number;
+  bulletOpacity: number;
 }
 
 /**
@@ -315,6 +317,8 @@ function getDefaultSettings(): GameSettings {
     colorblindMode: ColorblindMode.NONE,
     gameSpeedMultiplier: 1,
     resetSpeedOnBossRoom: false,
+    bulletSizeMultiplier: 1.0,
+    bulletOpacity: 1.0,
   };
 }
 

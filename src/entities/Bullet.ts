@@ -83,6 +83,8 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       enemiesGroup?: Phaser.Physics.Arcade.Group;
       knockbackForce?: number;
       knockbackDuration?: number;
+      settingsSizeMultiplier?: number;
+      settingsOpacity?: number;
     },
   ) {
     this.setPosition(x, y);
@@ -131,8 +133,14 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     // Rotate bullet to face direction
     this.setRotation(angle);
 
-    // Base size multiplier from weapon
-    const sizeMultiplier = options?.projectileSizeMultiplier ?? 1.0;
+    // Base size multiplier from weapon, combined with user settings
+    const weaponSizeMultiplier = options?.projectileSizeMultiplier ?? 1.0;
+    const settingsSizeMultiplier = options?.settingsSizeMultiplier ?? 1.0;
+    const sizeMultiplier = weaponSizeMultiplier * settingsSizeMultiplier;
+
+    // Apply opacity from user settings
+    const opacity = options?.settingsOpacity ?? 1.0;
+    this.setAlpha(opacity);
 
     // Visual indicator for critical hit (slightly larger and different color)
     if (this.isCrit) {
