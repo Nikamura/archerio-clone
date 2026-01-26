@@ -374,12 +374,14 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
   private applyHomingBehavior(): void {
     if (!this.enemiesGroup || !this.body) return;
 
-    // Find nearest enemy
+    // Find nearest enemy that we haven't already hit (for piercing bullets)
     let nearestEnemy: Phaser.GameObjects.GameObject | null = null;
     let nearestDistance = Infinity;
 
     this.enemiesGroup.getChildren().forEach((enemy) => {
       if (!enemy.active) return;
+      // Skip enemies we've already hit - prevents piercing bullets from orbiting
+      if (this.hitEnemies.has(enemy)) return;
       const e = enemy as Phaser.Physics.Arcade.Sprite;
       const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
       if (dist < nearestDistance) {
@@ -388,7 +390,14 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
       }
     });
 
-    if (!nearestEnemy) return;
+    // No valid targets left - deactivate piercing bullets that have hit something
+    // This prevents bullets from orbiting endlessly around enemies they can't hit
+    if (!nearestEnemy) {
+      if (this.maxPierces > 0 && this.hitCount > 0) {
+        this.deactivate();
+      }
+      return;
+    }
 
     const target = nearestEnemy as Phaser.Physics.Arcade.Sprite;
     const body = this.body as Phaser.Physics.Arcade.Body;

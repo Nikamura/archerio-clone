@@ -286,13 +286,14 @@ export class CombatSystem {
   /**
    * Handle bullet ricochet to nearest enemy
    */
-  private handleBulletRicochet(bullet: Bullet, hitEnemy: Enemy, shouldDeactivate: boolean): void {
+  private handleBulletRicochet(bullet: Bullet, _hitEnemy: Enemy, shouldDeactivate: boolean): void {
     if (!shouldDeactivate && bullet.getBounceCount() < bullet.getMaxBounces()) {
-      const nearestEnemy = this.findNearestEnemyExcluding(bullet.x, bullet.y, hitEnemy);
+      // Find nearest enemy the bullet hasn't hit yet (prevents targeting invulnerable/already-hit enemies)
+      const nearestEnemy = this.findNearestEnemyForBullet(bullet);
       if (nearestEnemy) {
         bullet.redirectTo(nearestEnemy.x, nearestEnemy.y);
       } else {
-        // No target for ricochet, deactivate
+        // No valid target for ricochet, deactivate
         bullet.setActive(false);
         bullet.setVisible(false);
       }
@@ -873,6 +874,29 @@ export class CombatSystem {
       if (e === exclude || !e.active) return;
 
       const distance = Phaser.Math.Distance.Between(x, y, e.x, e.y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = e;
+      }
+    });
+
+    return nearest;
+  }
+
+  /**
+   * Find nearest enemy that a bullet hasn't already hit (for ricochet)
+   * This prevents bullets from targeting enemies they can't damage
+   */
+  findNearestEnemyForBullet(bullet: Bullet): Enemy | null {
+    let nearest: Enemy | null = null;
+    let nearestDistance = Infinity;
+
+    this.enemies.getChildren().forEach((enemy) => {
+      const e = enemy as Enemy;
+      // Skip inactive enemies and enemies the bullet already hit
+      if (!e.active || bullet.hasHitEnemy(e)) return;
+
+      const distance = Phaser.Math.Distance.Between(bullet.x, bullet.y, e.x, e.y);
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearest = e;
