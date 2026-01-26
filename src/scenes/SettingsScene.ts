@@ -186,6 +186,40 @@ export default class SettingsScene extends Phaser.Scene {
 
     // Colorblind Mode
     this.createColorblindModeSetting(width, currentY);
+    currentY += rowHeight;
+
+    // Bullet Size
+    this.createSliderSetting(
+      width,
+      currentY,
+      "Bullet Size",
+      "Adjust player bullet size",
+      this.settings.bulletSizeMultiplier ?? 1.0,
+      0.5,
+      2.0,
+      0.1,
+      (value) => {
+        this.settings.bulletSizeMultiplier = value;
+        this.saveSettings();
+      },
+    );
+    currentY += rowHeight;
+
+    // Bullet Opacity
+    this.createSliderSetting(
+      width,
+      currentY,
+      "Bullet Opacity",
+      "Adjust player bullet transparency",
+      this.settings.bulletOpacity ?? 1.0,
+      0.2,
+      1.0,
+      0.1,
+      (value) => {
+        this.settings.bulletOpacity = value;
+        this.saveSettings();
+      },
+    );
     currentY += rowHeight + 40; // Extra spacing before danger zone
 
     // Danger Zone (collapsible reset section)
@@ -426,6 +460,119 @@ export default class SettingsScene extends Phaser.Scene {
       });
 
       track.setFillStyle(currentValue ? 0x4a9eff : 0x444444);
+    });
+  }
+
+  private createSliderSetting(
+    width: number,
+    y: number,
+    label: string,
+    description: string,
+    initialValue: number,
+    min: number,
+    max: number,
+    step: number,
+    onChange: (value: number) => void,
+  ) {
+    const leftX = 20;
+    const rightX = width - 20;
+
+    // Label
+    const labelText = this.add
+      .text(leftX, y, label, {
+        fontSize: "16px",
+        color: "#ffffff",
+      })
+      .setOrigin(0, 0.5);
+    this.scrollContainer!.add(labelText);
+
+    // Description
+    const descText = this.add
+      .text(leftX, y + 18, description, {
+        fontSize: "11px",
+        color: "#888888",
+      })
+      .setOrigin(0, 0.5);
+    this.scrollContainer!.add(descText);
+
+    // Slider dimensions
+    const sliderWidth = 100;
+    const sliderHeight = 8;
+    const sliderX = rightX - sliderWidth - 40;
+
+    // Value display
+    const valueText = this.add
+      .text(rightX, y, initialValue.toFixed(1), {
+        fontSize: "14px",
+        color: "#4a9eff",
+      })
+      .setOrigin(1, 0.5);
+    this.scrollContainer!.add(valueText);
+
+    // Track background
+    const track = this.add.rectangle(
+      sliderX + sliderWidth / 2,
+      y,
+      sliderWidth,
+      sliderHeight,
+      0x444444,
+    );
+    track.setStrokeStyle(1, 0x666666);
+    this.scrollContainer!.add(track);
+
+    // Calculate initial knob position
+    const valuePercent = (initialValue - min) / (max - min);
+    const knobX = sliderX + valuePercent * sliderWidth;
+
+    // Knob
+    const knob = this.add.circle(knobX, y, 10, 0x4a9eff);
+    knob.setStrokeStyle(2, 0xffffff);
+    this.scrollContainer!.add(knob);
+
+    // Make interactive zone for the slider
+    const hitArea = this.add.rectangle(
+      sliderX + sliderWidth / 2,
+      y,
+      sliderWidth + 20,
+      30,
+      0x000000,
+      0,
+    );
+    hitArea.setInteractive({ useHandCursor: true, draggable: true });
+    this.scrollContainer!.add(hitArea);
+
+    let currentValue = initialValue;
+
+    const updateSlider = (pointerX: number) => {
+      // Calculate value from pointer position
+      const relativeX = Phaser.Math.Clamp(pointerX - sliderX, 0, sliderWidth);
+      const percent = relativeX / sliderWidth;
+      let newValue = min + percent * (max - min);
+
+      // Snap to step
+      newValue = Math.round(newValue / step) * step;
+      newValue = Phaser.Math.Clamp(newValue, min, max);
+
+      if (newValue !== currentValue) {
+        currentValue = newValue;
+        onChange(currentValue);
+
+        // Update knob position
+        const newPercent = (currentValue - min) / (max - min);
+        knob.x = sliderX + newPercent * sliderWidth;
+
+        // Update value display
+        valueText.setText(currentValue.toFixed(1));
+      }
+    };
+
+    hitArea.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      audioManager.playMenuSelect();
+      updateSlider(pointer.x);
+    });
+
+    hitArea.on("drag", (_pointer: Phaser.Input.Pointer, dragX: number) => {
+      updateSlider(dragX);
     });
   }
 

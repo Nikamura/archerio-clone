@@ -5,6 +5,7 @@ import type BulletPool from "../../systems/BulletPool";
 import type WallGroup from "../../systems/WallGroup";
 import { audioManager } from "../../systems/AudioManager";
 import { hapticManager } from "../../systems/HapticManager";
+import { saveManager } from "../../systems/SaveManager";
 
 /**
  * Event handlers for shooting-related side effects
@@ -316,6 +317,7 @@ export class ShootingSystem {
    * Gather all ability options for bullets
    */
   private getBulletOptions(): Record<string, unknown> {
+    const settings = saveManager.getSettings();
     return {
       maxPierces: this.player.getPiercingLevel(),
       maxBounces: this.player.getRicochetBounces(),
@@ -339,6 +341,9 @@ export class ShootingSystem {
       // Knockback options
       knockbackForce: this.player.getKnockbackForce(),
       knockbackDuration: this.player.getKnockbackDuration(),
+      // Visual settings from user preferences
+      settingsSizeMultiplier: settings.bulletSizeMultiplier ?? 1.0,
+      settingsOpacity: settings.bulletOpacity ?? 1.0,
     };
   }
 
