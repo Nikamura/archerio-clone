@@ -141,10 +141,14 @@ export class InputSystem {
     let hasInput = false;
 
     // Check for stuck joystick state
+    // Only reset if joystick reports force > 0 but is NOT actively being touched
+    // (which indicates a true stuck state, not a player holding steady)
     const currentTime = this.scene.time.now;
+    const isJoystickActivelyTouched = this.joystick?.getIsActive() ?? false;
     if (
       this.joystickForce > 0 &&
       this.lastJoystickMoveTime > 0 &&
+      !isJoystickActivelyTouched &&
       currentTime - this.lastJoystickMoveTime > this.JOYSTICK_STUCK_TIMEOUT
     ) {
       this.reset();
