@@ -230,6 +230,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param duration Duration in ms (default 2000ms = 2 seconds)
    */
   applyFireDamage(damage: number, duration: number = 2000): void {
+    // Guard against destroyed enemy or missing scene (can happen with pooled enemies)
+    if (!this.scene?.time) return;
     this.statusEffects.applyFire(damage, duration, this.scene.time.now);
     this.updateEffectTint();
   }
@@ -238,6 +240,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * Apply freeze effect - enemy can't move or attack for duration
    */
   applyFreeze(): void {
+    // Guard against destroyed enemy or missing scene (can happen with pooled enemies)
+    if (!this.scene?.time) return;
     this.statusEffects.applyFreeze(this.scene.time.now);
     this.setVelocity(0, 0);
     this.updateEffectTint();
@@ -269,6 +273,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param damage Base damage per tick per stack
    */
   applyPoisonDamage(damage: number): void {
+    // Guard against destroyed enemy or missing scene (can happen with pooled enemies)
+    if (!this.scene?.time) return;
     this.statusEffects.applyPoison(damage, this.scene.time.now);
     this.updateEffectTint();
   }
@@ -286,6 +292,8 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param duration Duration in ms (default 3000ms)
    */
   applyBleedDamage(damage: number, duration: number = 3000): void {
+    // Guard against destroyed enemy or missing scene (can happen with pooled enemies)
+    if (!this.scene?.time) return;
     this.statusEffects.applyBleed(damage, this.scene.time.now, duration);
     this.updateEffectTint();
   }
@@ -468,6 +476,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   applyKnockback(angle: number, force: number, duration: number = 150): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (!body) return;
+
+    // Guard against destroyed enemy or missing scene (can happen with pooled enemies)
+    if (!this.scene?.time) return;
 
     // Set velocity directly (not additive)
     body.setVelocity(Math.cos(angle) * force, Math.sin(angle) * force);

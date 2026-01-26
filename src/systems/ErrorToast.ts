@@ -56,10 +56,38 @@ class ErrorToastManager {
     document.body.appendChild(this.container);
   }
 
+  /**
+   * Check if an error is from a browser extension or known browser limitation (not our code)
+   */
+  private isIgnorableError(error: Error): boolean {
+    const message = error.message || "";
+    const stack = error.stack || "";
+
+    // Common patterns from password managers and browser extensions
+    const ignorablePatterns = [
+      // Browser extensions
+      "shell-plugins",
+      "frame-manager",
+      "get-frame-manager-configuration",
+      "ResizeObserver loop",
+      "extension://",
+      "chrome-extension://",
+      "moz-extension://",
+      "safari-extension://",
+      // iOS Safari audio limitations (requires user interaction)
+      "Failed to start the audio device",
+    ];
+
+    const combined = message + stack;
+    return ignorablePatterns.some((pattern) => combined.includes(pattern));
+  }
+
   private setupGlobalErrorHandlers(): void {
     // Catch unhandled errors
     window.addEventListener("error", (event) => {
       const error = event.error || new Error(event.message);
+      // Skip ignorable errors (extensions, browser limitations)
+      if (this.isIgnorableError(error)) return;
       this.showError(error);
       // Don't prevent default - let console logging still happen
     });
@@ -67,6 +95,8 @@ class ErrorToastManager {
     // Catch unhandled promise rejections
     window.addEventListener("unhandledrejection", (event) => {
       const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+      // Skip ignorable errors (extensions, browser limitations)
+      if (this.isIgnorableError(error)) return;
       this.showError(error);
     });
 

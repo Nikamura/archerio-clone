@@ -23,8 +23,10 @@ export class AudioManager {
     this.visibilityHandler = () => {
       if (!document.hidden && this.context && this.context.state === "suspended") {
         // Page became visible and audio context is suspended - resume it
-        this.context.resume().catch((err) => {
-          console.warn("Failed to resume AudioContext on visibility change:", err);
+        // Use void to explicitly ignore the promise - prevents unhandled rejection warnings
+        void this.context.resume().catch(() => {
+          // Silently ignore - iOS Safari may throw "Failed to start the audio device"
+          // This is not critical - audio will resume on next user interaction
         });
       }
     };
@@ -65,17 +67,18 @@ export class AudioManager {
 
   /**
    * Resume audio context (required after user interaction)
+   * This method never throws - errors are silently ignored since audio
+   * will naturally resume on the next user interaction.
    */
-  async resume(): Promise<void> {
+  resume(): void {
     const ctx = this.getContext();
     if (ctx && ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch (err) {
-        // iOS Safari may throw "Failed to start the audio device" in some states
-        // This is not critical - audio will resume on next user interaction
-        console.warn("AudioManager: Failed to resume audio context:", err);
-      }
+      // Use void to explicitly ignore the promise - prevents unhandled rejection warnings
+      // iOS Safari may throw "Failed to start the audio device" in some states
+      // This is not critical - audio will resume on next user interaction
+      void ctx.resume().catch(() => {
+        // Silently ignore
+      });
     }
   }
 
