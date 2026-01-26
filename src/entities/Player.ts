@@ -114,6 +114,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats?.heal(amount);
   }
 
+  /**
+   * Force heal the player, bypassing Ascetic restriction
+   * Used for respawn which should always restore health
+   */
+  forceHeal(amount: number) {
+    this.stats?.forceHeal(amount);
+  }
+
   getHealth(): number {
     return this.stats?.getHealth() ?? 100;
   }

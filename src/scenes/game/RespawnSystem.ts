@@ -26,6 +26,8 @@ export interface RespawnEventHandlers {
   onRespawnComplete: (newInputSystem: InputSystem) => void;
   /** Update health UI after respawn */
   onUpdateHealthUI: () => void;
+  /** Update XP/Level UI after respawn */
+  onUpdateXPUI: () => void;
 }
 
 /**
@@ -299,10 +301,10 @@ export class RespawnSystem {
 
     const roomManager = this.getRoomManager();
 
-    // Restore player to 50% HP
+    // Restore player to 50% HP (bypass Ascetic restriction)
     const maxHealth = this.player.getMaxHealth();
     const healAmount = Math.floor(maxHealth * 0.5);
-    this.player.heal(healAmount);
+    this.player.forceHeal(healAmount);
 
     // Clear dead state visual
     this.player.clearTint();
@@ -344,6 +346,9 @@ export class RespawnSystem {
 
     // Update health UI
     this.eventHandlers.onUpdateHealthUI();
+
+    // Update XP/Level UI (since UIScene was relaunched and reset to "Lv.1")
+    this.eventHandlers.onUpdateXPUI();
 
     console.log("RespawnSystem: Respawn complete - Player HP:", this.player.getHealth());
   }

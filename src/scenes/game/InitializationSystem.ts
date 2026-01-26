@@ -90,6 +90,7 @@ export interface GameSceneEventHandlers {
   // Respawn events
   onRespawnComplete: (newInputSystem: InputSystem) => void;
   onUpdateHealthUI: () => void;
+  onUpdateXPUI: () => void;
 
   // Passive effects events
   onIronWillActivated: (bonusHP: number) => void;
@@ -805,6 +806,7 @@ export class InitializationSystem {
       eventHandlers: {
         onRespawnComplete: this.eventHandlers.onRespawnComplete,
         onUpdateHealthUI: this.eventHandlers.onUpdateHealthUI,
+        onUpdateXPUI: this.eventHandlers.onUpdateXPUI,
       },
     });
 

@@ -286,11 +286,11 @@ export class EventHandlerFactory {
   }
 
   /**
-   * Respawn event handlers (2 handlers)
+   * Respawn event handlers (3 handlers)
    */
   private createRespawnHandlers(): Pick<
     GameSceneEventHandlers,
-    "onRespawnComplete" | "onUpdateHealthUI"
+    "onRespawnComplete" | "onUpdateHealthUI" | "onUpdateXPUI"
   > {
     return {
       onRespawnComplete: (newInputSystem: InputSystem) => {
@@ -299,6 +299,9 @@ export class EventHandlerFactory {
       },
       onUpdateHealthUI: () => {
         this.deps.updatePlayerHealthUI(this.deps.getPlayer());
+      },
+      onUpdateXPUI: () => {
+        this.deps.updateXPUI();
       },
     };
   }

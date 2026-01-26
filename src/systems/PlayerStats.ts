@@ -154,6 +154,14 @@ export class PlayerStats {
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
+  /**
+   * Force heal the player, bypassing Ascetic restriction
+   * Used for respawn which should always restore health
+   */
+  forceHeal(amount: number): void {
+    this.health = Math.min(this.maxHealth, this.health + amount);
+  }
+
   getHealth(): number {
     return this.health;
   }
