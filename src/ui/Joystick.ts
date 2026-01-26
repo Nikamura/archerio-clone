@@ -269,6 +269,13 @@ export default class Joystick {
   }
 
   /**
+   * Returns whether the joystick is currently being touched/held
+   */
+  getIsActive(): boolean {
+    return this.isActive;
+  }
+
+  /**
    * Force reset the joystick state
    * Useful for recovering from stuck input states
    */
