@@ -177,8 +177,29 @@ export class CombatSystem {
       damage = Math.floor(damage * this.player.getShatterDamageMultiplier());
     }
 
-    // Damage enemy
+    // Track health before damage to detect immunity
+    const healthBefore = enemySprite.getHealth();
+
+    // Damage enemy - returns false if immune (e.g., boss during phase shift)
     const killed = enemySprite.takeDamage(damage);
+
+    // Check if damage was actually dealt (enemy not immune)
+    // If health unchanged and enemy wasn't killed, they blocked the damage
+    const healthAfter = enemySprite.getHealth();
+    const damageDealt = killed || healthAfter < healthBefore;
+
+    // Check if bullet should be deactivated or continue (piercing/ricochet)
+    // Do this early to ensure bullet is handled regardless of immunity
+    const shouldDeactivate = bulletSprite.onHit(enemy);
+
+    // Handle ricochet
+    this.handleBulletRicochet(bulletSprite, enemySprite, shouldDeactivate);
+
+    // Skip all visual feedback and effects if enemy is immune
+    if (!killed && !damageDealt) {
+      return;
+    }
+
     audioManager.playHit();
 
     // Show damage number
@@ -210,12 +231,6 @@ export class CombatSystem {
     if (!killed && bulletSprite.getKnockbackForce() > 0) {
       this.applyBulletKnockback(bulletSprite, enemySprite);
     }
-
-    // Check if bullet should be deactivated or continue (piercing/ricochet)
-    const shouldDeactivate = bulletSprite.onHit(enemy);
-
-    // Handle ricochet
-    this.handleBulletRicochet(bulletSprite, enemySprite, shouldDeactivate);
 
     // Update boss health bar if this is the boss
     const isBoss = this.boss && enemySprite === (this.boss as unknown as Enemy);
