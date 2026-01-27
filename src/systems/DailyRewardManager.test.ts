@@ -186,8 +186,9 @@ describe("DailyRewardManager", () => {
       const day1Rewards = manager.claimReward();
 
       expect(day1Rewards).toBeDefined();
-      expect(day1Rewards![0].type).toBe("gold");
-      expect(day1Rewards![0].amount).toBe(100);
+      expect(day1Rewards![0].type).toBe("chest");
+      expect(day1Rewards![0].chestType).toBe("wooden");
+      expect(day1Rewards![0].amount).toBe(1);
     });
   });
 

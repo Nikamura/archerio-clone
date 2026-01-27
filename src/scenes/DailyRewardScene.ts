@@ -218,8 +218,8 @@ export default class DailyRewardScene extends Phaser.Scene {
     // For single reward
     if (reward.rewards.length === 1) {
       const r = reward.rewards[0];
-      const icon = this.getRewardIcon(r.type);
-      const color = this.getRewardColor(r.type);
+      const icon = this.getRewardIcon(r.type, r.chestType);
+      const color = this.getRewardColor(r.type, r.chestType);
 
       const iconText = this.add
         .text(0, startY, icon, {
@@ -240,8 +240,8 @@ export default class DailyRewardScene extends Phaser.Scene {
       // Multiple rewards (day 7)
       reward.rewards.forEach((r, i) => {
         const offsetY = startY + i * 28;
-        const icon = this.getRewardIcon(r.type);
-        const color = this.getRewardColor(r.type);
+        const icon = this.getRewardIcon(r.type, r.chestType);
+        const color = this.getRewardColor(r.type, r.chestType);
 
         const iconText = this.add
           .text(-10, offsetY, icon, {
@@ -264,7 +264,7 @@ export default class DailyRewardScene extends Phaser.Scene {
     return elements;
   }
 
-  private getRewardIcon(type: string): string {
+  private getRewardIcon(type: string, chestType?: string): string {
     switch (type) {
       case "gold":
         return "💰";
@@ -272,12 +272,24 @@ export default class DailyRewardScene extends Phaser.Scene {
         return "💎";
       case "energy":
         return "⚡";
+      case "chest":
+        // Different chest icons based on chest type
+        switch (chestType) {
+          case "wooden":
+            return "📦";
+          case "silver":
+            return "🗃️";
+          case "golden":
+            return "👑";
+          default:
+            return "📦";
+        }
       default:
         return "🎁";
     }
   }
 
-  private getRewardColor(type: string): string {
+  private getRewardColor(type: string, chestType?: string): string {
     switch (type) {
       case "gold":
         return "#FFD700";
@@ -285,6 +297,18 @@ export default class DailyRewardScene extends Phaser.Scene {
         return "#00FFFF";
       case "energy":
         return "#FFFF00";
+      case "chest":
+        // Different colors based on chest type
+        switch (chestType) {
+          case "wooden":
+            return "#8B4513"; // SaddleBrown
+          case "silver":
+            return "#C0C0C0"; // Silver
+          case "golden":
+            return "#FFD700"; // Gold
+          default:
+            return "#8B4513";
+        }
       default:
         return "#ffffff";
     }
@@ -429,8 +453,8 @@ export default class DailyRewardScene extends Phaser.Scene {
 
     // Display rewards
     rewards.forEach((reward, index) => {
-      const icon = this.getRewardIcon(reward.type);
-      const color = this.getRewardColor(reward.type);
+      const icon = this.getRewardIcon(reward.type, reward.chestType);
+      const color = this.getRewardColor(reward.type, reward.chestType);
       const y = -15 + index * 35;
 
       const rewardText = this.add
