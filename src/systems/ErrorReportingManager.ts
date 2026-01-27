@@ -289,35 +289,18 @@ class ErrorReportingManager {
 
   /**
    * Track when a new high score is achieved
-   * For endless mode, this tracks wave reached (not score)
    */
-  trackNewHighScore(
-    value: number,
-    previousValue: number,
-    mode: "normal" | "endless" = "normal",
-  ): void {
+  trackNewHighScore(score: number, previousScore: number): void {
     if (!this.initialized) return;
 
-    Sentry.metrics.count("new_high_score", 1, {
-      attributes: { mode },
-    });
+    Sentry.metrics.count("new_high_score", 1);
+    Sentry.metrics.gauge("high_score", score);
 
-    // Use different metric names for clarity
-    if (mode === "endless") {
-      Sentry.metrics.gauge("endless_high_wave", value);
-      this.addBreadcrumb("game", "New endless high wave!", {
-        newWave: value,
-        previousWave: previousValue,
-        improvement: value - previousValue,
-      });
-    } else {
-      Sentry.metrics.gauge("high_score", value);
-      this.addBreadcrumb("game", "New high score!", {
-        newScore: value,
-        previousScore: previousValue,
-        improvement: value - previousValue,
-      });
-    }
+    this.addBreadcrumb("game", "New high score!", {
+      newScore: score,
+      previousScore,
+      improvement: score - previousScore,
+    });
   }
 
   /**
