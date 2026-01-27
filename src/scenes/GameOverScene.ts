@@ -170,6 +170,7 @@ export default class GameOverScene extends Phaser.Scene {
   private endlessWave: number = 1;
   private isNewEndlessHighScore: boolean = false;
   private previousEndlessHighWave: number = 0;
+  private previousHighScore: number = 0;
   private canRespawn: boolean = false;
   private respawnRoomState: RespawnRoomState | null = null;
   private showingSecondChancePopup: boolean = false;
@@ -227,11 +228,12 @@ export default class GameOverScene extends Phaser.Scene {
       scoreDifficulty,
     );
 
-    // Check if new high score - always endless mode
-    // Store previous high wave BEFORE recordRunStats() updates it
+    // Check if new high score - store previous BEFORE recordRunStats() updates it
     this.previousEndlessHighWave = saveManager.getStatistics().endlessHighWave ?? 0;
     this.isNewEndlessHighScore = this.endlessWave > this.previousEndlessHighWave;
-    this.isNewHighScore = false; // Don't track regular high score in endless mode
+    this.previousHighScore = saveManager.getStatistics().highestScore ?? 0;
+    const currentScore = this.scoreBreakdown?.total ?? 0;
+    this.isNewHighScore = currentScore > this.previousHighScore;
 
     // Record run statistics to save data
     this.recordRunStats();
@@ -283,10 +285,9 @@ export default class GameOverScene extends Phaser.Scene {
       abilitiesGained: this.stats.abilitiesGained,
     });
 
-    // Track high score for endless mode
-    if (this.isNewEndlessHighScore) {
-      // Use the stored previous value (before save updated it)
-      errorReporting.trackNewHighScore(this.endlessWave, this.previousEndlessHighWave, "endless");
+    // Track new high score in Sentry
+    if (this.isNewHighScore) {
+      errorReporting.trackNewHighScore(score, this.previousHighScore);
     }
 
     // Chapter progress update removed - endless mode doesn't track chapter completion

@@ -290,20 +290,11 @@ class ErrorReportingManager {
   /**
    * Track when a new high score is achieved
    */
-  trackNewHighScore(
-    score: number,
-    previousScore: number,
-    mode: "normal" | "endless" = "normal",
-  ): void {
+  trackNewHighScore(score: number, previousScore: number): void {
     if (!this.initialized) return;
 
-    Sentry.metrics.count("new_high_score", 1, {
-      attributes: { mode },
-    });
-
-    Sentry.metrics.gauge("high_score", score, {
-      attributes: { mode },
-    });
+    Sentry.metrics.count("new_high_score", 1);
+    Sentry.metrics.gauge("high_score", score);
 
     this.addBreadcrumb("game", "New high score!", {
       newScore: score,
@@ -389,16 +380,8 @@ class ErrorReportingManager {
     });
   }
 
-  /**
-   * Track enemy kills by type
-   */
-  trackEnemyKill(enemyType: string): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("enemy_kill", 1, {
-      attributes: { type: enemyType },
-    });
-  }
+  // NOTE: trackEnemyKill removed - per-enemy events were too noisy.
+  // Aggregate enemy kills are tracked in trackRunCompleted() instead.
 
   /**
    * Track currency earned
