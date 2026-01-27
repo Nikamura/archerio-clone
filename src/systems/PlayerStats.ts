@@ -233,12 +233,9 @@ export class PlayerStats {
 
   /**
    * Calculate current damage with ability modifiers
-   * Front Arrow reduces damage by 15% per extra projectile (buffed from 25%)
    */
   getDamage(): number {
-    const frontArrowPenalty = Math.pow(0.85, this.extraProjectiles);
-
-    return Math.floor(this.baseDamage * this.damageMultiplier * frontArrowPenalty);
+    return Math.floor(this.baseDamage * this.damageMultiplier);
   }
 
   /**
@@ -626,7 +623,7 @@ export class PlayerStats {
   // ============================================
 
   /**
-   * Add Front Arrow ability (+1 projectile, -25% damage)
+   * Add Front Arrow ability (+1 projectile)
    */
   addFrontArrow(): void {
     this.extraProjectiles++;
