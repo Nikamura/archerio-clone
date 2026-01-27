@@ -89,6 +89,10 @@ export default class UIScene extends Phaser.Scene {
   create() {
     this.events.once("shutdown", this.shutdown, this);
 
+    // Allow input to pass through to GameScene for joystick
+    // Without this, UIScene (as top scene) blocks all input from reaching GameScene
+    this.input.setTopOnly(false);
+
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
