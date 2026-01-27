@@ -368,6 +368,10 @@ export class RoomManager {
     this.scene.cameras.main.fadeOut(300, 0, 0, 0);
 
     this.scene.time.delayedCall(300, () => {
+      // Guard against callback firing after scene shutdown
+      if (!this.scene.scene.isActive("GameScene")) {
+        return;
+      }
       this.transitionToNextRoom();
     });
   }
@@ -499,6 +503,10 @@ export class RoomManager {
       delay: 1000,
       ease: "Power2",
       onComplete: () => {
+        // Guard against callback firing after scene shutdown
+        if (!this.scene.scene.isActive("GameScene")) {
+          return;
+        }
         waveText.destroy();
         diffText.destroy();
       },
@@ -587,6 +595,10 @@ export class RoomManager {
 
       // Show door OR auto-advance after brief delay
       this.scene.time.delayedCall(500, () => {
+        // Guard against callback firing after scene shutdown
+        if (!this.scene.scene.isActive("GameScene")) {
+          return;
+        }
         if (!this.isGameOver) {
           if (saveManager.getAutoRoomAdvance()) {
             this.enterDoor();

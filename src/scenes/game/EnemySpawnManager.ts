@@ -268,6 +268,10 @@ export class EnemySpawnManager {
 
       const delay = i === 0 ? 0 : waveDelay * i;
       const timer = this.scene.time.delayedCall(delay, () => {
+        // Guard against callback firing after scene shutdown
+        if (!this.scene.scene.isActive("GameScene")) {
+          return;
+        }
         waveSpawns.forEach((spawn, index) => {
           // Get chapter-specific modifiers for this enemy type
           const chapterModifiers = getEnemyModifiers(
@@ -430,6 +434,11 @@ export class EnemySpawnManager {
     const checkInterval = this.scene.time.addEvent({
       delay: 100,
       callback: () => {
+        // Guard against callback firing after scene shutdown
+        if (!this.scene.scene.isActive("GameScene")) {
+          checkInterval.remove();
+          return;
+        }
         if (!enemy.active) {
           checkInterval.remove();
           return;
@@ -752,6 +761,11 @@ export class EnemySpawnManager {
 
     // Fade out after display
     this.scene.time.delayedCall(2500, () => {
+      // Guard against callback firing after scene shutdown
+      if (!this.scene.scene.isActive("GameScene")) {
+        container.destroy();
+        return;
+      }
       this.scene.tweens.add({
         targets: container,
         alpha: 0,
