@@ -323,6 +323,8 @@ export class EnemyDeathHandler {
 
   /**
    * Record a kill for statistics tracking
+   * Note: Only boss kills are tracked in Sentry. Regular enemy kills are
+   * tracked in aggregate via trackRunCompleted() to avoid excessive events.
    */
   private recordKill(enemy: Enemy, isBoss: boolean): void {
     const currentBossType = this.roomManager.getCurrentBossType();
@@ -330,13 +332,13 @@ export class EnemyDeathHandler {
       const bossId = this.normalizeBossType(currentBossType);
       saveManager.recordBossKill(bossId);
 
-      // Track boss kill in Sentry metrics
+      // Track boss kill in Sentry metrics (boss kills are rare, so worth tracking individually)
       const timeToKillMs = Date.now() - this.roomManager.getBossSpawnTime();
       errorReporting.trackBossKill(bossId, timeToKillMs, chapterManager.getSelectedChapter());
     } else {
       const enemyType = enemy.getEnemyType();
       saveManager.recordEnemyKill(enemyType);
-      errorReporting.trackEnemyKill(enemyType);
+      // Per-enemy Sentry events removed - aggregate tracked in trackRunCompleted()
     }
   }
 

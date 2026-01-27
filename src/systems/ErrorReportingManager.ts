@@ -289,10 +289,11 @@ class ErrorReportingManager {
 
   /**
    * Track when a new high score is achieved
+   * For endless mode, this tracks wave reached (not score)
    */
   trackNewHighScore(
-    score: number,
-    previousScore: number,
+    value: number,
+    previousValue: number,
     mode: "normal" | "endless" = "normal",
   ): void {
     if (!this.initialized) return;
@@ -301,15 +302,22 @@ class ErrorReportingManager {
       attributes: { mode },
     });
 
-    Sentry.metrics.gauge("high_score", score, {
-      attributes: { mode },
-    });
-
-    this.addBreadcrumb("game", "New high score!", {
-      newScore: score,
-      previousScore,
-      improvement: score - previousScore,
-    });
+    // Use different metric names for clarity
+    if (mode === "endless") {
+      Sentry.metrics.gauge("endless_high_wave", value);
+      this.addBreadcrumb("game", "New endless high wave!", {
+        newWave: value,
+        previousWave: previousValue,
+        improvement: value - previousValue,
+      });
+    } else {
+      Sentry.metrics.gauge("high_score", value);
+      this.addBreadcrumb("game", "New high score!", {
+        newScore: value,
+        previousScore: previousValue,
+        improvement: value - previousValue,
+      });
+    }
   }
 
   /**
@@ -389,16 +397,8 @@ class ErrorReportingManager {
     });
   }
 
-  /**
-   * Track enemy kills by type
-   */
-  trackEnemyKill(enemyType: string): void {
-    if (!this.initialized) return;
-
-    Sentry.metrics.count("enemy_kill", 1, {
-      attributes: { type: enemyType },
-    });
-  }
+  // NOTE: trackEnemyKill removed - per-enemy events were too noisy.
+  // Aggregate enemy kills are tracked in trackRunCompleted() instead.
 
   /**
    * Track currency earned
