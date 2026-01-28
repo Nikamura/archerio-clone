@@ -90,7 +90,18 @@ Managed by `DailyRewardManager`.
 - 7-day reward cycle
 - Escalating rewards each day
 - 48-hour streak timeout
-- Rewards include: Gold, gems, chests, scrolls
+
+### Daily Reward Calendar
+
+| Day | Reward |
+| --- | ------ |
+| 1   | 1 Wooden Chest |
+| 2   | 1 Silver Chest |
+| 3   | 10 Gems |
+| 4   | 2 Wooden Chests |
+| 5   | 20 Gems |
+| 6   | 1 Golden Chest |
+| 7   | 50 Gems + Full Energy |
 
 ## Achievements
 
