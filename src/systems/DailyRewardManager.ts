@@ -5,18 +5,22 @@
  */
 
 import { currencyManager } from "./CurrencyManager";
+import { chestManager } from "./ChestManager";
+import { ChestType } from "../data/chestData";
 
 // ============================================
 // Types and Interfaces
 // ============================================
 
 /** Reward types that can be given */
-export type RewardType = "gold" | "gems" | "energy";
+export type RewardType = "gold" | "gems" | "energy" | "chest";
 
 /** Single reward entry */
 export interface Reward {
   type: RewardType;
   amount: number;
+  /** For chest rewards, specifies which chest type */
+  chestType?: ChestType;
 }
 
 /** Daily reward configuration */
@@ -64,18 +68,18 @@ const MAX_ENERGY = 20;
 
 /**
  * Daily reward configuration for 7-day cycle
- * Day 7 includes a full energy refill (20 energy)
+ * Rewards chests and gems, with day 7 including a full energy refill
  */
 export const DAILY_REWARDS: DailyReward[] = [
   {
     day: 1,
-    rewards: [{ type: "gold", amount: 100 }],
-    description: "100 Gold",
+    rewards: [{ type: "chest", amount: 1, chestType: "wooden" }],
+    description: "1 Wooden Chest",
   },
   {
     day: 2,
-    rewards: [{ type: "gold", amount: 200 }],
-    description: "200 Gold",
+    rewards: [{ type: "chest", amount: 1, chestType: "silver" }],
+    description: "1 Silver Chest",
   },
   {
     day: 3,
@@ -84,8 +88,8 @@ export const DAILY_REWARDS: DailyReward[] = [
   },
   {
     day: 4,
-    rewards: [{ type: "gold", amount: 500 }],
-    description: "500 Gold",
+    rewards: [{ type: "chest", amount: 2, chestType: "wooden" }],
+    description: "2 Wooden Chests",
   },
   {
     day: 5,
@@ -94,8 +98,8 @@ export const DAILY_REWARDS: DailyReward[] = [
   },
   {
     day: 6,
-    rewards: [{ type: "gold", amount: 1000 }],
-    description: "1000 Gold",
+    rewards: [{ type: "chest", amount: 1, chestType: "golden" }],
+    description: "1 Golden Chest",
   },
   {
     day: 7,
@@ -281,7 +285,13 @@ export class DailyRewardManager {
     // Grant rewards
     const grantedRewards: Reward[] = [];
     for (const reward of dailyReward.rewards) {
-      currencyManager.add(reward.type, reward.amount);
+      if (reward.type === "chest" && reward.chestType) {
+        // Grant chest via ChestManager
+        chestManager.addChest(reward.chestType, reward.amount);
+      } else if (reward.type === "gold" || reward.type === "gems" || reward.type === "energy") {
+        // Grant currency via CurrencyManager (only for currency types)
+        currencyManager.add(reward.type, reward.amount);
+      }
       grantedRewards.push({ ...reward });
     }
 
