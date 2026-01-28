@@ -26,6 +26,8 @@ export default class LevelUpScene extends Phaser.Scene {
   private isDebugMode: boolean = false;
   private scrollContainer?: ScrollContainer;
   private pointerDownPositions: Map<number, { x: number; y: number }> = new Map();
+  private hasUsedReroll: boolean = false;
+  private rerollButton?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "LevelUpScene" });
@@ -38,6 +40,8 @@ export default class LevelUpScene extends Phaser.Scene {
     this.abilityLevels = data.abilityLevels ?? {};
     this.hasExtraLife = data.hasExtraLife ?? false;
     this.scrollContainer = undefined;
+    this.hasUsedReroll = false;
+    this.rerollButton = undefined;
   }
 
   create() {
@@ -156,6 +160,9 @@ export default class LevelUpScene extends Phaser.Scene {
           const y = startY + index * cardSpacing;
           this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index);
         });
+
+        // Create reroll button below the cards
+        this.createRerollButton(0, startY + 3 * cardSpacing + 10, cardWidth);
       }
 
       // Animate modal in
@@ -197,6 +204,153 @@ export default class LevelUpScene extends Phaser.Scene {
 
     const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
+  }
+
+  private createRerollButton(x: number, y: number, _width: number) {
+    const buttonWidth = 120;
+    const buttonHeight = 36;
+
+    const container = this.add.container(x, y);
+    container.setDepth(15);
+
+    // Button background
+    const bg = this.add.graphics();
+    bg.fillStyle(0x3a3a5a, 1);
+    bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+    bg.lineStyle(2, 0x6a6a8a, 1);
+    bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+    container.add(bg);
+
+    // Button text
+    const text = this.add
+      .text(0, 0, "Reroll (1)", {
+        fontSize: "14px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    container.add(text);
+
+    // Interactive area
+    const hitArea = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x000000, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+    container.add(hitArea);
+
+    // Hover effects
+    hitArea.on("pointerover", () => {
+      if (this.hasUsedReroll) return;
+      this.tweens.add({
+        targets: container,
+        scale: 1.05,
+        duration: 100,
+        ease: "Power2.easeOut",
+      });
+      bg.clear();
+      bg.fillStyle(0x4a4a6a, 1);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+      bg.lineStyle(2, 0x8a8aaa, 1);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+    });
+
+    hitArea.on("pointerout", () => {
+      if (this.hasUsedReroll) return;
+      this.tweens.add({
+        targets: container,
+        scale: 1,
+        duration: 100,
+        ease: "Power2.easeOut",
+      });
+      bg.clear();
+      bg.fillStyle(0x3a3a5a, 1);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+      bg.lineStyle(2, 0x6a6a8a, 1);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+    });
+
+    // Click handler
+    hitArea.on("pointerdown", () => {
+      if (this.hasUsedReroll || this.isSelecting) return;
+      this.rerollAbilities();
+    });
+
+    this.modalContainer.add(container);
+    this.rerollButton = container;
+  }
+
+  private rerollAbilities() {
+    this.hasUsedReroll = true;
+
+    // Play button click sound
+    audioManager.playAbilitySelect();
+
+    // Update button appearance to disabled state
+    if (this.rerollButton) {
+      const bg = this.rerollButton.getAt(0) as Phaser.GameObjects.Graphics;
+      const text = this.rerollButton.getAt(1) as Phaser.GameObjects.Text;
+      const hitArea = this.rerollButton.getAt(2) as Phaser.GameObjects.Rectangle;
+
+      // Disable interaction
+      hitArea.disableInteractive();
+
+      // Update text
+      text.setText("Rerolled");
+      text.setColor("#666666");
+
+      // Update background to disabled look
+      bg.clear();
+      bg.fillStyle(0x2a2a3a, 1);
+      bg.fillRoundedRect(-60, -18, 120, 36, 8);
+      bg.lineStyle(2, 0x4a4a5a, 1);
+      bg.strokeRoundedRect(-60, -18, 120, 36, 8);
+    }
+
+    // Animate cards out
+    const cardWidth = this.cameras.main.width - 40 - 30;
+    const cardHeight = 60;
+    const cardSpacing = 70;
+    const startY = -40;
+
+    // Remove old cards with animation
+    this.abilityCards.forEach((card, index) => {
+      this.tweens.add({
+        targets: card,
+        alpha: 0,
+        x: index % 2 === 0 ? -50 : 50,
+        duration: 150,
+        ease: "Power2.easeIn",
+        onComplete: () => {
+          card.destroy();
+        },
+      });
+    });
+
+    // Clear cards array
+    this.abilityCards = [];
+
+    // Select new abilities
+    this.selectedAbilities = this.selectRandomAbilities(3);
+
+    // Create new cards after old ones fade out
+    this.time.delayedCall(180, () => {
+      this.selectedAbilities.forEach((ability, index) => {
+        const y = startY + index * cardSpacing;
+        this.createAbilityCard(0, y, cardWidth, cardHeight, ability, index);
+      });
+
+      // Animate new cards in
+      this.abilityCards.forEach((card, index) => {
+        card.setAlpha(0);
+        card.setX(index % 2 === 0 ? 50 : -50);
+        this.tweens.add({
+          targets: card,
+          alpha: 1,
+          x: 0,
+          duration: 200,
+          delay: index * 50,
+          ease: "Power2.easeOut",
+        });
+      });
+    });
   }
 
   private createScrollableAbilityList(
