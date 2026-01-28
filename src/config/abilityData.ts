@@ -247,6 +247,15 @@ export const ABILITIES: AbilityData[] = [
     iconKey: "abilityMobileFire",
     maxLevel: 3, // L1: 33%, L2: 67%, L3: 100% attack speed while moving
   },
+  // Glass Cannon Ability (Risk/Reward)
+  {
+    id: "glass_cannon",
+    name: "Glass Cannon",
+    description: "Cap base HP at 100, +25% dmg/speed/crit",
+    color: 0xff00ff,
+    iconKey: "abilityGlassCannon",
+    maxLevel: 1, // Non-stacking ability
+  },
 ];
 
 /**

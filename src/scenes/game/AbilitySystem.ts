@@ -141,6 +141,11 @@ export class AbilitySystem {
       case "mobile_fire":
         this.player.addMobileFire();
         break;
+
+      // Glass Cannon ability
+      case "glass_cannon":
+        this.player.addGlassCannon();
+        break;
     }
 
     this.abilitiesGained++;

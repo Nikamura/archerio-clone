@@ -80,6 +80,9 @@ export class PlayerStats {
   // Movement abilities
   private mobileFireLevel: number = 0; // Allows shooting while moving (L1: 33%, L2: 67%, L3: 100% attack speed)
 
+  // Glass Cannon ability
+  private glassCannonEnabled: boolean = false; // Cap base HP at 100, gain offensive bonuses
+
   // Note: Shatter and Fire Spread are now passive effects:
   // - Shatter: Ice Shot enables +50% damage to frozen enemies automatically
   // - Fire Spread: Fire Damage enables fire spread on death automatically
@@ -499,6 +502,10 @@ export class PlayerStats {
     return this.asceticEnabled;
   }
 
+  isGlassCannonEnabled(): boolean {
+    return this.glassCannonEnabled;
+  }
+
   getHordeMagnetLevel(): number {
     return this.hordeMagnetLevel;
   }
@@ -872,6 +879,36 @@ export class PlayerStats {
   }
 
   /**
+   * Add Glass Cannon ability (cap base HP at 100, gain offensive bonuses)
+   * Non-stacking: Only need one level
+   * Trade-off: Lose any bonus HP from equipment/difficulty, but gain:
+   * - +25% damage
+   * - +25% attack speed
+   * - +10% crit chance
+   * Note: Vitality and other in-run HP abilities still work on top of the base 100
+   */
+  addGlassCannon(): void {
+    if (this.glassCannonEnabled) return; // Already enabled
+
+    this.glassCannonEnabled = true;
+
+    // Cap max HP at 100 (the base value)
+    // This removes any equipment/difficulty bonuses, but vitality can still increase it
+    if (this.maxHealth > 100) {
+      this.maxHealth = 100;
+      // Also cap current health if needed
+      if (this.health > this.maxHealth) {
+        this.health = this.maxHealth;
+      }
+    }
+
+    // Apply offensive bonuses
+    this.damageMultiplier *= 1.25; // +25% damage
+    this.attackSpeedMultiplier *= 1.25; // +25% attack speed
+    this.critChance = Math.min(1, this.critChance + 0.1); // +10% crit chance
+  }
+
+  /**
    * Add Mobile Fire ability (shoot while moving at reduced attack speed)
    * Level 1: 33% attack speed while moving
    * Level 2: 67% attack speed while moving
@@ -955,6 +992,7 @@ export class PlayerStats {
     // Reset game modifiers
     this.asceticEnabled = false;
     this.hordeMagnetLevel = 0;
+    this.glassCannonEnabled = false;
     // Reset movement abilities
     this.mobileFireLevel = 0;
     // Note: Shatter and Fire Spread are passive effects (no reset needed)
