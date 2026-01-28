@@ -286,11 +286,11 @@ export class EventHandlerFactory {
   }
 
   /**
-   * Respawn event handlers (3 handlers)
+   * Respawn event handlers (4 handlers)
    */
   private createRespawnHandlers(): Pick<
     GameSceneEventHandlers,
-    "onRespawnComplete" | "onUpdateHealthUI" | "onUpdateXPUI"
+    "onRespawnComplete" | "onUpdateHealthUI" | "onUpdateXPUI" | "onUpdateAbilitiesUI"
   > {
     return {
       onRespawnComplete: (newInputSystem: InputSystem) => {
@@ -302,6 +302,10 @@ export class EventHandlerFactory {
       },
       onUpdateXPUI: () => {
         this.deps.updateXPUI();
+      },
+      onUpdateAbilitiesUI: () => {
+        const abilities = this.deps.getLevelUpSystem().getAcquiredAbilitiesArray();
+        this.deps.scene.scene.get("UIScene").events.emit("updateAbilities", abilities);
       },
     };
   }
