@@ -62,6 +62,8 @@ export interface GameOverData {
   endlessWave?: number;
   chapterId?: number;
   difficulty?: string;
+  /** Player's level at end of run */
+  playerLevel?: number;
   /** Whether player can respawn (one-time use per run) */
   canRespawn?: boolean;
   /** Saved room state for respawn */
@@ -174,6 +176,7 @@ export default class GameOverScene extends Phaser.Scene {
   private canRespawn: boolean = false;
   private respawnRoomState: RespawnRoomState | null = null;
   private showingSecondChancePopup: boolean = false;
+  private playerLevel: number = 1;
 
   constructor() {
     super({ key: "GameOverScene" });
@@ -188,6 +191,7 @@ export default class GameOverScene extends Phaser.Scene {
     this.endlessWave = data?.endlessWave ?? 1;
     this.canRespawn = data?.canRespawn ?? false;
     this.respawnRoomState = data?.respawnRoomState ?? null;
+    this.playerLevel = data?.playerLevel ?? 1;
     // Reset second chance popup state
     this.showingSecondChancePopup = this.canRespawn;
 
@@ -433,9 +437,19 @@ export default class GameOverScene extends Phaser.Scene {
     const statsStartY = 120 + subtitleOffset;
     const lineHeight = 32;
 
+    // Player level
+    this.add
+      .text(width / 2, statsStartY, `Level: ${this.playerLevel}`, {
+        fontSize: "20px",
+        fontFamily: "Arial",
+        color: "#88ccff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
     // Rooms cleared - always show total across all waves (endless mode)
     this.add
-      .text(width / 2, statsStartY, `Rooms Cleared: ${this.stats.roomsCleared}`, {
+      .text(width / 2, statsStartY + lineHeight, `Rooms Cleared: ${this.stats.roomsCleared}`, {
         fontSize: "20px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -444,7 +458,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Enemies killed
     this.add
-      .text(width / 2, statsStartY + lineHeight, `Enemies: ${this.stats.enemiesKilled}`, {
+      .text(width / 2, statsStartY + lineHeight * 2, `Enemies: ${this.stats.enemiesKilled}`, {
         fontSize: "20px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -453,7 +467,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Gold earned (highlighted)
     this.add
-      .text(width / 2, statsStartY + lineHeight * 2, `Gold: +${this.goldEarned}`, {
+      .text(width / 2, statsStartY + lineHeight * 3, `Gold: +${this.goldEarned}`, {
         fontSize: "24px",
         fontFamily: "Arial",
         color: "#FFD700", // Gold color
@@ -465,7 +479,7 @@ export default class GameOverScene extends Phaser.Scene {
     let heroXPOffset = 0;
     if (this.heroXPEarned > 0) {
       this.add
-        .text(width / 2, statsStartY + lineHeight * 2.8, `Hero XP: +${this.heroXPEarned}`, {
+        .text(width / 2, statsStartY + lineHeight * 3.8, `Hero XP: +${this.heroXPEarned}`, {
           fontSize: "18px",
           fontFamily: "Arial",
           color: "#88ccff",
@@ -481,7 +495,7 @@ export default class GameOverScene extends Phaser.Scene {
         this.add
           .text(
             width / 2,
-            statsStartY + lineHeight * 3.4,
+            statsStartY + lineHeight * 4.4,
             `${heroState.name} reached Level ${lastLevelUp.newLevel}!`,
             {
               fontSize: "20px",
@@ -497,7 +511,7 @@ export default class GameOverScene extends Phaser.Scene {
         if (lastLevelUp.newPerks.length > 0) {
           const perkNames = lastLevelUp.newPerks.map((p) => p.name).join(", ");
           this.add
-            .text(width / 2, statsStartY + lineHeight * 4, `New Perk: ${perkNames}`, {
+            .text(width / 2, statsStartY + lineHeight * 5, `New Perk: ${perkNames}`, {
               fontSize: "14px",
               fontFamily: "Arial",
               color: "#ffdd00",
@@ -509,10 +523,10 @@ export default class GameOverScene extends Phaser.Scene {
     }
 
     // Score display (adjusted for hero XP section)
-    this.displayScore(statsStartY + lineHeight * 3 + heroXPOffset);
+    this.displayScore(statsStartY + lineHeight * 4 + heroXPOffset);
 
     // Chest rewards section (adjusted for hero XP section)
-    const chestsY = statsStartY + lineHeight * 5.5 + heroXPOffset;
+    const chestsY = statsStartY + lineHeight * 6.5 + heroXPOffset;
 
     this.add
       .text(width / 2, chestsY, "REWARDS", {

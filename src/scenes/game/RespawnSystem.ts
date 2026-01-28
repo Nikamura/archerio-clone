@@ -239,6 +239,7 @@ export class RespawnSystem {
         endlessWave: endlessWave,
         chapterId: chapterManager.getSelectedChapter(),
         difficulty: this.difficultyConfig.label.toLowerCase(),
+        playerLevel: this.player.getLevel(),
         canRespawn,
         respawnRoomState,
       });

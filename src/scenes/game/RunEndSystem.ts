@@ -26,6 +26,7 @@ interface GameOverData {
   endlessWave: number;
   chapterId: number;
   difficulty: string;
+  playerLevel: number;
 }
 
 /**
@@ -208,6 +209,7 @@ export class RunEndSystem {
       difficulty: this.difficultyConfig.label.toLowerCase(),
       isEndlessMode: true,
       endlessWave,
+      playerLevel: this.player.getLevel(),
     };
 
     return data;
