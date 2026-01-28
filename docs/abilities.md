@@ -8,7 +8,7 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 
 | Ability            | Effect                                 | Penalty                   |
 | ------------------ | -------------------------------------- | ------------------------- |
-| Front Arrow +1     | Additional forward projectile          | -15% damage per stack     |
+| Front Arrow +1     | Additional forward projectile          | None                      |
 | Multishot          | Multiple projectiles in spread pattern | -10% attack speed         |
 | Attack Speed Boost | +25% attack speed                      | None                      |
 | Attack Boost       | +30% damage                            | None                      |
