@@ -10,7 +10,11 @@ export interface AbilityData {
   color: number;
   iconKey: string;
   maxLevel?: number; // Maximum level for this ability (undefined = unlimited stacking)
+  weight?: number; // Selection weight (default 100). Higher = more common, lower = rarer
 }
+
+/** Default weight for abilities (used when weight is not specified) */
+export const DEFAULT_ABILITY_WEIGHT = 100;
 
 export const ABILITIES: AbilityData[] = [
   // Original 8 abilities
@@ -27,6 +31,7 @@ export const ABILITIES: AbilityData[] = [
     description: "-10% attack speed",
     color: 0xff6644,
     iconKey: "abilityMultishot",
+    weight: 75, // Uncommon
   },
   {
     id: "attack_speed",
@@ -48,6 +53,7 @@ export const ABILITIES: AbilityData[] = [
     description: "Pass through enemies",
     color: 0x00ffaa,
     iconKey: "abilityPiercing",
+    weight: 75, // Uncommon
   },
   {
     id: "ricochet",
@@ -55,6 +61,7 @@ export const ABILITIES: AbilityData[] = [
     description: "Bounce 3x",
     color: 0x88ff88,
     iconKey: "abilityRicochet",
+    weight: 75, // Uncommon
   },
   {
     id: "fire_damage",
@@ -62,6 +69,7 @@ export const ABILITIES: AbilityData[] = [
     description: "18% DOT, spreads on death",
     color: 0xff6600,
     iconKey: "abilityFireDamage",
+    weight: 75, // Uncommon
   },
   {
     id: "crit_boost",
@@ -77,6 +85,7 @@ export const ABILITIES: AbilityData[] = [
     description: "15% freeze, +50% dmg frozen",
     color: 0x66ccff,
     iconKey: "abilityIceShot",
+    weight: 75, // Uncommon
   },
   {
     id: "poison_shot",
@@ -84,6 +93,7 @@ export const ABILITIES: AbilityData[] = [
     description: "10% DOT, stacks 5x",
     color: 0x66ff66,
     iconKey: "abilityPoisonShot",
+    weight: 75, // Uncommon
   },
   {
     id: "lightning_chain",
@@ -91,6 +101,7 @@ export const ABILITIES: AbilityData[] = [
     description: "Chain +2, -20% dmg/chain",
     color: 0x9966ff,
     iconKey: "abilityLightningChain",
+    weight: 50, // Rare
   },
   {
     id: "diagonal_arrows",
@@ -98,6 +109,7 @@ export const ABILITIES: AbilityData[] = [
     description: "+2 arrows at 30°",
     color: 0xff9966,
     iconKey: "abilityDiagonalArrows",
+    weight: 50, // Rare
   },
   {
     id: "bloodthirst",
@@ -106,6 +118,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xff3333,
     iconKey: "abilityBloodthirst",
     maxLevel: 5,
+    weight: 50, // Rare
   },
   {
     id: "speed_boost",
@@ -128,6 +141,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xaaaaff,
     iconKey: "abilityDodgeMaster",
     maxLevel: 5, // 3% × 5 = 15% cap
+    weight: 50, // Rare
   },
   // Devil abilities (powerful but with HP cost or risk)
   {
@@ -137,6 +151,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xff3366,
     iconKey: "abilityExtraLife",
     maxLevel: 1, // Can only have 1 extra life at a time
+    weight: 10, // Legendary
   },
   {
     id: "through_wall",
@@ -145,6 +160,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x9933ff,
     iconKey: "abilityThroughWall",
     maxLevel: 1, // Non-stacking ability
+    weight: 10, // Legendary
   },
   // Note: Shatter and Fire Spread are now passive effects:
   // - Ice Shot: Frozen enemies take +50% damage (shatter is built-in)
@@ -155,6 +171,7 @@ export const ABILITIES: AbilityData[] = [
     description: "10% DOT, 2x if moving",
     color: 0xcc0000,
     iconKey: "abilityBleed",
+    weight: 50, // Rare
   },
   // New orbital and effect abilities
   {
@@ -164,6 +181,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xff8800,
     iconKey: "abilityRotatingOrbs",
     maxLevel: 5,
+    weight: 25, // Epic
   },
   {
     id: "orbital_shields",
@@ -172,6 +190,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x00aaff,
     iconKey: "abilityOrbitalShields",
     maxLevel: 3,
+    weight: 25, // Epic
   },
   {
     id: "spirit_pets",
@@ -180,6 +199,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xaa66ff,
     iconKey: "abilitySpiritPets",
     maxLevel: 5,
+    weight: 25, // Epic
   },
   {
     id: "death_nova",
@@ -188,6 +208,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x660066,
     iconKey: "abilityDeathNova",
     maxLevel: 3,
+    weight: 25, // Epic
   },
   {
     id: "homing_arrows",
@@ -196,6 +217,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x00ff88,
     iconKey: "abilityHomingArrows",
     maxLevel: 3,
+    weight: 25, // Epic
   },
   {
     id: "explosive_arrows",
@@ -204,6 +226,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xff4400,
     iconKey: "abilityExplosiveArrows",
     maxLevel: 3,
+    weight: 25, // Epic
   },
   {
     id: "shield_barrier",
@@ -212,6 +235,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x4488ff,
     iconKey: "abilityShieldBarrier",
     maxLevel: 3,
+    weight: 25, // Epic
   },
   {
     id: "knockback",
@@ -220,6 +244,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x888888,
     iconKey: "abilityKnockback",
     maxLevel: 3,
+    weight: 50, // Rare
   },
   // Game Modifier Abilities (Risk/Reward)
   {
@@ -229,6 +254,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xff0066,
     iconKey: "abilityAscetic",
     maxLevel: 1,
+    weight: 10, // Legendary
   },
   {
     id: "horde_magnet",
@@ -237,6 +263,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0xcc3300,
     iconKey: "abilityHordeMagnet",
     // No maxLevel - can stack infinitely for extreme challenge
+    weight: 10, // Legendary
   },
   // Movement Abilities
   {
@@ -246,6 +273,7 @@ export const ABILITIES: AbilityData[] = [
     color: 0x33ccff,
     iconKey: "abilityMobileFire",
     maxLevel: 3, // L1: 33%, L2: 67%, L3: 100% attack speed while moving
+    weight: 10, // Legendary
   },
 ];
 
@@ -254,4 +282,56 @@ export const ABILITIES: AbilityData[] = [
  */
 export function getAbilityById(abilityId: string): AbilityData | undefined {
   return ABILITIES.find((a) => a.id === abilityId);
+}
+
+/**
+ * Get the weight of an ability (uses default if not specified)
+ */
+export function getAbilityWeight(ability: AbilityData): number {
+  return ability.weight ?? DEFAULT_ABILITY_WEIGHT;
+}
+
+/**
+ * Select random abilities using weighted selection
+ * Higher weight = more likely to be selected
+ *
+ * @param abilities - Array of abilities to select from
+ * @param count - Number of abilities to select
+ * @param randomFn - Random function (0-1), defaults to Math.random
+ * @returns Array of selected abilities (no duplicates)
+ */
+export function selectWeightedAbilities(
+  abilities: AbilityData[],
+  count: number,
+  randomFn: () => number = Math.random,
+): AbilityData[] {
+  if (abilities.length === 0) return [];
+  if (abilities.length <= count) return [...abilities];
+
+  const selected: AbilityData[] = [];
+  const remaining = [...abilities];
+
+  while (selected.length < count && remaining.length > 0) {
+    // Calculate total weight of remaining abilities
+    const totalWeight = remaining.reduce((sum, a) => sum + getAbilityWeight(a), 0);
+
+    // Pick a random point in the total weight
+    let randomPoint = randomFn() * totalWeight;
+
+    // Find the ability at that point
+    let selectedIndex = 0;
+    for (let i = 0; i < remaining.length; i++) {
+      randomPoint -= getAbilityWeight(remaining[i]);
+      if (randomPoint <= 0) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    // Add to selected and remove from remaining
+    selected.push(remaining[selectedIndex]);
+    remaining.splice(selectedIndex, 1);
+  }
+
+  return selected;
 }

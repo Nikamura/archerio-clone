@@ -4,7 +4,7 @@ import { DURATION, EASING } from "../systems/UIAnimations";
 import { errorReporting } from "../systems/ErrorReportingManager";
 import { ScrollContainer } from "../ui/components/ScrollContainer";
 import { abilityPriorityManager } from "../systems/AbilityPriorityManager";
-import { ABILITIES, AbilityData } from "../config/abilityData";
+import { ABILITIES, AbilityData, selectWeightedAbilities } from "../config/abilityData";
 
 // Re-export for backward compatibility
 export { ABILITIES };
@@ -195,8 +195,8 @@ export default class LevelUpScene extends Phaser.Scene {
       return true;
     });
 
-    const shuffled = [...availableAbilities].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    // Use weighted selection - abilities with higher weight appear more often
+    return selectWeightedAbilities(availableAbilities, count);
   }
 
   private createScrollableAbilityList(

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { audioManager } from "../systems/AudioManager";
 import { DURATION, EASING } from "../systems/UIAnimations";
 import { abilityPriorityManager } from "../systems/AbilityPriorityManager";
-import { ABILITIES, AbilityData } from "../config/abilityData";
+import { ABILITIES, AbilityData, selectWeightedAbilities } from "../config/abilityData";
 import { SeededRandom } from "../systems/SeededRandom";
 import { ScrollContainer } from "../ui/components/ScrollContainer";
 
@@ -193,9 +193,8 @@ export default class StartingAbilityScene extends Phaser.Scene {
   }
 
   private selectRandomAbilities(count: number): AbilityData[] {
-    // Shuffle using seeded RNG for deterministic selection
-    const shuffled = [...ABILITIES].sort(() => this.rng.random() - 0.5);
-    return shuffled.slice(0, count);
+    // Use weighted selection with seeded RNG for deterministic selection
+    return selectWeightedAbilities(ABILITIES, count, () => this.rng.random());
   }
 
   private createAbilityCard(
