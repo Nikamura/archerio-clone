@@ -17,6 +17,7 @@ export default class UIScene extends Phaser.Scene {
   private healthText!: Phaser.GameObjects.Text;
   private shieldBar!: Phaser.GameObjects.Graphics;
   private shieldBarBg!: Phaser.GameObjects.Graphics;
+  private shieldText!: Phaser.GameObjects.Text;
   private levelBadge!: Phaser.GameObjects.Container;
   private levelText!: Phaser.GameObjects.Text;
   private xpBar!: Phaser.GameObjects.Graphics;
@@ -216,6 +217,17 @@ export default class UIScene extends Phaser.Scene {
     this.shieldBar = this.add.graphics();
     this.shieldBar.setVisible(false);
     this.hudContainer.add(this.shieldBar);
+
+    // Shield text (shows real number)
+    this.shieldText = this.add.text(healthX + healthWidth / 2, shieldY + shieldHeight / 2, "", {
+      fontSize: "7px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    });
+    this.shieldText.setOrigin(0.5);
+    this.shieldText.setStroke("#000000", 2);
+    this.shieldText.setVisible(false);
+    this.hudContainer.add(this.shieldText);
 
     // --- ROOM COUNTER (center) ---
     this.roomText = this.add.text(width / 2, 22, "Room 1/20", {
@@ -651,6 +663,7 @@ export default class UIScene extends Phaser.Scene {
       if (this.shieldBar.visible) {
         this.shieldBar.setVisible(false);
         this.shieldBarBg.setVisible(false);
+        this.shieldText.setVisible(false);
         this.lastShieldPercent = -1;
         this.lastShieldCurrent = -1;
       }
@@ -661,6 +674,7 @@ export default class UIScene extends Phaser.Scene {
     if (!this.shieldBar.visible) {
       this.shieldBar.setVisible(true);
       this.shieldBarBg.setVisible(true);
+      this.shieldText.setVisible(true);
     }
 
     // Round for comparison
@@ -686,6 +700,9 @@ export default class UIScene extends Phaser.Scene {
     this.shieldBar.fillStyle(0x4488ff, 1); // Blue shield color
     const fillWidth = Math.max(0, (percentage / 100) * (healthWidth - 4));
     this.shieldBar.fillRoundedRect(healthX + 2, shieldY + 1, fillWidth, shieldHeight - 2, 2);
+
+    // Update shield text with real number
+    this.shieldText.setText(`${roundedCurrent}`);
   }
 
   updateRoomCounter(currentRoom: number, totalRooms: number, endlessWave?: number) {
