@@ -62,6 +62,7 @@ export class LevelUpSystem {
   private eventHandlers: LevelUpEventHandlers;
 
   private _isLevelingUp: boolean = false;
+  private availableRerolls: number = 0; // Accumulated rerolls (starts at 0, +1 per level-up)
 
   constructor(config: LevelUpSystemConfig) {
     this.scene = config.scene;
@@ -107,6 +108,9 @@ export class LevelUpSystem {
     audioManager.playLevelUp();
     hapticManager.levelUp();
 
+    // Add a reroll for this level-up (accumulates if not used)
+    this.availableRerolls++;
+
     // Mark player as leveling up (immune to damage during selection)
     this._isLevelingUp = true;
 
@@ -144,25 +148,30 @@ export class LevelUpSystem {
     this.game.events.off("abilitySelected");
 
     // Listen for ability selection using global game events (more reliable than scene events)
-    this.game.events.once("abilitySelected", (abilityId: string) => {
-      console.log("LevelUpSystem: received abilitySelected", abilityId);
-      try {
-        this.applyAbility(abilityId);
-        console.log("LevelUpSystem: resuming physics and showing joystick");
-        // Ensure joystick state is reset before resuming
-        this.eventHandlers.onLevelUpCompleted();
-        this.scene.physics.resume();
-        this.inputSystem.show();
-        // End level-up state immediately so player can shoot right away
-        this._isLevelingUp = false;
-      } catch (error) {
-        console.error("LevelUpSystem: Error applying ability:", error);
-        this.eventHandlers.onLevelUpCompleted(); // Reset even on error
-        this.scene.physics.resume(); // Resume anyway to prevent soft-lock
-        this.inputSystem.show();
-        this._isLevelingUp = false; // Reset flag on error too
-      }
-    });
+    this.game.events.once(
+      "abilitySelected",
+      (data: { abilityId: string; rerollsRemaining: number }) => {
+        console.log("LevelUpSystem: received abilitySelected", data.abilityId);
+        try {
+          this.applyAbility(data.abilityId);
+          // Store remaining rerolls for next level-up
+          this.availableRerolls = data.rerollsRemaining;
+          console.log("LevelUpSystem: resuming physics and showing joystick");
+          // Ensure joystick state is reset before resuming
+          this.eventHandlers.onLevelUpCompleted();
+          this.scene.physics.resume();
+          this.inputSystem.show();
+          // End level-up state immediately so player can shoot right away
+          this._isLevelingUp = false;
+        } catch (error) {
+          console.error("LevelUpSystem: Error applying ability:", error);
+          this.eventHandlers.onLevelUpCompleted(); // Reset even on error
+          this.scene.physics.resume(); // Resume anyway to prevent soft-lock
+          this.inputSystem.show();
+          this._isLevelingUp = false; // Reset flag on error too
+        }
+      },
+    );
 
     // Launch level up scene with ability choices
     if (this.scene.scene.isActive("LevelUpScene")) {
@@ -180,6 +189,7 @@ export class LevelUpSystem {
       playerLevel: this.player.getLevel(),
       abilityLevels,
       hasExtraLife: this.player.hasExtraLife(),
+      rerollsAvailable: this.availableRerolls,
     });
   }
 
