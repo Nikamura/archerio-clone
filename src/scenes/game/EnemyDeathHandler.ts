@@ -293,8 +293,8 @@ export class EnemyDeathHandler {
       console.log(`Gold spawned: ${goldValue} from ${enemyType}`);
     }
 
-    // 5% chance to drop health potion (scales with difficulty)
-    if (Math.random() < 0.05) {
+    // 2% chance to drop health potion (scales with difficulty)
+    if (Math.random() < 0.02) {
       const healValue = this.calculateHealthPotionValue();
       this.healthPool.spawn(enemy.x, enemy.y, healValue);
       console.log(`Health potion spawned: ${healValue} HP`);
