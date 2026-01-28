@@ -28,6 +28,8 @@ export interface RespawnEventHandlers {
   onUpdateHealthUI: () => void;
   /** Update XP/Level UI after respawn */
   onUpdateXPUI: () => void;
+  /** Update abilities/skills bar UI after respawn */
+  onUpdateAbilitiesUI: () => void;
 }
 
 /**
@@ -345,13 +347,20 @@ export class RespawnSystem {
     const newInputSystem = this.createInputSystem();
     this.eventHandlers.onRespawnComplete(newInputSystem);
 
-    // Update health UI
-    this.eventHandlers.onUpdateHealthUI();
+    // Delay UI updates slightly to ensure UIScene is fully ready
+    // (same pattern as boss health bar above)
+    this.scene.time.delayedCall(50, () => {
+      // Update health UI
+      this.eventHandlers.onUpdateHealthUI();
 
-    // Update XP/Level UI (since UIScene was relaunched and reset to "Lv.1")
-    this.eventHandlers.onUpdateXPUI();
+      // Update XP/Level UI (since UIScene was relaunched and reset to "Lv.1")
+      this.eventHandlers.onUpdateXPUI();
 
-    console.log("RespawnSystem: Respawn complete - Player HP:", this.player.getHealth());
+      // Update abilities/skills bar UI (since UIScene was relaunched with empty skills bar)
+      this.eventHandlers.onUpdateAbilitiesUI();
+
+      console.log("RespawnSystem: Respawn complete - Player HP:", this.player.getHealth());
+    });
   }
 
   /**
