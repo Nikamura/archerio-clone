@@ -243,12 +243,10 @@ export class PlayerStats {
 
   /**
    * Calculate current attack speed with ability modifiers
-   * Multishot reduces attack speed by 10% per level (buffed from 15%)
    * Capped at MAX_ATTACK_SPEED (5.0) to limit to 10 attacks per second
    */
   getAttackSpeed(): number {
-    const multishotPenalty = Math.pow(0.9, this.multishotCount);
-    const rawAttackSpeed = this.baseAttackSpeed * this.attackSpeedMultiplier * multishotPenalty;
+    const rawAttackSpeed = this.baseAttackSpeed * this.attackSpeedMultiplier;
     return Math.min(rawAttackSpeed, PlayerStats.MAX_ATTACK_SPEED);
   }
 
@@ -637,7 +635,7 @@ export class PlayerStats {
   }
 
   /**
-   * Add Multishot ability (+1 side projectile pair, -15% attack speed)
+   * Add Multishot ability (+1 side projectile pair at 45 degrees)
    */
   addMultishot(): void {
     this.multishotCount++;
