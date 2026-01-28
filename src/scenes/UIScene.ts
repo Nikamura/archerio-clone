@@ -50,7 +50,8 @@ export default class UIScene extends Phaser.Scene {
     levelText: Phaser.GameObjects.Text | null;
   }> = [];
   private skillOverflowText: Phaser.GameObjects.Text | null = null;
-  private readonly MAX_SKILL_DISPLAY = 12;
+  private readonly SKILLS_PER_ROW = 18;
+  private readonly MAX_SKILL_DISPLAY = 36; // 2 rows of 18 skills
 
   // FPS counter (debug only)
   private fpsText?: Phaser.GameObjects.Text;
@@ -409,17 +410,22 @@ export default class UIScene extends Phaser.Scene {
    * Create skills bar at the bottom with pre-allocated slots for performance
    */
   private createSkillsBar(height: number) {
-    this.skillsContainer = this.add.container(10, height - 45);
+    // Position container to accommodate potential second row
+    this.skillsContainer = this.add.container(10, height - 50);
     this.skillsContainer.setDepth(10);
     this.hudContainer.add(this.skillsContainer);
 
-    const iconSize = 22;
-    const iconSpacing = 26;
+    const iconSize = 16;
+    const iconSpacing = 19;
+    const rowSpacing = 20;
 
     // Pre-create skill slots (hidden by default)
     this.skillSlots = [];
     for (let i = 0; i < this.MAX_SKILL_DISPLAY; i++) {
-      const x = i * iconSpacing;
+      const row = Math.floor(i / this.SKILLS_PER_ROW);
+      const col = i % this.SKILLS_PER_ROW;
+      const x = col * iconSpacing;
+      const y = row * rowSpacing;
 
       // Background graphics (reusable)
       const iconBg = this.add.graphics();
@@ -427,22 +433,22 @@ export default class UIScene extends Phaser.Scene {
       this.skillsContainer.add(iconBg);
 
       // Icon image (null until needed)
-      const icon = this.add.image(x, 0, "abilityAttackBoost"); // Placeholder texture
-      icon.setDisplaySize(iconSize - 4, iconSize - 4);
+      const icon = this.add.image(x, y, "abilityAttackBoost"); // Placeholder texture
+      icon.setDisplaySize(iconSize - 2, iconSize - 2);
       icon.setVisible(false);
       this.skillsContainer.add(icon);
 
       // Level badge (null until needed)
-      const badgeX = x + iconSize / 2 - 5;
-      const badgeY = iconSize / 2 - 5;
-      const badge = this.add.circle(badgeX, badgeY, 6, 0x000000, 0.9);
+      const badgeX = x + iconSize / 2 - 4;
+      const badgeY = y + iconSize / 2 - 4;
+      const badge = this.add.circle(badgeX, badgeY, 5, 0x000000, 0.9);
       badge.setVisible(false);
       this.skillsContainer.add(badge);
 
       // Level text
       const levelText = this.add
         .text(badgeX, badgeY, "", {
-          fontSize: "8px",
+          fontSize: "7px",
           color: "#ffffff",
           fontStyle: "bold",
         })
@@ -453,10 +459,10 @@ export default class UIScene extends Phaser.Scene {
       this.skillSlots.push({ bg: iconBg, icon, badge, levelText });
     }
 
-    // Pre-create overflow text
+    // Pre-create overflow text (for edge case if even 36 skills is exceeded)
     this.skillOverflowText = this.add
-      .text(this.MAX_SKILL_DISPLAY * iconSpacing, 0, "", {
-        fontSize: "11px",
+      .text(this.SKILLS_PER_ROW * iconSpacing, rowSpacing, "", {
+        fontSize: "10px",
         color: "#888888",
       })
       .setOrigin(0, 0.5);
@@ -904,8 +910,9 @@ export default class UIScene extends Phaser.Scene {
    * Optimized: Reuses pre-created objects instead of destroying/recreating
    */
   private updateSkillsBar(abilities: AcquiredAbility[]) {
-    const iconSize = 22;
-    const iconSpacing = 26;
+    const iconSize = 16;
+    const iconSpacing = 19;
+    const rowSpacing = 20;
 
     // Update each pre-created slot
     for (let index = 0; index < this.MAX_SKILL_DISPLAY; index++) {
@@ -916,22 +923,25 @@ export default class UIScene extends Phaser.Scene {
       const abilityData = acquired ? ABILITIES.find((a) => a.id === acquired.id) : null;
 
       if (acquired && abilityData) {
-        const x = index * iconSpacing;
+        const row = Math.floor(index / this.SKILLS_PER_ROW);
+        const col = index % this.SKILLS_PER_ROW;
+        const x = col * iconSpacing;
+        const y = row * rowSpacing;
 
         // Update background graphics
         slot.bg.clear();
         slot.bg.fillStyle(0x000000, 0.6);
-        slot.bg.fillRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
+        slot.bg.fillRoundedRect(x - iconSize / 2, y - iconSize / 2, iconSize, iconSize, 3);
         slot.bg.lineStyle(1, abilityData.color, 0.8);
-        slot.bg.strokeRoundedRect(x - iconSize / 2, -iconSize / 2, iconSize, iconSize, 4);
+        slot.bg.strokeRoundedRect(x - iconSize / 2, y - iconSize / 2, iconSize, iconSize, 3);
         slot.bg.setVisible(true);
 
         // Update icon
         if (slot.icon) {
           if (this.textures.exists(abilityData.iconKey)) {
             slot.icon.setTexture(abilityData.iconKey);
-            slot.icon.setPosition(x, 0);
-            slot.icon.setDisplaySize(iconSize - 4, iconSize - 4);
+            slot.icon.setPosition(x, y);
+            slot.icon.setDisplaySize(iconSize - 2, iconSize - 2);
             slot.icon.setVisible(true);
           } else {
             slot.icon.setVisible(false);
@@ -940,8 +950,8 @@ export default class UIScene extends Phaser.Scene {
 
         // Update level badge (only if > 1)
         if (acquired.level > 1) {
-          const badgeX = x + iconSize / 2 - 5;
-          const badgeY = iconSize / 2 - 5;
+          const badgeX = x + iconSize / 2 - 4;
+          const badgeY = y + iconSize / 2 - 4;
 
           if (slot.badge) {
             slot.badge.setPosition(badgeX, badgeY);
