@@ -17,7 +17,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: "front_arrow",
     name: "Front Arrow +1",
-    description: "-15% damage",
+    description: "+1 arrow",
     color: 0x44aaff,
     iconKey: "abilityFrontArrow",
   },

@@ -209,27 +209,12 @@ describe("PlayerStats", () => {
         expect(stats.getExtraProjectiles()).toBe(3);
       });
 
-      it("applies 15% damage penalty per extra projectile", () => {
+      it("does not affect damage", () => {
         const baseDamage = stats.getDamage(); // 10
         stats.addFrontArrow();
-        expect(stats.getDamage()).toBe(Math.floor(baseDamage * 0.85)); // 8
-      });
-
-      it("compounds damage penalty correctly", () => {
-        // 0 arrows: 10
-        expect(stats.getDamage()).toBe(10);
-
-        // 1 arrow: 10 * 0.85 = 8.5 -> 8
         stats.addFrontArrow();
-        expect(stats.getDamage()).toBe(8);
-
-        // 2 arrows: 10 * 0.85^2 = 7.225 -> 7
         stats.addFrontArrow();
-        expect(stats.getDamage()).toBe(7);
-
-        // 3 arrows: 10 * 0.85^3 = 6.14125 -> 6
-        stats.addFrontArrow();
-        expect(stats.getDamage()).toBe(6);
+        expect(stats.getDamage()).toBe(baseDamage); // still 10
       });
     });
 
@@ -309,14 +294,14 @@ describe("PlayerStats", () => {
     });
 
     describe("Combined Abilities", () => {
-      it("Front Arrow penalty applies with Attack Boost", () => {
+      it("Front Arrow does not affect Attack Boost damage", () => {
         // Attack Boost: 10 * 1.30 = 13
         stats.addDamageBoost(0.3);
         expect(stats.getDamage()).toBe(13);
 
-        // Add Front Arrow: 10 * 1.30 * 0.85 = 11.05 -> 11
+        // Add Front Arrow: damage unchanged at 13
         stats.addFrontArrow();
-        expect(stats.getDamage()).toBe(11);
+        expect(stats.getDamage()).toBe(13);
       });
 
       it("Multishot penalty applies with Attack Speed Boost", () => {
@@ -331,14 +316,14 @@ describe("PlayerStats", () => {
 
       it("all 4 abilities stack together correctly", () => {
         // Add all abilities
-        stats.addFrontArrow(); // -15% damage
-        stats.addFrontArrow(); // another -15%
+        stats.addFrontArrow(); // +1 arrow (no damage penalty)
+        stats.addFrontArrow(); // +1 arrow (no damage penalty)
         stats.addMultishot(); // -10% attack speed
         stats.addAttackSpeedBoost(0.25); // +25% attack speed
         stats.addDamageBoost(0.3); // +30% damage
 
-        // Damage: 10 * 1.30 * 0.85^2 = 10 * 1.30 * 0.7225 = 9.3925 -> 9
-        expect(stats.getDamage()).toBe(9);
+        // Damage: 10 * 1.30 = 13 (front arrow has no penalty)
+        expect(stats.getDamage()).toBe(13);
 
         // Attack speed: 1.0 * 1.25 * 0.90 = 1.125
         expect(stats.getAttackSpeed()).toBeCloseTo(1.125);
@@ -349,8 +334,8 @@ describe("PlayerStats", () => {
           stats.addFrontArrow();
         }
         expect(stats.getExtraProjectiles()).toBe(5);
-        // 10 * 0.85^5 = 4.437... -> 4
-        expect(stats.getDamage()).toBe(4);
+        // Front arrow has no damage penalty
+        expect(stats.getDamage()).toBe(10);
 
         for (let i = 0; i < 5; i++) {
           stats.addAttackSpeedBoost(0.25);
@@ -700,8 +685,8 @@ describe("PlayerStats", () => {
       expect(snapshot.fireDamagePercent).toBeCloseTo(0.18);
       expect(snapshot.critChance).toBeCloseTo(0.1);
       expect(snapshot.critDamageMultiplier).toBeCloseTo(2.1);
-      // 10 * 1.30 * 0.85 = 11.05 -> 11
-      expect(snapshot.damage).toBe(11);
+      // 10 * 1.30 = 13 (no front arrow penalty)
+      expect(snapshot.damage).toBe(13);
       expect(snapshot.attackSpeed).toBeCloseTo(1.0);
     });
   });
