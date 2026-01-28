@@ -14,6 +14,7 @@ export interface LevelUpData {
   playerLevel: number;
   abilityLevels?: Record<string, number>; // Current level of each ability
   hasExtraLife?: boolean; // Whether player currently has an extra life available
+  rerollsAvailable?: number; // Number of rerolls available (accumulates if not used)
 }
 
 export default class LevelUpScene extends Phaser.Scene {
@@ -26,7 +27,7 @@ export default class LevelUpScene extends Phaser.Scene {
   private isDebugMode: boolean = false;
   private scrollContainer?: ScrollContainer;
   private pointerDownPositions: Map<number, { x: number; y: number }> = new Map();
-  private hasUsedReroll: boolean = false;
+  private rerollsRemaining: number = 1;
   private rerollButton?: Phaser.GameObjects.Container;
 
   constructor() {
@@ -40,7 +41,7 @@ export default class LevelUpScene extends Phaser.Scene {
     this.abilityLevels = data.abilityLevels ?? {};
     this.hasExtraLife = data.hasExtraLife ?? false;
     this.scrollContainer = undefined;
-    this.hasUsedReroll = false;
+    this.rerollsRemaining = data.rerollsAvailable ?? 1;
     this.rerollButton = undefined;
   }
 
@@ -221,9 +222,9 @@ export default class LevelUpScene extends Phaser.Scene {
     bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
     container.add(bg);
 
-    // Button text
+    // Button text - show accumulated count
     const text = this.add
-      .text(0, 0, "Reroll (1)", {
+      .text(0, 0, `Reroll (${this.rerollsRemaining})`, {
         fontSize: "14px",
         color: "#ffffff",
         fontStyle: "bold",
@@ -238,7 +239,7 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Hover effects
     hitArea.on("pointerover", () => {
-      if (this.hasUsedReroll) return;
+      if (this.rerollsRemaining <= 0) return;
       this.tweens.add({
         targets: container,
         scale: 1.05,
@@ -253,7 +254,7 @@ export default class LevelUpScene extends Phaser.Scene {
     });
 
     hitArea.on("pointerout", () => {
-      if (this.hasUsedReroll) return;
+      if (this.rerollsRemaining <= 0) return;
       this.tweens.add({
         targets: container,
         scale: 1,
@@ -269,7 +270,7 @@ export default class LevelUpScene extends Phaser.Scene {
 
     // Click handler
     hitArea.on("pointerdown", () => {
-      if (this.hasUsedReroll || this.isSelecting) return;
+      if (this.rerollsRemaining <= 0 || this.isSelecting) return;
       this.rerollAbilities();
     });
 
@@ -278,30 +279,33 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   private rerollAbilities() {
-    this.hasUsedReroll = true;
+    this.rerollsRemaining--;
 
     // Play button click sound
     audioManager.playAbilitySelect();
 
-    // Update button appearance to disabled state
+    // Update button appearance
     if (this.rerollButton) {
       const bg = this.rerollButton.getAt(0) as Phaser.GameObjects.Graphics;
       const text = this.rerollButton.getAt(1) as Phaser.GameObjects.Text;
       const hitArea = this.rerollButton.getAt(2) as Phaser.GameObjects.Rectangle;
 
-      // Disable interaction
-      hitArea.disableInteractive();
+      if (this.rerollsRemaining <= 0) {
+        // No rerolls left - disable button
+        hitArea.disableInteractive();
+        text.setText("No rerolls");
+        text.setColor("#666666");
 
-      // Update text
-      text.setText("Rerolled");
-      text.setColor("#666666");
-
-      // Update background to disabled look
-      bg.clear();
-      bg.fillStyle(0x2a2a3a, 1);
-      bg.fillRoundedRect(-60, -18, 120, 36, 8);
-      bg.lineStyle(2, 0x4a4a5a, 1);
-      bg.strokeRoundedRect(-60, -18, 120, 36, 8);
+        // Update background to disabled look
+        bg.clear();
+        bg.fillStyle(0x2a2a3a, 1);
+        bg.fillRoundedRect(-60, -18, 120, 36, 8);
+        bg.lineStyle(2, 0x4a4a5a, 1);
+        bg.strokeRoundedRect(-60, -18, 120, 36, 8);
+      } else {
+        // Still have rerolls - update count
+        text.setText(`Reroll (${this.rerollsRemaining})`);
+      }
     }
 
     // Animate cards out
@@ -806,13 +810,20 @@ export default class LevelUpScene extends Phaser.Scene {
       console.log("LevelUpScene: Finishing selection");
       // Emit event FIRST before stopping scene to ensure it's always delivered
       // Stopping the scene triggers shutdown() which could interfere with event emission
-      this.game.events.emit("abilitySelected", abilityId);
+      // Include remaining rerolls so they can be carried over to next level-up
+      this.game.events.emit("abilitySelected", {
+        abilityId,
+        rerollsRemaining: this.rerollsRemaining,
+      });
       this.scene.stop("LevelUpScene");
     } catch (error) {
       console.error("LevelUpScene: Error in finishSelection:", error);
       // Try to emit the event even on error to prevent soft-lock
       try {
-        this.game.events.emit("abilitySelected", abilityId);
+        this.game.events.emit("abilitySelected", {
+          abilityId,
+          rerollsRemaining: this.rerollsRemaining,
+        });
       } catch (emitError) {
         console.error("LevelUpScene: Error emitting event:", emitError);
       }
