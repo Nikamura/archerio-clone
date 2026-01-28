@@ -82,10 +82,13 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | ------------ | ---------------------------------- | --------- | ----------------------- |
 | Ascetic      | +200% XP gain (3x multiplier)      | 1         | Blocks ALL healing      |
 | Horde Magnet | +50% enemies, +100% XP per level   | —         | Greatly increased difficulty |
+| Glass Cannon | +100% damage, +100% attack speed, +10% crit | 1 | Caps base HP at 100 |
 
 **Ascetic**: High-risk glass cannon build. All healing is disabled (potions, Bloodthirst, talents). Rewards skilled play with 3x XP for rapid progression. Cannot be stacked (maxLevel: 1).
 
 **Horde Magnet**: Stackable challenge modifier. Each level adds +50% enemy count and +100% XP gain (2x, 3x, 4x...). Multiplicative with Ascetic (e.g., Ascetic + Horde Magnet L3 = 12x XP). Can be taken infinitely for extreme challenge runs.
+
+**Glass Cannon**: Trades HP for offensive power. Caps base HP at 100 (removing equipment/difficulty bonuses), but grants massive offensive boosts: +100% damage, +100% attack speed, and +10% crit chance. Vitality and other in-run HP abilities can still increase HP beyond the base 100. Cannot be stacked (maxLevel: 1).
 
 ### Devil Abilities (HP Cost)
 

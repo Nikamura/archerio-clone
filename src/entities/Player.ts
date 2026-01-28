@@ -300,6 +300,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.isAsceticEnabled() ?? false;
   }
 
+  isGlassCannonEnabled(): boolean {
+    return this.stats?.isGlassCannonEnabled() ?? false;
+  }
+
+  addGlassCannon() {
+    this.stats?.addGlassCannon();
+  }
+
   getHordeMagnetLevel(): number {
     return this.stats?.getHordeMagnetLevel() ?? 0;
   }
