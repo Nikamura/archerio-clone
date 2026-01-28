@@ -882,8 +882,8 @@ export class PlayerStats {
    * Add Glass Cannon ability (cap base HP at 100, gain offensive bonuses)
    * Non-stacking: Only need one level
    * Trade-off: Lose any bonus HP from equipment/difficulty, but gain:
-   * - +25% damage
-   * - +25% attack speed
+   * - +100% damage
+   * - +100% attack speed
    * - +10% crit chance
    * Note: Vitality and other in-run HP abilities still work on top of the base 100
    */
@@ -903,8 +903,8 @@ export class PlayerStats {
     }
 
     // Apply offensive bonuses
-    this.damageMultiplier *= 1.25; // +25% damage
-    this.attackSpeedMultiplier *= 1.25; // +25% attack speed
+    this.damageMultiplier *= 2.0; // +100% damage
+    this.attackSpeedMultiplier *= 2.0; // +100% attack speed
     this.critChance = Math.min(1, this.critChance + 0.1); // +10% crit chance
   }
 

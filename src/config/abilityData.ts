@@ -251,7 +251,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: "glass_cannon",
     name: "Glass Cannon",
-    description: "Cap base HP at 100, +25% dmg/speed/crit",
+    description: "Cap base HP at 100, +100% dmg/speed, +10% crit",
     color: 0xff00ff,
     iconKey: "abilityGlassCannon",
     maxLevel: 1, // Non-stacking ability
