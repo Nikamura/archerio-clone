@@ -63,6 +63,7 @@ export class LevelUpSystem {
 
   private _isLevelingUp: boolean = false;
   private availableRerolls: number = 0; // Accumulated rerolls (starts at 0, +1 per level-up)
+  private static readonly MAX_REROLLS = 3; // Maximum unused rerolls that can stack
 
   constructor(config: LevelUpSystemConfig) {
     this.scene = config.scene;
@@ -108,8 +109,10 @@ export class LevelUpSystem {
     audioManager.playLevelUp();
     hapticManager.levelUp();
 
-    // Add a reroll for this level-up (accumulates if not used)
-    this.availableRerolls++;
+    // Add a reroll for this level-up (accumulates if not used, up to max)
+    if (this.availableRerolls < LevelUpSystem.MAX_REROLLS) {
+      this.availableRerolls++;
+    }
 
     // Mark player as leveling up (immune to damage during selection)
     this._isLevelingUp = true;
