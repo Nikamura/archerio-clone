@@ -516,6 +516,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.stats?.getShieldBarrierMaxPercent() ?? 0;
   }
 
+  getShieldBarrierFlatAmount(): number {
+    return this.stats?.getShieldBarrierFlatAmount() ?? 0;
+  }
+
   getShieldBarrierRegenRate(): number {
     return this.stats?.getShieldBarrierRegenRate() ?? 0;
   }

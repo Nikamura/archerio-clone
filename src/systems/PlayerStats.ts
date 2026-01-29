@@ -466,6 +466,17 @@ export class PlayerStats {
   }
 
   /**
+   * Get flat shield barrier HP for Glass Cannon builds
+   * When Glass Cannon is enabled, use flat values instead of percentage:
+   * Level 1 = 100, Level 2 = 150, Level 3 = 200
+   * This prevents shield from being useless when HP is capped at 100
+   */
+  getShieldBarrierFlatAmount(): number {
+    if (this.shieldBarrierLevel <= 0) return 0;
+    return 50 + this.shieldBarrierLevel * 50; // 100, 150, 200
+  }
+
+  /**
    * Get shield barrier regen rate (% of max shield per second)
    * Level 1 = 5%, Level 2 = 7%, Level 3 = 10%
    */
