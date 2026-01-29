@@ -636,6 +636,7 @@ export class PlayerStats {
 
   /**
    * Add Multishot ability (+1 side projectile pair at 45 degrees)
+   * No attack speed penalty
    */
   addMultishot(): void {
     this.multishotCount++;
