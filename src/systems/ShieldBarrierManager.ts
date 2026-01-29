@@ -38,7 +38,13 @@ export class ShieldBarrierManager {
     const shieldPercent = this.player.getShieldBarrierMaxPercent();
     const playerMaxHealth = this.player.getMaxHealth();
 
-    this.maxShield = Math.floor(playerMaxHealth * shieldPercent);
+    // For Glass Cannon builds, use flat shield values to prevent shield from being useless
+    // when HP is capped at 100. Use whichever is higher: percentage-based or flat amount.
+    const percentBasedShield = Math.floor(playerMaxHealth * shieldPercent);
+    const flatShield = this.player.isGlassCannonEnabled()
+      ? this.player.getShieldBarrierFlatAmount()
+      : 0;
+    this.maxShield = Math.max(percentBasedShield, flatShield);
     this.regenRate = this.player.getShieldBarrierRegenRate();
 
     // On first acquisition, start with full shield and initialize regen timer
