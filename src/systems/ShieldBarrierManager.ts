@@ -59,6 +59,14 @@ export class ShieldBarrierManager {
    * @returns remaining damage after shield absorption
    */
   absorbDamage(damage: number): number {
+    // Safety check: if player has shield level but maxShield is 0, force update
+    // This handles the timing issue where damage can occur before update() runs
+    // (physics collisions fire before scene update, so shield may not be initialized)
+    const currentLevel = this.player.getShieldBarrierLevel();
+    if (currentLevel > 0 && this.maxShield <= 0) {
+      this.updateShieldStats();
+    }
+
     if (this.maxShield <= 0 || this.currentShield <= 0) {
       return damage;
     }
