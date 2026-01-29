@@ -24,7 +24,7 @@ export const ABILITIES: AbilityData[] = [
   {
     id: "multishot",
     name: "Multishot",
-    description: "-10% attack speed",
+    description: "+2 side arrows",
     color: 0xff6644,
     iconKey: "abilityMultishot",
   },

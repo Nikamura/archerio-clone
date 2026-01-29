@@ -9,7 +9,7 @@ Abilities are gained during runs through level-ups and angel rooms. Players leve
 | Ability            | Effect                                 | Penalty                   |
 | ------------------ | -------------------------------------- | ------------------------- |
 | Front Arrow +1     | Additional forward projectile          | None                      |
-| Multishot          | Multiple projectiles in spread pattern | -10% attack speed         |
+| Multishot          | +2 side projectiles at 45° angles      | None                      |
 | Attack Speed Boost | +25% attack speed                      | None                      |
 | Attack Boost       | +30% damage                            | None                      |
 | Piercing Shot      | Arrows pass through enemies            | -33% damage per enemy hit |

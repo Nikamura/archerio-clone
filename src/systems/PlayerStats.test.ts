@@ -231,23 +231,12 @@ describe("PlayerStats", () => {
         expect(stats.getMultishotCount()).toBe(2);
       });
 
-      it("applies 10% attack speed penalty per level", () => {
+      it("does not affect attack speed", () => {
         const baseSpeed = stats.getAttackSpeed(); // 1.0
         stats.addMultishot();
-        expect(stats.getAttackSpeed()).toBeCloseTo(baseSpeed * 0.9);
-      });
-
-      it("compounds attack speed penalty correctly", () => {
-        // 0 multishot: 1.0
-        expect(stats.getAttackSpeed()).toBeCloseTo(1.0);
-
-        // 1 multishot: 1.0 * 0.90 = 0.90
+        expect(stats.getAttackSpeed()).toBeCloseTo(baseSpeed);
         stats.addMultishot();
-        expect(stats.getAttackSpeed()).toBeCloseTo(0.9);
-
-        // 2 multishot: 1.0 * 0.90^2 = 0.81
-        stats.addMultishot();
-        expect(stats.getAttackSpeed()).toBeCloseTo(0.81);
+        expect(stats.getAttackSpeed()).toBeCloseTo(baseSpeed);
       });
     });
 
@@ -304,29 +293,29 @@ describe("PlayerStats", () => {
         expect(stats.getDamage()).toBe(13);
       });
 
-      it("Multishot penalty applies with Attack Speed Boost", () => {
+      it("Multishot does not affect Attack Speed Boost", () => {
         // Attack Speed Boost: 1.0 * 1.25 = 1.25
         stats.addAttackSpeedBoost(0.25);
         expect(stats.getAttackSpeed()).toBeCloseTo(1.25);
 
-        // Add Multishot: 1.25 * 0.90 = 1.125
+        // Add Multishot: no penalty, attack speed unchanged at 1.25
         stats.addMultishot();
-        expect(stats.getAttackSpeed()).toBeCloseTo(1.125);
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.25);
       });
 
       it("all 4 abilities stack together correctly", () => {
         // Add all abilities
         stats.addFrontArrow(); // +1 arrow (no damage penalty)
         stats.addFrontArrow(); // +1 arrow (no damage penalty)
-        stats.addMultishot(); // -10% attack speed
+        stats.addMultishot(); // +2 side arrows (no penalty)
         stats.addAttackSpeedBoost(0.25); // +25% attack speed
         stats.addDamageBoost(0.3); // +30% damage
 
         // Damage: 10 * 1.30 = 13 (front arrow has no penalty)
         expect(stats.getDamage()).toBe(13);
 
-        // Attack speed: 1.0 * 1.25 * 0.90 = 1.125
-        expect(stats.getAttackSpeed()).toBeCloseTo(1.125);
+        // Attack speed: 1.0 * 1.25 = 1.25 (multishot has no penalty)
+        expect(stats.getAttackSpeed()).toBeCloseTo(1.25);
       });
 
       it("stacking same ability 5 times works", () => {
