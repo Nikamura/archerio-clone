@@ -419,8 +419,8 @@ export class RoomManager {
     this.endlessWave++;
     this.currentRoom = 1;
 
-    // Exponential scaling: difficulty increases 1.5x each wave
-    this.endlessDifficultyMultiplier = Math.pow(1.5, this.endlessWave - 1);
+    // Exponential scaling: difficulty increases 1.25x each wave (reduced from 1.5x for better late-game balance)
+    this.endlessDifficultyMultiplier = Math.pow(1.25, this.endlessWave - 1);
 
     // Update chapter based on wave number for progressive difficulty
     const newChapter = getChapterForWave(this.endlessWave);

@@ -547,7 +547,7 @@ export const CHAPTER_DEFINITIONS: Record<ChapterId, ChapterDefinition> = {
       enemyHpMultiplier: 35.0, // Increased for balance (was 30x)
       enemyDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
       extraEnemiesPerRoom: 4, // More enemies for challenge
-      bossHpMultiplier: 45.0, // Increased for balance (was 40x)
+      bossHpMultiplier: 30.0, // Reduced for late-game balance (was 45x)
       bossDamageMultiplier: 2.4, // Increased for balance (was 2.2x)
       xpMultiplier: 1.0, // Normalized XP (no bonus to prevent snowballing)
       // Chapter 5: Shadow Realm - balanced resistances (shadow creatures)
