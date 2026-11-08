@@ -168,3 +168,11 @@ Key events emitted via `game.events`:
 | `debugSkipLevel` | none | Debug: skip current room |
 | `playerRespawn` | `RespawnRoomState` | Player respawns after watching ad |
 | `quitFromPause` | none | Player quits from pause menu |
+
+## Web analytics and delivery (2026-11-08)
+
+The web build uses GoatCounter at `/stats/count`, loaded from `/stats/count.js`.
+The `/stats/` dashboard requires homelab admin Google OAuth. GitHub Pages remains
+the deployment and static origin; Caddy fronts aura-archer.cn.lt, routes /stats
+locally, and proxies other requests to GitHub Pages without forwarding browser
+cookies or Authorization. Routes live in homelab-maint stacks/goatcounter.
