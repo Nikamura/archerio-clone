@@ -75,6 +75,14 @@ class ErrorReportingManager {
 
         // Add game context to every error
         beforeSend: (event) => {
+          // Drop errors raised entirely inside injected/eval'd code (browser
+          // extensions, headless-bot stealth patches), e.g. a self-wrapping
+          // WebGLRenderingContext.getParameter overflow (ARROW-GAME-2V).
+          const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+          if (frames.length > 0 && frames.every((f) => f.filename === "<anonymous>")) {
+            return null;
+          }
+
           // Add game-specific context
           event.contexts = {
             ...event.contexts,
